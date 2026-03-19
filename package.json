@@ -16,6 +16,7 @@
     "deploy": "tsc && cdk deploy -c @envFile=env/config.json",
     "test:admin:guards": "ts-node scripts/admin-guards-smoke.ts",
     "smoke:admin:graphql": "ts-node scripts/admin-graphql-smoke.ts",
+    "test:generation": "node --test -r ts-node/register scripts/generation.test.ts",
     "admin:dev": "yarn workspace @apps/admin-web dev",
     "admin:build": "yarn workspace @apps/admin-web build",
     "admin:start": "yarn workspace @apps/admin-web start",

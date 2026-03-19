@@ -1,0 +1,36 @@
+{
+  "videoTitle": "Why watchtowers stayed awake after midnight",
+  "language": "en",
+  "scenes": [
+    {
+      "sceneId": 1,
+      "durationSec": 7,
+      "narration": "After midnight, the outer wall sounded louder than the city itself.",
+      "imagePrompt": "moonlit Joseon watchtower above a silent city wall, cold blue haze, cinematic detail",
+      "videoPrompt": "slow push toward a moonlit Joseon watchtower, drifting night fog, cinematic",
+      "subtitle": "The wall sounded louder at midnight.",
+      "bgmMood": "dark_ambient",
+      "sfx": ["night_wind"]
+    },
+    {
+      "sceneId": 2,
+      "durationSec": 8,
+      "narration": "Guards listened for footsteps, bells, and anything that moved against the dark.",
+      "imagePrompt": "Korean night guard listening from a high wooden watchtower, lantern glow, tense atmosphere",
+      "videoPrompt": "gentle pan across a lantern-lit watchtower with a guard scanning the darkness",
+      "subtitle": "Guards listened for the dark to move.",
+      "bgmMood": "dark_ambient",
+      "sfx": ["distant_bell", "soft_steps"]
+    },
+    {
+      "sceneId": 3,
+      "durationSec": 7,
+      "narration": "That silence was not empty. It was the sound of waiting for trouble first.",
+      "imagePrompt": "silent fortress wall before dawn, tense stillness, faint lantern light, cinematic realism",
+      "videoPrompt": "slow dolly along a silent fortress wall before dawn, subtle lantern flicker",
+      "subtitle": "Silence meant waiting for trouble.",
+      "bgmMood": "dark_ambient",
+      "sfx": ["low_rumble"]
+    }
+  ]
+}

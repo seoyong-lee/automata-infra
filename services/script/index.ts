@@ -6,7 +6,7 @@ import { buildSceneJson, SceneJsonResult } from "./usecase/build-scene-json";
 import { TopicPlanResult } from "../topic/usecase/create-topic-plan";
 
 export const run: Handler<TopicPlanResult, SceneJsonResult> = async (event) => {
-  const sceneJson = buildSceneJson(event);
+  const sceneJson = await buildSceneJson(event);
   const sceneJsonS3Key = getSceneJsonKey(event.jobId);
   await persistSceneJson({
     jobId: event.jobId,

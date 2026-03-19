@@ -24,7 +24,7 @@ type RenderPlanEvent = {
   }>;
 };
 
-const buildScenes = (
+export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
 ): { totalDurationSec: number; scenes: Array<Record<string, unknown>> } => {
   let cursorSec = 0;
@@ -80,7 +80,7 @@ export const run: Handler<
   RenderPlanEvent,
   RenderPlanEvent & { renderPlan: unknown; status: string }
 > = async (event) => {
-  const builtScenes = buildScenes(event);
+  const builtScenes = buildRenderPlanScenes(event);
   const renderPlan = {
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
