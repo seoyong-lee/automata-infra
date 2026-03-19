@@ -141,10 +141,18 @@ export class WorkflowStack extends Stack {
       lambdaFunction: lambdas.uploadWorker,
       payloadResponseOnly: true,
     });
+    const collectMetrics = new tasks.LambdaInvoke(this, "CollectMetrics", {
+      lambdaFunction: lambdas.metricsCollector,
+      payloadResponseOnly: true,
+    });
+    const workflowComplete = new sfn.Succeed(this, "WorkflowComplete");
 
     const reviewDecision = new sfn.Choice(this, "ReviewDecision");
     const regenerationScope = new sfn.Choice(this, "RegenerationScope");
     const rejected = new sfn.Succeed(this, "Rejected");
+    const uploadAndCollectMetrics = sfn.Chain.start(uploadYoutube)
+      .next(collectMetrics)
+      .next(workflowComplete);
 
     const definition = planTopic
       .next(buildSceneJson)
@@ -159,7 +167,7 @@ export class WorkflowStack extends Stack {
         reviewDecision
           .when(
             sfn.Condition.stringEquals("$.reviewDecision.action", "approve"),
-            uploadYoutube,
+            uploadAndCollectMetrics,
           )
           .when(
             sfn.Condition.stringEquals("$.reviewDecision.action", "regenerate"),

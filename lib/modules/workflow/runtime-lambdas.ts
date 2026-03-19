@@ -19,6 +19,7 @@ export type WorkflowLambdas = {
   finalComposition: nodejs.NodejsFunction;
   reviewRequest: nodejs.NodejsFunction;
   uploadWorker: nodejs.NodejsFunction;
+  metricsCollector: nodejs.NodejsFunction;
 };
 
 type CreateWorkflowLambdasProps = {
@@ -131,6 +132,12 @@ export const createWorkflowLambdas = (
       scope,
       "UploadWorkerLambda",
       path.join(process.cwd(), "services/publish/upload-worker/handler.ts"),
+      environment,
+    ),
+    metricsCollector: createLambda(
+      scope,
+      "WorkflowMetricsCollectorLambda",
+      path.join(process.cwd(), "services/publish/metrics/handler.ts"),
       environment,
     ),
   };

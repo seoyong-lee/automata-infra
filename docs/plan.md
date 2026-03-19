@@ -550,6 +550,13 @@ services/image/requestSceneImage/
 - script/scene 결과가 image/video/voice/render plan으로 이어질 때 계약이 깨지지 않는지 통합 검증한다
 - 운영 프롬프트 변경 전후 비교를 위해 회귀 테스트 셋을 유지한다
 
+### 9.5 LLM 설정 저장소와 운영 UI
+
+- 단계별 LLM 설정은 파일 기본값을 두되, runtime에서는 DynamoDB 기반 설정 저장소를 우선 조회한다
+- admin GraphQL/API와 admin web settings 화면을 통해 `provider`, `model`, `temperature`, `prompt version`, prompt 본문을 수정할 수 있어야 한다
+- 설정이 비어 있으면 코드 기본값을 fallback으로 사용해 배포 직후에도 동작 가능해야 한다
+- workflow Lambda는 공통 `CONFIG_TABLE_NAME` 환경변수를 통해 설정 저장소에 접근한다
+
 ---
 
 ## 10. 단계별 워크플로우
@@ -568,6 +575,7 @@ services/image/requestSceneImage/
 10. `CollectMetrics`
 
 `PlanTopic`, `BuildSceneJson`, review metadata 보정 단계는 동일 모델을 강제하지 않고 단계별 최적 모델을 선택할 수 있어야 한다.
+현재 자동 시작은 EventBridge rule 기반으로 두고, 필요 시 EventBridge Scheduler로 교체 가능한 구조를 유지한다.
 
 ### 10.2 장면별 병렬 처리
 
@@ -875,6 +883,8 @@ s3://automata-studio/
 - script/result generation 테스트 환경 구축
 - prompt regression test dataset 구축
 - 단계별 최적 LLM 모델 평가와 운영 파라미터 정리
+- admin 기반 LLM 설정 편집 경로 안정화
+- workflow 시작 schedule과 `CollectMetrics` 최종 흐름 안정화
 - 비용 대시보드
 - Fargate composition 옵션 추가
 

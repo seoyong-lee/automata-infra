@@ -1,9 +1,3 @@
-import { Handler } from "aws-lambda";
+import { run } from "./index";
 
-export const handler: Handler = async () => {
-  return {
-    ok: true,
-    collectedAt: new Date().toISOString(),
-    status: "METRICS_COLLECTED",
-  };
-};
+export const handler = run;

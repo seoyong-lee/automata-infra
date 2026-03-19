@@ -17,9 +17,9 @@
 - `[x]` `apps/admin-web`, `packages/*` 기반 admin client 구조 추가
 - `[x]` `package.json`, `tsconfig.json`, `eslint` 설정 존재
 - `[x]` `build`, `lint`, `synth`, `diff`, `deploy` 스크립트 존재
-- `[~]` 테스트 스크립트는 일부 smoke 수준만 존재
-- `[ ]` 자동 테스트 파일(unit/integration) 체계화
-- `[ ]` script/scene 생성과 후속 산출물 검증용 테스트 환경 구축
+- `[~]` 테스트 스크립트는 smoke + generation contract 수준까지 존재
+- `[~]` 자동 테스트 파일(unit/integration) 체계화
+- `[x]` script/scene 생성과 후속 산출물 검증용 테스트 환경 구축
 
 ## 2. CDK / 인프라 스택
 
@@ -44,7 +44,7 @@
 - `[x]` SQS queue 세트 생성
 - `[x]` workflow Lambda 리소스 생성
 - `[x]` Step Functions state machine 생성
-- `[ ]` EventBridge Scheduler에서 workflow 시작
+- `[~]` EventBridge rule 기반 workflow 자동 시작 존재 (`Scheduler` 전환은 미구현)
 - `[ ]` DLQ/재시도 운영 알람 연결
 
 ### 2.4 PublishStack
@@ -90,23 +90,23 @@
 
 - `[x]` `services/topic` 런타임 존재
 - `[x]` topic plan S3/DynamoDB 저장
-- `[~]` topic plan 생성 로직은 현재 고정값 기반
+- `[~]` topic plan 생성 로직은 공통 LLM 계층 + mock fallback 기반
 - `[ ]` 실제 topic source 수집
 - `[ ]` topic dedupe 체크
 - `[ ]` 채널 전략 기반 topic scoring
-- `[ ]` topic 단계 LLM provider/model 모듈화
-- `[ ]` DB 조회 기반 prompt template 적용
+- `[x]` topic 단계 LLM provider/model 모듈화
+- `[x]` DB 조회 기반 prompt template 적용
 
 ### 4.2 Scene JSON Build
 
 - `[x]` `services/script` 런타임 존재
 - `[x]` scene JSON S3 저장
 - `[x]` scene item을 DynamoDB에 저장
-- `[~]` scene JSON 생성 로직은 현재 샘플 데이터 고정
-- `[ ]` LLM 기반 script/scene generation
+- `[~]` scene JSON 생성 로직은 공통 LLM 계층 + mock fallback 기반
+- `[~]` LLM 기반 script/scene generation
 - `[ ]` scene count, subtitle length, tone/style 정책 반영
-- `[ ]` scene 단계 LLM provider/model 모듈화
-- `[ ]` DB 조회 기반 prompt template 적용
+- `[x]` scene 단계 LLM provider/model 모듈화
+- `[x]` DB 조회 기반 prompt template 적용
 
 ### 4.3 Image Generation
 
@@ -199,7 +199,7 @@
 
 - `[x]` metrics Lambda 스텁 존재
 - `[x]` schedule rule 존재
-- `[ ]` workflow 내 `CollectMetrics` 단계 연결
+- `[x]` workflow 내 `CollectMetrics` 단계 연결
 - `[ ]` 비용/처리시간/실패율 수집
 - `[ ]` 운영 대시보드 지표 확장
 
@@ -211,7 +211,7 @@
 - `[ ]` `GenerateSceneAssets`를 장면별 `Map` state로 구현
 - `[ ]` wait/poll + SQS fallback 전략 분리
 - `[ ]` 단계별 실패 격리와 부분 재시도 고도화
-- `[ ]` `CollectMetrics`를 포함한 최종 상태 흐름 완성
+- `[~]` `CollectMetrics`를 포함한 최종 상태 흐름 완성
 
 ## 6. Admin API / Admin Web
 
@@ -223,6 +223,8 @@
 - `[x]` `jobTimeline`
 - `[x]` `submitReviewDecision`
 - `[x]` `requestUpload`
+- `[x]` `llmSettings`
+- `[x]` `updateLlmStepSettings`
 - `[x]` Admin 그룹 권한 체크 존재
 - `[x]` resolver audit logging 존재
 - `[ ]` 분석용 query 확장
@@ -230,9 +232,10 @@
 ### 6.2 Admin Web
 
 - `[x]` Next.js app 구조 존재
-- `[x]` login/callback/dashboard/reviews 페이지 존재
+- `[x]` login/callback/dashboard/reviews/settings 페이지 존재
 - `[x]` GraphQL query/mutation hook 존재
 - `[x]` pending review 조회와 approve/reject/upload 요청 UI 존재
+- `[x]` LLM settings 조회/수정 UI 존재
 - `[~]` 운영 UI는 최소 수준
 - `[ ]` job 상세 타임라인 확장
 - `[ ]` 필터/검색/정렬
@@ -246,9 +249,9 @@
 - `[x]` runtime에서 Secrets Manager 조회 지원
 - `[x]` OpenAI / Runway / ElevenLabs / Shotstack wrapper 존재
 - `[~]` secret 미설정 시 mock fallback 위주 운영
-- `[ ]` 공통 LLM adapter 계층 (`Gemini`, `OpenAI`, `Bedrock` 등) 구성
-- `[ ]` 단계별 모델 선택/파라미터 설정 저장소 구성
-- `[ ]` prompt template의 DB 조회/버전 관리 구조 구성
+- `[~]` 공통 LLM adapter 계층 (`Gemini`, `OpenAI`, `Bedrock` 등) 구성
+- `[x]` 단계별 모델 선택/파라미터 설정 저장소 구성
+- `[x]` prompt template의 DB 조회/버전 관리 구조 구성
 - `[ ]` 단계별 최적 모델 평가 기준 수립
 - `[ ]` 실제 provider credential 기반 end-to-end 검증
 - `[ ]` provider rate limit / retry 정책 구체화
@@ -260,28 +263,28 @@
 - `[x]` `yarn lint` 통과
 - `[x]` `yarn admin:typecheck` 통과
 - `[~]` `yarn admin:build`는 client env 미설정 시 실패
-- `[ ]` 단위 테스트
-- `[ ]` 통합 테스트
+- `[~]` 단위 테스트
+- `[~]` 통합 테스트
 - `[ ]` workflow smoke test
 - `[ ]` provider mock/real 분리 테스트
-- `[ ]` prompt regression test dataset
-- `[ ]` script -> scene -> asset -> render plan 계약 회귀 테스트
+- `[x]` prompt regression test dataset
+- `[x]` script -> scene -> asset -> render plan 계약 회귀 테스트
 
 ## 9. 다음 구현 우선순위
 
 ### P1. 워크플로우 완결
 
-- `[ ]` EventBridge Scheduler -> Step Functions 시작점 추가
+- `[~]` EventBridge rule -> Step Functions 시작점 추가
 - `[ ]` 장면별 `Map` state 병렬 처리 추가
 - `[ ]` regenerate 후 `validate -> render-plan -> compose -> review` 재합류 정리
-- `[ ]` `CollectMetrics` 단계 추가
+- `[x]` `CollectMetrics` 단계 추가
 
 ### P2. 실제 생성 로직 연결
 
 - `[ ]` topic planning을 실제 source/LLM 기반으로 전환
-- `[ ]` scene JSON 생성을 LLM 기반으로 전환
-- `[ ]` 단계별 LLM provider/model 교체 가능 구조 도입
-- `[ ]` DB 기반 prompt template 조회/적용 연결
+- `[~]` scene JSON 생성을 LLM 기반으로 전환
+- `[x]` 단계별 LLM provider/model 교체 가능 구조 도입
+- `[x]` DB 기반 prompt template 조회/적용 연결
 - `[ ]` 단계별 최적 모델 후보 (`Gemini`, `OpenAI`, `Bedrock`) 평가
 - `[ ]` topic dedupe와 비용 기록 연결
 
@@ -297,11 +300,11 @@
 - `[ ]` admin web 필터/상세/타임라인 강화
 - `[ ]` title/description/thumbnail 수정 기능
 - `[ ]` partial regeneration 관리 강화
-- `[ ]` 테스트 및 runbook 확장
-- `[ ]` 생성 테스트 환경과 프롬프트 회귀 검증 체계 확장
+- `[~]` 테스트 및 runbook 확장
+- `[~]` 생성 테스트 환경과 프롬프트 회귀 검증 체계 확장
 
 ## 10. 현재 단계 요약
 
 - 현재 상태는 대체로 `Phase 2 완료 + Phase 3/4 일부 구현`으로 볼 수 있다.
-- 골격, 스택, 주요 Lambda 경로, admin GraphQL/API는 갖춰져 있다.
-- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 단계별 LLM/프롬프트 교체 및 테스트 체계를 붙이는 것이다.
+- 골격, 스택, 주요 Lambda 경로, admin GraphQL/API와 LLM settings 관리 경로는 갖춰져 있다.
+- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 다중 LLM provider 실연결과 scene별 병렬 워크플로우를 마무리하는 것이다.
