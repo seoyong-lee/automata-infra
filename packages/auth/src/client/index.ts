@@ -24,7 +24,12 @@ const buildRedirectUri = (): string => {
   return cb.toString();
 };
 
-export const startLogin = (params: { next?: string } = {}) => {
+export const startLogin = (
+  params: {
+    next?: string;
+    identityProvider?: string;
+  } = {},
+) => {
   const { userPoolClientId, userPoolDomain } = getAuthConfig();
   if (params.next && params.next !== "/" && typeof window !== "undefined") {
     sessionStorage.setItem(LOGIN_NEXT_KEY, params.next);
@@ -34,6 +39,9 @@ export const startLogin = (params: { next?: string } = {}) => {
   url.searchParams.set("response_type", "code");
   url.searchParams.set("scope", "openid email profile");
   url.searchParams.set("redirect_uri", buildRedirectUri());
+  if (params.identityProvider) {
+    url.searchParams.set("identity_provider", params.identityProvider);
+  }
   window.location.assign(url.toString());
 };
 

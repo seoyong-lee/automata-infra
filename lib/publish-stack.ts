@@ -174,7 +174,8 @@ export class PublishStack extends Stack {
         props.envConfig.adminUserPoolDomainPrefix ??
         `${props.projectPrefix}-admin-auth`,
       enableSignup: props.envConfig.enableAdminSignup ?? false,
-      reviewUiDomain: props.envConfig.reviewUiDomain,
+      callbackUrls: props.envConfig.adminCallbackUrls ?? [],
+      logoutUrls: props.envConfig.adminLogoutUrls ?? [],
       googleOAuthSecretId: props.envConfig.googleOAuthSecretId,
     });
 

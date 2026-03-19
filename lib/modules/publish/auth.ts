@@ -11,7 +11,8 @@ type CreatePublishAuthProps = {
   projectPrefix: string;
   domainPrefix: string;
   enableSignup: boolean;
-  reviewUiDomain: string;
+  callbackUrls: string[];
+  logoutUrls: string[];
   googleOAuthSecretId?: string;
 };
 
@@ -70,8 +71,8 @@ export const createPublishAuth = (
         cognito.OAuthScope.EMAIL,
         cognito.OAuthScope.PROFILE,
       ],
-      callbackUrls: [`https://${props.reviewUiDomain}/auth/callback`],
-      logoutUrls: [`https://${props.reviewUiDomain}/auth/logout`],
+      callbackUrls: props.callbackUrls,
+      logoutUrls: props.logoutUrls,
     },
   });
 

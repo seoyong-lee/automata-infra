@@ -2,6 +2,8 @@ export type VideoFactoryEnvConfig = {
   region: string;
   projectPrefix: string;
   reviewUiDomain: string;
+  adminCallbackUrls?: string[];
+  adminLogoutUrls?: string[];
   adminUserPoolDomainPrefix?: string;
   enableAdminSignup?: boolean;
   workflowScheduleExpression?: string;

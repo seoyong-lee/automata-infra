@@ -2,6 +2,14 @@
   "region": "ap-northeast-2",
   "projectPrefix": "automata-studio",
   "reviewUiDomain": "review.example.com",
+  "adminCallbackUrls": [
+    "https://review.example.com/auth/callback",
+    "http://localhost:3001/auth/callback"
+  ],
+  "adminLogoutUrls": [
+    "https://review.example.com/login",
+    "http://localhost:3001/login"
+  ],
   "adminUserPoolDomainPrefix": "automata-studio-admin-auth",
   "enableAdminSignup": false,
   "workflowScheduleExpression": "rate(6 hours)",

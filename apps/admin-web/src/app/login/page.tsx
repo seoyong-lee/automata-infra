@@ -24,8 +24,15 @@ const LoginContent = () => {
           {error ? (
             <p className="text-sm text-destructive">로그인 오류: {error}</p>
           ) : null}
-          <Button onClick={() => startLogin({ next })}>
-            Sign in with Cognito
+          <Button
+            onClick={() =>
+              startLogin({
+                next,
+                identityProvider: "Google",
+              })
+            }
+          >
+            Sign in with Google
           </Button>
         </CardContent>
       </Card>

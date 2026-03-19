@@ -22,11 +22,32 @@ if (envFile && fs.existsSync(envFile)) {
 
 const projectPrefix = envConfig.projectPrefix ?? "automata-studio";
 const region = envConfig.region ?? "ap-northeast-2";
+const reviewUiDomain = envConfig.reviewUiDomain ?? "review.example.com";
+
+const withDefaults = (values: Array<string | undefined>): string[] => {
+  return Array.from(
+    new Set(
+      values
+        .filter((value): value is string => Boolean(value && value.trim()))
+        .map((value) => value.trim()),
+    ),
+  );
+};
 
 const resolvedEnvConfig: VideoFactoryEnvConfig = {
   region,
   projectPrefix,
-  reviewUiDomain: envConfig.reviewUiDomain ?? "review.example.com",
+  reviewUiDomain,
+  adminCallbackUrls: withDefaults([
+    ...(envConfig.adminCallbackUrls ?? []),
+    `https://${reviewUiDomain}/auth/callback`,
+    "http://localhost:3001/auth/callback",
+  ]),
+  adminLogoutUrls: withDefaults([
+    ...(envConfig.adminLogoutUrls ?? []),
+    `https://${reviewUiDomain}/login`,
+    "http://localhost:3001/login",
+  ]),
   adminUserPoolDomainPrefix:
     envConfig.adminUserPoolDomainPrefix ?? `${projectPrefix}-admin-auth`,
   enableAdminSignup: envConfig.enableAdminSignup ?? false,
