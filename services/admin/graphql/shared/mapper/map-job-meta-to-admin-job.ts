@@ -1,12 +1,37 @@
 import { JobMetaItem } from "../../../../shared/lib/store/video-jobs";
-import { AdminJobDto } from "../types";
+import { AdminJobDto, JobStatus, ReviewAction, UploadStatus } from "../types";
+
+const toJobStatus = (status: string): JobStatus => status as JobStatus;
+
+const toReviewAction = (action?: string): ReviewAction | undefined => {
+  if (!action) {
+    return undefined;
+  }
+  const normalized = action.toUpperCase();
+  if (
+    normalized === "PENDING" ||
+    normalized === "APPROVE" ||
+    normalized === "REJECT" ||
+    normalized === "REGENERATE"
+  ) {
+    return normalized;
+  }
+  return undefined;
+};
+
+const toUploadStatus = (status?: string): UploadStatus | undefined => {
+  if (status === "QUEUED" || status === "UPLOADED") {
+    return status;
+  }
+  return undefined;
+};
 
 export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
   return {
     jobId: job.jobId,
     channelId: job.channelId,
     topicId: job.topicId,
-    status: job.status,
+    status: toJobStatus(job.status),
     language: job.language,
     targetDurationSec: job.targetDurationSec,
     videoTitle: job.videoTitle,
@@ -18,9 +43,9 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     finalVideoS3Key: job.finalVideoS3Key,
     thumbnailS3Key: job.thumbnailS3Key,
     previewS3Key: job.previewS3Key,
-    reviewAction: job.reviewAction,
+    reviewAction: toReviewAction(job.reviewAction),
     reviewRequestedAt: job.reviewRequestedAt,
-    uploadStatus: job.uploadStatus,
+    uploadStatus: toUploadStatus(job.uploadStatus),
     uploadVideoId: job.uploadVideoId,
   };
 };

@@ -1,4 +1,10 @@
-import { getItem, putItem, queryItems, updateItem } from "../aws/runtime";
+import {
+  getItem,
+  putItem,
+  queryItems,
+  queryItemsPage,
+  updateItem,
+} from "../aws/runtime";
 
 export type JobMetaItem = {
   PK: string;
@@ -35,6 +41,36 @@ export type JobMetaItem = {
   GSI2SK: string;
   GSI3PK: string;
   GSI3SK: string;
+};
+
+export type QueryPage<T> = {
+  items: T[];
+  nextToken: string | null;
+};
+
+const encodeNextToken = (key?: Record<string, unknown>): string | null => {
+  if (!key) {
+    return null;
+  }
+  return Buffer.from(JSON.stringify(key), "utf8").toString("base64url");
+};
+
+const decodeNextToken = (
+  token?: string,
+): Record<string, unknown> | undefined => {
+  if (!token) {
+    return undefined;
+  }
+  try {
+    const decoded = Buffer.from(token, "base64url").toString("utf8");
+    const parsed = JSON.parse(decoded) as unknown;
+    if (!parsed || typeof parsed !== "object") {
+      return undefined;
+    }
+    return parsed as Record<string, unknown>;
+  } catch {
+    return undefined;
+  }
 };
 
 const jobPk = (jobId: string): string => `JOB#${jobId}`;
@@ -159,8 +195,9 @@ export const listJobItems = async (
 export const listJobMetasByStatus = async (input: {
   status: string;
   limit?: number;
-}): Promise<JobMetaItem[]> => {
-  return queryItems<JobMetaItem>({
+  nextToken?: string;
+}): Promise<QueryPage<JobMetaItem>> => {
+  const page = await queryItemsPage<JobMetaItem>({
     indexName: "GSI1",
     keyConditionExpression: "GSI1PK = :statusPk",
     expressionAttributeValues: {
@@ -168,14 +205,20 @@ export const listJobMetasByStatus = async (input: {
     },
     scanIndexForward: false,
     limit: input.limit ?? 20,
+    exclusiveStartKey: decodeNextToken(input.nextToken),
   });
+  return {
+    items: page.items,
+    nextToken: encodeNextToken(page.lastEvaluatedKey),
+  };
 };
 
 export const listJobMetasByChannel = async (input: {
   channelId: string;
   limit?: number;
-}): Promise<JobMetaItem[]> => {
-  return queryItems<JobMetaItem>({
+  nextToken?: string;
+}): Promise<QueryPage<JobMetaItem>> => {
+  const page = await queryItemsPage<JobMetaItem>({
     indexName: "GSI2",
     keyConditionExpression: "GSI2PK = :channelPk",
     expressionAttributeValues: {
@@ -183,5 +226,10 @@ export const listJobMetasByChannel = async (input: {
     },
     scanIndexForward: false,
     limit: input.limit ?? 20,
+    exclusiveStartKey: decodeNextToken(input.nextToken),
   });
+  return {
+    items: page.items,
+    nextToken: encodeNextToken(page.lastEvaluatedKey),
+  };
 };

@@ -4,9 +4,14 @@ schema {
 }
 
 type Query {
-  adminJobs(status: String, channelId: String, limit: Int): [AdminJob!]!
+  adminJobs(
+    status: JobStatus
+    channelId: String
+    limit: Int
+    nextToken: String
+  ): AdminJobConnection!
   adminJob(jobId: ID!): AdminJob
-  pendingReviews(limit: Int): [AdminReviewTask!]!
+  pendingReviews(limit: Int, nextToken: String): AdminReviewTaskConnection!
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
 }
 
@@ -19,7 +24,7 @@ type AdminJob {
   jobId: ID!
   channelId: String!
   topicId: String!
-  status: String!
+  status: JobStatus!
   language: String!
   targetDurationSec: Int!
   videoTitle: String!
@@ -31,9 +36,9 @@ type AdminJob {
   finalVideoS3Key: String
   thumbnailS3Key: String
   previewS3Key: String
-  reviewAction: String
+  reviewAction: ReviewAction
   reviewRequestedAt: AWSDateTime
-  uploadStatus: String
+  uploadStatus: UploadStatus
   uploadVideoId: String
 }
 
@@ -41,8 +46,18 @@ type AdminReviewTask {
   jobId: ID!
   previewS3Key: String
   reviewRequestedAt: AWSDateTime
-  reviewAction: String
-  status: String!
+  reviewAction: ReviewAction
+  status: JobStatus!
+}
+
+type AdminJobConnection {
+  items: [AdminJob!]!
+  nextToken: String
+}
+
+type AdminReviewTaskConnection {
+  items: [AdminReviewTask!]!
+  nextToken: String
 }
 
 type JobTimelineItem {
@@ -53,16 +68,16 @@ type JobTimelineItem {
 
 input SubmitReviewDecisionInput {
   jobId: ID!
-  action: String!
+  action: ReviewDecisionAction!
   regenerationScope: String
 }
 
 type ReviewDecisionResult {
   ok: Boolean!
   jobId: ID!
-  action: String!
+  action: ReviewAction!
   regenerationScope: String
-  status: String!
+  status: ReviewDecisionStatus!
 }
 
 input RequestUploadInput {
@@ -72,6 +87,49 @@ input RequestUploadInput {
 type UploadRequestResult {
   ok: Boolean!
   jobId: ID!
-  status: String!
-  platform: String!
+  status: JobStatus!
+  platform: UploadPlatform!
+}
+
+enum JobStatus {
+  PLANNED
+  SCENE_JSON_READY
+  ASSET_GENERATING
+  ASSETS_READY
+  VALIDATING
+  RENDER_PLAN_READY
+  RENDERED
+  REVIEW_PENDING
+  APPROVED
+  REJECTED
+  UPLOAD_QUEUED
+  UPLOADED
+  FAILED
+  METRICS_COLLECTED
+}
+
+enum ReviewAction {
+  PENDING
+  APPROVE
+  REJECT
+  REGENERATE
+}
+
+enum ReviewDecisionAction {
+  APPROVE
+  REJECT
+  REGENERATE
+}
+
+enum ReviewDecisionStatus {
+  REVIEW_DECISION_RECORDED
+}
+
+enum UploadStatus {
+  QUEUED
+  UPLOADED
+}
+
+enum UploadPlatform {
+  YOUTUBE
 }

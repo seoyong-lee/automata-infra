@@ -10,8 +10,22 @@ import { UnauthorizedError } from "./client/errors";
 
 export type AdminJob = {
   jobId: string;
-  status: string;
-  reviewAction?: string | null;
+  status:
+    | "PLANNED"
+    | "SCENE_JSON_READY"
+    | "ASSET_GENERATING"
+    | "ASSETS_READY"
+    | "VALIDATING"
+    | "RENDER_PLAN_READY"
+    | "RENDERED"
+    | "REVIEW_PENDING"
+    | "APPROVED"
+    | "REJECTED"
+    | "UPLOAD_QUEUED"
+    | "UPLOADED"
+    | "FAILED"
+    | "METRICS_COLLECTED";
+  reviewAction?: "PENDING" | "APPROVE" | "REJECT" | "REGENERATE" | null;
   channelId: string;
   videoTitle: string;
   updatedAt: string;
@@ -19,31 +33,42 @@ export type AdminJob = {
 
 export type PendingReview = {
   jobId: string;
-  status: string;
+  status: AdminJob["status"];
   previewS3Key?: string | null;
   reviewRequestedAt?: string | null;
 };
 
+export type Connection<T> = {
+  items: T[];
+  nextToken?: string | null;
+};
+
 const adminJobsQuery = `
-  query AdminJobs($status: String, $channelId: String, $limit: Int) {
-    adminJobs(status: $status, channelId: $channelId, limit: $limit) {
-      jobId
-      status
-      reviewAction
-      channelId
-      videoTitle
-      updatedAt
+  query AdminJobs($status: JobStatus, $channelId: String, $limit: Int, $nextToken: String) {
+    adminJobs(status: $status, channelId: $channelId, limit: $limit, nextToken: $nextToken) {
+      items {
+        jobId
+        status
+        reviewAction
+        channelId
+        videoTitle
+        updatedAt
+      }
+      nextToken
     }
   }
 `;
 
 const pendingReviewsQuery = `
-  query PendingReviews($limit: Int) {
-    pendingReviews(limit: $limit) {
-      jobId
-      status
-      previewS3Key
-      reviewRequestedAt
+  query PendingReviews($limit: Int, $nextToken: String) {
+    pendingReviews(limit: $limit, nextToken: $nextToken) {
+      items {
+        jobId
+        status
+        previewS3Key
+        reviewRequestedAt
+      }
+      nextToken
     }
   }
 `;
@@ -90,9 +115,19 @@ const gql = async <T>(query: string, variables?: Record<string, unknown>) => {
 };
 
 export const useAdminJobsQuery = (
-  vars: { status?: string; channelId?: string; limit?: number },
+  vars: {
+    status?: AdminJob["status"];
+    channelId?: string;
+    limit?: number;
+    nextToken?: string;
+  },
   options?: Omit<
-    UseQueryOptions<AdminJob[], Error, AdminJob[], readonly unknown[]>,
+    UseQueryOptions<
+      Connection<AdminJob>,
+      Error,
+      Connection<AdminJob>,
+      readonly unknown[]
+    >,
     "queryKey" | "queryFn"
   >,
 ) => {
@@ -102,9 +137,13 @@ export const useAdminJobsQuery = (
       vars.status ?? "",
       vars.channelId ?? "",
       vars.limit ?? 20,
+      vars.nextToken ?? "",
     ],
     queryFn: async () => {
-      const data = await gql<{ adminJobs: AdminJob[] }>(adminJobsQuery, vars);
+      const data = await gql<{ adminJobs: Connection<AdminJob> }>(
+        adminJobsQuery,
+        vars,
+      );
       return data.adminJobs;
     },
     ...options,
@@ -112,21 +151,21 @@ export const useAdminJobsQuery = (
 };
 
 export const usePendingReviewsQuery = (
-  vars: { limit?: number },
+  vars: { limit?: number; nextToken?: string },
   options?: Omit<
     UseQueryOptions<
-      PendingReview[],
+      Connection<PendingReview>,
       Error,
-      PendingReview[],
+      Connection<PendingReview>,
       readonly unknown[]
     >,
     "queryKey" | "queryFn"
   >,
 ) => {
   return useQuery({
-    queryKey: ["pendingReviews", vars.limit ?? 20],
+    queryKey: ["pendingReviews", vars.limit ?? 20, vars.nextToken ?? ""],
     queryFn: async () => {
-      const data = await gql<{ pendingReviews: PendingReview[] }>(
+      const data = await gql<{ pendingReviews: Connection<PendingReview> }>(
         pendingReviewsQuery,
         vars,
       );
@@ -140,7 +179,11 @@ export const useSubmitReviewDecisionMutation = (
   options?: UseMutationOptions<
     { submitReviewDecision: { ok: boolean; status: string } },
     Error,
-    { jobId: string; action: string; regenerationScope?: string }
+    {
+      jobId: string;
+      action: "APPROVE" | "REJECT" | "REGENERATE";
+      regenerationScope?: string;
+    }
   >,
 ) => {
   return useMutation({

@@ -41,7 +41,7 @@ export default function ReviewsPage() {
             {getErrorMessage(pending.error)}
           </p>
         ) : null}
-        {(pending.data ?? []).map((item) => (
+        {(pending.data?.items ?? []).map((item) => (
           <div
             key={item.jobId}
             className="space-y-3 rounded-lg border border-border p-4"
@@ -56,7 +56,7 @@ export default function ReviewsPage() {
                 onClick={() =>
                   submitReview.mutate({
                     jobId: item.jobId,
-                    action: "approve",
+                    action: "APPROVE",
                   })
                 }
               >
@@ -68,7 +68,7 @@ export default function ReviewsPage() {
                 onClick={() =>
                   submitReview.mutate({
                     jobId: item.jobId,
-                    action: "reject",
+                    action: "REJECT",
                   })
                 }
               >

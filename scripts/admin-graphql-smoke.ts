@@ -47,17 +47,23 @@ const run = async () => {
   const listQuery = `
     query AdminJobsSmoke($limit: Int) {
       adminJobs(limit: $limit) {
-        jobId
-        status
-        reviewAction
+        items {
+          jobId
+          status
+          reviewAction
+        }
+        nextToken
       }
     }
   `;
   const pendingQuery = `
     query PendingReviewsSmoke($limit: Int) {
       pendingReviews(limit: $limit) {
-        jobId
-        status
+        items {
+          jobId
+          status
+        }
+        nextToken
       }
     }
   `;

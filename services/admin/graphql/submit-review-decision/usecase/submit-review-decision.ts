@@ -19,7 +19,7 @@ export const submitReviewDecision = async (input: {
   return {
     ok: true,
     jobId: input.jobId,
-    action: input.action,
+    action: input.action.toUpperCase(),
     regenerationScope: input.regenerationScope,
     status: "REVIEW_DECISION_RECORDED",
   };

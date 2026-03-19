@@ -69,11 +69,11 @@ function MetricCard({
 export default function DashboardPage() {
   const jobs = useAdminJobsQuery({ limit: 20 });
   const pending = usePendingReviewsQuery({ limit: 10 });
-  const recentJobs = (jobs.data ?? []).slice(0, 8);
-  const pendingReviews = pending.data ?? [];
+  const recentJobs = (jobs.data?.items ?? []).slice(0, 8);
+  const pendingReviews = pending.data?.items ?? [];
 
-  const inProgressCount = (jobs.data ?? []).filter((job) =>
-    ["TOPIC_PLANNED", "SCRIPTED", "ASSET_GENERATING", "COMPOSITING"].includes(
+  const inProgressCount = (jobs.data?.items ?? []).filter((job) =>
+    ["PLANNED", "SCENE_JSON_READY", "ASSET_GENERATING", "ASSETS_READY"].includes(
       job.status,
     ),
   ).length;
@@ -83,7 +83,7 @@ export default function DashboardPage() {
       <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
         <MetricCard
           title="Total Jobs"
-          value={(jobs.data?.length ?? 0).toLocaleString()}
+          value={(jobs.data?.items.length ?? 0).toLocaleString()}
           description="현재 조회 범위 내 전체 작업 수"
           icon={Activity}
         />
@@ -102,8 +102,8 @@ export default function DashboardPage() {
         />
         <MetricCard
           title="Ready To Upload"
-          value={(jobs.data ?? [])
-            .filter((job) => job.status === "REVIEW_APPROVED")
+          value={(jobs.data?.items ?? [])
+            .filter((job) => job.status === "APPROVED")
             .length.toLocaleString()}
           description="업로드 요청 가능 상태"
           icon={CircleDollarSign}

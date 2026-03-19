@@ -6,6 +6,6 @@ export const requestUploadMutation = async (jobId: string) => {
     ok: true,
     jobId,
     status: result.status,
-    platform: result.platform,
+    platform: result.platform.toUpperCase(),
   };
 };

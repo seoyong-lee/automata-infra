@@ -10,5 +10,5 @@ export const run: Handler<
   const parsed = parsePendingReviewsArgs(
     (event.arguments ?? {}) as Record<string, unknown>,
   );
-  return getPendingReviews(parsed.limit);
+  return getPendingReviews(parsed);
 };

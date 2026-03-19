@@ -113,6 +113,39 @@ export const queryItems = async <T>(input: {
   return (result.Items as T[] | undefined) ?? [];
 };
 
+export const queryItemsPage = async <T>(input: {
+  indexName?: string;
+  keyConditionExpression: string;
+  expressionAttributeNames?: Record<string, string>;
+  expressionAttributeValues: Record<string, unknown>;
+  scanIndexForward?: boolean;
+  limit?: number;
+  exclusiveStartKey?: Record<string, unknown>;
+}): Promise<{
+  items: T[];
+  lastEvaluatedKey?: Record<string, unknown>;
+}> => {
+  const result = await ddbClient.send(
+    new QueryCommand({
+      TableName: getJobsTableName(),
+      IndexName: input.indexName,
+      KeyConditionExpression: input.keyConditionExpression,
+      ExpressionAttributeNames: input.expressionAttributeNames,
+      ExpressionAttributeValues: input.expressionAttributeValues,
+      ScanIndexForward: input.scanIndexForward,
+      Limit: input.limit,
+      ExclusiveStartKey: input.exclusiveStartKey,
+    }),
+  );
+
+  return {
+    items: (result.Items as T[] | undefined) ?? [],
+    lastEvaluatedKey: result.LastEvaluatedKey as
+      | Record<string, unknown>
+      | undefined,
+  };
+};
+
 export const updateItem = async (input: {
   key: Record<string, unknown>;
   updateExpression: string;

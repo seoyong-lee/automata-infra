@@ -3,11 +3,30 @@ export type GraphqlResolverEvent<TArgs> = {
   identity?: unknown;
 };
 
+export type JobStatus =
+  | "PLANNED"
+  | "SCENE_JSON_READY"
+  | "ASSET_GENERATING"
+  | "ASSETS_READY"
+  | "VALIDATING"
+  | "RENDER_PLAN_READY"
+  | "RENDERED"
+  | "REVIEW_PENDING"
+  | "APPROVED"
+  | "REJECTED"
+  | "UPLOAD_QUEUED"
+  | "UPLOADED"
+  | "FAILED"
+  | "METRICS_COLLECTED";
+
+export type ReviewAction = "PENDING" | "APPROVE" | "REJECT" | "REGENERATE";
+export type UploadStatus = "QUEUED" | "UPLOADED";
+
 export type AdminJobDto = {
   jobId: string;
   channelId: string;
   topicId: string;
-  status: string;
+  status: JobStatus;
   language: string;
   targetDurationSec: number;
   videoTitle: string;
@@ -19,8 +38,13 @@ export type AdminJobDto = {
   finalVideoS3Key?: string;
   thumbnailS3Key?: string;
   previewS3Key?: string;
-  reviewAction?: string;
+  reviewAction?: ReviewAction;
   reviewRequestedAt?: string;
-  uploadStatus?: string;
+  uploadStatus?: UploadStatus;
   uploadVideoId?: string;
+};
+
+export type ConnectionDto<T> = {
+  items: T[];
+  nextToken: string | null;
 };
