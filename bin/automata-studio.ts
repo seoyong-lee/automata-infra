@@ -20,7 +20,7 @@ if (envFile && fs.existsSync(envFile)) {
   ) as VideoFactoryEnvConfig;
 }
 
-const projectPrefix = envConfig.projectPrefix ?? "video-factory";
+const projectPrefix = envConfig.projectPrefix ?? "automata-studio";
 const region = envConfig.region ?? "ap-northeast-2";
 
 const resolvedEnvConfig: VideoFactoryEnvConfig = {
@@ -39,6 +39,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.elevenLabsSecretId ?? `${projectPrefix}/elevenlabs`,
   shotstackSecretId:
     envConfig.shotstackSecretId ?? `${projectPrefix}/shotstack`,
+  googleOAuthSecretId:
+    envConfig.googleOAuthSecretId ?? `${projectPrefix}/google-oauth-admin`,
 };
 
 const sharedStack = new SharedStack(app, `${projectPrefix}-shared`, {

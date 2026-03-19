@@ -1,3 +1,5 @@
+import { badUserInput } from "../../shared/errors";
+
 export const parseSubmitReviewDecisionArgs = (
   args: Record<string, unknown>,
 ) => {
@@ -14,10 +16,10 @@ export const parseSubmitReviewDecisionArgs = (
       : "full";
 
   if (!jobId) {
-    throw new Error("jobId is required");
+    throw badUserInput("jobId is required");
   }
   if (!action) {
-    throw new Error("action is required");
+    throw badUserInput("action is required");
   }
 
   return {

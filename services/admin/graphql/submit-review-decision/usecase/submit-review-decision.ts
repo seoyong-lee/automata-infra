@@ -1,4 +1,5 @@
 import { processReviewDecision } from "../../../../publish/review/usecase/process-review-decision";
+import { GraphqlResolverError } from "../../shared/errors";
 import { mapReviewAction } from "../mapper/map-review-action";
 
 export const submitReviewDecision = async (input: {
@@ -13,7 +14,16 @@ export const submitReviewDecision = async (input: {
   });
 
   if (!result.ok) {
-    throw new Error(result.error ?? "review decision failed");
+    if (result.statusCode === 404) {
+      throw new GraphqlResolverError({
+        code: "NOT_FOUND",
+        message: result.error ?? "pending review task not found",
+      });
+    }
+    throw new GraphqlResolverError({
+      code: "CONFLICT",
+      message: result.error ?? "review decision failed",
+    });
   }
 
   return {

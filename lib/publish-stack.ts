@@ -153,6 +153,7 @@ export class PublishStack extends Stack {
         `${props.projectPrefix}-admin-auth`,
       enableSignup: props.envConfig.enableAdminSignup ?? false,
       reviewUiDomain: props.envConfig.reviewUiDomain,
+      googleOAuthSecretId: props.envConfig.googleOAuthSecretId,
     });
 
     const adminGraphql = createPublishGraphqlApi(this, {

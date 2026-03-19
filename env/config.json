@@ -1,14 +1,15 @@
 {
   "region": "ap-northeast-2",
-  "projectPrefix": "video-factory",
+  "projectPrefix": "automata-studio",
   "reviewUiDomain": "review.example.com",
-  "adminUserPoolDomainPrefix": "video-factory-admin-auth",
+  "adminUserPoolDomainPrefix": "automata-studio-admin-auth",
   "enableAdminSignup": false,
   "channelId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,
-  "runwaySecretId": "video-factory/runway",
-  "openAiSecretId": "video-factory/openai",
-  "elevenLabsSecretId": "video-factory/elevenlabs",
-  "shotstackSecretId": "video-factory/shotstack"
+  "runwaySecretId": "automata-studio/runway",
+  "openAiSecretId": "automata-studio/openai",
+  "elevenLabsSecretId": "automata-studio/elevenlabs",
+  "shotstackSecretId": "automata-studio/shotstack",
+  "googleOAuthSecretId": "automata-studio/google-oauth-admin"
 }

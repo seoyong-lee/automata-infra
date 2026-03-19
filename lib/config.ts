@@ -11,6 +11,7 @@ export type VideoFactoryEnvConfig = {
   openAiSecretId: string;
   elevenLabsSecretId: string;
   shotstackSecretId: string;
+  googleOAuthSecretId?: string;
 };
 
 export type BaseStackProps = {

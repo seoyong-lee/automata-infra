@@ -1,3 +1,5 @@
+import { badUserInput } from "../../shared/errors";
+
 export type ReviewAction = "approve" | "reject" | "regenerate";
 
 export const mapReviewAction = (action: string): ReviewAction => {
@@ -10,5 +12,5 @@ export const mapReviewAction = (action: string): ReviewAction => {
   if (action === "REGENERATE") {
     return "regenerate";
   }
-  throw new Error("invalid review action");
+  throw badUserInput("invalid review action");
 };

@@ -179,7 +179,7 @@ B --> J[DynamoDB Job State]
 ```txt
 ai-pipeline-studio/
 ├── bin/
-│   └── video-factory.ts
+│   └── automata-studio.ts
 ├── lib/
 │   ├── shared-stack.ts
 │   ├── workflow-stack.ts
@@ -254,7 +254,7 @@ ai-pipeline-studio/
 
 ### 5.1 CDK app entry
 
-`storytalk-infra`처럼 `bin/video-factory.ts`에서 다음을 수행한다.
+`storytalk-infra`처럼 `bin/automata-studio.ts`에서 다음을 수행한다.
 
 - `@envFile` context로 `env/config.json` 로드
 - `region`, `projectPrefix` 결정
@@ -485,15 +485,15 @@ services/image/requestSceneImage/
 ```json
 {
   "region": "ap-northeast-2",
-  "projectPrefix": "video-factory",
+  "projectPrefix": "automata-studio",
   "reviewUiDomain": "review.example.com",
   "channelId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,
-  "runwaySecretId": "video-factory/runway",
-  "openAiSecretId": "video-factory/openai",
-  "elevenLabsSecretId": "video-factory/elevenlabs",
-  "shotstackSecretId": "video-factory/shotstack"
+  "runwaySecretId": "automata-studio/runway",
+  "openAiSecretId": "automata-studio/openai",
+  "elevenLabsSecretId": "automata-studio/elevenlabs",
+  "shotstackSecretId": "automata-studio/shotstack"
 }
 ```
 
@@ -697,7 +697,7 @@ services/image/requestSceneImage/
 ## 13. S3 구조
 
 ```txt
-s3://video-factory/
+s3://automata-studio/
   topics/
     {jobId}/topic.json
   scene-json/

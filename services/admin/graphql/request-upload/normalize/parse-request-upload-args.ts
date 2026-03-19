@@ -1,3 +1,5 @@
+import { badUserInput } from "../../shared/errors";
+
 export const parseRequestUploadArgs = (args: Record<string, unknown>) => {
   const input =
     args.input && typeof args.input === "object"
@@ -5,7 +7,7 @@ export const parseRequestUploadArgs = (args: Record<string, unknown>) => {
       : {};
   const jobId = typeof input.jobId === "string" ? input.jobId : "";
   if (!jobId) {
-    throw new Error("jobId is required");
+    throw badUserInput("jobId is required");
   }
   return {
     jobId,

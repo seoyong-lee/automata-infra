@@ -1,4 +1,5 @@
 import * as cognito from "aws-cdk-lib/aws-cognito";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 
 export type PublishAuthResources = {
@@ -11,6 +12,7 @@ type CreatePublishAuthProps = {
   domainPrefix: string;
   enableSignup: boolean;
   reviewUiDomain: string;
+  googleOAuthSecretId?: string;
 };
 
 export const createPublishAuth = (
@@ -44,6 +46,8 @@ export const createPublishAuth = (
     },
   });
 
+  const hasGoogleIdp = Boolean(props.googleOAuthSecretId);
+
   const userPoolClient = userPool.addClient("AdminUserPoolClient", {
     userPoolClientName: `${props.projectPrefix}-admin-client`,
     authFlows: {
@@ -51,6 +55,12 @@ export const createPublishAuth = (
       userSrp: true,
     },
     generateSecret: false,
+    supportedIdentityProviders: hasGoogleIdp
+      ? [
+          cognito.UserPoolClientIdentityProvider.COGNITO,
+          cognito.UserPoolClientIdentityProvider.GOOGLE,
+        ]
+      : [cognito.UserPoolClientIdentityProvider.COGNITO],
     oAuth: {
       flows: {
         authorizationCodeGrant: true,
@@ -64,6 +74,41 @@ export const createPublishAuth = (
       logoutUrls: [`https://${props.reviewUiDomain}/auth/logout`],
     },
   });
+
+  if (props.googleOAuthSecretId) {
+    const googleOAuthSecret = secretsmanager.Secret.fromSecretNameV2(
+      scope,
+      "AdminGoogleOAuthSecret",
+      props.googleOAuthSecretId,
+    );
+    const googleProvider = new cognito.CfnUserPoolIdentityProvider(
+      scope,
+      "AdminGoogleIdentityProvider",
+      {
+        userPoolId: userPool.userPoolId,
+        providerName: "Google",
+        providerType: "Google",
+        providerDetails: {
+          client_id: googleOAuthSecret
+            .secretValueFromJson("clientId")
+            .unsafeUnwrap(),
+          client_secret: googleOAuthSecret
+            .secretValueFromJson("clientSecret")
+            .unsafeUnwrap(),
+          authorize_scopes: googleOAuthSecret
+            .secretValueFromJson("scopes")
+            .unsafeUnwrap(),
+        },
+        attributeMapping: {
+          email: "email",
+          given_name: "given_name",
+          family_name: "family_name",
+          username: "sub",
+        },
+      },
+    );
+    userPoolClient.node.addDependency(googleProvider);
+  }
 
   new cognito.CfnUserPoolGroup(scope, "AdminGroup", {
     userPoolId: userPool.userPoolId,
