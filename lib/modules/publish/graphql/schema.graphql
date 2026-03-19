@@ -1,0 +1,77 @@
+schema {
+  query: Query
+  mutation: Mutation
+}
+
+type Query {
+  adminJobs(status: String, channelId: String, limit: Int): [AdminJob!]!
+  adminJob(jobId: ID!): AdminJob
+  pendingReviews(limit: Int): [AdminReviewTask!]!
+  jobTimeline(jobId: ID!): [JobTimelineItem!]!
+}
+
+type Mutation {
+  submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
+  requestUpload(input: RequestUploadInput!): UploadRequestResult!
+}
+
+type AdminJob {
+  jobId: ID!
+  channelId: String!
+  topicId: String!
+  status: String!
+  language: String!
+  targetDurationSec: Int!
+  videoTitle: String!
+  retryCount: Int!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  sceneJsonS3Key: String
+  renderPlanS3Key: String
+  finalVideoS3Key: String
+  thumbnailS3Key: String
+  previewS3Key: String
+  reviewAction: String
+  reviewRequestedAt: AWSDateTime
+  uploadStatus: String
+  uploadVideoId: String
+}
+
+type AdminReviewTask {
+  jobId: ID!
+  previewS3Key: String
+  reviewRequestedAt: AWSDateTime
+  reviewAction: String
+  status: String!
+}
+
+type JobTimelineItem {
+  pk: String!
+  sk: String!
+  data: AWSJSON!
+}
+
+input SubmitReviewDecisionInput {
+  jobId: ID!
+  action: String!
+  regenerationScope: String
+}
+
+type ReviewDecisionResult {
+  ok: Boolean!
+  jobId: ID!
+  action: String!
+  regenerationScope: String
+  status: String!
+}
+
+input RequestUploadInput {
+  jobId: ID!
+}
+
+type UploadRequestResult {
+  ok: Boolean!
+  jobId: ID!
+  status: String!
+  platform: String!
+}

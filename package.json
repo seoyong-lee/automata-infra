@@ -10,6 +10,8 @@
     "synth": "tsc && cdk synth -c @envFile=env/config.json",
     "diff": "tsc && cdk diff -c @envFile=env/config.json",
     "deploy": "tsc && cdk deploy -c @envFile=env/config.json",
+    "test:admin:guards": "ts-node scripts/admin-guards-smoke.ts",
+    "smoke:admin:graphql": "ts-node scripts/admin-graphql-smoke.ts",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
   "dependencies": {

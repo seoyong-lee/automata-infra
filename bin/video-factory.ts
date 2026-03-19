@@ -27,6 +27,9 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
   region,
   projectPrefix,
   reviewUiDomain: envConfig.reviewUiDomain ?? "review.example.com",
+  adminUserPoolDomainPrefix:
+    envConfig.adminUserPoolDomainPrefix ?? `${projectPrefix}-admin-auth`,
+  enableAdminSignup: envConfig.enableAdminSignup ?? false,
   channelId: envConfig.channelId ?? "history-en",
   defaultLanguage: envConfig.defaultLanguage ?? "en",
   enableFargateComposition: envConfig.enableFargateComposition ?? false,

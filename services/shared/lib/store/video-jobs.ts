@@ -155,3 +155,33 @@ export const listJobItems = async (
     limit: 100,
   });
 };
+
+export const listJobMetasByStatus = async (input: {
+  status: string;
+  limit?: number;
+}): Promise<JobMetaItem[]> => {
+  return queryItems<JobMetaItem>({
+    indexName: "GSI1",
+    keyConditionExpression: "GSI1PK = :statusPk",
+    expressionAttributeValues: {
+      ":statusPk": `STATUS#${input.status}`,
+    },
+    scanIndexForward: false,
+    limit: input.limit ?? 20,
+  });
+};
+
+export const listJobMetasByChannel = async (input: {
+  channelId: string;
+  limit?: number;
+}): Promise<JobMetaItem[]> => {
+  return queryItems<JobMetaItem>({
+    indexName: "GSI2",
+    keyConditionExpression: "GSI2PK = :channelPk",
+    expressionAttributeValues: {
+      ":channelPk": `CHANNEL#${input.channelId}`,
+    },
+    scanIndexForward: false,
+    limit: input.limit ?? 20,
+  });
+};

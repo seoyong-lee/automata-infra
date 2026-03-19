@@ -91,6 +91,7 @@ export const getItem = async <T>(
 };
 
 export const queryItems = async <T>(input: {
+  indexName?: string;
   keyConditionExpression: string;
   expressionAttributeNames?: Record<string, string>;
   expressionAttributeValues: Record<string, unknown>;
@@ -100,6 +101,7 @@ export const queryItems = async <T>(input: {
   const result = await ddbClient.send(
     new QueryCommand({
       TableName: getJobsTableName(),
+      IndexName: input.indexName,
       KeyConditionExpression: input.keyConditionExpression,
       ExpressionAttributeNames: input.expressionAttributeNames,
       ExpressionAttributeValues: input.expressionAttributeValues,

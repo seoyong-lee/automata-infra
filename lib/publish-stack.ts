@@ -11,6 +11,8 @@ import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { BaseStackProps } from "./config";
 import { createPublishApi } from "./modules/publish/api";
+import { createPublishAuth } from "./modules/publish/auth";
+import { createPublishGraphqlApi } from "./modules/publish/graphql-api";
 
 export type PublishStackProps = StackProps &
   BaseStackProps & {
@@ -79,6 +81,55 @@ export class PublishStack extends Stack {
       environment,
     );
 
+    const listJobsResolver = createLambda(
+      this,
+      "AdminListJobsResolverLambda",
+      path.join(process.cwd(), "services/admin/graphql/list-jobs/handler.ts"),
+      environment,
+    );
+    const getJobResolver = createLambda(
+      this,
+      "AdminGetJobResolverLambda",
+      path.join(process.cwd(), "services/admin/graphql/get-job/handler.ts"),
+      environment,
+    );
+    const pendingReviewsResolver = createLambda(
+      this,
+      "AdminPendingReviewsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/pending-reviews/handler.ts",
+      ),
+      environment,
+    );
+    const jobTimelineResolver = createLambda(
+      this,
+      "AdminJobTimelineResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/job-timeline/handler.ts",
+      ),
+      environment,
+    );
+    const submitReviewDecisionResolver = createLambda(
+      this,
+      "AdminSubmitReviewDecisionResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/submit-review-decision/handler.ts",
+      ),
+      environment,
+    );
+    const requestUploadResolver = createLambda(
+      this,
+      "AdminRequestUploadResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/request-upload/handler.ts",
+      ),
+      environment,
+    );
+
     props.assetsBucket.grantReadWrite(reviewHandler);
     props.assetsBucket.grantReadWrite(uploadHandler);
     props.assetsBucket.grantRead(metricsCollector);
@@ -87,6 +138,33 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(metricsCollector);
     props.reviewQueue.grantConsumeMessages(reviewHandler);
     props.stateMachine.grantTaskResponse(reviewHandler);
+    props.jobsTable.grantReadData(listJobsResolver);
+    props.jobsTable.grantReadData(getJobResolver);
+    props.jobsTable.grantReadData(pendingReviewsResolver);
+    props.jobsTable.grantReadData(jobTimelineResolver);
+    props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
+    props.jobsTable.grantReadWriteData(requestUploadResolver);
+    props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
+
+    const auth = createPublishAuth(this, {
+      projectPrefix: props.projectPrefix,
+      domainPrefix:
+        props.envConfig.adminUserPoolDomainPrefix ??
+        `${props.projectPrefix}-admin-auth`,
+      enableSignup: props.envConfig.enableAdminSignup ?? false,
+      reviewUiDomain: props.envConfig.reviewUiDomain,
+    });
+
+    const adminGraphql = createPublishGraphqlApi(this, {
+      projectPrefix: props.projectPrefix,
+      userPool: auth.userPool,
+      listJobsResolver,
+      getJobResolver,
+      pendingReviewsResolver,
+      jobTimelineResolver,
+      submitReviewDecisionResolver,
+      requestUploadResolver,
+    });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);
 
@@ -97,6 +175,15 @@ export class PublishStack extends Stack {
 
     new CfnOutput(this, "PublishApiUrl", {
       value: publishApi.api.url,
+    });
+    new CfnOutput(this, "AdminGraphqlUrl", {
+      value: adminGraphql.graphqlApi.graphqlUrl,
+    });
+    new CfnOutput(this, "AdminUserPoolId", {
+      value: auth.userPool.userPoolId,
+    });
+    new CfnOutput(this, "AdminUserPoolClientId", {
+      value: auth.userPoolClient.userPoolClientId,
     });
   }
 }
