@@ -1,42 +1,24 @@
 import { APIGatewayProxyHandler } from "aws-lambda";
-import {
-  putUploadRecord,
-  updateJobMeta,
-} from "../../shared/lib/store/video-jobs";
+import { buildUploadApiResponse } from "./mapper/build-upload-api-response";
+import { parseUploadBody } from "./normalize/parse-upload-body";
+import { requestUpload } from "./usecase/request-upload";
 
 export const run: APIGatewayProxyHandler = async (event) => {
-  const body = event.body
-    ? (JSON.parse(event.body) as Record<string, unknown>)
-    : {};
-  const jobId = typeof body.jobId === "string" ? body.jobId : null;
+  const { jobId } = parseUploadBody(event.body ?? null);
 
   if (!jobId) {
-    return {
-      statusCode: 400,
-      headers: { "content-type": "application/json" },
-      body: JSON.stringify({ ok: false, error: "jobId is required" }),
-    };
+    return buildUploadApiResponse(400, {
+      ok: false,
+      error: "jobId is required",
+    });
   }
 
-  await putUploadRecord(jobId, {
-    platform: "youtube",
-    uploadStatus: "QUEUED",
-    requestedAt: new Date().toISOString(),
-    visibility: "private",
+  const queued = await requestUpload(jobId);
+
+  return buildUploadApiResponse(200, {
+    ok: true,
+    jobId,
+    status: queued.status,
+    platform: queued.platform,
   });
-
-  await updateJobMeta(jobId, { uploadStatus: "QUEUED" }, "APPROVED");
-
-  return {
-    statusCode: 200,
-    headers: {
-      "content-type": "application/json",
-    },
-    body: JSON.stringify({
-      ok: true,
-      jobId,
-      status: "UPLOAD_QUEUED",
-      platform: "youtube",
-    }),
-  };
 };

@@ -1,26 +1,30 @@
-import { GetSecretValueCommand, SecretsManagerClient } from '@aws-sdk/client-secrets-manager';
-import { SendMessageCommand, SQSClient } from '@aws-sdk/client-sqs';
+import {
+  GetSecretValueCommand,
+  SecretsManagerClient,
+} from "@aws-sdk/client-secrets-manager";
+import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import {
   GetObjectCommand,
+  HeadObjectCommand,
   PutObjectCommand,
   S3Client,
   type PutObjectCommandInput,
-} from '@aws-sdk/client-s3';
+} from "@aws-sdk/client-s3";
 import {
   SendTaskSuccessCommand,
   SendTaskFailureCommand,
   SFNClient,
-} from '@aws-sdk/client-sfn';
+} from "@aws-sdk/client-sfn";
 import {
   DynamoDBDocumentClient,
   GetCommand,
   PutCommand,
   QueryCommand,
   UpdateCommand,
-} from '@aws-sdk/lib-dynamodb';
-import { DynamoDBClient } from '@aws-sdk/client-dynamodb';
+} from "@aws-sdk/lib-dynamodb";
+import { DynamoDBClient } from "@aws-sdk/client-dynamodb";
 
-const region = process.env.AWS_REGION ?? 'ap-northeast-2';
+const region = process.env.AWS_REGION ?? "ap-northeast-2";
 
 const ddbClient = DynamoDBDocumentClient.from(new DynamoDBClient({ region }));
 const s3Client = new S3Client({ region });
@@ -42,11 +46,13 @@ export const getOptionalEnv = (name: string): string | undefined => {
   return process.env[name];
 };
 
-export const getJobsTableName = (): string => getRequiredEnv('JOBS_TABLE_NAME');
+export const getJobsTableName = (): string => getRequiredEnv("JOBS_TABLE_NAME");
 
-export const getAssetsBucketName = (): string => getRequiredEnv('ASSETS_BUCKET_NAME');
+export const getAssetsBucketName = (): string =>
+  getRequiredEnv("ASSETS_BUCKET_NAME");
 
-export const getReviewQueueUrl = (): string => getRequiredEnv('REVIEW_QUEUE_URL');
+export const getReviewQueueUrl = (): string =>
+  getRequiredEnv("REVIEW_QUEUE_URL");
 
 export const getSecretJson = async <T>(secretId: string): Promise<T | null> => {
   const secretValue = await secretsClient.send(
@@ -71,7 +77,9 @@ export const putItem = async (item: Record<string, unknown>): Promise<void> => {
   );
 };
 
-export const getItem = async <T>(key: Record<string, unknown>): Promise<T | null> => {
+export const getItem = async <T>(
+  key: Record<string, unknown>,
+): Promise<T | null> => {
   const result = await ddbClient.send(
     new GetCommand({
       TableName: getJobsTableName(),
@@ -132,7 +140,7 @@ export const putJsonToS3 = async (
       Bucket: getAssetsBucketName(),
       Key: key,
       Body: JSON.stringify(body, null, 2),
-      ContentType: 'application/json',
+      ContentType: "application/json",
       ...extra,
     }),
   );
@@ -173,7 +181,48 @@ export const getJsonFromS3 = async <T>(key: string): Promise<T | null> => {
   return JSON.parse(body) as T;
 };
 
-export const sendReviewMessage = async (messageBody: Record<string, unknown>): Promise<void> => {
+export const headObjectFromS3 = async (
+  key: string,
+): Promise<{
+  exists: boolean;
+  contentType?: string;
+  contentLength?: number;
+}> => {
+  try {
+    const result = await s3Client.send(
+      new HeadObjectCommand({
+        Bucket: getAssetsBucketName(),
+        Key: key,
+      }),
+    );
+
+    return {
+      exists: true,
+      contentType: result.ContentType,
+      contentLength: result.ContentLength,
+    };
+  } catch (error) {
+    const maybe = error as {
+      name?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    const status = maybe.$metadata?.httpStatusCode;
+    if (
+      maybe.name === "NotFound" ||
+      maybe.name === "NoSuchKey" ||
+      status === 404
+    ) {
+      return {
+        exists: false,
+      };
+    }
+    throw error;
+  }
+};
+
+export const sendReviewMessage = async (
+  messageBody: Record<string, unknown>,
+): Promise<void> => {
   await sqsClient.send(
     new SendMessageCommand({
       QueueUrl: getReviewQueueUrl(),
@@ -182,7 +231,10 @@ export const sendReviewMessage = async (messageBody: Record<string, unknown>): P
   );
 };
 
-export const sendTaskSuccess = async (taskToken: string, output: unknown): Promise<void> => {
+export const sendTaskSuccess = async (
+  taskToken: string,
+  output: unknown,
+): Promise<void> => {
   await sfnClient.send(
     new SendTaskSuccessCommand({
       taskToken,

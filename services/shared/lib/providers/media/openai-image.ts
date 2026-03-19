@@ -1,5 +1,6 @@
 import { createHash } from "crypto";
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
+import { fetchArrayBufferWithRetry, fetchJsonWithRetry } from "../http/retry";
 
 type OpenAiImageSecret = {
   apiKey: string;
@@ -57,13 +58,16 @@ const persistResolvedImage = async (
   }
 
   if (image?.url) {
-    const assetResponse = await fetch(image.url);
-    const arrayBuffer = await assetResponse.arrayBuffer();
-    await putBufferToS3(
-      imageKey,
-      Buffer.from(arrayBuffer),
-      assetResponse.headers.get("content-type") ?? "image/png",
+    const arrayBuffer = await fetchArrayBufferWithRetry(
+      image.url,
+      {
+        method: "GET",
+      },
+      {
+        maxAttempts: 3,
+      },
     );
+    await putBufferToS3(imageKey, Buffer.from(arrayBuffer), "image/png");
     return;
   }
 
@@ -87,7 +91,7 @@ export const generateSceneImage = async (input: {
 
   const endpoint =
     secret.endpoint ?? "https://api.openai.com/v1/images/generations";
-  const response = await fetch(endpoint, {
+  const payload = (await fetchJsonWithRetry(endpoint, {
     method: "POST",
     headers: {
       Authorization: `Bearer ${secret.apiKey}`,
@@ -98,9 +102,7 @@ export const generateSceneImage = async (input: {
       size: secret.size ?? "1024x1024",
       prompt: input.prompt,
     }),
-  });
-
-  const payload = (await response.json()) as {
+  })) as {
     data?: Array<{ b64_json?: string; url?: string }>;
     error?: unknown;
   };

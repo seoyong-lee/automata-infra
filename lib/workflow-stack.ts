@@ -1,4 +1,4 @@
-import { CfnOutput, Stack, StackProps } from "aws-cdk-lib";
+import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -65,6 +65,12 @@ export class WorkflowStack extends Stack {
         payloadResponseOnly: true,
       },
     );
+    generateSceneImages.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
 
     const generateSceneVideo = new tasks.LambdaInvoke(
       this,
@@ -74,10 +80,22 @@ export class WorkflowStack extends Stack {
         payloadResponseOnly: true,
       },
     );
+    generateSceneVideo.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
 
     const generateSceneTts = new tasks.LambdaInvoke(this, "GenerateSceneTts", {
       lambdaFunction: lambdas.ttsGenerator,
       payloadResponseOnly: true,
+    });
+    generateSceneTts.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
     });
 
     const validateAssets = new tasks.LambdaInvoke(this, "ValidateAssets", {
@@ -98,6 +116,12 @@ export class WorkflowStack extends Stack {
         payloadResponseOnly: true,
       },
     );
+    composeFinalVideo.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(5),
+      backoffRate: 2,
+      maxAttempts: 2,
+    });
 
     const requestReview = new tasks.LambdaInvoke(this, "RequestReview", {
       lambdaFunction: lambdas.reviewRequest,

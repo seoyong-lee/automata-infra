@@ -1,9 +1,6 @@
 import { Handler } from "aws-lambda";
-import { sendReviewMessage } from "../../shared/lib/aws/runtime";
-import {
-  putReviewRecord,
-  updateJobMeta,
-} from "../../shared/lib/store/video-jobs";
+import { parseReviewRequest } from "./normalize/parse-review-request";
+import { queueReviewRequest } from "./usecase/queue-review-request";
 
 type ReviewRequestInput = {
   taskToken: string;
@@ -19,35 +16,11 @@ export const run: Handler<
   ReviewRequestInput,
   { queued: boolean; jobId: string }
 > = async (event) => {
-  const queuedAt = new Date().toISOString();
-  const jobId = event.input.jobId;
-  const previewS3Key = event.input.finalArtifact.previewS3Key;
-
-  await putReviewRecord(jobId, {
-    action: "PENDING",
-    previewS3Key,
-    queuedAt,
-  });
-
-  await updateJobMeta(
-    jobId,
-    {
-      reviewTaskToken: event.taskToken,
-      reviewRequestedAt: queuedAt,
-      reviewPreviewS3Key: previewS3Key,
-      reviewAction: "PENDING",
-    },
-    "REVIEW_PENDING",
-  );
-
-  await sendReviewMessage({
-    jobId,
-    previewS3Key,
-    queuedAt,
-  });
+  const parsed = parseReviewRequest(event);
+  await queueReviewRequest(parsed);
 
   return {
     queued: true,
-    jobId,
+    jobId: parsed.jobId,
   };
 };

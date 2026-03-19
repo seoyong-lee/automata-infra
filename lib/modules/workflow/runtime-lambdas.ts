@@ -39,7 +39,7 @@ const createLambda = (
     entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
-    timeout: Duration.seconds(30),
+    timeout: Duration.seconds(120),
     bundling: {
       target: "node20",
       format: nodejs.OutputFormat.CJS,

@@ -1,4 +1,5 @@
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
+import { fetchArrayBufferWithRetry } from "../http/retry";
 
 type ElevenLabsSecret = {
   apiKey: string;
@@ -32,23 +33,27 @@ export const generateSceneVoice = async (input: {
   const endpoint =
     secret.endpoint ??
     `https://api.elevenlabs.io/v1/text-to-speech/${secret.voiceId}`;
-  const response = await fetch(endpoint, {
-    method: "POST",
-    headers: {
-      "xi-api-key": secret.apiKey,
-      "Content-Type": "application/json",
-      Accept: "audio/mpeg",
+  const arrayBuffer = await fetchArrayBufferWithRetry(
+    endpoint,
+    {
+      method: "POST",
+      headers: {
+        "xi-api-key": secret.apiKey,
+        "Content-Type": "application/json",
+        Accept: "audio/mpeg",
+      },
+      body: JSON.stringify({
+        text: input.text,
+        model_id: secret.modelId ?? "eleven_multilingual_v2",
+      }),
     },
-    body: JSON.stringify({
-      text: input.text,
-      model_id: secret.modelId ?? "eleven_multilingual_v2",
-    }),
-  });
-
-  const arrayBuffer = await response.arrayBuffer();
+    {
+      maxAttempts: 4,
+    },
+  );
   await putBufferToS3(audioKey, Buffer.from(arrayBuffer), "audio/mpeg");
   await putJsonToS3(rawKey, {
-    status: response.status,
+    status: 200,
     voiceId: secret.voiceId,
     bytes: arrayBuffer.byteLength,
   });
