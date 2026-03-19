@@ -5,6 +5,10 @@ import {
   useRequestUploadMutation,
   useSubmitReviewDecisionMutation,
 } from "@packages/graphql";
+import { Badge } from "@packages/ui/badge";
+import { Button } from "@packages/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
+import { getErrorMessage } from "@packages/utils";
 import { useQueryClient } from "@tanstack/react-query";
 
 export default function ReviewsPage() {
@@ -24,28 +28,31 @@ export default function ReviewsPage() {
   });
 
   return (
-    <div className="card">
-      <h2 style={{ marginTop: 0 }}>Pending Reviews</h2>
-      {pending.isLoading ? <p>Loading...</p> : null}
-      {pending.error ? (
-        <p style={{ color: "#dc2626" }}>{pending.error.message}</p>
-      ) : null}
-      <ul style={{ padding: 0, listStyle: "none" }}>
+    <Card>
+      <CardHeader>
+        <CardTitle>Pending Reviews</CardTitle>
+      </CardHeader>
+      <CardContent className="space-y-4">
+        {pending.isLoading ? (
+          <p className="text-sm text-muted-foreground">Loading...</p>
+        ) : null}
+        {pending.error ? (
+          <p className="text-sm text-destructive">
+            {getErrorMessage(pending.error)}
+          </p>
+        ) : null}
         {(pending.data ?? []).map((item) => (
-          <li
+          <div
             key={item.jobId}
-            style={{
-              border: "1px solid var(--border)",
-              borderRadius: 10,
-              padding: 12,
-              marginBottom: 12,
-            }}
+            className="space-y-3 rounded-lg border border-border p-4"
           >
-            <strong>{item.jobId}</strong>
-            <p>Status: {item.status}</p>
-            <div className="stack">
-              <button
-                className="btn"
+            <div className="flex flex-wrap items-center gap-3">
+              <strong className="font-mono text-xs">{item.jobId}</strong>
+              <Badge variant="outline">{item.status}</Badge>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button
+                size="sm"
                 onClick={() =>
                   submitReview.mutate({
                     jobId: item.jobId,
@@ -54,9 +61,10 @@ export default function ReviewsPage() {
                 }
               >
                 Approve
-              </button>
-              <button
-                className="btn secondary"
+              </Button>
+              <Button
+                size="sm"
+                variant="outline"
                 onClick={() =>
                   submitReview.mutate({
                     jobId: item.jobId,
@@ -65,9 +73,10 @@ export default function ReviewsPage() {
                 }
               >
                 Reject
-              </button>
-              <button
-                className="btn secondary"
+              </Button>
+              <Button
+                size="sm"
+                variant="secondary"
                 onClick={() =>
                   requestUpload.mutate({
                     jobId: item.jobId,
@@ -75,11 +84,11 @@ export default function ReviewsPage() {
                 }
               >
                 Request Upload
-              </button>
+              </Button>
             </div>
-          </li>
+          </div>
         ))}
-      </ul>
-    </div>
+      </CardContent>
+    </Card>
   );
 }

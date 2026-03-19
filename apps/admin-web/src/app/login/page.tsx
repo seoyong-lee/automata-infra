@@ -1,6 +1,8 @@
 "use client";
 
 import { startLogin } from "@packages/auth";
+import { Button } from "@packages/ui/button";
+import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
 import { useSearchParams } from "next/navigation";
 import { Suspense } from "react";
 
@@ -10,17 +12,23 @@ const LoginContent = () => {
   const next = sp.get("next") ?? "/";
 
   return (
-    <main className="container">
-      <div className="card" style={{ maxWidth: 480, margin: "64px auto" }}>
-        <h1 style={{ marginTop: 0 }}>Admin Login</h1>
-        <p>Cognito 로그인으로 어드민 대시보드에 접근합니다.</p>
-        {error ? (
-          <p style={{ color: "#dc2626" }}>로그인 오류: {error}</p>
-        ) : null}
-        <button className="btn" onClick={() => startLogin({ next })}>
-          Sign in with Cognito
-        </button>
-      </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardHeader>
+          <CardTitle>Admin Login</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <p className="text-sm text-muted-foreground">
+            Cognito 로그인으로 어드민 대시보드에 접근합니다.
+          </p>
+          {error ? (
+            <p className="text-sm text-destructive">로그인 오류: {error}</p>
+          ) : null}
+          <Button onClick={() => startLogin({ next })}>
+            Sign in with Cognito
+          </Button>
+        </CardContent>
+      </Card>
     </main>
   );
 };

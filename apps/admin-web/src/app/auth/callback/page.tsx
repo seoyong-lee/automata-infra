@@ -6,6 +6,7 @@ import {
   isAdmin,
   saveTokens,
 } from "@packages/auth";
+import { Card, CardContent } from "@packages/ui/card";
 import { useRouter, useSearchParams } from "next/navigation";
 import { Suspense, useEffect, useMemo, useRef } from "react";
 
@@ -49,10 +50,12 @@ const AuthCallbackContent = () => {
   }, [code, error, next, router]);
 
   return (
-    <main className="container">
-      <div className="card" style={{ maxWidth: 480, margin: "64px auto" }}>
-        <p>Authenticating...</p>
-      </div>
+    <main className="mx-auto flex min-h-screen w-full max-w-7xl items-center justify-center px-4">
+      <Card className="w-full max-w-md">
+        <CardContent className="p-6">
+          <p className="text-sm text-muted-foreground">Authenticating...</p>
+        </CardContent>
+      </Card>
     </main>
   );
 };

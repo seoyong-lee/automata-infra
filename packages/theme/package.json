@@ -8,7 +8,9 @@
   "exports": {
     ".": "./src/index.ts",
     "./theme-provider": "./src/theme-provider.tsx",
-    "./tokens.css": "./src/tokens.css"
+    "./tokens.css": "./src/tokens.css",
+    "./default-tokens.css": "./src/default-tokens.css",
+    "./web-tokens.css": "./src/web-tokens.css"
   },
   "peerDependencies": {
     "react": "^18 || ^19",
