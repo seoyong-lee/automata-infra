@@ -19,6 +19,7 @@
 - `[x]` `build`, `lint`, `synth`, `diff`, `deploy` 스크립트 존재
 - `[~]` 테스트 스크립트는 일부 smoke 수준만 존재
 - `[ ]` 자동 테스트 파일(unit/integration) 체계화
+- `[ ]` script/scene 생성과 후속 산출물 검증용 테스트 환경 구축
 
 ## 2. CDK / 인프라 스택
 
@@ -93,6 +94,8 @@
 - `[ ]` 실제 topic source 수집
 - `[ ]` topic dedupe 체크
 - `[ ]` 채널 전략 기반 topic scoring
+- `[ ]` topic 단계 LLM provider/model 모듈화
+- `[ ]` DB 조회 기반 prompt template 적용
 
 ### 4.2 Scene JSON Build
 
@@ -102,6 +105,8 @@
 - `[~]` scene JSON 생성 로직은 현재 샘플 데이터 고정
 - `[ ]` LLM 기반 script/scene generation
 - `[ ]` scene count, subtitle length, tone/style 정책 반영
+- `[ ]` scene 단계 LLM provider/model 모듈화
+- `[ ]` DB 조회 기반 prompt template 적용
 
 ### 4.3 Image Generation
 
@@ -241,6 +246,10 @@
 - `[x]` runtime에서 Secrets Manager 조회 지원
 - `[x]` OpenAI / Runway / ElevenLabs / Shotstack wrapper 존재
 - `[~]` secret 미설정 시 mock fallback 위주 운영
+- `[ ]` 공통 LLM adapter 계층 (`Gemini`, `OpenAI`, `Bedrock` 등) 구성
+- `[ ]` 단계별 모델 선택/파라미터 설정 저장소 구성
+- `[ ]` prompt template의 DB 조회/버전 관리 구조 구성
+- `[ ]` 단계별 최적 모델 평가 기준 수립
 - `[ ]` 실제 provider credential 기반 end-to-end 검증
 - `[ ]` provider rate limit / retry 정책 구체화
 - `[ ]` provider 비용 집계
@@ -255,6 +264,8 @@
 - `[ ]` 통합 테스트
 - `[ ]` workflow smoke test
 - `[ ]` provider mock/real 분리 테스트
+- `[ ]` prompt regression test dataset
+- `[ ]` script -> scene -> asset -> render plan 계약 회귀 테스트
 
 ## 9. 다음 구현 우선순위
 
@@ -269,6 +280,9 @@
 
 - `[ ]` topic planning을 실제 source/LLM 기반으로 전환
 - `[ ]` scene JSON 생성을 LLM 기반으로 전환
+- `[ ]` 단계별 LLM provider/model 교체 가능 구조 도입
+- `[ ]` DB 기반 prompt template 조회/적용 연결
+- `[ ]` 단계별 최적 모델 후보 (`Gemini`, `OpenAI`, `Bedrock`) 평가
 - `[ ]` topic dedupe와 비용 기록 연결
 
 ### P3. 렌더/업로드 실체화
@@ -284,9 +298,10 @@
 - `[ ]` title/description/thumbnail 수정 기능
 - `[ ]` partial regeneration 관리 강화
 - `[ ]` 테스트 및 runbook 확장
+- `[ ]` 생성 테스트 환경과 프롬프트 회귀 검증 체계 확장
 
 ## 10. 현재 단계 요약
 
 - 현재 상태는 대체로 `Phase 2 완료 + Phase 3/4 일부 구현`으로 볼 수 있다.
 - 골격, 스택, 주요 Lambda 경로, admin GraphQL/API는 갖춰져 있다.
-- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하는 것이다.
+- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 단계별 LLM/프롬프트 교체 및 테스트 체계를 붙이는 것이다.

@@ -39,6 +39,7 @@ B --> J[DynamoDB Job State]
 - 생성과 합성은 분리
 - 초기에는 휴먼 검수 필수
 - MVP는 `Shotstack` 우선
+- LLM 단계는 모델과 프롬프트를 운영 중 교체 가능하게 설계
 - 리포 구조와 컨벤션은 `storytalk-infra` 스타일 준수
 
 ## 1. 결정 요약
@@ -54,7 +55,7 @@ B --> J[DynamoDB Job State]
 
 ### 추천 스택
 
-- 스크립트/장면 구성: LLM
+- 스크립트/장면 구성: 단계별 선택형 LLM (`Gemini`, `OpenAI`, `Bedrock` 계열 포함)
 - 이미지 생성: `OpenAI Image` 또는 `Runway Image`
 - 짧은 영상 생성: `Runway` 또는 `Pika(fal)`
 - 음성 생성: `ElevenLabs` 또는 `Runway TTS`
@@ -69,6 +70,7 @@ B --> J[DynamoDB Job State]
 - Canva/InVideo 중심은 반자동 운영에 가깝다.
 - 비용의 대부분은 AWS보다 외부 생성 API에서 발생한다.
 - 초기 MVP는 `Shotstack` 중심이 가장 빠르다.
+- 스크립트와 프롬프트 중심 단계는 고정 모델보다 단계별 최적 모델 선택 전략이 유리하다.
 - 커스텀 합성, 자막 burn-in, 썸네일 배치 생성은 이후 `Fargate`로 확장한다.
 
 ---
@@ -162,7 +164,15 @@ B --> J[DynamoDB Job State]
 - 제목/설명/썸네일 수정
 - 부분 재생성
 
-### 3.6 리포는 하나로 유지하고, 내부는 모듈화한다
+### 3.6 LLM 단계는 모델/프롬프트 교체 가능 구조로 둔다
+
+- topic planning, script/scene generation, metadata generation 단계는 공통 LLM 호출 인터페이스 뒤로 숨긴다
+- 각 단계는 `model provider`, `model id`, `temperature`, `response schema`를 독립적으로 설정 가능해야 한다
+- 프롬프트는 코드 하드코딩보다 템플릿 + runtime variable 주입 구조를 우선한다
+- 프롬프트 템플릿과 운영 파라미터는 DB 조회 기반으로 바꿀 수 있어야 한다
+- 모델 선택은 정확도, 비용, 응답 속도, JSON 안정성을 기준으로 단계별 분리 평가한다
+
+### 3.7 리포는 하나로 유지하고, 내부는 모듈화한다
 
 - 리포지토리: 하나
 - CDK app entry: 하나
@@ -213,6 +223,7 @@ ai-pipeline-studio/
 │           ├── auth/
 │           ├── aws/
 │           ├── errors/
+│           ├── llm/
 │           ├── logging/
 │           ├── observability/
 │           ├── providers/
@@ -416,11 +427,21 @@ services/image/requestSceneImage/
 `services/shared/lib/` 아래에 둔다.
 
 - `errors/`: AppError, errorCodes
+- `llm/`: model registry, prompt renderer, response schema helper
 - `logging/`: request/job logger
 - `observability/`: tracing, metrics, structured logs
 - `providers/`: Runway, OpenAI Image, ElevenLabs, Shotstack client wrapper
 - `schema/`: zod 또는 JSON schema
 - `util/`: id, clock, hash, retry helper
+
+### 7.4 LLM 오케스트레이션
+
+- LLM 사용 단계는 `services/shared/lib/llm/` 아래 공통 인터페이스를 통해 호출한다
+- provider adapter는 `Gemini`, `OpenAI`, `Bedrock` 등으로 확장 가능하게 둔다
+- 각 단계는 `step key` 기준으로 모델 설정을 조회한다
+- 프롬프트 템플릿은 DB에서 조회하고, 채널 전략/주제/이전 산출물/운영 파라미터를 변수로 주입한다
+- 응답 검증은 schema 기반으로 수행하고, 실패 시 fallback model 또는 보수적 재시도 정책을 적용한다
+- 운영 중 프롬프트 수정이 가능해야 하므로 배포 없이도 템플릿 교체가 가능하도록 설계한다
 
 ---
 
@@ -521,6 +542,14 @@ services/image/requestSceneImage/
 - `services/shared/lib/providers/**` 에서 secret을 읽어 client 생성
 - secret id만 `env/config.json` 에 둔다
 
+### 9.4 생성 테스트 환경
+
+- 스크립트 생성과 그 하위 결과물 생성을 검증하는 전용 테스트 환경을 둔다
+- 최소 구성은 `prompt fixture + mock provider + golden output + smoke dataset` 조합으로 시작한다
+- LLM 단계는 mock, snapshot, 선택적 real-provider 검증을 분리한다
+- script/scene 결과가 image/video/voice/render plan으로 이어질 때 계약이 깨지지 않는지 통합 검증한다
+- 운영 프롬프트 변경 전후 비교를 위해 회귀 테스트 셋을 유지한다
+
 ---
 
 ## 10. 단계별 워크플로우
@@ -537,6 +566,8 @@ services/image/requestSceneImage/
 8. `AwaitReviewDecision`
 9. `UploadYoutube`
 10. `CollectMetrics`
+
+`PlanTopic`, `BuildSceneJson`, review metadata 보정 단계는 동일 모델을 강제하지 않고 단계별 최적 모델을 선택할 수 있어야 한다.
 
 ### 10.2 장면별 병렬 처리
 
@@ -783,6 +814,7 @@ s3://automata-studio/
 - 단일 채널
 - 단일 언어
 - scene JSON 기반 생성
+- 단계별 LLM provider/model 교체 가능 구조
 - 이미지 생성
 - 선택적 짧은 scene video 생성
 - TTS 생성
@@ -791,6 +823,7 @@ s3://automata-studio/
 - review UI
 - YouTube private 업로드
 - 기본 metrics 수집
+- 스크립트/산출물 회귀 테스트용 기본 환경
 
 ### 제외
 
@@ -821,6 +854,7 @@ s3://automata-studio/
 
 - topic planner
 - scene JSON builder
+- 단계별 LLM adapter / prompt resolver
 - image generator
 - video generator
 - voice generator
@@ -838,6 +872,9 @@ s3://automata-studio/
 
 - provider fallback
 - partial regeneration
+- script/result generation 테스트 환경 구축
+- prompt regression test dataset 구축
+- 단계별 최적 LLM 모델 평가와 운영 파라미터 정리
 - 비용 대시보드
 - Fargate composition 옵션 추가
 
@@ -850,6 +887,7 @@ s3://automata-studio/
 - 오케스트레이션은 `Step Functions + Lambda + SQS` 로 둔다.
 - 리포 기본 구조와 배포 스크립트는 `storytalk-infra` 스타일을 따른다.
 - 코드 컨벤션도 `storytalk-infra`의 TypeScript strict, ESLint flat config, 얇은 handler/usecase/repo 분리 방식을 따른다.
+- LLM 단계는 단계별 최적 모델 선택과 DB 기반 프롬프트 교체가 가능해야 한다.
 - MVP 합성은 `Shotstack`, 고급 합성은 `Fargate + FFmpeg` 로 확장한다.
 
 한 줄 요약:
