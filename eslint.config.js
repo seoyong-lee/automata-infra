@@ -53,6 +53,15 @@ module.exports = [
   },
   ...codeHealthBackend,
   {
-    ignores: ['node_modules/', 'cdk.out/', 'cdk.out-ts/', 'coverage/', '*.js', '!eslint.config.js'],
+    ignores: [
+      'node_modules/',
+      'cdk.out/',
+      'cdk.out-ts/',
+      'coverage/',
+      'apps/**',
+      'packages/**',
+      '*.js',
+      '!eslint.config.js',
+    ],
   },
 ];

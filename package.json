@@ -2,6 +2,10 @@
   "name": "ai-pipeline-studio",
   "version": "1.0.0",
   "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "build": "tsc",
@@ -12,6 +16,10 @@
     "deploy": "tsc && cdk deploy -c @envFile=env/config.json",
     "test:admin:guards": "ts-node scripts/admin-guards-smoke.ts",
     "smoke:admin:graphql": "ts-node scripts/admin-graphql-smoke.ts",
+    "admin:dev": "yarn workspace @apps/admin-web dev",
+    "admin:build": "yarn workspace @apps/admin-web build",
+    "admin:start": "yarn workspace @apps/admin-web start",
+    "admin:typecheck": "yarn workspace @apps/admin-web typecheck",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
   "dependencies": {

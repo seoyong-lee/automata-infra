@@ -53,3 +53,8 @@ Thumbs.db
 *.wmv
 
 /cdk.out*
+apps/**/.next/
+apps/**/node_modules/
+apps/**/.env
+apps/**/.env.*
+!apps/**/.env.example

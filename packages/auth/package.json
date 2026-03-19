@@ -1,0 +1,17 @@
+{
+  "name": "@packages/auth",
+  "version": "0.0.1",
+  "private": true,
+  "sideEffects": false,
+  "exports": {
+    ".": "./src/index.ts"
+  },
+  "peerDependencies": {
+    "react": "^18 || ^19",
+    "react-dom": "^18 || ^19"
+  },
+  "dependencies": {
+    "aws-amplify": "^6.16.2",
+    "client-only": "^0.0.1"
+  }
+}

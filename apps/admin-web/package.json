@@ -1,0 +1,33 @@
+{
+  "name": "@apps/admin-web",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "dev": "next dev -p 3001",
+    "build": "next build",
+    "start": "next start -p 3001",
+    "lint": "eslint .",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@packages/auth": "0.0.1",
+    "@packages/graphql": "0.0.1",
+    "@packages/theme": "0.0.1",
+    "@packages/utils": "0.0.1",
+    "@tanstack/react-query": "^5.90.21",
+    "aws-amplify": "^6.16.2",
+    "next": "16.1.6",
+    "next-themes": "^0.4.6",
+    "react": "19.2.3",
+    "react-dom": "19.2.3"
+  },
+  "devDependencies": {
+    "@packages/config": "0.0.1",
+    "@types/node": "^24.7.2",
+    "@types/react": "^19.2.2",
+    "@types/react-dom": "^19.2.2",
+    "eslint": "^9.39.1",
+    "eslint-config-next": "16.1.6",
+    "typescript": "^5.9.3"
+  }
+}
