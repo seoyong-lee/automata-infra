@@ -1,0 +1,38 @@
+---
+description: Service layering for Lambda runtime code
+alwaysApply: true
+---
+
+# Service Handler Convention
+
+Apply this convention for runtime code, especially `services/**/*.ts`.
+
+## Layering
+
+- Keep `handler.ts` as a thin Lambda entry file only.
+- Put runtime orchestration logic in same-folder `index.ts`.
+- Move non-trivial business flow from `index.ts` into `usecase/`.
+- Keep external I/O in `repo/` (AWS SDK, DynamoDB, S3, HTTP providers).
+- Isolate external provider calls in `services/shared/lib/providers/<provider>/*.ts`.
+- Keep data shape conversion in `mapper/` and normalization in `normalize/`.
+
+## Handler Rules
+
+- `handler.ts` should only wire and delegate: `export const handler = run`.
+- No direct provider calls in `handler.ts`.
+- No JSON schema/business validation logic in `handler.ts`.
+- No direct external API calls in `index.ts`; call `usecase` or provider modules.
+- Avoid inline status transitions in `handler.ts`; delegate to called function.
+
+## Naming
+
+- Entry orchestrator: `run` in `index.ts`.
+- Usecase functions: verb-first names (e.g. `generateSceneAssets`).
+- Repo functions: boundary-first names (e.g. `putSceneAsset`, `getJobMeta`).
+
+## Quality Gates
+
+- Preserve event contracts and response shape when refactoring.
+- Prefer pure functions for normalization/mapping blocks.
+- Keep files single-purpose and easy to test in isolation.
+- Use named exports only; avoid default exports in `services/**`.
