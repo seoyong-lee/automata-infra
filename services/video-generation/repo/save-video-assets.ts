@@ -1,4 +1,4 @@
-import { putSceneAsset } from "../../shared/lib/store/video-jobs";
+import { upsertSceneAsset } from "../../shared/lib/store/video-jobs";
 
 export const saveVideoAssets = async (input: {
   jobId: string;
@@ -6,13 +6,16 @@ export const saveVideoAssets = async (input: {
   videoAssets: unknown[];
 }): Promise<void> => {
   for (const [index, asset] of input.videoAssets.entries()) {
-    const sceneId = input.scenes[index]?.sceneId;
+    const typedAsset =
+      asset && typeof asset === "object"
+        ? (asset as Record<string, unknown>)
+        : {};
+    const sceneId =
+      typeof typedAsset.sceneId === "number"
+        ? typedAsset.sceneId
+        : input.scenes[index]?.sceneId;
     if (typeof sceneId === "number") {
-      await putSceneAsset(
-        input.jobId,
-        sceneId,
-        asset as Record<string, unknown>,
-      );
+      await upsertSceneAsset(input.jobId, sceneId, typedAsset);
     }
   }
 };

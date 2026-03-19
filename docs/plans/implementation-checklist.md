@@ -114,7 +114,7 @@
 - `[x]` OpenAI image provider wrapper 존재
 - `[x]` secret 기반 실호출 + secret 부재 시 mock fallback
 - `[x]` 생성 결과 S3/DynamoDB 반영
-- `[ ]` 장면별 병렬 `Map` 처리
+- `[x]` 장면별 병렬 `Map` 처리
 - `[ ]` provider fallback 전략
 - `[ ]` 비용 기록
 
@@ -125,7 +125,7 @@
 - `[x]` poll 기반 비동기 완료 처리 존재
 - `[x]` secret 부재 시 mock fallback
 - `[~]` 실제 비디오 파일 대신 JSON manifest 저장 가능성 있음
-- `[ ]` 장면별 병렬 `Map` 처리
+- `[x]` 장면별 병렬 `Map` 처리
 - `[ ]` provider fallback 전략
 - `[ ]` 실제 clip 산출물 저장 일관화
 
@@ -208,7 +208,7 @@
 - `[x]` 기본 단계 순서가 `plan -> scene -> image -> video -> voice -> validate -> render-plan -> compose -> review -> upload`로 연결됨
 - `[x]` review 후 approve/reject/regenerate 분기 존재
 - `[~]` regenerate 이후 전체 파이프라인 재합류가 불완전함
-- `[ ]` `GenerateSceneAssets`를 장면별 `Map` state로 구현
+- `[x]` `GenerateSceneAssets`를 장면별 `Map` state로 구현
 - `[ ]` wait/poll + SQS fallback 전략 분리
 - `[ ]` 단계별 실패 격리와 부분 재시도 고도화
 - `[~]` `CollectMetrics`를 포함한 최종 상태 흐름 완성
@@ -275,7 +275,7 @@
 ### P1. 워크플로우 완결
 
 - `[~]` EventBridge rule -> Step Functions 시작점 추가
-- `[ ]` 장면별 `Map` state 병렬 처리 추가
+- `[x]` 장면별 `Map` state 병렬 처리 추가
 - `[ ]` regenerate 후 `validate -> render-plan -> compose -> review` 재합류 정리
 - `[x]` `CollectMetrics` 단계 추가
 
@@ -307,4 +307,4 @@
 
 - 현재 상태는 대체로 `Phase 2 완료 + Phase 3/4 일부 구현`으로 볼 수 있다.
 - 골격, 스택, 주요 Lambda 경로, admin GraphQL/API와 LLM settings 관리 경로는 갖춰져 있다.
-- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 다중 LLM provider 실연결과 scene별 병렬 워크플로우를 마무리하는 것이다.
+- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 다중 LLM provider 실연결과 regenerate 재합류를 마무리하는 것이다.

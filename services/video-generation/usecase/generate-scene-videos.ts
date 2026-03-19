@@ -9,7 +9,7 @@ export const generateSceneVideos = async (
     jobId: string;
     scenes: Array<{
       sceneId: number;
-      videoPrompt: string;
+      videoPrompt?: string;
     }>;
     secretId: string;
   },
@@ -21,6 +21,10 @@ export const generateSceneVideos = async (
   const requestSceneVideo = deps.generateSceneVideo ?? generateSceneVideo;
 
   for (const scene of input.scenes) {
+    if (!scene.videoPrompt) {
+      continue;
+    }
+
     const asset = await requestSceneVideo({
       jobId: input.jobId,
       sceneId: scene.sceneId,

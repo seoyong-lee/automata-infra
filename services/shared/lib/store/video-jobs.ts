@@ -48,6 +48,23 @@ export type QueryPage<T> = {
   nextToken: string | null;
 };
 
+export type SceneAssetItem = {
+  PK: string;
+  SK: string;
+  sceneId: number;
+  visualType?: string;
+  durationSec?: number;
+  narration?: string;
+  subtitle?: string;
+  imagePrompt?: string;
+  videoPrompt?: string;
+  imageS3Key?: string;
+  videoClipS3Key?: string;
+  voiceS3Key?: string;
+  validationStatus?: string;
+  [key: string]: unknown;
+};
+
 const encodeNextToken = (key?: Record<string, unknown>): string | null => {
   if (!key) {
     return null;
@@ -146,6 +163,33 @@ export const putSceneAsset = async (
   });
 };
 
+export const getSceneAsset = async (
+  jobId: string,
+  sceneId: number,
+): Promise<SceneAssetItem | null> => {
+  return getItem<SceneAssetItem>({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}`,
+  });
+};
+
+export const upsertSceneAsset = async (
+  jobId: string,
+  sceneId: number,
+  item: Record<string, unknown>,
+): Promise<void> => {
+  const current = await getSceneAsset(jobId, sceneId);
+
+  await putItem({
+    ...(current ?? {
+      PK: jobPk(jobId),
+      SK: `SCENE#${sceneId}`,
+      sceneId,
+    }),
+    ...item,
+  });
+};
+
 export const putRenderArtifact = async (
   jobId: string,
   item: Record<string, unknown>,
@@ -190,6 +234,22 @@ export const listJobItems = async (
     scanIndexForward: true,
     limit: 100,
   });
+};
+
+export const listSceneAssets = async (
+  jobId: string,
+): Promise<SceneAssetItem[]> => {
+  const items = await queryItems<SceneAssetItem>({
+    keyConditionExpression: "PK = :pk AND begins_with(SK, :scenePrefix)",
+    expressionAttributeValues: {
+      ":pk": jobPk(jobId),
+      ":scenePrefix": "SCENE#",
+    },
+    scanIndexForward: true,
+    limit: 100,
+  });
+
+  return items.sort((left, right) => left.sceneId - right.sceneId);
 };
 
 export const listJobMetasByStatus = async (input: {

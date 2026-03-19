@@ -1,5 +1,5 @@
 import {
-  putSceneAsset,
+  upsertSceneAsset,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
 
@@ -7,17 +7,23 @@ export const saveVoiceAssets = async (input: {
   jobId: string;
   scenes: Array<{ sceneId: number }>;
   voiceAssets: unknown[];
+  markStatus?: boolean;
 }): Promise<void> => {
   for (const [index, asset] of input.voiceAssets.entries()) {
-    const sceneId = input.scenes[index]?.sceneId;
+    const typedAsset =
+      asset && typeof asset === "object"
+        ? (asset as Record<string, unknown>)
+        : {};
+    const sceneId =
+      typeof typedAsset.sceneId === "number"
+        ? typedAsset.sceneId
+        : input.scenes[index]?.sceneId;
     if (typeof sceneId === "number") {
-      await putSceneAsset(
-        input.jobId,
-        sceneId,
-        asset as Record<string, unknown>,
-      );
+      await upsertSceneAsset(input.jobId, sceneId, typedAsset);
     }
   }
 
-  await updateJobMeta(input.jobId, {}, "ASSETS_READY");
+  if (input.markStatus ?? true) {
+    await updateJobMeta(input.jobId, {}, "ASSETS_READY");
+  }
 };

@@ -75,6 +75,20 @@ export class WorkflowStack extends Stack {
       backoffRate: 2,
       maxAttempts: 3,
     });
+    const generateSceneImageForMap = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneImageForMap",
+      {
+        lambdaFunction: lambdas.imageGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneImageForMap.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
 
     const generateSceneVideo = new tasks.LambdaInvoke(
       this,
@@ -85,6 +99,20 @@ export class WorkflowStack extends Stack {
       },
     );
     generateSceneVideo.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
+    const generateSceneVideoForMap = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneVideoForMap",
+      {
+        lambdaFunction: lambdas.videoGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneVideoForMap.addRetry({
       errors: ["States.TaskFailed"],
       interval: Duration.seconds(3),
       backoffRate: 2,
@@ -101,6 +129,39 @@ export class WorkflowStack extends Stack {
       backoffRate: 2,
       maxAttempts: 3,
     });
+    const generateSceneTtsForMap = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneTtsForMap",
+      {
+        lambdaFunction: lambdas.ttsGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneTtsForMap.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
+
+    const generateSceneAssetsMap = new sfn.Map(this, "GenerateSceneAssets", {
+      itemsPath: sfn.JsonPath.stringAt("$.sceneJson.scenes"),
+      itemSelector: {
+        "jobId.$": "$.jobId",
+        "sceneId.$": "$$.Map.Item.Value.sceneId",
+        "imagePrompt.$": "$$.Map.Item.Value.imagePrompt",
+        "videoPrompt.$": "$$.Map.Item.Value.videoPrompt",
+        "narration.$": "$$.Map.Item.Value.narration",
+        "durationSec.$": "$$.Map.Item.Value.durationSec",
+      },
+      resultPath: sfn.JsonPath.DISCARD,
+      maxConcurrency: 10,
+    });
+    generateSceneAssetsMap.itemProcessor(
+      sfn.Chain.start(generateSceneImageForMap)
+        .next(generateSceneVideoForMap)
+        .next(generateSceneTtsForMap),
+    );
 
     const validateAssets = new tasks.LambdaInvoke(this, "ValidateAssets", {
       lambdaFunction: lambdas.assetValidator,
@@ -156,9 +217,7 @@ export class WorkflowStack extends Stack {
 
     const definition = planTopic
       .next(buildSceneJson)
-      .next(generateSceneImages)
-      .next(generateSceneVideo)
-      .next(generateSceneTts)
+      .next(generateSceneAssetsMap)
       .next(validateAssets)
       .next(buildRenderPlan)
       .next(composeFinalVideo)

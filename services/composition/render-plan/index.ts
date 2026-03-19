@@ -1,6 +1,7 @@
 import { Handler } from "aws-lambda";
 import { putJsonToS3 } from "../../shared/lib/aws/runtime";
 import {
+  listSceneAssets,
   putRenderArtifact,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
@@ -16,11 +17,11 @@ type RenderPlanEvent = {
   };
   imageAssets?: Array<{
     sceneId: number;
-    imageS3Key: string;
+    imageS3Key?: string;
   }>;
   voiceAssets?: Array<{
     sceneId: number;
-    voiceS3Key: string;
+    voiceS3Key?: string;
   }>;
 };
 
@@ -80,7 +81,26 @@ export const run: Handler<
   RenderPlanEvent,
   RenderPlanEvent & { renderPlan: unknown; status: string }
 > = async (event) => {
-  const builtScenes = buildRenderPlanScenes(event);
+  const sceneAssets = await listSceneAssets(event.jobId);
+  const imageAssets =
+    event.imageAssets ??
+    sceneAssets.map((scene) => ({
+      sceneId: scene.sceneId,
+      imageS3Key:
+        typeof scene.imageS3Key === "string" ? scene.imageS3Key : undefined,
+    }));
+  const voiceAssets =
+    event.voiceAssets ??
+    sceneAssets.map((scene) => ({
+      sceneId: scene.sceneId,
+      voiceS3Key:
+        typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined,
+    }));
+  const builtScenes = buildRenderPlanScenes({
+    ...event,
+    imageAssets,
+    voiceAssets,
+  });
   const renderPlan = {
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
