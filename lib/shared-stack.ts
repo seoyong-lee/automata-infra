@@ -1,17 +1,20 @@
-import { CfnOutput, Stack, StackProps } from 'aws-cdk-lib';
-import * as cloudfront from 'aws-cdk-lib/aws-cloudfront';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import { Construct } from 'constructs';
-import { BaseStackProps } from './config';
-import { createPreviewDistribution } from './modules/shared/cdn';
-import { createObservabilityDashboard } from './modules/shared/observability';
-import { createAssetsBucket } from './modules/shared/storage';
+import { CfnOutput, Stack, StackProps } from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import { Construct } from "constructs";
+import { BaseStackProps } from "./config";
+import { createPreviewDistribution } from "./modules/shared/cdn";
+import { createLlmConfigTable } from "./modules/shared/llm-config-table";
+import { createObservabilityDashboard } from "./modules/shared/observability";
+import { createAssetsBucket } from "./modules/shared/storage";
 
 export type SharedStackProps = StackProps & BaseStackProps;
 
 export class SharedStack extends Stack {
   public readonly assetsBucket: s3.Bucket;
   public readonly previewDistribution: cloudfront.Distribution;
+  public readonly llmConfigTable: dynamodb.Table;
 
   constructor(scope: Construct, id: string, props: SharedStackProps) {
     super(scope, id, {
@@ -27,14 +30,19 @@ export class SharedStack extends Stack {
 
     this.assetsBucket = createAssetsBucket(this, props.projectPrefix);
     this.previewDistribution = createPreviewDistribution(this, this.assetsBucket);
+    this.llmConfigTable = createLlmConfigTable(this, props.projectPrefix);
     createObservabilityDashboard(this, props.projectPrefix);
 
-    new CfnOutput(this, 'AssetsBucketName', {
+    new CfnOutput(this, "AssetsBucketName", {
       value: this.assetsBucket.bucketName,
     });
 
-    new CfnOutput(this, 'PreviewDistributionDomain', {
+    new CfnOutput(this, "PreviewDistributionDomain", {
       value: this.previewDistribution.distributionDomainName,
+    });
+
+    new CfnOutput(this, "LlmConfigTableName", {
+      value: this.llmConfigTable.tableName,
     });
   }
 }

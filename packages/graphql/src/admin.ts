@@ -38,6 +38,22 @@ export type PendingReview = {
   reviewRequestedAt?: string | null;
 };
 
+export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
+
+export type LlmStepSettings = {
+  stepKey: string;
+  provider: LlmProvider;
+  model: string;
+  temperature: number;
+  maxOutputTokens?: number | null;
+  secretIdEnvVar: string;
+  promptVersion: string;
+  systemPrompt: string;
+  userPrompt: string;
+  updatedAt: string;
+  updatedBy: string;
+};
+
 export type Connection<T> = {
   items: T[];
   nextToken?: string | null;
@@ -73,6 +89,26 @@ const pendingReviewsQuery = `
   }
 `;
 
+const llmSettingsQuery = `
+  query LlmSettings {
+    llmSettings {
+      items {
+        stepKey
+        provider
+        model
+        temperature
+        maxOutputTokens
+        secretIdEnvVar
+        promptVersion
+        systemPrompt
+        userPrompt
+        updatedAt
+        updatedBy
+      }
+    }
+  }
+`;
+
 const submitReviewMutation = `
   mutation SubmitReviewDecision($input: SubmitReviewDecisionInput!) {
     submitReviewDecision(input: $input) {
@@ -92,6 +128,24 @@ const requestUploadMutation = `
       jobId
       status
       platform
+    }
+  }
+`;
+
+const updateLlmStepSettingsMutation = `
+  mutation UpdateLlmStepSettings($input: UpdateLlmStepSettingsInput!) {
+    updateLlmStepSettings(input: $input) {
+      stepKey
+      provider
+      model
+      temperature
+      maxOutputTokens
+      secretIdEnvVar
+      promptVersion
+      systemPrompt
+      userPrompt
+      updatedAt
+      updatedBy
     }
   }
 `;
@@ -175,6 +229,29 @@ export const usePendingReviewsQuery = (
   });
 };
 
+export const useLlmSettingsQuery = (
+  options?: Omit<
+    UseQueryOptions<
+      LlmStepSettings[],
+      Error,
+      LlmStepSettings[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["llmSettings"],
+    queryFn: async () => {
+      const data = await gql<{ llmSettings: { items: LlmStepSettings[] } }>(
+        llmSettingsQuery,
+      );
+      return data.llmSettings.items;
+    },
+    ...options,
+  });
+};
+
 export const useSubmitReviewDecisionMutation = (
   options?: UseMutationOptions<
     { submitReviewDecision: { ok: boolean; status: string } },
@@ -208,6 +285,34 @@ export const useRequestUploadMutation = (
     mutationFn: async (input) => {
       return gql<{ requestUpload: { ok: boolean; status: string } }>(
         requestUploadMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useUpdateLlmStepSettingsMutation = (
+  options?: UseMutationOptions<
+    { updateLlmStepSettings: LlmStepSettings },
+    Error,
+    {
+      stepKey: string;
+      provider: LlmProvider;
+      model: string;
+      temperature: number;
+      maxOutputTokens?: number;
+      secretIdEnvVar: string;
+      promptVersion: string;
+      systemPrompt: string;
+      userPrompt: string;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ updateLlmStepSettings: LlmStepSettings }>(
+        updateLlmStepSettingsMutation,
         { input },
       );
     },

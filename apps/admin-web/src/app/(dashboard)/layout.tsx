@@ -21,6 +21,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
             >
               Reviews
             </Link>
+            <Link
+              href="/settings"
+              className="text-muted-foreground hover:text-primary"
+            >
+              Settings
+            </Link>
           </nav>
           <Button variant="outline" onClick={() => logout()}>
             Logout

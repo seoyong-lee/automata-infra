@@ -21,6 +21,7 @@ export type JobStatus =
 
 export type ReviewAction = "PENDING" | "APPROVE" | "REJECT" | "REGENERATE";
 export type UploadStatus = "QUEUED" | "UPLOADED";
+export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
 
 export type AdminJobDto = {
   jobId: string;
@@ -47,4 +48,22 @@ export type AdminJobDto = {
 export type ConnectionDto<T> = {
   items: T[];
   nextToken: string | null;
+};
+
+export type LlmStepSettingsDto = {
+  stepKey: string;
+  provider: LlmProvider;
+  model: string;
+  temperature: number;
+  maxOutputTokens?: number;
+  secretIdEnvVar: string;
+  promptVersion: string;
+  systemPrompt: string;
+  userPrompt: string;
+  updatedAt: string;
+  updatedBy: string;
+};
+
+export type LlmSettingsDto = {
+  items: LlmStepSettingsDto[];
 };

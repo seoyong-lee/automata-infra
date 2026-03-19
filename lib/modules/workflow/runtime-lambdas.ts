@@ -26,6 +26,7 @@ type CreateWorkflowLambdasProps = {
   envConfig: VideoFactoryEnvConfig;
   assetsBucket: s3.Bucket;
   jobsTable: dynamodb.Table;
+  llmConfigTable: dynamodb.Table;
   reviewQueue: sqs.Queue;
 };
 
@@ -55,6 +56,7 @@ export const createWorkflowLambdas = (
   const environment = {
     ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
     JOBS_TABLE_NAME: props.jobsTable.tableName,
+    CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
     REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
     CHANNEL_ID: props.envConfig.channelId,
     DEFAULT_LANGUAGE: props.envConfig.defaultLanguage,
@@ -136,6 +138,7 @@ export const createWorkflowLambdas = (
   for (const lambdaFn of Object.values(lambdas)) {
     props.assetsBucket.grantReadWrite(lambdaFn);
     props.jobsTable.grantReadWriteData(lambdaFn);
+    props.llmConfigTable.grantReadWriteData(lambdaFn);
   }
 
   props.reviewQueue.grantSendMessages(lambdas.reviewRequest);

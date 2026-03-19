@@ -22,6 +22,13 @@ export type LlmPromptTemplate = {
   userPrompt: string;
 };
 
+export type LlmStepSettings = {
+  config: LlmStepConfig;
+  promptTemplate: LlmPromptTemplate;
+  updatedAt: string;
+  updatedBy: string;
+};
+
 export type GenerateStructuredDataInput<T> = {
   jobId: string;
   stepKey: LlmStepKey;

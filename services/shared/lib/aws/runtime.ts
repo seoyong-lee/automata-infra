@@ -48,6 +48,9 @@ export const getOptionalEnv = (name: string): string | undefined => {
 
 export const getJobsTableName = (): string => getRequiredEnv("JOBS_TABLE_NAME");
 
+export const getConfigTableName = (): string =>
+  getRequiredEnv("CONFIG_TABLE_NAME");
+
 export const getAssetsBucketName = (): string =>
   getRequiredEnv("ASSETS_BUCKET_NAME");
 
@@ -69,9 +72,16 @@ export const getSecretJson = async <T>(secretId: string): Promise<T | null> => {
 };
 
 export const putItem = async (item: Record<string, unknown>): Promise<void> => {
+  await putItemToTable(getJobsTableName(), item);
+};
+
+export const putItemToTable = async (
+  tableName: string,
+  item: Record<string, unknown>,
+): Promise<void> => {
   await ddbClient.send(
     new PutCommand({
-      TableName: getJobsTableName(),
+      TableName: tableName,
       Item: item,
     }),
   );
@@ -80,9 +90,16 @@ export const putItem = async (item: Record<string, unknown>): Promise<void> => {
 export const getItem = async <T>(
   key: Record<string, unknown>,
 ): Promise<T | null> => {
+  return getItemFromTable<T>(getJobsTableName(), key);
+};
+
+export const getItemFromTable = async <T>(
+  tableName: string,
+  key: Record<string, unknown>,
+): Promise<T | null> => {
   const result = await ddbClient.send(
     new GetCommand({
-      TableName: getJobsTableName(),
+      TableName: tableName,
       Key: key,
     }),
   );
@@ -98,9 +115,23 @@ export const queryItems = async <T>(input: {
   scanIndexForward?: boolean;
   limit?: number;
 }): Promise<T[]> => {
+  return queryItemsFromTable<T>(getJobsTableName(), input);
+};
+
+export const queryItemsFromTable = async <T>(
+  tableName: string,
+  input: {
+    indexName?: string;
+    keyConditionExpression: string;
+    expressionAttributeNames?: Record<string, string>;
+    expressionAttributeValues: Record<string, unknown>;
+    scanIndexForward?: boolean;
+    limit?: number;
+  },
+): Promise<T[]> => {
   const result = await ddbClient.send(
     new QueryCommand({
-      TableName: getJobsTableName(),
+      TableName: tableName,
       IndexName: input.indexName,
       KeyConditionExpression: input.keyConditionExpression,
       ExpressionAttributeNames: input.expressionAttributeNames,
@@ -153,9 +184,22 @@ export const updateItem = async (input: {
   expressionAttributeValues: Record<string, unknown>;
   conditionExpression?: string;
 }): Promise<void> => {
+  await updateItemInTable(getJobsTableName(), input);
+};
+
+export const updateItemInTable = async (
+  tableName: string,
+  input: {
+    key: Record<string, unknown>;
+    updateExpression: string;
+    expressionAttributeNames?: Record<string, string>;
+    expressionAttributeValues: Record<string, unknown>;
+    conditionExpression?: string;
+  },
+): Promise<void> => {
   await ddbClient.send(
     new UpdateCommand({
-      TableName: getJobsTableName(),
+      TableName: tableName,
       Key: input.key,
       UpdateExpression: input.updateExpression,
       ExpressionAttributeNames: input.expressionAttributeNames,

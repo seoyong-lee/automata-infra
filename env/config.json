@@ -4,6 +4,8 @@
   "reviewUiDomain": "review.example.com",
   "adminUserPoolDomainPrefix": "automata-studio-admin-auth",
   "enableAdminSignup": false,
+  "workflowScheduleExpression": "rate(6 hours)",
+  "workflowScheduleEnabled": true,
   "channelId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,

@@ -1,6 +1,11 @@
-import type { LlmPromptTemplate, LlmStepConfig, LlmStepKey } from "./types";
+import type {
+  LlmPromptTemplate,
+  LlmStepConfig,
+  LlmStepKey,
+  LlmStepSettings,
+} from "./types";
 
-const stepConfigs: Record<LlmStepKey, LlmStepConfig> = {
+export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
   "topic-plan": {
     stepKey: "topic-plan",
     provider: "openai",
@@ -19,7 +24,7 @@ const stepConfigs: Record<LlmStepKey, LlmStepConfig> = {
   },
 };
 
-const promptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
+export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
   "topic-plan": {
     stepKey: "topic-plan",
     version: "v1-file-registry",
@@ -63,12 +68,25 @@ const promptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
   },
 };
 
-export const loadLlmStepConfig = (stepKey: LlmStepKey): LlmStepConfig => {
-  return stepConfigs[stepKey];
+export const loadDefaultLlmStepConfig = (
+  stepKey: LlmStepKey,
+): LlmStepConfig => {
+  return defaultStepConfigs[stepKey];
 };
 
-export const loadLlmPromptTemplate = (
+export const loadDefaultLlmPromptTemplate = (
   stepKey: LlmStepKey,
 ): LlmPromptTemplate => {
-  return promptTemplates[stepKey];
+  return defaultPromptTemplates[stepKey];
+};
+
+export const loadDefaultLlmStepSettings = (
+  stepKey: LlmStepKey,
+): LlmStepSettings => {
+  return {
+    config: loadDefaultLlmStepConfig(stepKey),
+    promptTemplate: loadDefaultLlmPromptTemplate(stepKey),
+    updatedAt: "1970-01-01T00:00:00.000Z",
+    updatedBy: "system-default",
+  };
 };

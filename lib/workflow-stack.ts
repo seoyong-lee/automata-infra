@@ -1,6 +1,8 @@
 import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
 import * as tasks from "aws-cdk-lib/aws-stepfunctions-tasks";
@@ -14,6 +16,7 @@ import { createWorkflowLambdas } from "./modules/workflow/runtime-lambdas";
 export type WorkflowStackProps = StackProps &
   BaseStackProps & {
     assetsBucket: s3.Bucket;
+    llmConfigTable: dynamodb.Table;
     previewDistribution: cloudfront.Distribution;
   };
 
@@ -44,6 +47,7 @@ export class WorkflowStack extends Stack {
       envConfig: props.envConfig,
       assetsBucket: props.assetsBucket,
       jobsTable: this.jobsTable,
+      llmConfigTable: props.llmConfigTable,
       reviewQueue: queues.reviewQueue,
     });
 
@@ -197,6 +201,25 @@ export class WorkflowStack extends Stack {
       stateMachineName: `${props.projectPrefix}-workflow`,
       definitionBody: sfn.DefinitionBody.fromChainable(definition),
     });
+
+    if (
+      props.envConfig.workflowScheduleEnabled &&
+      props.envConfig.workflowScheduleExpression
+    ) {
+      new events.Rule(this, "WorkflowSchedule", {
+        schedule: events.Schedule.expression(
+          props.envConfig.workflowScheduleExpression,
+        ),
+        targets: [
+          new targets.SfnStateMachine(this.stateMachine, {
+            input: events.RuleTargetInput.fromObject({
+              trigger: "schedule",
+              source: "eventbridge-rule",
+            }),
+          }),
+        ],
+      });
+    }
 
     new CfnOutput(this, "JobsTableName", {
       value: this.jobsTable.tableName,

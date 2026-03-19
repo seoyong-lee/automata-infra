@@ -30,6 +30,9 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
   adminUserPoolDomainPrefix:
     envConfig.adminUserPoolDomainPrefix ?? `${projectPrefix}-admin-auth`,
   enableAdminSignup: envConfig.enableAdminSignup ?? false,
+  workflowScheduleExpression:
+    envConfig.workflowScheduleExpression ?? "rate(6 hours)",
+  workflowScheduleEnabled: envConfig.workflowScheduleEnabled ?? true,
   channelId: envConfig.channelId ?? "history-en",
   defaultLanguage: envConfig.defaultLanguage ?? "en",
   enableFargateComposition: envConfig.enableFargateComposition ?? false,
@@ -54,6 +57,7 @@ const workflowStack = new WorkflowStack(app, `${projectPrefix}-workflow`, {
   region,
   envConfig: resolvedEnvConfig,
   assetsBucket: sharedStack.assetsBucket,
+  llmConfigTable: sharedStack.llmConfigTable,
   previewDistribution: sharedStack.previewDistribution,
 });
 
@@ -63,6 +67,7 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   envConfig: resolvedEnvConfig,
   assetsBucket: sharedStack.assetsBucket,
   jobsTable: workflowStack.jobsTable,
+  llmConfigTable: sharedStack.llmConfigTable,
   reviewQueue: workflowStack.reviewQueue,
   stateMachine: workflowStack.stateMachine,
 });

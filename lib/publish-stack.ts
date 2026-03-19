@@ -18,6 +18,7 @@ export type PublishStackProps = StackProps &
   BaseStackProps & {
     assetsBucket: s3.Bucket;
     jobsTable: dynamodb.Table;
+    llmConfigTable: dynamodb.Table;
     reviewQueue: sqs.Queue;
     stateMachine: sfn.StateMachine;
   };
@@ -57,6 +58,7 @@ export class PublishStack extends Stack {
     const environment = {
       ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
       JOBS_TABLE_NAME: props.jobsTable.tableName,
+      CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
       REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
     };
 
@@ -129,6 +131,24 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const getLlmSettingsResolver = createLambda(
+      this,
+      "AdminGetLlmSettingsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/get-llm-settings/handler.ts",
+      ),
+      environment,
+    );
+    const updateLlmSettingsResolver = createLambda(
+      this,
+      "AdminUpdateLlmSettingsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/update-llm-settings/handler.ts",
+      ),
+      environment,
+    );
 
     props.assetsBucket.grantReadWrite(reviewHandler);
     props.assetsBucket.grantReadWrite(uploadHandler);
@@ -144,6 +164,8 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(jobTimelineResolver);
     props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
     props.jobsTable.grantReadWriteData(requestUploadResolver);
+    props.llmConfigTable.grantReadData(getLlmSettingsResolver);
+    props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
 
     const auth = createPublishAuth(this, {
@@ -165,6 +187,8 @@ export class PublishStack extends Stack {
       jobTimelineResolver,
       submitReviewDecisionResolver,
       requestUploadResolver,
+      getLlmSettingsResolver,
+      updateLlmSettingsResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

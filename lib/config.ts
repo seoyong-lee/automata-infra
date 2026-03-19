@@ -4,6 +4,8 @@ export type VideoFactoryEnvConfig = {
   reviewUiDomain: string;
   adminUserPoolDomainPrefix?: string;
   enableAdminSignup?: boolean;
+  workflowScheduleExpression?: string;
+  workflowScheduleEnabled?: boolean;
   channelId: string;
   defaultLanguage: string;
   enableFargateComposition: boolean;

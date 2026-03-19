@@ -4,7 +4,9 @@ type AuditOperation =
   | "adminJobs"
   | "adminJob"
   | "pendingReviews"
-  | "jobTimeline";
+  | "jobTimeline"
+  | "llmSettings"
+  | "updateLlmStepSettings";
 
 type ResolverAuditLogInput = {
   operation: AuditOperation;
