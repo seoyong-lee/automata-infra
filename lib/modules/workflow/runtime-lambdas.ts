@@ -18,6 +18,7 @@ export type WorkflowLambdas = {
   renderPlanBuilder: nodejs.NodejsFunction;
   finalComposition: nodejs.NodejsFunction;
   reviewRequest: nodejs.NodejsFunction;
+  uploadWorker: nodejs.NodejsFunction;
 };
 
 type CreateWorkflowLambdasProps = {
@@ -122,6 +123,12 @@ export const createWorkflowLambdas = (
       scope,
       "ReviewRequestLambda",
       path.join(process.cwd(), "services/publish/review-request/handler.ts"),
+      environment,
+    ),
+    uploadWorker: createLambda(
+      scope,
+      "UploadWorkerLambda",
+      path.join(process.cwd(), "services/publish/upload-worker/handler.ts"),
       environment,
     ),
   };

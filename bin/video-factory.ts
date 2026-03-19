@@ -59,4 +59,5 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   assetsBucket: sharedStack.assetsBucket,
   jobsTable: workflowStack.jobsTable,
   reviewQueue: workflowStack.reviewQueue,
+  stateMachine: workflowStack.stateMachine,
 });

@@ -1,21 +1,23 @@
-import * as path from 'path';
-import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
-import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
-import * as events from 'aws-cdk-lib/aws-events';
-import * as targets from 'aws-cdk-lib/aws-events-targets';
-import * as lambda from 'aws-cdk-lib/aws-lambda';
-import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
-import * as s3 from 'aws-cdk-lib/aws-s3';
-import * as sqs from 'aws-cdk-lib/aws-sqs';
-import { Construct } from 'constructs';
-import { BaseStackProps } from './config';
-import { createPublishApi } from './modules/publish/api';
+import * as path from "path";
+import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
+import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as events from "aws-cdk-lib/aws-events";
+import * as targets from "aws-cdk-lib/aws-events-targets";
+import * as lambda from "aws-cdk-lib/aws-lambda";
+import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as s3 from "aws-cdk-lib/aws-s3";
+import * as sfn from "aws-cdk-lib/aws-stepfunctions";
+import * as sqs from "aws-cdk-lib/aws-sqs";
+import { Construct } from "constructs";
+import { BaseStackProps } from "./config";
+import { createPublishApi } from "./modules/publish/api";
 
 export type PublishStackProps = StackProps &
   BaseStackProps & {
     assetsBucket: s3.Bucket;
     jobsTable: dynamodb.Table;
     reviewQueue: sqs.Queue;
+    stateMachine: sfn.StateMachine;
   };
 
 const createLambda = (
@@ -26,11 +28,11 @@ const createLambda = (
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
     entry,
-    handler: 'handler',
+    handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
     timeout: Duration.seconds(30),
     bundling: {
-      target: 'node20',
+      target: "node20",
       format: nodejs.OutputFormat.CJS,
     },
     environment,
@@ -46,7 +48,7 @@ export class PublishStack extends Stack {
       },
       tags: {
         Project: props.projectPrefix,
-        ManagedBy: 'CDK',
+        ManagedBy: "CDK",
       },
     });
 
@@ -58,22 +60,22 @@ export class PublishStack extends Stack {
 
     const reviewHandler = createLambda(
       this,
-      'ReviewDecisionLambda',
-      path.join(process.cwd(), 'services/publish/review/handler.ts'),
+      "ReviewDecisionLambda",
+      path.join(process.cwd(), "services/publish/review/handler.ts"),
       environment,
     );
 
     const uploadHandler = createLambda(
       this,
-      'UploadLambda',
-      path.join(process.cwd(), 'services/publish/upload/handler.ts'),
+      "UploadLambda",
+      path.join(process.cwd(), "services/publish/upload/handler.ts"),
       environment,
     );
 
     const metricsCollector = createLambda(
       this,
-      'MetricsCollectorLambda',
-      path.join(process.cwd(), 'services/publish/metrics/handler.ts'),
+      "MetricsCollectorLambda",
+      path.join(process.cwd(), "services/publish/metrics/handler.ts"),
       environment,
     );
 
@@ -84,15 +86,16 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(uploadHandler);
     props.jobsTable.grantReadData(metricsCollector);
     props.reviewQueue.grantConsumeMessages(reviewHandler);
+    props.stateMachine.grantTaskResponse(reviewHandler);
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);
 
-    new events.Rule(this, 'MetricsCollectionSchedule', {
+    new events.Rule(this, "MetricsCollectionSchedule", {
       schedule: events.Schedule.rate(Duration.hours(6)),
       targets: [new targets.LambdaFunction(metricsCollector)],
     });
 
-    new CfnOutput(this, 'PublishApiUrl', {
+    new CfnOutput(this, "PublishApiUrl", {
       value: publishApi.api.url,
     });
   }

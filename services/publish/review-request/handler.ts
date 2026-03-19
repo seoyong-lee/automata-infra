@@ -1,22 +1,53 @@
 import { Handler } from "aws-lambda";
+import { sendReviewMessage } from "../../shared/lib/aws/runtime";
+import {
+  putReviewRecord,
+  updateJobMeta,
+} from "../../shared/lib/store/video-jobs";
 
-type ReviewRequestEvent = {
-  jobId: string;
-  finalArtifact: {
-    previewS3Key: string;
+type ReviewRequestInput = {
+  taskToken: string;
+  input: {
+    jobId: string;
+    finalArtifact: {
+      previewS3Key: string;
+    };
   };
 };
 
 export const handler: Handler<
-  ReviewRequestEvent,
-  ReviewRequestEvent & { review: unknown; status: string }
+  ReviewRequestInput,
+  { queued: boolean; jobId: string }
 > = async (event) => {
-  return {
-    ...event,
-    status: "REVIEW_PENDING",
-    review: {
-      queuedAt: new Date().toISOString(),
-      previewS3Key: event.finalArtifact.previewS3Key,
+  const queuedAt = new Date().toISOString();
+  const jobId = event.input.jobId;
+  const previewS3Key = event.input.finalArtifact.previewS3Key;
+
+  await putReviewRecord(jobId, {
+    action: "PENDING",
+    previewS3Key,
+    queuedAt,
+  });
+
+  await updateJobMeta(
+    jobId,
+    {
+      reviewTaskToken: event.taskToken,
+      reviewRequestedAt: queuedAt,
+      reviewPreviewS3Key: previewS3Key,
+      reviewAction: "PENDING",
     },
+    "REVIEW_PENDING",
+  );
+
+  await sendReviewMessage({
+    jobId,
+    previewS3Key,
+    queuedAt,
+  });
+
+  return {
+    queued: true,
+    jobId,
   };
 };

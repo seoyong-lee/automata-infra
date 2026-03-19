@@ -1,4 +1,9 @@
 import { Handler } from "aws-lambda";
+import { putJsonToS3 } from "../../shared/lib/aws/runtime";
+import {
+  putRenderArtifact,
+  updateJobMeta,
+} from "../../shared/lib/store/video-jobs";
 
 type RenderPlanEvent = {
   jobId: string;
@@ -19,10 +24,9 @@ type RenderPlanEvent = {
   }>;
 };
 
-export const handler: Handler<
-  RenderPlanEvent,
-  RenderPlanEvent & { renderPlan: unknown; status: string }
-> = async (event) => {
+const buildScenes = (
+  event: RenderPlanEvent,
+): { totalDurationSec: number; scenes: Array<Record<string, unknown>> } => {
   let cursorSec = 0;
   const imageAssets = event.imageAssets ?? [];
   const voiceAssets = event.voiceAssets ?? [];
@@ -49,12 +53,45 @@ export const handler: Handler<
   });
 
   return {
+    totalDurationSec: cursorSec,
+    scenes,
+  };
+};
+
+const persistRenderPlan = async (
+  jobId: string,
+  renderPlan: { outputKey: string },
+): Promise<void> => {
+  await putJsonToS3(renderPlan.outputKey, renderPlan);
+  await putRenderArtifact(jobId, {
+    renderPlanS3Key: renderPlan.outputKey,
+    createdAt: new Date().toISOString(),
+  });
+  await updateJobMeta(
+    jobId,
+    {
+      renderPlanS3Key: renderPlan.outputKey,
+    },
+    "RENDER_PLAN_READY",
+  );
+};
+
+export const handler: Handler<
+  RenderPlanEvent,
+  RenderPlanEvent & { renderPlan: unknown; status: string }
+> = async (event) => {
+  const builtScenes = buildScenes(event);
+  const renderPlan = {
+    totalDurationSec: builtScenes.totalDurationSec,
+    scenes: builtScenes.scenes,
+    outputKey: `render-plans/${event.jobId}/render-plan.json`,
+  };
+
+  await persistRenderPlan(event.jobId, renderPlan);
+
+  return {
     ...event,
     status: "RENDER_PLAN_READY",
-    renderPlan: {
-      totalDurationSec: cursorSec,
-      scenes,
-      outputKey: `render-plans/${event.jobId}/render-plan.json`,
-    },
+    renderPlan,
   };
 };
