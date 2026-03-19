@@ -1,0 +1,32 @@
+{
+  "name": "ai-pipeline-studio",
+  "version": "1.0.0",
+  "private": true,
+  "packageManager": "yarn@1.22.22",
+  "scripts": {
+    "build": "tsc",
+    "lint": "eslint . --ext .ts",
+    "lint:fix": "eslint . --ext .ts --fix",
+    "synth": "tsc && cdk synth -c @envFile=env/config.json",
+    "diff": "tsc && cdk diff -c @envFile=env/config.json",
+    "deploy": "tsc && cdk deploy -c @envFile=env/config.json",
+    "clean": "rm -rf cdk.out cdk.out-ts"
+  },
+  "dependencies": {
+    "aws-cdk-lib": "^2.219.0",
+    "constructs": "^10.4.2",
+    "source-map-support": "^0.5.21"
+  },
+  "devDependencies": {
+    "@types/aws-lambda": "^8.10.147",
+    "@types/node": "^24.7.2",
+    "@typescript-eslint/eslint-plugin": "^8.47.0",
+    "@typescript-eslint/parser": "^8.47.0",
+    "aws-cdk": "^2.219.0",
+    "esbuild": "^0.25.10",
+    "eslint": "^9.39.1",
+    "eslint-plugin-import": "^2.31.0",
+    "ts-node": "^10.9.2",
+    "typescript": "^5.4.0"
+  }
+}

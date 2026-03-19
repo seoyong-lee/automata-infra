@@ -1,0 +1,99 @@
+import * as path from 'path';
+import { CfnOutput, Duration, Stack, StackProps } from 'aws-cdk-lib';
+import * as dynamodb from 'aws-cdk-lib/aws-dynamodb';
+import * as events from 'aws-cdk-lib/aws-events';
+import * as targets from 'aws-cdk-lib/aws-events-targets';
+import * as lambda from 'aws-cdk-lib/aws-lambda';
+import * as nodejs from 'aws-cdk-lib/aws-lambda-nodejs';
+import * as s3 from 'aws-cdk-lib/aws-s3';
+import * as sqs from 'aws-cdk-lib/aws-sqs';
+import { Construct } from 'constructs';
+import { BaseStackProps } from './config';
+import { createPublishApi } from './modules/publish/api';
+
+export type PublishStackProps = StackProps &
+  BaseStackProps & {
+    assetsBucket: s3.Bucket;
+    jobsTable: dynamodb.Table;
+    reviewQueue: sqs.Queue;
+  };
+
+const createLambda = (
+  scope: Construct,
+  id: string,
+  entry: string,
+  environment: Record<string, string>,
+): nodejs.NodejsFunction => {
+  return new nodejs.NodejsFunction(scope, id, {
+    entry,
+    handler: 'handler',
+    runtime: lambda.Runtime.NODEJS_20_X,
+    timeout: Duration.seconds(30),
+    bundling: {
+      target: 'node20',
+      format: nodejs.OutputFormat.CJS,
+    },
+    environment,
+  });
+};
+
+export class PublishStack extends Stack {
+  constructor(scope: Construct, id: string, props: PublishStackProps) {
+    super(scope, id, {
+      env: {
+        region: props.region,
+        account: process.env.CDK_DEFAULT_ACCOUNT || process.env.AWS_ACCOUNT_ID,
+      },
+      tags: {
+        Project: props.projectPrefix,
+        ManagedBy: 'CDK',
+      },
+    });
+
+    const environment = {
+      ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
+      JOBS_TABLE_NAME: props.jobsTable.tableName,
+      REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
+    };
+
+    const reviewHandler = createLambda(
+      this,
+      'ReviewDecisionLambda',
+      path.join(process.cwd(), 'services/publish/review/handler.ts'),
+      environment,
+    );
+
+    const uploadHandler = createLambda(
+      this,
+      'UploadLambda',
+      path.join(process.cwd(), 'services/publish/upload/handler.ts'),
+      environment,
+    );
+
+    const metricsCollector = createLambda(
+      this,
+      'MetricsCollectorLambda',
+      path.join(process.cwd(), 'services/publish/metrics/handler.ts'),
+      environment,
+    );
+
+    props.assetsBucket.grantReadWrite(reviewHandler);
+    props.assetsBucket.grantReadWrite(uploadHandler);
+    props.assetsBucket.grantRead(metricsCollector);
+    props.jobsTable.grantReadWriteData(reviewHandler);
+    props.jobsTable.grantReadWriteData(uploadHandler);
+    props.jobsTable.grantReadData(metricsCollector);
+    props.reviewQueue.grantConsumeMessages(reviewHandler);
+
+    const publishApi = createPublishApi(this, reviewHandler, uploadHandler);
+
+    new events.Rule(this, 'MetricsCollectionSchedule', {
+      schedule: events.Schedule.rate(Duration.hours(6)),
+      targets: [new targets.LambdaFunction(metricsCollector)],
+    });
+
+    new CfnOutput(this, 'PublishApiUrl', {
+      value: publishApi.api.url,
+    });
+  }
+}

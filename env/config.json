@@ -1,0 +1,12 @@
+{
+  "region": "ap-northeast-2",
+  "projectPrefix": "video-factory",
+  "reviewUiDomain": "review.example.com",
+  "channelId": "history-en",
+  "defaultLanguage": "en",
+  "enableFargateComposition": false,
+  "runwaySecretId": "video-factory/runway",
+  "openAiSecretId": "video-factory/openai",
+  "elevenLabsSecretId": "video-factory/elevenlabs",
+  "shotstackSecretId": "video-factory/shotstack"
+}

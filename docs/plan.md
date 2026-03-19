@@ -227,8 +227,7 @@ ai-pipeline-studio/
 │   ├── validate-scene-json.ts
 │   └── smoke-run-job.ts
 ├── env/
-│   ├── dev.json
-│   └── prd.json
+│   └── config.json
 ├── docs/
 │   ├── architecture/
 │   ├── conventions/
@@ -257,9 +256,9 @@ ai-pipeline-studio/
 
 `storytalk-infra`처럼 `bin/video-factory.ts`에서 다음을 수행한다.
 
-- `@envFile` context로 `env/dev.json`, `env/prd.json` 로드
-- `env`, `region`, `projectPrefix` 결정
-- 환경별 스택 인스턴스 생성
+- `@envFile` context로 `env/config.json` 로드
+- `region`, `projectPrefix` 결정
+- 단일 환경 기준으로 스택 인스턴스 생성
 - 공통 태그 주입
 
 예상 흐름:
@@ -267,12 +266,11 @@ ai-pipeline-studio/
 ```ts
 const app = new App();
 const envFile = app.node.tryGetContext('@envFile');
-const envName = (app.node.tryGetContext('env') ?? 'dev') as string;
 const envConfig = loadEnvConfig(envFile);
 
-new SharedStack(app, `${envConfig.projectPrefix}-shared-${envName}`, { ... });
-new WorkflowStack(app, `${envConfig.projectPrefix}-workflow-${envName}`, { ... });
-new PublishStack(app, `${envConfig.projectPrefix}-publish-${envName}`, { ... });
+new SharedStack(app, `${envConfig.projectPrefix}-shared`, { ... });
+new WorkflowStack(app, `${envConfig.projectPrefix}-workflow`, { ... });
+new PublishStack(app, `${envConfig.projectPrefix}-publish`, { ... });
 ```
 
 ### 5.2 스택 조립 방식
@@ -473,14 +471,14 @@ services/image/requestSceneImage/
 - CDK 모듈 함수: `createXxx`
 - 라우트/권한 연결: `registerXxx`, `grantXxx`
 - 서비스 usecase: 동사 시작
-- 리소스 이름 helper: `name('jobs-table') -> <projectPrefix>-jobs-table-<env>`
+- 리소스 이름 helper: `name('jobs-table') -> <projectPrefix>-jobs-table`
 - 모든 runtime service는 named export만 사용
 
 ---
 
 ## 9. 환경 설정과 배포 명령
 
-### 9.1 `env/<env>.json`
+### 9.1 `env/config.json`
 
 예시:
 
@@ -492,16 +490,16 @@ services/image/requestSceneImage/
   "channelId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,
-  "runwaySecretId": "video-factory/runway/dev",
-  "openAiSecretId": "video-factory/openai/dev",
-  "elevenLabsSecretId": "video-factory/elevenlabs/dev",
-  "shotstackSecretId": "video-factory/shotstack/dev"
+  "runwaySecretId": "video-factory/runway",
+  "openAiSecretId": "video-factory/openai",
+  "elevenLabsSecretId": "video-factory/elevenlabs",
+  "shotstackSecretId": "video-factory/shotstack"
 }
 ```
 
 ### 9.2 package scripts
 
-`storytalk-infra`처럼 환경별 스크립트를 고정한다.
+단일 환경 기준으로 스크립트를 고정한다.
 
 ```json
 {
@@ -510,12 +508,9 @@ services/image/requestSceneImage/
     "test": "jest",
     "lint": "eslint . --ext .ts",
     "lint:fix": "eslint . --ext .ts --fix",
-    "synth:dev": "tsc && cdk synth -c env=dev -c @envFile=env/dev.json",
-    "synth:prd": "tsc && cdk synth -c env=prd -c @envFile=env/prd.json",
-    "diff:dev": "tsc && cdk diff -c env=dev -c @envFile=env/dev.json",
-    "diff:prd": "tsc && cdk diff -c env=prd -c @envFile=env/prd.json",
-    "deploy:dev": "tsc && cdk deploy -c env=dev -c @envFile=env/dev.json",
-    "deploy:prd": "tsc && cdk deploy -c env=prd -c @envFile=env/prd.json"
+    "synth": "tsc && cdk synth -c @envFile=env/config.json",
+    "diff": "tsc && cdk diff -c @envFile=env/config.json",
+    "deploy": "tsc && cdk deploy -c @envFile=env/config.json"
   }
 }
 ```
@@ -524,7 +519,7 @@ services/image/requestSceneImage/
 
 - provider API 키는 평문 env에 두지 않는다
 - `services/shared/lib/providers/**` 에서 secret을 읽어 client 생성
-- secret id만 `env/<env>.json` 에 둔다
+- secret id만 `env/config.json` 에 둔다
 
 ---
 

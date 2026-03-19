@@ -1,0 +1,17 @@
+{
+  "compilerOptions": {
+    "target": "ES2022",
+    "module": "CommonJS",
+    "moduleResolution": "node",
+    "types": ["node", "aws-lambda"],
+    "strict": true,
+    "skipLibCheck": true,
+    "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
+    "forceConsistentCasingInFileNames": true,
+    "resolveJsonModule": true,
+    "outDir": "cdk.out-ts"
+  },
+  "include": ["bin", "lib", "services", "types", "scripts"],
+  "exclude": ["node_modules", "cdk.out", "cdk.out-ts"]
+}

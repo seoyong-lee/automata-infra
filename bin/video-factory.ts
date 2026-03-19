@@ -1,0 +1,62 @@
+#!/usr/bin/env node
+import "source-map-support/register";
+import { App } from "aws-cdk-lib";
+import * as fs from "fs";
+import { VideoFactoryEnvConfig } from "../lib/config";
+import { PublishStack } from "../lib/publish-stack";
+import { SharedStack } from "../lib/shared-stack";
+import { WorkflowStack } from "../lib/workflow-stack";
+
+const app = new App();
+
+const envFile =
+  (app.node.tryGetContext("@envFile") as string | undefined) ??
+  "env/config.json";
+let envConfig = {} as Partial<VideoFactoryEnvConfig>;
+
+if (envFile && fs.existsSync(envFile)) {
+  envConfig = JSON.parse(
+    fs.readFileSync(envFile, "utf8"),
+  ) as VideoFactoryEnvConfig;
+}
+
+const projectPrefix = envConfig.projectPrefix ?? "video-factory";
+const region = envConfig.region ?? "ap-northeast-2";
+
+const resolvedEnvConfig: VideoFactoryEnvConfig = {
+  region,
+  projectPrefix,
+  reviewUiDomain: envConfig.reviewUiDomain ?? "review.example.com",
+  channelId: envConfig.channelId ?? "history-en",
+  defaultLanguage: envConfig.defaultLanguage ?? "en",
+  enableFargateComposition: envConfig.enableFargateComposition ?? false,
+  runwaySecretId: envConfig.runwaySecretId ?? `${projectPrefix}/runway`,
+  openAiSecretId: envConfig.openAiSecretId ?? `${projectPrefix}/openai`,
+  elevenLabsSecretId:
+    envConfig.elevenLabsSecretId ?? `${projectPrefix}/elevenlabs`,
+  shotstackSecretId:
+    envConfig.shotstackSecretId ?? `${projectPrefix}/shotstack`,
+};
+
+const sharedStack = new SharedStack(app, `${projectPrefix}-shared`, {
+  projectPrefix,
+  region,
+  envConfig: resolvedEnvConfig,
+});
+
+const workflowStack = new WorkflowStack(app, `${projectPrefix}-workflow`, {
+  projectPrefix,
+  region,
+  envConfig: resolvedEnvConfig,
+  assetsBucket: sharedStack.assetsBucket,
+  previewDistribution: sharedStack.previewDistribution,
+});
+
+new PublishStack(app, `${projectPrefix}-publish`, {
+  projectPrefix,
+  region,
+  envConfig: resolvedEnvConfig,
+  assetsBucket: sharedStack.assetsBucket,
+  jobsTable: workflowStack.jobsTable,
+  reviewQueue: workflowStack.reviewQueue,
+});
