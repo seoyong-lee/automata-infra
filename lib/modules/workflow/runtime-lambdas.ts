@@ -1,6 +1,7 @@
 import * as path from "path";
 import { Duration } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -146,6 +147,15 @@ export const createWorkflowLambdas = (
     props.assetsBucket.grantReadWrite(lambdaFn);
     props.jobsTable.grantReadWriteData(lambdaFn);
     props.llmConfigTable.grantReadWriteData(lambdaFn);
+    lambdaFn.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      }),
+    );
   }
 
   props.reviewQueue.grantSendMessages(lambdas.reviewRequest);

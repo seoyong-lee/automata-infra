@@ -30,7 +30,8 @@ const toFormState = (settings: LlmStepSettings): StepFormState => {
     model: settings.model,
     temperature: String(settings.temperature),
     maxOutputTokens:
-      settings.maxOutputTokens !== null && settings.maxOutputTokens !== undefined
+      settings.maxOutputTokens !== null &&
+      settings.maxOutputTokens !== undefined
         ? String(settings.maxOutputTokens)
         : "",
     secretIdEnvVar: settings.secretIdEnvVar,
@@ -46,16 +47,14 @@ const stepTitle = (stepKey: string): string => {
       return "Topic Planning";
     case "scene-json":
       return "Scene JSON";
+    case "metadata":
+      return "Metadata Generation";
     default:
       return stepKey;
   }
 };
 
-function StepSettingsCard({
-  settings,
-}: {
-  settings: LlmStepSettings;
-}) {
+function StepSettingsCard({ settings }: { settings: LlmStepSettings }) {
   const queryClient = useQueryClient();
   const [form, setForm] = useState<StepFormState>(() => toFormState(settings));
   const mutation = useUpdateLlmStepSettingsMutation({
@@ -71,7 +70,9 @@ function StepSettingsCard({
   const onInput =
     (key: keyof StepFormState) =>
     (
-      event: ChangeEvent<HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement>,
+      event: ChangeEvent<
+        HTMLInputElement | HTMLTextAreaElement | HTMLSelectElement
+      >,
     ) => {
       setForm((current) => ({
         ...current,
@@ -200,7 +201,9 @@ export default function SettingsPage() {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>단계별 모델, 파라미터, 프롬프트를 DynamoDB 기반으로 관리합니다.</p>
-          <p>값이 저장되지 않은 단계는 코드 기본값을 fallback으로 사용합니다.</p>
+          <p>
+            값이 저장되지 않은 단계는 코드 기본값을 fallback으로 사용합니다.
+          </p>
         </CardContent>
       </Card>
 

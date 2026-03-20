@@ -17,7 +17,7 @@ const mapProvider = (
 
 export const updateLlmStepSettings = async (input: {
   actor: string;
-  stepKey: "topic-plan" | "scene-json";
+  stepKey: "topic-plan" | "scene-json" | "metadata";
   provider: LlmProvider;
   model: string;
   temperature: number;

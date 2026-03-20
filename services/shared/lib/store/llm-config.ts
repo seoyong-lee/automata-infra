@@ -90,6 +90,7 @@ export const listLlmStepSettings = async (): Promise<LlmStepSettings[]> => {
   const defaults: LlmStepSettings[] = [
     loadDefaultLlmStepSettings("topic-plan"),
     loadDefaultLlmStepSettings("scene-json"),
+    loadDefaultLlmStepSettings("metadata"),
   ];
 
   if (!hasConfigTable()) {

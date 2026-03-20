@@ -2,7 +2,7 @@ import { badUserInput } from "../../shared/errors";
 import type { LlmProvider } from "../../shared/types";
 
 type UpdateLlmStepSettingsInput = {
-  stepKey: "topic-plan" | "scene-json";
+  stepKey: "topic-plan" | "scene-json" | "metadata";
   provider: LlmProvider;
   model: string;
   temperature: number;
@@ -29,6 +29,16 @@ const asProvider = (value: unknown): LlmProvider => {
   throw badUserInput("provider is invalid");
 };
 
+const isSupportedStepKey = (
+  stepKey: string,
+): stepKey is UpdateLlmStepSettingsInput["stepKey"] => {
+  return (
+    stepKey === "topic-plan" ||
+    stepKey === "scene-json" ||
+    stepKey === "metadata"
+  );
+};
+
 export const parseUpdateLlmSettingsArgs = (
   args: Record<string, unknown>,
 ): UpdateLlmStepSettingsInput => {
@@ -42,7 +52,7 @@ export const parseUpdateLlmSettingsArgs = (
   }
 
   const stepKey = asString(input.stepKey, "stepKey");
-  if (stepKey !== "topic-plan" && stepKey !== "scene-json") {
+  if (!isSupportedStepKey(stepKey)) {
     throw badUserInput("stepKey is invalid");
   }
 
