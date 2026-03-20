@@ -19,7 +19,7 @@ const LoginContent = () => {
         </CardHeader>
         <CardContent className="space-y-4">
           <p className="text-sm text-muted-foreground">
-            Cognito 로그인으로 어드민 대시보드에 접근합니다.
+            Google 로그인으로 어드민 대시보드에 접근합니다.
           </p>
           {error ? (
             <p className="text-sm text-destructive">로그인 오류: {error}</p>

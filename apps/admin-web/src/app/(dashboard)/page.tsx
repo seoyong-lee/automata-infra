@@ -73,9 +73,12 @@ export default function DashboardPage() {
   const pendingReviews = pending.data?.items ?? [];
 
   const inProgressCount = (jobs.data?.items ?? []).filter((job) =>
-    ["PLANNED", "SCENE_JSON_READY", "ASSET_GENERATING", "ASSETS_READY"].includes(
-      job.status,
-    ),
+    [
+      "PLANNED",
+      "SCENE_JSON_READY",
+      "ASSET_GENERATING",
+      "ASSETS_READY",
+    ].includes(job.status),
   ).length;
 
   return (
@@ -92,7 +95,7 @@ export default function DashboardPage() {
           value={pendingReviews.length.toLocaleString()}
           description="승인 또는 반려 대기 건"
           icon={ClipboardCheck}
-          badge="Action required"
+          // badge="Action required"
         />
         <MetricCard
           title="In Progress"

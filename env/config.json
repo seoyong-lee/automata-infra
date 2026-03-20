@@ -3,14 +3,14 @@
   "projectPrefix": "automata-studio",
   "reviewUiDomain": "review.example.com",
   "adminCallbackUrls": [
-    "https://review.example.com/auth/callback",
+    "https://www.automata.studio/auth/callback",
     "http://localhost:3001/auth/callback"
   ],
   "adminLogoutUrls": [
-    "https://review.example.com/login",
+    "https://www.automata.studio/login",
     "http://localhost:3001/login"
   ],
-  "adminUserPoolDomainPrefix": "automata-studio-admin-auth",
+  "adminUserPoolDomainPrefix": "automata-studio-admin-auth-v2",
   "enableAdminSignup": false,
   "workflowScheduleExpression": "rate(6 hours)",
   "workflowScheduleEnabled": true,

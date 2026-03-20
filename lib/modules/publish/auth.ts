@@ -2,6 +2,8 @@ import * as cognito from "aws-cdk-lib/aws-cognito";
 import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import { Construct } from "constructs";
 
+const AUTH_RESOURCE_SUFFIX = "v2";
+
 export type PublishAuthResources = {
   userPool: cognito.UserPool;
   userPoolClient: cognito.UserPoolClient;
@@ -20,8 +22,8 @@ export const createPublishAuth = (
   scope: Construct,
   props: CreatePublishAuthProps,
 ): PublishAuthResources => {
-  const userPool = new cognito.UserPool(scope, "AdminUserPool", {
-    userPoolName: `${props.projectPrefix}-admin-users`,
+  const userPool = new cognito.UserPool(scope, "AdminUserPoolV2", {
+    userPoolName: `${props.projectPrefix}-admin-users-${AUTH_RESOURCE_SUFFIX}`,
     selfSignUpEnabled: props.enableSignup,
     signInAliases: {
       email: true,
@@ -29,7 +31,7 @@ export const createPublishAuth = (
     standardAttributes: {
       email: {
         required: true,
-        mutable: false,
+        mutable: true,
       },
     },
     passwordPolicy: {
@@ -41,7 +43,7 @@ export const createPublishAuth = (
     },
   });
 
-  userPool.addDomain("AdminUserPoolDomain", {
+  userPool.addDomain("AdminUserPoolDomainV2", {
     cognitoDomain: {
       domainPrefix: props.domainPrefix,
     },
@@ -49,8 +51,8 @@ export const createPublishAuth = (
 
   const hasGoogleIdp = Boolean(props.googleOAuthSecretId);
 
-  const userPoolClient = userPool.addClient("AdminUserPoolClient", {
-    userPoolClientName: `${props.projectPrefix}-admin-client`,
+  const userPoolClient = userPool.addClient("AdminUserPoolClientV2", {
+    userPoolClientName: `${props.projectPrefix}-admin-client-${AUTH_RESOURCE_SUFFIX}`,
     authFlows: {
       userPassword: true,
       userSrp: true,
@@ -79,12 +81,12 @@ export const createPublishAuth = (
   if (props.googleOAuthSecretId) {
     const googleOAuthSecret = secretsmanager.Secret.fromSecretNameV2(
       scope,
-      "AdminGoogleOAuthSecret",
+      "AdminGoogleOAuthSecretV2",
       props.googleOAuthSecretId,
     );
     const googleProvider = new cognito.CfnUserPoolIdentityProvider(
       scope,
-      "AdminGoogleIdentityProvider",
+      "AdminGoogleIdentityProviderV2",
       {
         userPoolId: userPool.userPoolId,
         providerName: "Google",
@@ -111,7 +113,7 @@ export const createPublishAuth = (
     userPoolClient.node.addDependency(googleProvider);
   }
 
-  new cognito.CfnUserPoolGroup(scope, "AdminGroup", {
+  new cognito.CfnUserPoolGroup(scope, "AdminGroupV2", {
     userPoolId: userPool.userPoolId,
     groupName: "Admin",
     description: "Admin reviewers for pipeline operations",
