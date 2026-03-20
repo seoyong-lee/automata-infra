@@ -6,6 +6,8 @@ import { getSeedSource, toSeedForm } from '../lib/seed-form';
 import type { ContentJobDetailViewModel, JobDraftDetail } from './types';
 
 export { buildContentJobDetailContextCards } from '../lib/detail-context';
+export { toSeedForm } from '../lib/seed-form';
+export { workspaceViews } from '../lib/workspace-views';
 export type {
   CompareRow,
   ContentJobDetailViewModel,

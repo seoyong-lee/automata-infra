@@ -3,7 +3,7 @@
 import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import type { ContentLineSummary, QuickFilterKey } from '../model';
-import { quickFilterMeta } from '../model';
+import { quickFilterMeta } from '../consts';
 
 type Props = {
   contentLineSummary: ContentLineSummary;

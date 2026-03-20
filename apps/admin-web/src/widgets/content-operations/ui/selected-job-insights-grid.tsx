@@ -1,5 +1,5 @@
 import type { AdminJob } from '@/entities/admin-job';
-import { estimateExperimentScore } from '../model';
+import { estimateExperimentScore } from '../lib';
 
 type Props = {
   selectedJob: AdminJob;

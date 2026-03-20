@@ -2,7 +2,7 @@ import { Badge } from '@packages/ui/badge';
 import { Button } from '@packages/ui/button';
 import Link from 'next/link';
 import type { AdminJob } from '@/entities/admin-job';
-import { formatStatusLabel } from '../model';
+import { formatStatusLabel } from '../lib';
 
 type Props = {
   selectedJob: AdminJob;

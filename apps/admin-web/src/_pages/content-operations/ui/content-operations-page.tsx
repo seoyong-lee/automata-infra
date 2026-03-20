@@ -1,301 +1,161 @@
 'use client';
 
-import { Button } from '@packages/ui/button';
 import { Card, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
-import { getErrorMessage } from '@packages/utils';
-import { useQueryClient } from '@tanstack/react-query';
-import { useSearchParams } from 'next/navigation';
-import { Suspense, useEffect, useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 import { ChannelSelectorTabs } from '@/widgets/channel-selector-tabs';
 import {
   ContentJobsSection,
   ContentLineOverviewSection,
+  ContentOperationsSectionTabs,
   ContentLinesSection,
-  estimateExperimentScore,
-  matchesQuickFilter,
   OptionLabSection,
-  quickFilterMeta,
-  type QuickFilterKey,
   SelectedChannelSection,
   SelectedJobPanelSection,
+  type ContentOperationsSectionKey,
+  useContentOperationsExperimentsTab,
+  useContentOperationsJobsTab,
+  useContentOperationsQueueTab,
+  useContentOperationsScopeTab,
+  useContentOperationsWorkspaceState,
   VariantComparisonSection,
 } from '@/widgets/content-operations';
-import { useAdminJobs, useRequestJobUpload } from '@/entities/admin-job';
-import { useYoutubeChannelConfigs } from '@/entities/youtube-channel';
+
+type ContentOperationsSectionContentProps = {
+  activeSection: ContentOperationsSectionKey;
+  contentTypes: string[];
+  filteredJobs: ReturnType<typeof useContentOperationsWorkspaceState>['filteredJobs'];
+  isLoading: boolean;
+  isUploading: boolean;
+  jobsTab: ReturnType<typeof useContentOperationsJobsTab>;
+  onSelectContentType: (contentType: string) => void;
+  onSelectJob: (jobId: string) => void;
+  onSelectQuickFilter: ReturnType<
+    typeof useContentOperationsWorkspaceState
+  >['setSelectedQuickFilter'];
+  onUpload: (jobId: string) => void;
+  queueTab: ReturnType<typeof useContentOperationsQueueTab>;
+  scopeTab: ReturnType<typeof useContentOperationsScopeTab>;
+  selectedContentType: string;
+  selectedJob: ReturnType<typeof useContentOperationsWorkspaceState>['selectedJob'];
+  selectedQuickFilter: ReturnType<typeof useContentOperationsWorkspaceState>['selectedQuickFilter'];
+  experimentsTab: ReturnType<typeof useContentOperationsExperimentsTab>;
+};
+
+function ContentOperationsSectionContent({
+  activeSection,
+  contentTypes,
+  experimentsTab,
+  filteredJobs,
+  isLoading,
+  isUploading,
+  jobsTab,
+  onSelectContentType,
+  onSelectJob,
+  onSelectQuickFilter,
+  onUpload,
+  queueTab,
+  scopeTab,
+  selectedContentType,
+  selectedJob,
+  selectedQuickFilter,
+}: ContentOperationsSectionContentProps) {
+  if (activeSection === 'scope') {
+    return (
+      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+        <SelectedChannelSection
+          selectedChannel={scopeTab.selectedChannel}
+          selectedChannelConfig={scopeTab.selectedChannelConfig}
+        />
+        <ContentLinesSection
+          contentTypes={contentTypes}
+          contentCards={scopeTab.contentCards}
+          selectedContentType={selectedContentType}
+          onSelectContentType={onSelectContentType}
+        />
+      </div>
+    );
+  }
+
+  if (activeSection === 'queue') {
+    return (
+      <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
+        <ContentLineOverviewSection
+          contentLineSummary={queueTab.contentLineSummary}
+          quickFilterCounts={queueTab.quickFilterCounts}
+          selectedQuickFilter={selectedQuickFilter}
+          onSelectQuickFilter={onSelectQuickFilter}
+        />
+        <SelectedJobPanelSection
+          selectedJob={selectedJob}
+          isUploading={isUploading}
+          onUpload={onUpload}
+        />
+      </div>
+    );
+  }
+
+  if (activeSection === 'experiments') {
+    return (
+      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
+        <OptionLabSection experimentTracks={experimentsTab.experimentTracks} />
+        <VariantComparisonSection compareCandidates={experimentsTab.compareCandidates} />
+      </div>
+    );
+  }
+
+  return (
+    <ContentJobsSection
+      filteredJobs={filteredJobs}
+      isLoading={isLoading}
+      selectedJobId={jobsTab.selectedJobId}
+      onSelectJob={onSelectJob}
+      isUploading={isUploading}
+      onUpload={onUpload}
+    />
+  );
+}
 
 function ContentOperationsPageContent() {
-  const searchParams = useSearchParams();
-  const queryClient = useQueryClient();
-  const configuredChannelsQuery = useYoutubeChannelConfigs();
-  const jobsQuery = useAdminJobs({ limit: 100 });
-  const [selectedChannelId, setSelectedChannelId] = useState('');
-  const [selectedContentType, setSelectedContentType] = useState('all');
-  const [selectedQuickFilter, setSelectedQuickFilter] = useState<QuickFilterKey>('all');
-  const [selectedJobId, setSelectedJobId] = useState('');
-  const requestUpload = useRequestJobUpload({
-    onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
-    },
+  const [activeSection, setActiveSection] = useState<ContentOperationsSectionKey>('scope');
+  const {
+    availableChannels,
+    channelJobs,
+    contentLineJobs,
+    contentTypes,
+    filteredJobs,
+    isUploading,
+    jobsQuery,
+    onUpload,
+    selectedChannel,
+    selectedChannelConfig,
+    selectedContentType,
+    selectedJob,
+    selectedJobId,
+    selectedQuickFilter,
+    setSelectedChannelId,
+    setSelectedContentType,
+    setSelectedJobId,
+    setSelectedQuickFilter,
+  } = useContentOperationsWorkspaceState();
+  const scopeTab = useContentOperationsScopeTab({
+    channelJobs,
+    contentTypes,
+    selectedChannel,
+    selectedChannelConfig,
   });
-
-  const jobs = jobsQuery.data?.items ?? [];
-  const configuredChannels = configuredChannelsQuery.data ?? [];
-
-  const availableChannels = useMemo(() => {
-    return Array.from(
-      new Set([
-        ...configuredChannels.map((item) => item.channelId),
-        ...jobs.map((item) => item.channelId),
-      ]),
-    ).sort();
-  }, [configuredChannels, jobs]);
-
-  useEffect(() => {
-    const queryChannelId = searchParams.get('channelId');
-    if (queryChannelId && availableChannels.includes(queryChannelId)) {
-      setSelectedChannelId(queryChannelId);
-      return;
-    }
-    if (!selectedChannelId && availableChannels[0]) {
-      setSelectedChannelId(availableChannels[0]);
-    }
-  }, [availableChannels, searchParams, selectedChannelId]);
-
-  const selectedChannel = selectedChannelId || availableChannels[0] || '';
-
-  const channelJobs = useMemo(() => {
-    return jobs.filter((job) => job.channelId === selectedChannel);
-  }, [jobs, selectedChannel]);
-
-  const contentTypes = useMemo(() => {
-    return Array.from(
-      new Set(
-        channelJobs
-          .map((job) => job.contentType)
-          .filter((value): value is string => Boolean(value)),
-      ),
-    ).sort();
-  }, [channelJobs]);
-
-  useEffect(() => {
-    const queryContentType = searchParams.get('contentType');
-    if (queryContentType && contentTypes.includes(queryContentType)) {
-      setSelectedContentType(queryContentType);
-      return;
-    }
-    if (selectedContentType !== 'all' && !contentTypes.includes(selectedContentType)) {
-      setSelectedContentType('all');
-    }
-  }, [contentTypes, searchParams, selectedContentType]);
-
-  useEffect(() => {
-    const queryFilter = searchParams.get('filter');
-    if (
-      queryFilter === 'review' ||
-      queryFilter === 'failed' ||
-      queryFilter === 'upload-ready' ||
-      queryFilter === 'all'
-    ) {
-      setSelectedQuickFilter(queryFilter);
-    }
-  }, [searchParams]);
-
-  const contentLineJobs = useMemo(() => {
-    if (selectedContentType === 'all') {
-      return channelJobs;
-    }
-    return channelJobs.filter((job) => job.contentType === selectedContentType);
-  }, [channelJobs, selectedContentType]);
-
-  const filteredJobs = useMemo(() => {
-    return contentLineJobs.filter((job) => matchesQuickFilter(job.status, selectedQuickFilter));
-  }, [contentLineJobs, selectedQuickFilter]);
-
-  const contentCards = useMemo(() => {
-    return contentTypes.map((contentType) => {
-      const contentJobs = channelJobs.filter((job) => job.contentType === contentType);
-      return {
-        contentType,
-        totalJobs: contentJobs.length,
-        draftCount: contentJobs.filter((job) => job.status === 'DRAFT').length,
-        failedCount: contentJobs.filter(
-          (job) => job.status === 'FAILED' || job.status === 'REJECTED',
-        ).length,
-        reviewCount: contentJobs.filter((job) => job.status === 'REVIEW_PENDING').length,
-        assetReadyCount: contentJobs.filter(
-          (job) =>
-            job.status === 'ASSETS_READY' || job.status === 'RENDERED' || job.status === 'UPLOADED',
-        ).length,
-        uploadReadyCount: contentJobs.filter(
-          (job) => job.status === 'RENDERED' || job.status === 'APPROVED',
-        ).length,
-      };
-    });
-  }, [channelJobs, contentTypes]);
-
-  useEffect(() => {
-    if (filteredJobs.length === 0) {
-      setSelectedJobId('');
-      return;
-    }
-    if (!selectedJobId || !filteredJobs.some((job) => job.jobId === selectedJobId)) {
-      setSelectedJobId(filteredJobs[0]?.jobId ?? '');
-    }
-  }, [filteredJobs, selectedJobId]);
-
-  const selectedJob = useMemo(
-    () => filteredJobs.find((job) => job.jobId === selectedJobId) ?? null,
-    [filteredJobs, selectedJobId],
-  );
-
-  const selectedChannelConfig = configuredChannels.find(
-    (item) => item.channelId === selectedChannel,
-  );
-
-  const contentLineSummary = useMemo(() => {
-    const latestUploadedJob = [...contentLineJobs]
-      .filter((job) => job.status === 'UPLOADED')
-      .sort((a, b) => b.updatedAt.localeCompare(a.updatedAt))[0];
-    const latestUpdatedJob = [...contentLineJobs].sort((a, b) =>
-      b.updatedAt.localeCompare(a.updatedAt),
-    )[0];
-
-    return {
-      title: selectedContentType === 'all' ? 'All Content Lines' : selectedContentType,
-      totalJobs: contentLineJobs.length,
-      failedJobs: contentLineJobs.filter(
-        (job) => job.status === 'FAILED' || job.status === 'REJECTED',
-      ).length,
-      reviewJobs: contentLineJobs.filter((job) => job.status === 'REVIEW_PENDING').length,
-      uploadedJobs: contentLineJobs.filter((job) => job.status === 'UPLOADED').length,
-      activeVariants: new Set(
-        contentLineJobs
-          .map((job) => job.variant)
-          .filter((value): value is string => Boolean(value)),
-      ).size,
-      averageDurationSec:
-        contentLineJobs.length > 0
-          ? Math.round(
-              contentLineJobs.reduce((sum, job) => sum + job.targetDurationSec, 0) /
-                contentLineJobs.length,
-            )
-          : 0,
-      latestUploadedAt: latestUploadedJob?.updatedAt ?? null,
-      latestUpdatedAt: latestUpdatedJob?.updatedAt ?? null,
-    };
-  }, [contentLineJobs, selectedContentType]);
-
-  const quickFilterCounts = useMemo(() => {
-    return quickFilterMeta.reduce<Record<QuickFilterKey, number>>(
-      (acc: Record<QuickFilterKey, number>, item: { key: QuickFilterKey }) => {
-        acc[item.key] = contentLineJobs.filter((job) =>
-          matchesQuickFilter(job.status, item.key),
-        ).length;
-        return acc;
-      },
-      { all: 0, review: 0, failed: 0, 'upload-ready': 0 },
-    );
-  }, [contentLineJobs]);
-
-  const experimentTracks = useMemo(
-    () => [
-      {
-        key: 'scene-package',
-        title: 'Scene Package',
-        description: 'structured script -> scene timeline -> editable scene JSON',
-        options: ['headline-top', 'fact-card', 'caption-heavy'],
-      },
-      {
-        key: 'assets',
-        title: 'Asset Strategy',
-        description: 'bg video / bg image fallback / TTS / caption style mix',
-        options: ['video-first', 'image-fallback', 'tts-balanced'],
-      },
-      {
-        key: 'renderer',
-        title: 'Renderer',
-        description: 'renderer abstraction behind the same scene package contract',
-        options: ['shotstack-mvp', 'ffmpeg-spike', 'hybrid-review'],
-      },
-      {
-        key: 'review',
-        title: 'Review / Publish',
-        description: 'review-first, light rerender, full rerender, manual vs auto publish',
-        options: ['review-first', 'light-rerender', 'auto-publish'],
-      },
-    ],
-    [],
-  );
-
-  const compareCandidates = useMemo(() => {
-    return filteredJobs.slice(0, 3).map((job, index) => ({
-      job,
-      label: job.variant || ['variant-a', 'variant-b', 'variant-c'][index] || 'variant',
-      score: estimateExperimentScore({
-        status: job.status,
-        autoPublish: job.autoPublish,
-        retryCount: job.retryCount,
-      }),
-      renderPath:
-        job.status === 'UPLOADED' || job.status === 'RENDERED'
-          ? 'scene-package -> shotstack'
-          : 'scene-package -> assets -> render',
-    }));
-  }, [filteredJobs]);
+  const queueTab = useContentOperationsQueueTab({
+    contentLineJobs,
+    selectedContentType,
+  });
+  const experimentsTab = useContentOperationsExperimentsTab({ filteredJobs });
+  const jobsTab = useContentOperationsJobsTab({
+    filteredJobsCount: filteredJobs.length,
+    selectedJobId,
+  });
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <div className="space-y-1">
-            <CardTitle>Content Operations</CardTitle>
-            <CardDescription>
-              {'채널 -> 콘텐츠 라인 -> 잡'} 순서로 진입해 실제 스크립트, 에셋, 업로드 운영을
-              처리하는 작업 공간입니다.
-            </CardDescription>
-          </div>
-          <div className="flex flex-wrap gap-2">
-            <Button
-              onClick={() => setSelectedQuickFilter('failed')}
-              variant="outline"
-              disabled={!selectedChannel}
-            >
-              View Failed Jobs
-            </Button>
-            <Button
-              onClick={() => setSelectedQuickFilter('review')}
-              variant="outline"
-              disabled={!selectedChannel}
-            >
-              Review Queue
-            </Button>
-            <Button
-              onClick={() =>
-                (window.location.href = `/jobs/new?channelId=${encodeURIComponent(selectedChannel)}${selectedContentType !== 'all' ? `&contentType=${encodeURIComponent(selectedContentType)}` : ''}`)
-              }
-              disabled={!selectedChannel}
-            >
-              New Content Job
-            </Button>
-          </div>
-        </CardHeader>
-      </Card>
-
-      {jobsQuery.error ? (
-        <p className="text-sm text-destructive">{getErrorMessage(jobsQuery.error)}</p>
-      ) : null}
-      {configuredChannelsQuery.error ? (
-        <p className="text-sm text-destructive">{getErrorMessage(configuredChannelsQuery.error)}</p>
-      ) : null}
-
       <div className="space-y-2">
-        <div>
-          <p className="text-sm font-medium">Channel Tabs</p>
-          <p className="text-sm text-muted-foreground">
-            채널 선택은 최상위 탭입니다. 아래의 모든 섹션은 현재 선택된 채널 하위 항목으로
-            동작합니다.
-          </p>
-        </div>
         <ChannelSelectorTabs
           availableChannels={availableChannels}
           selectedChannel={selectedChannel}
@@ -304,45 +164,27 @@ function ContentOperationsPageContent() {
         />
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
-        <SelectedChannelSection
-          selectedChannel={selectedChannel}
-          selectedChannelConfig={selectedChannelConfig}
-        />
-        <ContentLinesSection
-          contentTypes={contentTypes}
-          contentCards={contentCards}
-          selectedContentType={selectedContentType}
-          onSelectContentType={setSelectedContentType}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[0.82fr_1.18fr]">
-        <ContentLineOverviewSection
-          contentLineSummary={contentLineSummary}
-          quickFilterCounts={quickFilterCounts}
-          selectedQuickFilter={selectedQuickFilter}
-          onSelectQuickFilter={setSelectedQuickFilter}
-        />
-        <SelectedJobPanelSection
-          selectedJob={selectedJob}
-          isUploading={requestUpload.isPending}
-          onUpload={(jobId) => requestUpload.mutate({ jobId })}
-        />
-      </div>
-
-      <div className="grid gap-6 xl:grid-cols-[0.9fr_1.1fr]">
-        <OptionLabSection experimentTracks={experimentTracks} />
-        <VariantComparisonSection compareCandidates={compareCandidates} />
-      </div>
-
-      <ContentJobsSection
+      <ContentOperationsSectionTabs
+        activeSection={activeSection}
+        onSectionChange={setActiveSection}
+      />
+      <ContentOperationsSectionContent
+        activeSection={activeSection}
+        contentTypes={contentTypes}
+        experimentsTab={experimentsTab}
         filteredJobs={filteredJobs}
         isLoading={jobsQuery.isLoading}
-        selectedJobId={selectedJobId}
+        isUploading={isUploading}
+        jobsTab={jobsTab}
+        onSelectContentType={setSelectedContentType}
         onSelectJob={setSelectedJobId}
-        isUploading={requestUpload.isPending}
-        onUpload={(jobId) => requestUpload.mutate({ jobId })}
+        onSelectQuickFilter={setSelectedQuickFilter}
+        onUpload={onUpload}
+        queueTab={queueTab}
+        scopeTab={scopeTab}
+        selectedContentType={selectedContentType}
+        selectedJob={selectedJob}
+        selectedQuickFilter={selectedQuickFilter}
       />
     </div>
   );
@@ -355,8 +197,17 @@ export function ContentOperationsPage() {
         <div className="space-y-6">
           <Card>
             <CardHeader>
-              <CardTitle>Content Operations</CardTitle>
-              <CardDescription>Loading channel tabs and content filters...</CardDescription>
+              <div className="space-y-3">
+                <div className="flex flex-wrap items-center gap-2 text-sm text-muted-foreground">
+                  <span>콘텐츠 관리</span>
+                  <span>/</span>
+                  <span>운영 워크스페이스</span>
+                </div>
+                <div className="space-y-1">
+                  <CardTitle>Content Operations</CardTitle>
+                  <CardDescription>Loading channel tabs and content filters...</CardDescription>
+                </div>
+              </div>
             </CardHeader>
           </Card>
         </div>

@@ -3,7 +3,7 @@
 import { Badge } from '@packages/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import type { CompareCandidate } from '../model';
-import { formatStatusLabel } from '../model';
+import { formatStatusLabel } from '../lib';
 
 type Props = {
   compareCandidates: CompareCandidate[];
