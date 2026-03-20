@@ -18,6 +18,9 @@ type CreatePublishGraphqlApiProps = {
   requestUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
+  getYoutubeChannelConfigsResolver: lambda.IFunction;
+  upsertYoutubeChannelConfigResolver: lambda.IFunction;
+  deleteYoutubeChannelConfigResolver: lambda.IFunction;
   getJobDraftResolver: lambda.IFunction;
   createDraftJobResolver: lambda.IFunction;
   updateTopicSeedResolver: lambda.IFunction;
@@ -122,10 +125,31 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "GetYoutubeChannelConfigs",
+    "youtubeChannelConfigs",
+    "Query",
+    props.getYoutubeChannelConfigsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "UpdateLlmStepSettings",
     "updateLlmStepSettings",
     "Mutation",
     props.updateLlmSettingsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpsertYoutubeChannelConfig",
+    "upsertYoutubeChannelConfig",
+    "Mutation",
+    props.upsertYoutubeChannelConfigResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "DeleteYoutubeChannelConfig",
+    "deleteYoutubeChannelConfig",
+    "Mutation",
+    props.deleteYoutubeChannelConfigResolver,
   );
   addLambdaResolver(
     graphqlApi,

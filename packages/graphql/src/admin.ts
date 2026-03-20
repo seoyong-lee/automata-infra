@@ -153,6 +153,19 @@ export type LlmStepSettings = {
   updatedBy: string;
 };
 
+export type YoutubeChannelConfig = {
+  channelId: string;
+  youtubeSecretName?: string | null;
+  youtubeAccountType?: string | null;
+  autoPublishEnabled?: boolean | null;
+  defaultVisibility?: "private" | "unlisted" | "public" | null;
+  defaultCategoryId?: number | null;
+  playlistId?: string | null;
+  updatedAt: string;
+  updatedBy: string;
+  source: "db" | "env";
+};
+
 export type Connection<T> = {
   items: T[];
   nextToken?: string | null;
@@ -209,6 +222,25 @@ const llmSettingsQuery = `
         userPrompt
         updatedAt
         updatedBy
+      }
+    }
+  }
+`;
+
+const youtubeChannelConfigsQuery = `
+  query YoutubeChannelConfigs {
+    youtubeChannelConfigs {
+      items {
+        channelId
+        youtubeSecretName
+        youtubeAccountType
+        autoPublishEnabled
+        defaultVisibility
+        defaultCategoryId
+        playlistId
+        updatedAt
+        updatedBy
+        source
       }
     }
   }
@@ -354,6 +386,32 @@ const updateLlmStepSettingsMutation = `
       userPrompt
       updatedAt
       updatedBy
+    }
+  }
+`;
+
+const upsertYoutubeChannelConfigMutation = `
+  mutation UpsertYoutubeChannelConfig($input: UpsertYoutubeChannelConfigInput!) {
+    upsertYoutubeChannelConfig(input: $input) {
+      channelId
+      youtubeSecretName
+      youtubeAccountType
+      autoPublishEnabled
+      defaultVisibility
+      defaultCategoryId
+      playlistId
+      updatedAt
+      updatedBy
+      source
+    }
+  }
+`;
+
+const deleteYoutubeChannelConfigMutation = `
+  mutation DeleteYoutubeChannelConfig($channelId: ID!) {
+    deleteYoutubeChannelConfig(channelId: $channelId) {
+      ok
+      channelId
     }
   }
 `;
@@ -603,6 +661,29 @@ export const useLlmSettingsQuery = (
   });
 };
 
+export const useYoutubeChannelConfigsQuery = (
+  options?: Omit<
+    UseQueryOptions<
+      YoutubeChannelConfig[],
+      Error,
+      YoutubeChannelConfig[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["youtubeChannelConfigs"],
+    queryFn: async () => {
+      const data = await gql<{
+        youtubeChannelConfigs: { items: YoutubeChannelConfig[] };
+      }>(youtubeChannelConfigsQuery);
+      return data.youtubeChannelConfigs.items;
+    },
+    ...options,
+  });
+};
+
 export const useJobDraftQuery = (
   vars: { jobId: string },
   options?: Omit<
@@ -691,6 +772,49 @@ export const useUpdateLlmStepSettingsMutation = (
         updateLlmStepSettingsMutation,
         { input },
       );
+    },
+    ...options,
+  });
+};
+
+export const useUpsertYoutubeChannelConfigMutation = (
+  options?: UseMutationOptions<
+    { upsertYoutubeChannelConfig: YoutubeChannelConfig },
+    Error,
+    {
+      channelId: string;
+      youtubeSecretName: string;
+      youtubeAccountType?: string;
+      autoPublishEnabled?: boolean;
+      defaultVisibility?: "private" | "unlisted" | "public";
+      defaultCategoryId?: number;
+      playlistId?: string;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ upsertYoutubeChannelConfig: YoutubeChannelConfig }>(
+        upsertYoutubeChannelConfigMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useDeleteYoutubeChannelConfigMutation = (
+  options?: UseMutationOptions<
+    { deleteYoutubeChannelConfig: { ok: boolean; channelId: string } },
+    Error,
+    { channelId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{
+        deleteYoutubeChannelConfig: { ok: boolean; channelId: string };
+      }>(deleteYoutubeChannelConfigMutation, input);
     },
     ...options,
   });

@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 const visibilitySchema = z.enum(["private", "unlisted", "public"]);
+const fallbackUpdatedAt = "1970-01-01T00:00:00.000Z";
 
 const youtubeSecretsMapSchema = z.record(z.string(), z.string());
 
@@ -19,6 +20,12 @@ const channelConfigsSchema = z.record(z.string(), channelConfigSchema);
 
 export type ChannelPublishConfig = z.infer<typeof channelConfigSchema>;
 export type UploadVisibility = z.infer<typeof visibilitySchema>;
+export type ChannelPublishConfigRecord = ChannelPublishConfig & {
+  channelId: string;
+  updatedAt: string;
+  updatedBy: string;
+  source: "db" | "env";
+};
 
 const parseJsonEnv = <T>(
   rawValue: string | undefined,
@@ -72,3 +79,25 @@ export const getChannelPublishConfig = (
     youtubeSecretName,
   };
 };
+
+export const listEnvChannelPublishConfigs =
+  (): ChannelPublishConfigRecord[] => {
+    const channelConfigs = getChannelConfigsMap();
+    const youtubeSecrets = getYoutubeSecretsMap();
+    const channelIds = Array.from(
+      new Set([...Object.keys(channelConfigs), ...Object.keys(youtubeSecrets)]),
+    ).sort();
+
+    return channelIds.map((channelId) => {
+      const channelConfig = channelConfigs[channelId];
+      return {
+        channelId,
+        ...channelConfig,
+        youtubeSecretName:
+          channelConfig?.youtubeSecretName ?? youtubeSecrets[channelId],
+        updatedAt: fallbackUpdatedAt,
+        updatedBy: "env",
+        source: "env" as const,
+      };
+    });
+  };

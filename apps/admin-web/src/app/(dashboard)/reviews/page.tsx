@@ -102,13 +102,14 @@ export default function ReviewsPage() {
               <Button
                 size="sm"
                 variant="outline"
+                disabled={requestUpload.isPending}
                 onClick={() =>
                   requestUpload.mutate({
                     jobId: item.jobId,
                   })
                 }
               >
-                Request Upload
+                {requestUpload.isPending ? "Uploading..." : "Upload to YouTube"}
               </Button>
             </div>
           </div>

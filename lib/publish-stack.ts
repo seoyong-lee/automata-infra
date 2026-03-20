@@ -159,6 +159,33 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const getYoutubeChannelConfigsResolver = createLambda(
+      this,
+      "AdminGetYoutubeChannelConfigsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/get-youtube-channel-configs/handler.ts",
+      ),
+      environment,
+    );
+    const upsertYoutubeChannelConfigResolver = createLambda(
+      this,
+      "AdminUpsertYoutubeChannelConfigResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/upsert-youtube-channel-config/handler.ts",
+      ),
+      environment,
+    );
+    const deleteYoutubeChannelConfigResolver = createLambda(
+      this,
+      "AdminDeleteYoutubeChannelConfigResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/delete-youtube-channel-config/handler.ts",
+      ),
+      environment,
+    );
     const getJobDraftResolver = createLambda(
       this,
       "AdminGetJobDraftResolverLambda",
@@ -259,6 +286,9 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
+    props.llmConfigTable.grantReadData(getYoutubeChannelConfigsResolver);
+    props.llmConfigTable.grantReadWriteData(upsertYoutubeChannelConfigResolver);
+    props.llmConfigTable.grantReadWriteData(deleteYoutubeChannelConfigResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
     runTopicPlanResolver.addToRolePolicy(
       new iam.PolicyStatement({
@@ -319,6 +349,9 @@ export class PublishStack extends Stack {
       requestUploadResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
+      getYoutubeChannelConfigsResolver,
+      upsertYoutubeChannelConfigResolver,
+      deleteYoutubeChannelConfigResolver,
       getJobDraftResolver,
       createDraftJobResolver,
       updateTopicSeedResolver,

@@ -5,7 +5,7 @@ import {
   getAssetsBucketName,
   getSecretJson,
 } from "../../../shared/lib/aws/runtime";
-import { getChannelPublishConfig } from "../../../shared/lib/publish/channel-config";
+import { getResolvedChannelPublishConfig } from "../../../shared/lib/store/channel-publish-config";
 import {
   type JobMetaItem,
   getJobMeta,
@@ -150,7 +150,7 @@ const maybeAddToPlaylist = async (input: {
 
 export const completeUpload = async (jobId: string) => {
   const job = await getUploadJob(jobId);
-  const channelConfig = getChannelPublishConfig(job.channelId);
+  const channelConfig = await getResolvedChannelPublishConfig(job.channelId);
   const secretName = channelConfig?.youtubeSecretName;
   if (!secretName) {
     throw new Error(

@@ -1,12 +1,13 @@
-import { queueUploadRecord } from "../repo/queue-upload-record";
+import { completeUpload } from "../../upload-worker/usecase/complete-upload";
 
 export const requestUpload = async (
   jobId: string,
-): Promise<{ status: string; platform: string }> => {
-  await queueUploadRecord(jobId);
+): Promise<{ status: string; platform: string; youtubeVideoId?: string }> => {
+  const uploaded = await completeUpload(jobId);
 
   return {
-    status: "UPLOAD_QUEUED",
+    status: uploaded.status,
     platform: "youtube",
+    youtubeVideoId: uploaded.upload.youtubeVideoId,
   };
 };

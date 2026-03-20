@@ -15,12 +15,17 @@ type Query {
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
   jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
+  youtubeChannelConfigs: YoutubeChannelConfigConnection!
 }
 
 type Mutation {
   submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
+  upsertYoutubeChannelConfig(
+    input: UpsertYoutubeChannelConfigInput!
+  ): YoutubeChannelConfig!
+  deleteYoutubeChannelConfig(channelId: ID!): DeleteYoutubeChannelConfigResult!
   createDraftJob(input: CreateDraftJobInput!): AdminJob!
   updateTopicSeed(input: UpdateTopicSeedInput!): TopicSeed!
   runTopicPlan(input: RunTopicPlanInput!): AdminJob!
@@ -166,6 +171,28 @@ type LlmSettings {
   items: [LlmStepSettings!]!
 }
 
+type YoutubeChannelConfigConnection {
+  items: [YoutubeChannelConfig!]!
+}
+
+type YoutubeChannelConfig {
+  channelId: ID!
+  youtubeSecretName: String
+  youtubeAccountType: String
+  autoPublishEnabled: Boolean
+  defaultVisibility: String
+  defaultCategoryId: Int
+  playlistId: String
+  updatedAt: AWSDateTime!
+  updatedBy: String!
+  source: String!
+}
+
+type DeleteYoutubeChannelConfigResult {
+  ok: Boolean!
+  channelId: ID!
+}
+
 type LlmStepSettings {
   stepKey: String!
   provider: LlmProvider!
@@ -208,6 +235,16 @@ input UpdateLlmStepSettingsInput {
   promptVersion: String!
   systemPrompt: String!
   userPrompt: String!
+}
+
+input UpsertYoutubeChannelConfigInput {
+  channelId: ID!
+  youtubeSecretName: String!
+  youtubeAccountType: String
+  autoPublishEnabled: Boolean
+  defaultVisibility: String
+  defaultCategoryId: Int
+  playlistId: String
 }
 
 input CreateDraftJobInput {

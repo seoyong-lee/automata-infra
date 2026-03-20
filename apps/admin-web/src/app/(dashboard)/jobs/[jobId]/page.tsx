@@ -367,7 +367,7 @@ export default function JobDetailPage() {
               disabled={requestUpload.isPending}
               onClick={() => requestUpload.mutate({ jobId })}
             >
-              {requestUpload.isPending ? "Queuing..." : "Request Upload"}
+              {requestUpload.isPending ? "Uploading..." : "Upload to YouTube"}
             </Button>
             <Button
               variant="outline"

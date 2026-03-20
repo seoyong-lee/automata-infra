@@ -78,6 +78,23 @@ export type LlmSettingsDto = {
   items: LlmStepSettingsDto[];
 };
 
+export type YoutubeChannelConfigDto = {
+  channelId: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+  updatedAt: string;
+  updatedBy: string;
+  source: "db" | "env";
+};
+
+export type YoutubeChannelConfigListDto = {
+  items: YoutubeChannelConfigDto[];
+};
+
 export type TopicSeedDto = {
   channelId: string;
   targetLanguage: string;

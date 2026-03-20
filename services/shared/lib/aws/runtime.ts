@@ -17,6 +17,7 @@ import {
 } from "@aws-sdk/client-sfn";
 import {
   DynamoDBDocumentClient,
+  DeleteCommand,
   GetCommand,
   PutCommand,
   QueryCommand,
@@ -83,6 +84,18 @@ export const putItemToTable = async (
     new PutCommand({
       TableName: tableName,
       Item: item,
+    }),
+  );
+};
+
+export const deleteItemFromTable = async (
+  tableName: string,
+  key: Record<string, unknown>,
+): Promise<void> => {
+  await ddbClient.send(
+    new DeleteCommand({
+      TableName: tableName,
+      Key: key,
     }),
   );
 };
