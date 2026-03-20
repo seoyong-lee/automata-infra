@@ -1,6 +1,5 @@
 "use client";
 
-import Link from "next/link";
 import type { AdminJob } from "@packages/graphql";
 import { Badge } from "@packages/ui/badge";
 import { Button } from "@packages/ui/button";
@@ -11,6 +10,7 @@ import {
   CardHeader,
   CardTitle,
 } from "@packages/ui/card";
+import Link from "next/link";
 
 type Props = {
   filteredJobs: AdminJob[];

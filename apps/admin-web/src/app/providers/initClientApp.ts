@@ -1,6 +1,5 @@
 "use client";
 
-import { configureGraphqlClient } from "@packages/graphql";
 import {
   getIdToken,
   initAuth,
@@ -8,6 +7,7 @@ import {
   onAuthEvent,
   clearSession,
 } from "@packages/auth";
+import { configureGraphqlClient } from "@packages/graphql";
 import { assertClientEnv, clientEnv } from "@/shared/config/env.client";
 
 let initialized = false;

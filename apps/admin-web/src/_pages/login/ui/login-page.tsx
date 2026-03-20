@@ -1,10 +1,10 @@
 "use client";
 
-import { Suspense } from "react";
-import { useSearchParams } from "next/navigation";
 import { startLogin } from "@packages/auth";
 import { Button } from "@packages/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
+import { useSearchParams } from "next/navigation";
+import { Suspense } from "react";
 
 const LoginContent = () => {
   const sp = useSearchParams();

@@ -1,12 +1,12 @@
 "use client";
 
-import { ChangeEvent, Suspense, useEffect, useState } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateDraftJobMutation } from "@packages/graphql";
 import { Button } from "@packages/ui/button";
 import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
 import { Input } from "@packages/ui/input";
 import { getErrorMessage } from "@packages/utils";
+import { useRouter, useSearchParams } from "next/navigation";
+import { ChangeEvent, Suspense, useEffect, useState } from "react";
 
 type DraftForm = {
   channelId: string;

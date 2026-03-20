@@ -1,6 +1,5 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useState } from "react";
 import {
   useAdminJobsQuery,
   useRequestUploadMutation,
@@ -15,21 +14,22 @@ import {
 } from "@packages/ui/card";
 import { getErrorMessage } from "@packages/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import { useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useState } from "react";
 import { ChannelSelectorTabs } from "@/widgets/channel-selector-tabs";
-import { ContentJobsSection } from "./content/content-jobs-section";
-import { ContentLineOverviewSection } from "./content/content-line-overview-section";
-import { ContentLinesSection } from "./content/content-lines-section";
 import {
   estimateExperimentScore,
   matchesQuickFilter,
   quickFilterMeta,
   type QuickFilterKey,
 } from "../model";
+import { ContentJobsSection } from "./content/content-jobs-section";
+import { ContentLineOverviewSection } from "./content/content-line-overview-section";
+import { ContentLinesSection } from "./content/content-lines-section";
 import { OptionLabSection } from "./content/option-lab-section";
 import { SelectedChannelSection } from "./content/selected-channel-section";
 import { SelectedJobPanelSection } from "./content/selected-job-panel-section";
 import { VariantComparisonSection } from "./content/variant-comparison-section";
-import { useSearchParams } from "next/navigation";
 
 function ContentOperationsPageContent() {
   const searchParams = useSearchParams();

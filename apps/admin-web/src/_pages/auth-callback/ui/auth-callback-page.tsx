@@ -1,7 +1,5 @@
 "use client";
 
-import { Suspense, useEffect, useMemo, useRef } from "react";
-import { useRouter, useSearchParams } from "next/navigation";
 import {
   consumeLoginNext,
   exchangeTokens,
@@ -9,6 +7,8 @@ import {
   saveTokens,
 } from "@packages/auth";
 import { Card, CardContent } from "@packages/ui/card";
+import { useRouter, useSearchParams } from "next/navigation";
+import { Suspense, useEffect, useMemo, useRef } from "react";
 
 const AuthCallbackContent = () => {
   const router = useRouter();

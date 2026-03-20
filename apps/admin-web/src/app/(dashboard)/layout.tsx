@@ -1,12 +1,12 @@
 "use client";
 
+import { logout } from "@packages/auth";
+import { cn } from "@packages/ui";
+import { Button } from "@packages/ui/button";
+import { Settings, Cog, LayoutDashboard, FilePlay, Route } from "lucide-react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { logout } from "@packages/auth";
-import { Button } from "@packages/ui/button";
-import { cn } from "@packages/ui";
 import type { ComponentType, ReactNode } from "react";
-import { Settings, Cog, LayoutDashboard, FilePlay, Route } from "lucide-react";
 
 type NavSection = {
   title: string;

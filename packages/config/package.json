@@ -2,5 +2,10 @@
   "name": "@packages/config",
   "private": true,
   "version": "0.0.1",
-  "type": "module"
+  "type": "module",
+  "exports": {
+    "./eslint/next": "./eslint/next.mjs",
+    "./eslint/fsd": "./eslint/fsd.mjs",
+    "./eslint/code-health": "./eslint/code-health.mjs"
+  }
 }

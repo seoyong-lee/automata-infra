@@ -1,9 +1,9 @@
 "use client";
 
 import { ThemeProvider } from "@packages/theme";
+import { getErrorMessage } from "@packages/utils";
 import { QueryClientProvider } from "@tanstack/react-query";
 import { useMemo } from "react";
-import { getErrorMessage } from "@packages/utils";
 import type { ReactNode } from "react";
 import { createQueryClient } from "@/shared/api/react-query/createQueryClient";
 import { initClientApp } from "./initClientApp";

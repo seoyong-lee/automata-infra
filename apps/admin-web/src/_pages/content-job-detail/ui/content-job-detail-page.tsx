@@ -1,8 +1,5 @@
 "use client";
 
-import Link from "next/link";
-import { useParams } from "next/navigation";
-import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import {
   useJobDraftQuery,
   useRequestUploadMutation,
@@ -17,6 +14,9 @@ import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
 import { Input } from "@packages/ui/input";
 import { getErrorMessage } from "@packages/utils";
 import { useQueryClient } from "@tanstack/react-query";
+import Link from "next/link";
+import { useParams } from "next/navigation";
+import { ChangeEvent, useEffect, useMemo, useState } from "react";
 
 type WorkspaceView =
   | "overview"

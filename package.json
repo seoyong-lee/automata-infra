@@ -20,6 +20,8 @@
     "admin:dev": "yarn workspace @apps/admin-web dev",
     "admin:build": "yarn workspace @apps/admin-web build",
     "admin:start": "yarn workspace @apps/admin-web start",
+    "admin:lint": "yarn workspace @apps/admin-web lint",
+    "admin:lint:fix": "yarn workspace @apps/admin-web lint:fix",
     "admin:typecheck": "yarn workspace @apps/admin-web typecheck",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
@@ -45,7 +47,11 @@
     "aws-cdk": "^2.219.0",
     "esbuild": "^0.25.10",
     "eslint": "^9.39.1",
+    "eslint-config-prettier": "^10.1.8",
+    "eslint-import-resolver-typescript": "^4.4.4",
+    "eslint-plugin-boundaries": "^6.0.0",
     "eslint-plugin-import": "^2.31.0",
+    "eslint-plugin-unused-imports": "^4.4.1",
     "ts-node": "^10.9.2",
     "typescript": "^5.4.0"
   }
