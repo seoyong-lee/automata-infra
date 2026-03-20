@@ -1,29 +1,29 @@
-"use client";
+'use client';
 
+import { Badge } from '@packages/ui/badge';
+import { Button } from '@packages/ui/button';
+import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
+import { getErrorMessage } from '@packages/utils';
+import { useQueryClient } from '@tanstack/react-query';
 import {
-  usePendingReviewsQuery,
-  useRequestUploadMutation,
-  useSubmitReviewDecisionMutation,
-} from "@packages/graphql";
-import { Badge } from "@packages/ui/badge";
-import { Button } from "@packages/ui/button";
-import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
-import { getErrorMessage } from "@packages/utils";
-import { useQueryClient } from "@tanstack/react-query";
+  usePendingReviews,
+  useRequestJobUpload,
+  useSubmitReviewDecision,
+} from '@/entities/admin-job';
 
 export function ReviewsPage() {
   const queryClient = useQueryClient();
-  const pending = usePendingReviewsQuery({ limit: 20 });
-  const submitReview = useSubmitReviewDecisionMutation({
+  const pending = usePendingReviews({ limit: 20 });
+  const submitReview = useSubmitReviewDecision({
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["pendingReviews"] });
-      await queryClient.invalidateQueries({ queryKey: ["adminJobs"] });
+      await queryClient.invalidateQueries({ queryKey: ['pendingReviews'] });
+      await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
     },
   });
-  const requestUpload = useRequestUploadMutation({
+  const requestUpload = useRequestJobUpload({
     onSuccess: async () => {
-      await queryClient.invalidateQueries({ queryKey: ["pendingReviews"] });
-      await queryClient.invalidateQueries({ queryKey: ["adminJobs"] });
+      await queryClient.invalidateQueries({ queryKey: ['pendingReviews'] });
+      await queryClient.invalidateQueries({ queryKey: ['adminJobs'] });
     },
   });
 
@@ -34,22 +34,14 @@ export function ReviewsPage() {
       </CardHeader>
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
-          영상 전체 승인보다 scene 단위 문제를 빨리 찾고, 필요한 부분만 다시
-          생성하는 검수 큐입니다.
+          영상 전체 승인보다 scene 단위 문제를 빨리 찾고, 필요한 부분만 다시 생성하는 검수 큐입니다.
         </p>
-        {pending.isLoading ? (
-          <p className="text-sm text-muted-foreground">Loading...</p>
-        ) : null}
+        {pending.isLoading ? <p className="text-sm text-muted-foreground">Loading...</p> : null}
         {pending.error ? (
-          <p className="text-sm text-destructive">
-            {getErrorMessage(pending.error)}
-          </p>
+          <p className="text-sm text-destructive">{getErrorMessage(pending.error)}</p>
         ) : null}
         {(pending.data?.items ?? []).map((item) => (
-          <div
-            key={item.jobId}
-            className="space-y-3 rounded-lg border border-border p-4"
-          >
+          <div key={item.jobId} className="space-y-3 rounded-lg border border-border p-4">
             <div className="flex flex-wrap items-center gap-3">
               <strong className="font-mono text-xs">{item.jobId}</strong>
               <Badge variant="outline">{item.status}</Badge>
@@ -72,9 +64,7 @@ export function ReviewsPage() {
             <div className="flex flex-wrap gap-2">
               <Button
                 size="sm"
-                onClick={() =>
-                  submitReview.mutate({ jobId: item.jobId, action: "APPROVE" })
-                }
+                onClick={() => submitReview.mutate({ jobId: item.jobId, action: 'APPROVE' })}
               >
                 Approve
               </Button>
@@ -87,9 +77,7 @@ export function ReviewsPage() {
               <Button
                 size="sm"
                 variant="outline"
-                onClick={() =>
-                  submitReview.mutate({ jobId: item.jobId, action: "REJECT" })
-                }
+                onClick={() => submitReview.mutate({ jobId: item.jobId, action: 'REJECT' })}
               >
                 Reject
               </Button>
@@ -99,7 +87,7 @@ export function ReviewsPage() {
                 disabled={requestUpload.isPending}
                 onClick={() => requestUpload.mutate({ jobId: item.jobId })}
               >
-                {requestUpload.isPending ? "Uploading..." : "Upload to YouTube"}
+                {requestUpload.isPending ? 'Uploading...' : 'Upload to YouTube'}
               </Button>
             </div>
           </div>

@@ -1,15 +1,9 @@
-"use client";
+'use client';
 
-import { Badge } from "@packages/ui/badge";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@packages/ui/card";
-import type { CompareCandidate } from "../../model";
-import { formatStatusLabel } from "../../model";
+import { Badge } from '@packages/ui/badge';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
+import type { CompareCandidate } from '../model';
+import { formatStatusLabel } from '../model';
 
 type Props = {
   compareCandidates: CompareCandidate[];
@@ -26,22 +20,15 @@ export function VariantComparisonSection({ compareCandidates }: Props) {
       </CardHeader>
       <CardContent className="space-y-3">
         {compareCandidates.map((candidate) => (
-          <div
-            key={candidate.job.jobId}
-            className="rounded-lg border p-4 text-sm"
-          >
+          <div key={candidate.job.jobId} className="rounded-lg border p-4 text-sm">
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
                   <Badge variant="outline">{candidate.label}</Badge>
-                  <Badge variant="secondary">
-                    {formatStatusLabel(candidate.job.status)}
-                  </Badge>
+                  <Badge variant="secondary">{formatStatusLabel(candidate.job.status)}</Badge>
                 </div>
                 <p className="font-medium">{candidate.job.videoTitle}</p>
-                <p className="text-xs text-muted-foreground">
-                  {candidate.renderPath}
-                </p>
+                <p className="text-xs text-muted-foreground">{candidate.renderPath}</p>
               </div>
               <div className="grid gap-2 text-right text-xs text-muted-foreground md:grid-cols-3">
                 <div>
@@ -54,7 +41,7 @@ export function VariantComparisonSection({ compareCandidates }: Props) {
                 </div>
                 <div>
                   <p className="font-medium text-foreground">Publish</p>
-                  <p>{candidate.job.autoPublish ? "auto" : "review"}</p>
+                  <p>{candidate.job.autoPublish ? 'auto' : 'review'}</p>
                 </div>
               </div>
             </div>
@@ -62,8 +49,7 @@ export function VariantComparisonSection({ compareCandidates }: Props) {
         ))}
         {compareCandidates.length === 0 ? (
           <p className="text-sm text-muted-foreground">
-            비교할 variant가 아직 없습니다. 먼저 채널/콘텐츠 안에서 잡을 여러 개
-            생성하세요.
+            비교할 variant가 아직 없습니다. 먼저 채널/콘텐츠 안에서 잡을 여러 개 생성하세요.
           </p>
         ) : null}
       </CardContent>

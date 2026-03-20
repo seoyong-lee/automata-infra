@@ -1,14 +1,8 @@
-"use client";
+'use client';
 
-import { Button } from "@packages/ui/button";
-import {
-  Card,
-  CardContent,
-  CardDescription,
-  CardHeader,
-  CardTitle,
-} from "@packages/ui/card";
-import type { ContentCardSummary } from "../../model";
+import { Button } from '@packages/ui/button';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
+import type { ContentCardSummary } from '../model';
 
 type ContentLinesSectionProps = {
   contentTypes: string[];
@@ -28,24 +22,22 @@ export function ContentLinesSection({
       <CardHeader>
         <CardTitle>Content Lines</CardTitle>
         <CardDescription>
-          선택한 채널 안에서 콘텐츠 라인업을 탭처럼 선택합니다. 개별 영상이
-          아니라 반복 생산되는 콘텐츠 단위를 의미합니다.
+          선택한 채널 안에서 콘텐츠 라인업을 탭처럼 선택합니다. 개별 영상이 아니라 반복 생산되는
+          콘텐츠 단위를 의미합니다.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Button
-            variant={selectedContentType === "all" ? "default" : "outline"}
-            onClick={() => onSelectContentType("all")}
+            variant={selectedContentType === 'all' ? 'default' : 'outline'}
+            onClick={() => onSelectContentType('all')}
           >
             All Content
           </Button>
           {contentTypes.map((contentType) => (
             <Button
               key={contentType}
-              variant={
-                selectedContentType === contentType ? "default" : "outline"
-              }
+              variant={selectedContentType === contentType ? 'default' : 'outline'}
               onClick={() => onSelectContentType(contentType)}
             >
               {contentType}
@@ -60,8 +52,8 @@ export function ContentLinesSection({
               type="button"
               className={`rounded-lg border p-4 text-left ${
                 selectedContentType === card.contentType
-                  ? "border-primary bg-primary/5"
-                  : "hover:bg-accent/40"
+                  ? 'border-primary bg-primary/5'
+                  : 'hover:bg-accent/40'
               }`}
               onClick={() => onSelectContentType(card.contentType)}
             >

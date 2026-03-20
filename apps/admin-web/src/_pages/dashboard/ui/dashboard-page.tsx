@@ -1,10 +1,5 @@
 "use client";
 
-import {
-  useAdminJobsQuery,
-  usePendingReviewsQuery,
-  useYoutubeChannelConfigsQuery,
-} from "@packages/graphql";
 import { Badge } from "@packages/ui/badge";
 import { Button } from "@packages/ui/button";
 import {
@@ -17,15 +12,17 @@ import {
 import { getErrorMessage } from "@packages/utils";
 import Link from "next/link";
 import { useMemo } from "react";
+import { useAdminJobs, usePendingReviews } from "@/entities/admin-job";
+import { useYoutubeChannelConfigs } from "@/entities/youtube-channel";
 
 const formatStatusLabel = (status: string) => {
   return status.toLowerCase().replace(/_/g, " ");
 };
 
 export function DashboardPage() {
-  const jobsQuery = useAdminJobsQuery({ limit: 100 });
-  const pendingReviewsQuery = usePendingReviewsQuery({ limit: 50 });
-  const youtubeChannelsQuery = useYoutubeChannelConfigsQuery();
+  const jobsQuery = useAdminJobs({ limit: 100 });
+  const pendingReviewsQuery = usePendingReviews({ limit: 50 });
+  const youtubeChannelsQuery = useYoutubeChannelConfigs();
 
   const jobs = jobsQuery.data?.items ?? [];
   const pendingReviews = pendingReviewsQuery.data?.items ?? [];

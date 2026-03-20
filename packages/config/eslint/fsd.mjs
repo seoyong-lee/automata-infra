@@ -40,16 +40,31 @@ function getLayerRules() {
   for (let index = 0; index < FS_LAYERS.length; index += 1) {
     const layer = FS_LAYERS[index];
     if (layer === "shared") {
-      rules.push({ from: "shared", allow: "shared" });
+      rules.push({
+        from: { type: "shared" },
+        allow: [{ to: { type: "shared" } }],
+      });
     } else if (layer === "app") {
       rules.push({
-        from: "app",
-        allow: ["app", "pages", "widgets", "features", "entities", "shared"],
+        from: { type: "app" },
+        allow: [
+          {
+            to: {
+              type: ["app", "pages", "widgets", "features", "entities", "shared"],
+            },
+          },
+        ],
       });
     } else {
       rules.push({
-        from: layer,
-        allow: [layer, ...FS_LAYERS.slice(index + 1)],
+        from: { type: layer },
+        allow: [
+          {
+            to: {
+              type: [layer, ...FS_LAYERS.slice(index + 1)],
+            },
+          },
+        ],
       });
     }
   }
@@ -57,8 +72,14 @@ function getLayerRules() {
   for (let index = 0; index < FS_LAYERS.length; index += 1) {
     const layer = FS_LAYERS[index];
     rules.push({
-      from: `gm_${layer}`,
-      allow: [layer, ...FS_LAYERS.slice(index + 1)],
+      from: { type: `gm_${layer}` },
+      allow: [
+        {
+          to: {
+            type: [layer, ...FS_LAYERS.slice(index + 1)],
+          },
+        },
+      ],
     });
   }
 
@@ -135,15 +156,14 @@ export default function fsdConfig() {
       settings: {
         "boundaries/include": ["src/**/*.ts", "src/**/*.tsx"],
         "boundaries/elements": getBoundariesElements(),
+        "boundaries/dependency-nodes": ["import"],
         "import/resolver": { typescript: true },
       },
       rules: {
-        "boundaries/element-types": [
+        "boundaries/dependencies": [
           "error",
           {
             default: "disallow",
-            message:
-              'FSD 규칙 위반: "${file.type}" 레이어에서 "${dependency.type}" 레이어를 import할 수 없습니다.',
             rules: getLayerRules(),
           },
         ],
