@@ -1,7 +1,7 @@
 "use client";
 
-import { ChangeEvent, useState } from "react";
-import { useRouter } from "next/navigation";
+import { ChangeEvent, useEffect, useState } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateDraftJobMutation } from "@packages/graphql";
 import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
 import { Input } from "@packages/ui/input";
@@ -22,6 +22,7 @@ type DraftForm = {
 
 export default function NewJobPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
   const [form, setForm] = useState<DraftForm>({
     channelId: "saju-shorts-ko",
     targetLanguage: "ko",
@@ -33,6 +34,16 @@ export default function NewJobPage() {
     autoPublish: false,
     publishAt: "",
   });
+
+  useEffect(() => {
+    const channelId = searchParams.get("channelId");
+    const contentType = searchParams.get("contentType");
+    setForm((current) => ({
+      ...current,
+      channelId: channelId ?? current.channelId,
+      contentType: contentType ?? current.contentType,
+    }));
+  }, [searchParams]);
 
   const mutation = useCreateDraftJobMutation({
     onSuccess: ({ createDraftJob }) => {
@@ -55,9 +66,14 @@ export default function NewJobPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Create Draft Job</CardTitle>
+          <CardTitle>Create Content Job</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+            선택한 유튜브 채널과 콘텐츠 타입 안에서 새 잡을 생성합니다. 이후
+            상세 화면에서 스크립트, 장면, 에셋, 업로드를 이어서 관리할 수
+            있습니다.
+          </div>
           <div className="grid gap-4 md:grid-cols-2">
             <label className="space-y-2 text-sm">
               <span className="font-medium">Channel ID</span>
@@ -135,7 +151,7 @@ export default function NewJobPage() {
               })
             }
           >
-            {mutation.isPending ? "Creating..." : "Create Draft"}
+            {mutation.isPending ? "Creating..." : "Create Content Job"}
           </Button>
           {mutation.error ? (
             <p className="text-sm text-destructive">

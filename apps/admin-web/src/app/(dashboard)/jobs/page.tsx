@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect, useMemo, useState } from "react";
+import { useSearchParams } from "next/navigation";
+import {
+  useAdminJobsQuery,
+  useRequestUploadMutation,
+  useYoutubeChannelConfigsQuery,
+} from "@packages/graphql";
 import { Badge } from "@packages/ui/badge";
-import { useAdminJobsQuery } from "@packages/graphql";
+import { Button } from "@packages/ui/button";
 import {
   Card,
   CardContent,
@@ -10,115 +17,349 @@ import {
   CardHeader,
   CardTitle,
 } from "@packages/ui/card";
-import { Button } from "@packages/ui/button";
 import { getErrorMessage } from "@packages/utils";
+import { useQueryClient } from "@tanstack/react-query";
+
+const formatStatusLabel = (status: string) => {
+  return status.toLowerCase().replace(/_/g, " ");
+};
 
 export default function JobsPage() {
-  const jobsQuery = useAdminJobsQuery({
-    limit: 50,
+  const searchParams = useSearchParams();
+  const queryClient = useQueryClient();
+  const configuredChannelsQuery = useYoutubeChannelConfigsQuery();
+  const jobsQuery = useAdminJobsQuery({ limit: 100 });
+  const [selectedChannelId, setSelectedChannelId] = useState("");
+  const [selectedContentType, setSelectedContentType] = useState("all");
+  const requestUpload = useRequestUploadMutation({
+    onSuccess: async () => {
+      await queryClient.invalidateQueries({ queryKey: ["adminJobs"] });
+    },
   });
+
+  const jobs = jobsQuery.data?.items ?? [];
+  const configuredChannels = configuredChannelsQuery.data ?? [];
+
+  const availableChannels = useMemo(() => {
+    return Array.from(
+      new Set([
+        ...configuredChannels.map((item) => item.channelId),
+        ...jobs.map((item) => item.channelId),
+      ]),
+    ).sort();
+  }, [configuredChannels, jobs]);
+
+  useEffect(() => {
+    const queryChannelId = searchParams.get("channelId");
+    if (queryChannelId && availableChannels.includes(queryChannelId)) {
+      setSelectedChannelId(queryChannelId);
+      return;
+    }
+    if (!selectedChannelId && availableChannels[0]) {
+      setSelectedChannelId(availableChannels[0]);
+    }
+  }, [availableChannels, searchParams, selectedChannelId]);
+
+  const selectedChannel = selectedChannelId || availableChannels[0] || "";
+
+  const channelJobs = useMemo(() => {
+    return jobs.filter((job) => job.channelId === selectedChannel);
+  }, [jobs, selectedChannel]);
+
+  const contentTypes = useMemo(() => {
+    return Array.from(
+      new Set(
+        channelJobs
+          .map((job) => job.contentType)
+          .filter((value): value is string => Boolean(value)),
+      ),
+    ).sort();
+  }, [channelJobs]);
+
+  useEffect(() => {
+    const queryContentType = searchParams.get("contentType");
+    if (queryContentType && contentTypes.includes(queryContentType)) {
+      setSelectedContentType(queryContentType);
+      return;
+    }
+    if (
+      selectedContentType !== "all" &&
+      !contentTypes.includes(selectedContentType)
+    ) {
+      setSelectedContentType("all");
+    }
+  }, [contentTypes, searchParams, selectedContentType]);
+
+  const filteredJobs = useMemo(() => {
+    if (selectedContentType === "all") {
+      return channelJobs;
+    }
+    return channelJobs.filter((job) => job.contentType === selectedContentType);
+  }, [channelJobs, selectedContentType]);
+
+  const contentCards = useMemo(() => {
+    return contentTypes.map((contentType) => {
+      const contentJobs = channelJobs.filter(
+        (job) => job.contentType === contentType,
+      );
+      return {
+        contentType,
+        totalJobs: contentJobs.length,
+        draftCount: contentJobs.filter((job) => job.status === "DRAFT").length,
+        assetReadyCount: contentJobs.filter(
+          (job) =>
+            job.status === "ASSETS_READY" ||
+            job.status === "RENDERED" ||
+            job.status === "UPLOADED",
+        ).length,
+        uploadReadyCount: contentJobs.filter(
+          (job) => job.status === "RENDERED" || job.status === "APPROVED",
+        ).length,
+      };
+    });
+  }, [channelJobs, contentTypes]);
+
+  const selectedChannelConfig = configuredChannels.find(
+    (item) => item.channelId === selectedChannel,
+  );
 
   return (
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
           <div className="space-y-1">
-            <CardTitle>Jobs</CardTitle>
+            <CardTitle>Content Manager</CardTitle>
             <CardDescription>
-              운영 로그가 아니라, 좋은 실험 결과를 다시 쓰기 위한
-              카탈로그입니다.
+              먼저 유튜브 채널 단위 탭을 선택하고, 그 안에서 콘텐츠별 스크립트,
+              영상, 이미지 생성과 업로드를 관리합니다.
             </CardDescription>
           </div>
-          <Button onClick={() => (window.location.href = "/jobs/new")}>
-            Create Draft Job
+          <Button
+            onClick={() =>
+              (window.location.href = `/jobs/new?channelId=${encodeURIComponent(selectedChannel)}${selectedContentType !== "all" ? `&contentType=${encodeURIComponent(selectedContentType)}` : ""}`)
+            }
+            disabled={!selectedChannel}
+          >
+            New Content Job
           </Button>
         </CardHeader>
       </Card>
 
-      {jobsQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading jobs...</p>
-      ) : null}
       {jobsQuery.error ? (
         <p className="text-sm text-destructive">
           {getErrorMessage(jobsQuery.error)}
         </p>
       ) : null}
+      {configuredChannelsQuery.error ? (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(configuredChannelsQuery.error)}
+        </p>
+      ) : null}
 
-      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
-        {(jobsQuery.data?.items ?? []).map((job, index) => (
-          <Card key={job.jobId}>
-            <CardHeader className="space-y-3">
-              <div className="flex items-center justify-between gap-2">
-                <Badge variant="outline">{job.status}</Badge>
-                <span className="text-xs text-muted-foreground">
-                  {job.variant
-                    ? `Variant ${job.variant}`
-                    : `Variant ${["A", "B", "C"][index % 3]}`}
-                </span>
+      <Card>
+        <CardHeader>
+          <CardTitle>Channel Tabs</CardTitle>
+          <CardDescription>
+            콘텐츠 관리의 시작점은 유튜브 채널입니다. 채널을 먼저 선택한 뒤 해당
+            콘텐츠와 잡 흐름을 운영합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="flex flex-wrap gap-2">
+          {availableChannels.map((channelId) => (
+            <Button
+              key={channelId}
+              variant={channelId === selectedChannel ? "default" : "outline"}
+              onClick={() => setSelectedChannelId(channelId)}
+            >
+              {channelId}
+            </Button>
+          ))}
+          {!jobsQuery.isLoading && availableChannels.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              아직 선택 가능한 채널이 없습니다. 먼저 Settings에서 유튜브 채널을
+              추가하세요.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
+
+      <div className="grid gap-6 xl:grid-cols-[0.85fr_1.15fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Selected Channel</CardTitle>
+            <CardDescription>
+              채널별 기본 업로드 정책과 현재 운영 중인 콘텐츠 흐름을 확인합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="rounded-lg border p-4 text-sm">
+              <p className="font-medium">{selectedChannel || "-"}</p>
+              <div className="mt-3 grid gap-3 md:grid-cols-2">
+                <div>
+                  <p className="text-xs text-muted-foreground">Auto publish</p>
+                  <p>
+                    {selectedChannelConfig?.autoPublishEnabled
+                      ? "enabled"
+                      : "review first"}
+                  </p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Visibility</p>
+                  <p>{selectedChannelConfig?.defaultVisibility ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Playlist</p>
+                  <p>{selectedChannelConfig?.playlistId ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="text-xs text-muted-foreground">Secret</p>
+                  <p>{selectedChannelConfig?.youtubeSecretName ?? "-"}</p>
+                </div>
               </div>
-              <div>
-                <CardTitle className="text-base">{job.videoTitle}</CardTitle>
-                <CardDescription className="mt-1 font-mono text-xs">
-                  {job.jobId}
-                </CardDescription>
+            </div>
+            <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+              채널 탭 내부에서 콘텐츠 타입별 잡을 나눠 운영하고, 상세 화면에서
+              스크립트, 장면, 에셋, 업로드를 이어서 관리합니다.
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Content Types</CardTitle>
+            <CardDescription>
+              선택한 채널 안에서 콘텐츠 타입별 잡 흐름을 나눠 확인합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            <div className="flex flex-wrap gap-2">
+              <Button
+                variant={selectedContentType === "all" ? "default" : "outline"}
+                onClick={() => setSelectedContentType("all")}
+              >
+                All Content
+              </Button>
+              {contentTypes.map((contentType) => (
+                <Button
+                  key={contentType}
+                  variant={
+                    selectedContentType === contentType ? "default" : "outline"
+                  }
+                  onClick={() => setSelectedContentType(contentType)}
+                >
+                  {contentType}
+                </Button>
+              ))}
+            </div>
+
+            <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+              {contentCards.map((card) => (
+                <button
+                  key={card.contentType}
+                  type="button"
+                  className={`rounded-lg border p-4 text-left ${
+                    selectedContentType === card.contentType
+                      ? "border-primary bg-primary/5"
+                      : "hover:bg-accent/40"
+                  }`}
+                  onClick={() => setSelectedContentType(card.contentType)}
+                >
+                  <p className="font-medium">{card.contentType}</p>
+                  <div className="mt-3 space-y-1 text-sm text-muted-foreground">
+                    <p>Total jobs: {card.totalJobs}</p>
+                    <p>Drafts: {card.draftCount}</p>
+                    <p>Assets ready: {card.assetReadyCount}</p>
+                    <p>Upload ready: {card.uploadReadyCount}</p>
+                  </div>
+                </button>
+              ))}
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Content Jobs</CardTitle>
+          <CardDescription>
+            콘텐츠 탭 내부에서 실제 스크립트, 이미지, 영상, 업로드 단위 잡을
+            관리합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {jobsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">
+              Loading content jobs...
+            </p>
+          ) : null}
+
+          {filteredJobs.map((job) => (
+            <div key={job.jobId} className="rounded-lg border p-4">
+              <div className="flex flex-wrap items-start justify-between gap-4">
+                <div className="space-y-2">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{job.status}</Badge>
+                    {job.contentType ? (
+                      <Badge variant="secondary">{job.contentType}</Badge>
+                    ) : null}
+                    {job.variant ? (
+                      <span className="text-xs text-muted-foreground">
+                        {job.variant}
+                      </span>
+                    ) : null}
+                  </div>
+                  <p className="font-medium">{job.videoTitle}</p>
+                  <p className="font-mono text-xs text-muted-foreground">
+                    {job.jobId}
+                  </p>
+                </div>
+
+                <div className="grid gap-3 text-right text-xs text-muted-foreground md:grid-cols-2">
+                  <div>
+                    <p className="font-medium text-foreground">Duration</p>
+                    <p>{job.targetDurationSec}s</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Publish</p>
+                    <p>{job.autoPublish ? "auto" : "manual"}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Retry</p>
+                    <p>{job.retryCount}</p>
+                  </div>
+                  <div>
+                    <p className="font-medium text-foreground">Updated</p>
+                    <p>{job.updatedAt}</p>
+                  </div>
+                </div>
               </div>
-            </CardHeader>
-            <CardContent className="space-y-4">
-              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
-                <div>
-                  <p className="font-medium text-foreground">Channel</p>
-                  <p>{job.channelId}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Content</p>
-                  <p>{job.contentType ?? "-"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Duration</p>
-                  <p>{job.targetDurationSec}s</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Retry</p>
-                  <p>{job.retryCount}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Publish</p>
-                  <p>{job.autoPublish ? "auto" : "review"}</p>
-                </div>
-                <div>
-                  <p className="font-medium text-foreground">Updated</p>
-                  <p>{job.updatedAt}</p>
-                </div>
-              </div>
-              <div className="flex flex-wrap gap-2 text-xs">
-                <span className="rounded-md bg-muted px-2 py-1">
-                  Clone as new job
-                </span>
-                <span className="rounded-md bg-muted px-2 py-1">
-                  Resume failed job
-                </span>
-                <span className="rounded-md bg-muted px-2 py-1">
-                  Compare with previous
-                </span>
-                <span className="rounded-md bg-muted px-2 py-1">
-                  Promote to template
-                </span>
-              </div>
-              <div className="flex items-center justify-between">
+
+              <div className="mt-4 flex flex-wrap gap-2">
                 <Link
                   className="text-sm text-primary hover:underline"
                   href={`/jobs/${job.jobId}`}
                 >
-                  Open experiment
+                  Open content detail
                 </Link>
-                <span className="text-xs text-muted-foreground">
-                  est. ${((job.targetDurationSec / 10) * 0.04).toFixed(2)}
-                </span>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  disabled={requestUpload.isPending}
+                  onClick={() => requestUpload.mutate({ jobId: job.jobId })}
+                >
+                  {requestUpload.isPending ? "Uploading..." : "Upload"}
+                </Button>
               </div>
-            </CardContent>
-          </Card>
-        ))}
-      </div>
+            </div>
+          ))}
+
+          {!jobsQuery.isLoading && filteredJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              선택한 채널/콘텐츠에 아직 잡이 없습니다.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

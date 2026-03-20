@@ -1,16 +1,10 @@
 "use client";
 
 import Link from "next/link";
-import { useEffect, useMemo, useState, type ChangeEvent } from "react";
 import {
   useAdminJobsQuery,
-  useCreateDraftJobMutation,
-  useJobDraftQuery,
-  useLlmSettingsQuery,
-  useRunAssetGenerationMutation,
-  useRunSceneJsonMutation,
-  useRunTopicPlanMutation,
-  useUpdateTopicSeedMutation,
+  usePendingReviewsQuery,
+  useYoutubeChannelConfigsQuery,
 } from "@packages/graphql";
 import { Badge } from "@packages/ui/badge";
 import { Button } from "@packages/ui/button";
@@ -21,479 +15,295 @@ import {
   CardHeader,
   CardTitle,
 } from "@packages/ui/card";
-import { Input } from "@packages/ui/input";
 import { getErrorMessage } from "@packages/utils";
-import { useQueryClient } from "@tanstack/react-query";
+import { useMemo } from "react";
 
-type WorkbenchForm = {
-  contentType: string;
-  channelId: string;
-  targetLanguage: string;
-  targetDurationSec: string;
-  titleIdea: string;
-  tone: string;
-  stylePreset: string;
-  hookStrength: string;
-  sceneCount: string;
-  visualPreset: string;
-  voicePreset: string;
-  promptVersion: string;
-  seed: string;
-};
-
-const defaultForm: WorkbenchForm = {
-  contentType: "daily-saju-fortune",
-  channelId: "history-en",
-  targetLanguage: "en",
-  targetDurationSec: "35",
-  titleIdea: "",
-  tone: "calm_direct",
-  stylePreset: "dark_ambient_story",
-  hookStrength: "medium",
-  sceneCount: "5",
-  visualPreset: "mystic_ambient",
-  voicePreset: "narration-default",
-  promptVersion: "v1",
-  seed: "",
-};
-
-const buildVariantLabel = (index: number): string => {
-  return (
-    ["Variant A", "Variant B", "Variant C"][index] ?? `Variant ${index + 1}`
-  );
-};
-
-const estimateCost = (sceneCount: number, status: string): string => {
-  const multiplier =
-    status === "ASSETS_READY"
-      ? 0.06
-      : status === "SCENE_JSON_READY"
-        ? 0.03
-        : 0.01;
-  return `$${(0.02 + sceneCount * multiplier).toFixed(2)}`;
+const formatStatusLabel = (status: string) => {
+  return status.toLowerCase().replace(/_/g, " ");
 };
 
 export default function DashboardPage() {
-  const queryClient = useQueryClient();
-  const jobs = useAdminJobsQuery({ limit: 12 });
-  const llmSettings = useLlmSettingsQuery();
-  const [form, setForm] = useState<WorkbenchForm>(defaultForm);
-  const variants = useMemo(
-    () => (jobs.data?.items ?? []).slice(0, 3),
-    [jobs.data],
-  );
-  const [selectedJobId, setSelectedJobId] = useState<string>("");
-  const selectedVariant =
-    variants.find((item) => item.jobId === selectedJobId) ??
-    variants[0] ??
-    null;
-  const selectedDetail = useJobDraftQuery(
-    { jobId: selectedVariant?.jobId ?? "" },
-    { enabled: Boolean(selectedVariant?.jobId) },
-  );
+  const jobsQuery = useAdminJobsQuery({ limit: 100 });
+  const pendingReviewsQuery = usePendingReviewsQuery({ limit: 50 });
+  const youtubeChannelsQuery = useYoutubeChannelConfigsQuery();
 
-  useEffect(() => {
-    if (!selectedJobId && variants[0]?.jobId) {
-      setSelectedJobId(variants[0].jobId);
-    }
-  }, [selectedJobId, variants]);
+  const jobs = jobsQuery.data?.items ?? [];
+  const pendingReviews = pendingReviewsQuery.data?.items ?? [];
+  const youtubeChannels = youtubeChannelsQuery.data ?? [];
 
-  const refresh = async (jobId?: string) => {
-    await queryClient.invalidateQueries({ queryKey: ["adminJobs"] });
-    if (jobId) {
-      await queryClient.invalidateQueries({ queryKey: ["jobDraft", jobId] });
-    }
-  };
+  const metrics = useMemo(() => {
+    const counts = jobs.reduce<Record<string, number>>((acc, job) => {
+      acc[job.status] = (acc[job.status] ?? 0) + 1;
+      return acc;
+    }, {});
 
-  const createDraft = useCreateDraftJobMutation({
-    onSuccess: async ({ createDraftJob }) => {
-      setSelectedJobId(createDraftJob.jobId);
-      await refresh(createDraftJob.jobId);
-    },
-  });
-  const updateSeed = useUpdateTopicSeedMutation({
-    onSuccess: async (_data, vars) => refresh(vars.jobId),
-  });
-  const runTopicPlan = useRunTopicPlanMutation({
-    onSuccess: async ({ runTopicPlan }) => refresh(runTopicPlan.jobId),
-  });
-  const runSceneJson = useRunSceneJsonMutation({
-    onSuccess: async ({ runSceneJson }) => refresh(runSceneJson.jobId),
-  });
-  const runAssetGeneration = useRunAssetGenerationMutation({
-    onSuccess: async ({ runAssetGeneration }) =>
-      refresh(runAssetGeneration.jobId),
-  });
-
-  const onInput =
-    (key: keyof WorkbenchForm) => (event: ChangeEvent<HTMLInputElement>) => {
-      setForm((current) => ({
-        ...current,
-        [key]: event.target.value,
-      }));
+    return {
+      totalJobs: jobs.length,
+      renderedJobs: (counts.RENDERED ?? 0) + (counts.UPLOADED ?? 0),
+      pendingReviews: pendingReviews.length,
+      failedJobs: counts.FAILED ?? 0,
+      assetBacklog:
+        (counts.PLANNED ?? 0) +
+        (counts.SCENE_JSON_READY ?? 0) +
+        (counts.ASSET_GENERATING ?? 0),
     };
+  }, [jobs, pendingReviews.length]);
 
-  const persistSeed = async (): Promise<string | null> => {
-    const currentJobId = selectedVariant?.jobId;
-    if (!currentJobId) {
-      return null;
-    }
-    await updateSeed.mutateAsync({
-      jobId: currentJobId,
-      channelId: form.channelId,
-      targetLanguage: form.targetLanguage,
-      titleIdea: form.titleIdea,
-      targetDurationSec: Number(form.targetDurationSec),
-      stylePreset: form.stylePreset,
+  const channelRows = useMemo(() => {
+    const channelIds = Array.from(
+      new Set([
+        ...youtubeChannels.map((item) => item.channelId),
+        ...jobs.map((item) => item.channelId),
+      ]),
+    ).sort();
+
+    return channelIds.map((channelId) => {
+      const channelJobs = jobs.filter((job) => job.channelId === channelId);
+      const uploadedCount = channelJobs.filter(
+        (job) => job.status === "UPLOADED",
+      ).length;
+      const blockedCount = channelJobs.filter(
+        (job) => job.status === "FAILED" || job.status === "REVIEW_PENDING",
+      ).length;
+      return {
+        channelId,
+        totalJobs: channelJobs.length,
+        uploadedCount,
+        blockedCount,
+      };
     });
-    return currentJobId;
-  };
+  }, [jobs, youtubeChannels]);
 
-  const generateBrief = async () => {
-    await createDraft.mutateAsync({
-      channelId: form.channelId,
-      targetLanguage: form.targetLanguage,
-      contentType: "dashboard-draft",
-      variant: "v1",
-      titleIdea: form.titleIdea,
-      targetDurationSec: Number(form.targetDurationSec),
-      stylePreset: form.stylePreset,
-      autoPublish: false,
-    });
-  };
+  const bottlenecks = useMemo(() => {
+    return [
+      {
+        label: "Review bottleneck",
+        value: pendingReviews.length,
+        hint: "Jobs waiting for manual approval before publish",
+      },
+      {
+        label: "Asset generation backlog",
+        value: jobs.filter(
+          (job) =>
+            job.status === "SCENE_JSON_READY" ||
+            job.status === "ASSET_GENERATING",
+        ).length,
+        hint: "Jobs still building image, video, or voice assets",
+      },
+      {
+        label: "Upload blocked",
+        value: jobs.filter(
+          (job) =>
+            job.status === "APPROVED" ||
+            job.status === "RENDERED" ||
+            job.status === "FAILED",
+        ).length,
+        hint: "Rendered jobs not yet published or jobs with runtime errors",
+      },
+    ];
+  }, [jobs, pendingReviews.length]);
 
-  const generateSceneJson = async () => {
-    const jobId = (await persistSeed()) ?? selectedVariant?.jobId;
-    if (!jobId) {
-      return;
-    }
-    await runTopicPlan.mutateAsync({ jobId });
-    await runSceneJson.mutateAsync({ jobId });
-  };
-
-  const generateFullPreview = async () => {
-    const jobId = (await persistSeed()) ?? selectedVariant?.jobId;
-    if (!jobId) {
-      return;
-    }
-    await runTopicPlan.mutateAsync({ jobId });
-    await runSceneJson.mutateAsync({ jobId });
-    await runAssetGeneration.mutateAsync({ jobId });
-  };
-
-  const inspector = selectedDetail.data;
+  const recentJobs = useMemo(() => jobs.slice(0, 8), [jobs]);
 
   return (
     <div className="space-y-6">
       <Card>
-        <CardHeader>
-          <CardTitle>Workbench</CardTitle>
-          <CardDescription>
-            아이디어를 빠르게 시안으로 바꾸고, 비교하고, 일부만 다시 생성하는
-            실험실입니다.
-          </CardDescription>
+        <CardHeader className="flex flex-row items-center justify-between gap-4">
+          <div className="space-y-1">
+            <CardTitle>Global Dashboard</CardTitle>
+            <CardDescription>
+              모든 콘텐츠를 통합해서 병목, 에러, 리뷰 대기, 업로드 진행 상태를
+              확인하는 운영 현황판입니다.
+            </CardDescription>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Button
+              variant="secondary"
+              onClick={() => (window.location.href = "/jobs")}
+            >
+              Open Content Manager
+            </Button>
+            <Button
+              variant="outline"
+              onClick={() => (window.location.href = "/settings")}
+            >
+              Global Settings
+            </Button>
+          </div>
         </CardHeader>
       </Card>
 
-      <div className="grid gap-6 xl:grid-cols-[1.05fr_1.1fr_0.85fr]">
+      {jobsQuery.error ? (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(jobsQuery.error)}
+        </p>
+      ) : null}
+      {pendingReviewsQuery.error ? (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(pendingReviewsQuery.error)}
+        </p>
+      ) : null}
+      {youtubeChannelsQuery.error ? (
+        <p className="text-sm text-destructive">
+          {getErrorMessage(youtubeChannelsQuery.error)}
+        </p>
+      ) : null}
+
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
         <Card>
           <CardHeader>
-            <CardTitle>Input Panel</CardTitle>
-            <CardDescription>
-              콘텐츠 타입, 톤, 스타일, provider 조합을 조절해 실험합니다.
-            </CardDescription>
+            <CardTitle className="text-sm">Total Jobs</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="grid gap-4 md:grid-cols-2">
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Content Type</span>
-                <Input
-                  value={form.contentType}
-                  onChange={onInput("contentType")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Channel</span>
-                <Input value={form.channelId} onChange={onInput("channelId")} />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Language</span>
-                <Input
-                  value={form.targetLanguage}
-                  onChange={onInput("targetLanguage")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Target Duration</span>
-                <Input
-                  type="number"
-                  value={form.targetDurationSec}
-                  onChange={onInput("targetDurationSec")}
-                />
-              </label>
-              <label className="space-y-2 text-sm md:col-span-2">
-                <span className="font-medium">Topic / Date</span>
-                <Input value={form.titleIdea} onChange={onInput("titleIdea")} />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Tone</span>
-                <Input value={form.tone} onChange={onInput("tone")} />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Style</span>
-                <Input
-                  value={form.stylePreset}
-                  onChange={onInput("stylePreset")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Hook Strength</span>
-                <Input
-                  value={form.hookStrength}
-                  onChange={onInput("hookStrength")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Scene Count</span>
-                <Input
-                  value={form.sceneCount}
-                  onChange={onInput("sceneCount")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Visual Preset</span>
-                <Input
-                  value={form.visualPreset}
-                  onChange={onInput("visualPreset")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Voice Preset</span>
-                <Input
-                  value={form.voicePreset}
-                  onChange={onInput("voicePreset")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Prompt Version</span>
-                <Input
-                  value={form.promptVersion}
-                  onChange={onInput("promptVersion")}
-                />
-              </label>
-              <label className="space-y-2 text-sm">
-                <span className="font-medium">Seed</span>
-                <Input value={form.seed} onChange={onInput("seed")} />
-              </label>
-            </div>
-            <div className="flex flex-wrap gap-2">
-              <Button disabled={createDraft.isPending} onClick={generateBrief}>
-                {createDraft.isPending ? "Generating..." : "Generate Brief"}
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={runSceneJson.isPending || runTopicPlan.isPending}
-                onClick={generateSceneJson}
-              >
-                Generate Scene JSON
-              </Button>
-              <Button
-                variant="secondary"
-                disabled={
-                  runSceneJson.isPending ||
-                  runTopicPlan.isPending ||
-                  runAssetGeneration.isPending
-                }
-                onClick={generateFullPreview}
-              >
-                Generate Full Preview
-              </Button>
-              <Button
-                variant="outline"
-                onClick={() => (window.location.href = "/templates")}
-              >
-                Save as Template
-              </Button>
-            </div>
-            {createDraft.error ? (
-              <p className="text-sm text-destructive">
-                {getErrorMessage(createDraft.error)}
-              </p>
-            ) : null}
+          <CardContent>
+            <p className="text-2xl font-semibold">{metrics.totalJobs}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle>Variant Compare</CardTitle>
-            <CardDescription>
-              최근 시안 3개를 한 화면에서 비교하고 다음 액션을 고릅니다.
-            </CardDescription>
+            <CardTitle className="text-sm">Rendered / Uploaded</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {jobs.isLoading ? (
-              <p className="text-sm text-muted-foreground">
-                Loading variants...
-              </p>
-            ) : null}
-            {jobs.error ? (
-              <p className="text-sm text-destructive">
-                {getErrorMessage(jobs.error)}
-              </p>
-            ) : null}
-            <div className="grid gap-4">
-              {variants.map((job, index) => {
-                const sceneCount = inspector?.sceneJson?.scenes.length ?? 5;
-                const isSelected = selectedVariant?.jobId === job.jobId;
-                return (
-                  <button
-                    key={job.jobId}
-                    type="button"
-                    onClick={() => setSelectedJobId(job.jobId)}
-                    className={`rounded-xl border p-4 text-left transition-colors ${
-                      isSelected
-                        ? "border-primary bg-primary/5"
-                        : "border-border hover:bg-accent/40"
-                    }`}
-                  >
-                    <div className="flex items-center justify-between gap-3">
-                      <div className="space-y-1">
-                        <div className="flex items-center gap-2">
-                          <Badge variant="outline">
-                            {buildVariantLabel(index)}
-                          </Badge>
-                          <Badge variant="secondary">{job.status}</Badge>
-                        </div>
-                        <p className="font-medium">{job.videoTitle}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {job.jobId}
-                        </p>
-                      </div>
-                      <div className="text-right text-xs text-muted-foreground">
-                        <p>Scene count: {sceneCount}</p>
-                        <p>Est. cost: {estimateCost(sceneCount, job.status)}</p>
-                        <p>Duration: {job.targetDurationSec}s</p>
-                      </div>
-                    </div>
-                    <div className="mt-3 flex flex-wrap gap-2">
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
-                        Open
-                      </span>
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
-                        Duplicate
-                      </span>
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
-                        Regenerate Hook
-                      </span>
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
-                        Regenerate Visuals
-                      </span>
-                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
-                        Promote
-                      </span>
-                    </div>
-                  </button>
-                );
-              })}
-              {!jobs.isLoading && variants.length === 0 ? (
-                <p className="text-sm text-muted-foreground">
-                  아직 비교할 시안이 없습니다. 왼쪽에서 brief를 먼저 생성하세요.
-                </p>
-              ) : null}
-            </div>
+          <CardContent>
+            <p className="text-2xl font-semibold">{metrics.renderedJobs}</p>
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle>Inspector</CardTitle>
-            <CardDescription>
-              선택한 variant의 상태, 모델, 비용, 실패 지점, 재생성 액션을
-              확인합니다.
-            </CardDescription>
+            <CardTitle className="text-sm">Pending Review</CardTitle>
           </CardHeader>
-          <CardContent className="space-y-4">
-            {selectedVariant ? (
-              <>
-                <div className="space-y-2 text-sm">
-                  <p>
-                    <span className="font-medium">Status:</span>{" "}
-                    {selectedVariant.status}
-                  </p>
-                  <p>
-                    <span className="font-medium">Prompt Version:</span>{" "}
-                    {form.promptVersion}
-                  </p>
-                  <p>
-                    <span className="font-medium">Updated:</span>{" "}
-                    {selectedVariant.updatedAt}
-                  </p>
-                  <p>
-                    <span className="font-medium">Cost:</span>{" "}
-                    {estimateCost(
-                      inspector?.sceneJson?.scenes.length ?? 5,
-                      selectedVariant.status,
-                    )}
-                  </p>
-                  <p>
-                    <span className="font-medium">LLM Configured Steps:</span>{" "}
-                    {llmSettings.data?.length ?? 0}
-                  </p>
-                </div>
-                <div className="space-y-2 rounded-lg border p-3 text-sm">
-                  <p className="font-medium">Quick Actions</p>
-                  <div className="flex flex-wrap gap-2">
-                    <Button size="sm" variant="outline">
-                      Regenerate scene 2 only
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      Swap TTS voice
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      Change hook
-                    </Button>
-                    <Button size="sm" variant="outline">
-                      Rebuild render plan
-                    </Button>
-                  </div>
-                </div>
-                <div className="space-y-2 rounded-lg border p-3 text-sm">
-                  <p className="font-medium">Next Step</p>
-                  <div className="flex flex-col gap-2">
-                    <Link
-                      className="text-primary hover:underline"
-                      href={`/jobs/${selectedVariant.jobId}`}
-                    >
-                      Open full job detail
-                    </Link>
-                    <Link
-                      className="text-primary hover:underline"
-                      href="/reviews"
-                    >
-                      Send to review queue
-                    </Link>
-                    <Link
-                      className="text-primary hover:underline"
-                      href="/templates"
-                    >
-                      Promote to template
-                    </Link>
-                  </div>
-                </div>
-                {selectedDetail.error ? (
-                  <p className="text-sm text-destructive">
-                    {getErrorMessage(selectedDetail.error)}
-                  </p>
-                ) : null}
-              </>
-            ) : (
-              <p className="text-sm text-muted-foreground">
-                선택된 variant가 없습니다.
-              </p>
-            )}
+          <CardContent>
+            <p className="text-2xl font-semibold">{metrics.pendingReviews}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Asset Backlog</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">{metrics.assetBacklog}</p>
+          </CardContent>
+        </Card>
+        <Card>
+          <CardHeader>
+            <CardTitle className="text-sm">Failed Jobs</CardTitle>
+          </CardHeader>
+          <CardContent>
+            <p className="text-2xl font-semibold">{metrics.failedJobs}</p>
           </CardContent>
         </Card>
       </div>
+
+      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+        <Card>
+          <CardHeader>
+            <CardTitle>Channel Health</CardTitle>
+            <CardDescription>
+              유튜브 채널 단위로 현재 잡 수, 업로드 완료 수, 막힌 작업 수를
+              봅니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {channelRows.length === 0 ? (
+              <p className="text-sm text-muted-foreground">
+                아직 집계할 채널이 없습니다. 먼저 콘텐츠 채널을 추가하거나 잡을
+                생성하세요.
+              </p>
+            ) : null}
+            {channelRows.map((row) => (
+              <div
+                key={row.channelId}
+                className="flex items-center justify-between rounded-lg border p-4"
+              >
+                <div className="space-y-1">
+                  <p className="font-medium">{row.channelId}</p>
+                  <p className="text-xs text-muted-foreground">
+                    uploaded {row.uploadedCount} / blocked {row.blockedCount}
+                  </p>
+                </div>
+                <div className="flex items-center gap-2">
+                  <Badge variant="outline">{row.totalJobs} jobs</Badge>
+                  <Link
+                    className="text-sm text-primary hover:underline"
+                    href={`/jobs?channelId=${encodeURIComponent(row.channelId)}`}
+                  >
+                    Open content
+                  </Link>
+                </div>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Operational Bottlenecks</CardTitle>
+            <CardDescription>
+              전체 콘텐츠 기준으로 지금 막히는 구간을 빠르게 확인합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {bottlenecks.map((item) => (
+              <div key={item.label} className="rounded-lg border p-4">
+                <div className="flex items-center justify-between gap-3">
+                  <p className="font-medium">{item.label}</p>
+                  <Badge variant="secondary">{item.value}</Badge>
+                </div>
+                <p className="mt-2 text-sm text-muted-foreground">
+                  {item.hint}
+                </p>
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Latest Jobs</CardTitle>
+          <CardDescription>
+            최근 업데이트된 잡을 기준으로 전체 콘텐츠 흐름을 빠르게 확인합니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-3">
+          {jobsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">
+              Loading dashboard...
+            </p>
+          ) : null}
+          {recentJobs.map((job) => (
+            <div
+              key={job.jobId}
+              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+            >
+              <div className="space-y-1">
+                <div className="flex flex-wrap items-center gap-2">
+                  <Badge variant="outline">{job.channelId}</Badge>
+                  <Badge variant="secondary">
+                    {formatStatusLabel(job.status)}
+                  </Badge>
+                  {job.contentType ? (
+                    <span className="text-xs text-muted-foreground">
+                      {job.contentType}
+                    </span>
+                  ) : null}
+                </div>
+                <p className="font-medium">{job.videoTitle}</p>
+                <p className="text-xs text-muted-foreground">{job.updatedAt}</p>
+              </div>
+              <Link
+                className="text-sm text-primary hover:underline"
+                href={`/jobs/${job.jobId}`}
+              >
+                Open detail
+              </Link>
+            </div>
+          ))}
+          {!jobsQuery.isLoading && recentJobs.length === 0 ? (
+            <p className="text-sm text-muted-foreground">
+              아직 생성된 잡이 없습니다.
+            </p>
+          ) : null}
+        </CardContent>
+      </Card>
     </div>
   );
 }

@@ -406,9 +406,10 @@ export default function SettingsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>System Settings</CardTitle>
+          <CardTitle>Global Settings</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
+          <p>콘텐츠와 동위치의 글로벌 운영 설정 화면입니다.</p>
           <p>단계별 모델, 파라미터, 프롬프트를 DynamoDB 기반으로 관리합니다.</p>
           <p>
             값이 저장되지 않은 단계는 코드 기본값을 fallback으로 사용합니다.

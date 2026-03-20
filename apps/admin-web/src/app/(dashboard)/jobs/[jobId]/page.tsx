@@ -1,5 +1,6 @@
 "use client";
 
+import Link from "next/link";
 import { ChangeEvent, useEffect, useMemo, useState } from "react";
 import { useParams } from "next/navigation";
 import {
@@ -109,7 +110,7 @@ export default function JobDetailPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Experiment Detail</CardTitle>
+          <CardTitle>Content Job Detail</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-4">
           <div className="rounded-lg border p-4">
@@ -155,9 +156,12 @@ export default function JobDetailPage() {
           <CardTitle>Summary</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <Link className="text-sm text-primary hover:underline" href="/jobs">
+            Back to Content Manager
+          </Link>
           <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-            좋은 시안은 저장하고, 아쉬운 부분은 특정 scene 또는 특정 단계만 다시
-            생성하는 실험 상세 화면입니다.
+            선택한 콘텐츠 탭 내부에서 스크립트, 장면, 에셋, 업로드를 운영하는
+            세부 잡 관리 화면입니다.
           </div>
           <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
             <div className="rounded-lg border p-4 text-sm">
@@ -192,7 +196,7 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Brief</CardTitle>
+          <CardTitle>Script Planning</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -272,7 +276,7 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Scene JSON + Compare</CardTitle>
+          <CardTitle>Script + Scene Build</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
@@ -336,7 +340,7 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Asset Generation</CardTitle>
+          <CardTitle>Image / Video / Upload</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
           <div className="grid gap-3 md:grid-cols-3">
