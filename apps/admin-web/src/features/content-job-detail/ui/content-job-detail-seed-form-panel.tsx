@@ -55,7 +55,7 @@ export function ContentJobDetailSeedFormPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Script Planning</CardTitle>
+        <CardTitle>아이데이션</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
@@ -72,10 +72,10 @@ export function ContentJobDetailSeedFormPanel({
         </div>
         <div className="flex flex-wrap gap-2">
           <Button disabled={isSaving} onClick={() => onSave(seedForm)}>
-            {isSaving ? 'Saving...' : 'Save Topic Seed'}
+            {isSaving ? '저장 중...' : '아이데이션 저장'}
           </Button>
           <Button variant="secondary" disabled={isRunningTopicPlan} onClick={onRunTopicPlan}>
-            {isRunningTopicPlan ? 'Running...' : 'Run Topic Plan'}
+            {isRunningTopicPlan ? '실행 중...' : '아이데이션 실행'}
           </Button>
         </div>
         {saveError ? (

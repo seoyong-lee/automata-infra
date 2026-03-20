@@ -21,7 +21,7 @@ export function ContentJobDetailOverviewView({
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Overview</CardTitle>
+          <CardTitle>작업 현황</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           <div className="rounded-lg border p-4 text-sm">
@@ -47,7 +47,7 @@ export function ContentJobDetailOverviewView({
 
       <Card>
         <CardHeader>
-          <CardTitle>Production Option Tracks</CardTitle>
+          <CardTitle>성과 분석 포인트</CardTitle>
         </CardHeader>
         <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {experimentOptions.map((item) => (

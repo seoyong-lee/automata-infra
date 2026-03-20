@@ -12,7 +12,7 @@ export function ContentJobDetailLogsView({ logs }: ContentJobDetailLogsViewProps
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Operational Notes</CardTitle>
+        <CardTitle>운영 로그 및 체크포인트</CardTitle>
       </CardHeader>
       <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
         {logs.map((item) => (

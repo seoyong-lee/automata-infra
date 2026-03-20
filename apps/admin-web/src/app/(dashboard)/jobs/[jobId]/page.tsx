@@ -1,5 +1,10 @@
-import { ContentJobDetailPage } from "@/_pages/content-job-detail";
+import { redirect } from 'next/navigation';
 
-export default function JobDetailRoute() {
-  return <ContentJobDetailPage />;
+type JobDetailIndexPageProps = {
+  params: Promise<{ jobId: string }>;
+};
+
+export default async function JobDetailIndexPage({ params }: JobDetailIndexPageProps) {
+  const { jobId } = await params;
+  redirect(`/jobs/${jobId}/ideation`);
 }

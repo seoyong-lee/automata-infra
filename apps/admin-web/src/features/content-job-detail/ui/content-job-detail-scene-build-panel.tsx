@@ -5,10 +5,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
 import { useState } from 'react';
 
-import { CompareRow } from '../model';
-
 type ContentJobDetailSceneBuildPanelProps = {
-  compareRows: CompareRow[];
   initialValue: string;
   runError: unknown;
   saveError: unknown;
@@ -19,7 +16,6 @@ type ContentJobDetailSceneBuildPanelProps = {
 };
 
 export function ContentJobDetailSceneBuildPanel({
-  compareRows,
   initialValue,
   runError,
   saveError,
@@ -33,29 +29,16 @@ export function ContentJobDetailSceneBuildPanel({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Scene Build</CardTitle>
+        <CardTitle>스크립트 및 JSON</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
-          {compareRows.map((row) => (
-            <div key={row.label} className="rounded-lg border p-3 text-sm">
-              <p className="font-medium">{row.label}</p>
-              <p className="mt-1 text-muted-foreground">{row.focus}</p>
-              <div className="mt-3 space-y-1 text-xs text-muted-foreground">
-                <p>Hook: {row.hook}</p>
-                <p>Renderer: {row.renderer}</p>
-                <p>Score: {row.score}</p>
-              </div>
-            </div>
-          ))}
-        </div>
         <div className="flex flex-wrap gap-2">
           <Button variant="secondary" disabled={isRunning} onClick={onRun}>
-            {isRunning ? 'Running...' : 'Run Scene JSON'}
+            {isRunning ? '실행 중...' : 'Scene JSON 생성'}
           </Button>
         </div>
-        <label className="space-y-2 text-sm">
-          <span className="font-medium">Editable Scene JSON</span>
+        <label className="block space-y-2 text-sm">
+          <span className="font-medium">Scene JSON</span>
           <textarea
             className="min-h-[360px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
             value={sceneJsonText}
@@ -66,7 +49,7 @@ export function ContentJobDetailSceneBuildPanel({
           disabled={isSaving || sceneJsonText.trim().length === 0}
           onClick={() => onSave(sceneJsonText)}
         >
-          {isSaving ? 'Saving...' : 'Save Scene JSON'}
+          {isSaving ? '저장 중...' : 'Scene JSON 저장'}
         </Button>
         {runError ? <p className="text-sm text-destructive">{getErrorMessage(runError)}</p> : null}
         {saveError ? (

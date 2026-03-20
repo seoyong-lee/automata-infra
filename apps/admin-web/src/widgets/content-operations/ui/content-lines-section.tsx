@@ -1,7 +1,6 @@
 'use client';
 
 import { Button } from '@packages/ui/button';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import type { ContentCardSummary } from '../model';
 
 type ContentLinesSectionProps = {
@@ -18,21 +17,18 @@ export function ContentLinesSection({
   onSelectContentType,
 }: ContentLinesSectionProps) {
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Content Lines</CardTitle>
-        <CardDescription>
-          선택한 채널 안에서 콘텐츠 라인업을 탭처럼 선택합니다. 개별 영상이 아니라 반복 생산되는
-          콘텐츠 단위를 의미합니다.
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
+    <section className="space-y-3">
+      <div>
+        <h3 className="text-base font-semibold tracking-tight">콘텐츠 라인</h3>
+        <p className="text-sm text-muted-foreground">채널 안에서 생산 단위(라인)를 고릅니다.</p>
+      </div>
+      <div className="space-y-4">
         <div className="flex flex-wrap gap-2">
           <Button
             variant={selectedContentType === 'all' ? 'default' : 'outline'}
             onClick={() => onSelectContentType('all')}
           >
-            All Content
+            전체 콘텐츠
           </Button>
           {contentTypes.map((contentType) => (
             <Button
@@ -69,7 +65,7 @@ export function ContentLinesSection({
             </button>
           ))}
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </section>
   );
 }

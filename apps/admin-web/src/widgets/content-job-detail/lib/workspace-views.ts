@@ -6,33 +6,47 @@ export const workspaceViews: Array<{
   description: string;
 }> = [
   {
-    key: 'overview',
-    label: 'Overview',
-    description: '현재 콘텐츠 라인과 잡 상태를 빠르게 요약합니다.',
+    key: 'ideation',
+    label: '아이데이션',
+    description: '제작 1단계: 주제·길이·톤 등 기획 입력을 정합니다.',
   },
   {
-    key: 'jobs',
-    label: 'Jobs',
-    description: 'topic seed, scene JSON, 재생성 액션을 다룹니다.',
+    key: 'script',
+    label: '스크립트 및 JSON',
+    description: '제작 2단계: 씬 단위 대본과 구조화된 JSON을 확정합니다.',
   },
   {
-    key: 'assets',
-    label: 'Assets',
-    description: 'scene별 에셋 커버리지와 자산 생성 상태를 확인합니다.',
+    key: 'image',
+    label: '이미지 생성',
+    description: '제작 3단계: 씬별 이미지를 생성·보완합니다.',
   },
   {
-    key: 'uploads',
-    label: 'Uploads',
-    description: '업로드 정책, 승인 흐름, publish 액션을 다룹니다.',
+    key: 'voice',
+    label: '음성 생성',
+    description: '제작 4단계: 나레이션·TTS를 생성합니다.',
   },
   {
-    key: 'templates',
-    label: 'Templates',
-    description: '옵션 트랙과 variant 비교 관점을 정리합니다.',
+    key: 'video',
+    label: '영상 생성',
+    description: '제작 5단계: 씬 클립·모션 위주 에셋을 생성합니다.',
   },
   {
-    key: 'logs',
-    label: 'Logs',
-    description: '현재 job의 운영 메모와 상태 추적 포인트를 봅니다.',
+    key: 'review',
+    label: '렌더링 및 검수',
+    description: '제작 6단계: 최종 렌더와 품질 검수를 진행합니다.',
+  },
+  {
+    key: 'upload',
+    label: '업로드',
+    description: '제작 7단계: 배포·공개 설정 후 발행합니다.',
   },
 ];
+
+export const workspaceViewKeys: WorkspaceView[] = workspaceViews.map((v) => v.key);
+
+export function parseWorkspaceViewParam(param: string | undefined): WorkspaceView | null {
+  if (!param) {
+    return null;
+  }
+  return workspaceViewKeys.includes(param as WorkspaceView) ? (param as WorkspaceView) : null;
+}

@@ -1,6 +1,13 @@
 import type { ContentJobDraftDetail } from '@/entities/content-job';
 
-export type WorkspaceView = 'overview' | 'jobs' | 'assets' | 'uploads' | 'templates' | 'logs';
+export type WorkspaceView =
+  | 'ideation'
+  | 'script'
+  | 'image'
+  | 'voice'
+  | 'video'
+  | 'review'
+  | 'upload';
 
 export type SeedForm = {
   channelId: string;

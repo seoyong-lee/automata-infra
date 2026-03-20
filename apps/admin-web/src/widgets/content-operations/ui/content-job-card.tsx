@@ -1,25 +1,37 @@
+'use client';
+
 import { Badge } from '@packages/ui/badge';
 import { Button } from '@packages/ui/button';
 import Link from 'next/link';
 import type { AdminJob } from '@/entities/admin-job';
 
+const stepLinkClass =
+  'rounded-md border border-border bg-background px-2 py-1 text-xs font-medium hover:bg-accent';
+
+const detailLinkClass =
+  'inline-flex h-8 shrink-0 items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90';
+
+const CARD_QUICK_STEPS = [
+  ['ideation', '아이데이션'],
+  ['script', '스크립트'],
+  ['image', '이미지'],
+  ['voice', '음성'],
+  ['video', '영상'],
+  ['review', '렌더'],
+  ['upload', '업로드'],
+] as const;
+
 type Props = {
   job: AdminJob;
-  selectedJobId: string;
-  onSelectJob: (jobId: string) => void;
   isUploading: boolean;
   onUpload: (jobId: string) => void;
 };
 
-export function ContentJobCard({ job, selectedJobId, onSelectJob, isUploading, onUpload }: Props) {
+export function ContentJobCard({ job, isUploading, onUpload }: Props) {
   return (
-    <div
-      className={`w-full rounded-lg border p-4 ${
-        selectedJobId === job.jobId ? 'border-primary bg-primary/5' : ''
-      }`}
-    >
+    <div className="w-full rounded-lg border border-border p-4">
       <div className="flex flex-wrap items-start justify-between gap-4">
-        <div className="space-y-2">
+        <div className="min-w-0 flex-1 space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <Badge variant="outline">{job.status}</Badge>
             {job.contentType ? <Badge variant="secondary">{job.contentType}</Badge> : null}
@@ -51,28 +63,22 @@ export function ContentJobCard({ job, selectedJobId, onSelectJob, isUploading, o
         </div>
       </div>
 
-      <div className="mt-4 flex flex-wrap gap-2">
-        <Button
-          size="sm"
-          variant={selectedJobId === job.jobId ? 'default' : 'outline'}
-          onClick={() => onSelectJob(job.jobId)}
-        >
-          {selectedJobId === job.jobId ? 'Selected' : 'Select'}
-        </Button>
-        <span className="rounded-md bg-muted px-2 py-1 text-xs">script</span>
-        <span className="rounded-md bg-muted px-2 py-1 text-xs">image</span>
-        <span className="rounded-md bg-muted px-2 py-1 text-xs">video</span>
-        <span className="rounded-md bg-muted px-2 py-1 text-xs">upload</span>
-        <Link className="text-sm text-primary hover:underline" href={`/jobs/${job.jobId}`}>
-          Open content detail
+      <div className="mt-4 flex flex-wrap items-center gap-2">
+        <Link href={`/jobs/${job.jobId}/ideation`} className={detailLinkClass}>
+          콘텐츠 상세
         </Link>
+        {CARD_QUICK_STEPS.map(([step, label]) => (
+          <Link key={step} className={stepLinkClass} href={`/jobs/${job.jobId}/${step}`}>
+            {label}
+          </Link>
+        ))}
         <Button
           size="sm"
           variant="outline"
           disabled={isUploading}
           onClick={() => onUpload(job.jobId)}
         >
-          {isUploading ? 'Uploading...' : 'Upload'}
+          {isUploading ? '업로드 중...' : '업로드'}
         </Button>
       </div>
     </div>

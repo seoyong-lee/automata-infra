@@ -6,65 +6,107 @@ import { getErrorMessage } from '@packages/utils';
 
 import { JobDraftDetail } from '../model';
 
+type AssetStage = 'image' | 'voice' | 'video';
+
 type ContentJobDetailAssetsViewProps = {
   detail?: JobDraftDetail;
   error: unknown;
-  readyAssetCount: number;
   isRunning: boolean;
   onRun: () => void;
+  stage: AssetStage;
+};
+
+const stageMeta: Record<
+  AssetStage,
+  {
+    title: string;
+    actionLabel: string;
+    itemLabel: string;
+    readyVerb: string;
+  }
+> = {
+  image: {
+    title: '이미지 생성',
+    actionLabel: '이미지 생성 실행',
+    itemLabel: '이미지',
+    readyVerb: '준비됨',
+  },
+  voice: {
+    title: '음성 생성',
+    actionLabel: '음성 생성 실행',
+    itemLabel: '음성',
+    readyVerb: '준비됨',
+  },
+  video: {
+    title: '영상 생성',
+    actionLabel: '영상 생성 실행',
+    itemLabel: '영상',
+    readyVerb: '준비됨',
+  },
+};
+
+const hasStageAsset = (
+  detailAsset: NonNullable<JobDraftDetail['assets']>[number],
+  stage: AssetStage,
+) => {
+  if (stage === 'image') {
+    return Boolean(detailAsset.imageS3Key);
+  }
+
+  if (stage === 'voice') {
+    return Boolean(detailAsset.voiceS3Key);
+  }
+
+  return Boolean(detailAsset.videoClipS3Key);
 };
 
 export function ContentJobDetailAssetsView({
   detail,
   error,
-  readyAssetCount,
   isRunning,
   onRun,
+  stage,
 }: ContentJobDetailAssetsViewProps) {
+  const meta = stageMeta[stage];
+  const assets = detail?.assets ?? [];
+  const readyCount = assets.filter((asset) => hasStageAsset(asset, stage)).length;
+
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Assets</CardTitle>
+        <CardTitle>{meta.title}</CardTitle>
+        <p className="text-sm text-muted-foreground">
+          씬 {readyCount}/{assets.length} · {meta.itemLabel} {meta.readyVerb}
+        </p>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="grid gap-3 md:grid-cols-3">
-          <div className="rounded-lg border p-3 text-sm">
-            <p className="font-medium">Asset Coverage</p>
-            <p className="mt-1 text-muted-foreground">
-              {readyAssetCount}/{detail?.assets.length ?? 0} scenes have at least one generated
-              asset
-            </p>
-          </div>
-          <div className="rounded-lg border p-3 text-sm">
-            <p className="font-medium">Render Path</p>
-            <p className="mt-1 text-muted-foreground">
-              scene package {'->'} asset validation {'->'} renderer {'->'} review/publish
-            </p>
-          </div>
-          <div className="rounded-lg border p-3 text-sm">
-            <p className="font-medium">Fallback Strategy</p>
-            <p className="mt-1 text-muted-foreground">
-              video fail {'->'} image fallback / TTS fail {'->'} alternate provider
-            </p>
-          </div>
-        </div>
-        <div className="grid gap-3 md:grid-cols-3">
-          {(detail?.assets ?? []).map((asset) => (
-            <div key={asset.sceneId} className="rounded-lg border p-3 text-sm">
-              <p className="font-medium">Scene {asset.sceneId}</p>
-              <p className="mt-1 text-muted-foreground">
-                image {asset.imageS3Key ? 'ready' : 'pending'} / video{' '}
-                {asset.videoClipS3Key ? 'ready' : 'pending'} / voice{' '}
-                {asset.voiceS3Key ? 'ready' : 'pending'}
-              </p>
-            </div>
-          ))}
-        </div>
         <div className="flex flex-wrap gap-2">
           <Button disabled={isRunning} onClick={onRun}>
-            {isRunning ? 'Generating...' : 'Run Asset Generation'}
+            {isRunning ? '생성 중...' : meta.actionLabel}
           </Button>
         </div>
+        {assets.length === 0 ? (
+          <p className="text-sm text-muted-foreground">
+            아직 scene이 없습니다. 먼저 스크립트 및 JSON 단계를 완료해 주세요.
+          </p>
+        ) : (
+          <ul className="divide-y divide-border rounded-md border border-border">
+            {assets.map((asset) => {
+              const ready = hasStageAsset(asset, stage);
+              return (
+                <li
+                  key={asset.sceneId}
+                  className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                >
+                  <span className="font-medium">Scene {asset.sceneId}</span>
+                  <span className={ready ? 'text-foreground' : 'text-muted-foreground'}>
+                    {ready ? meta.readyVerb : '대기'}
+                  </span>
+                </li>
+              );
+            })}
+          </ul>
+        )}
         {error ? <p className="text-sm text-destructive">{getErrorMessage(error)}</p> : null}
       </CardContent>
     </Card>
