@@ -6,7 +6,7 @@ import { logout } from "@packages/auth";
 import { Button } from "@packages/ui/button";
 import { cn } from "@packages/ui";
 import type { ComponentType, ReactNode } from "react";
-import { Settings, Cog, FolderKanban, LayoutDashboard } from "lucide-react";
+import { Settings, Cog, LayoutDashboard, FilePlay, Route } from "lucide-react";
 
 type NavSection = {
   title: string;
@@ -24,7 +24,10 @@ const navSections: NavSection[] = [
   },
   {
     title: "Content",
-    items: [{ title: "Content Manager", href: "/jobs", icon: FolderKanban }],
+    items: [
+      { title: "콘텐츠 관리", href: "/jobs", icon: FilePlay },
+      { title: "작업 관리", href: "/reviews", icon: Route },
+    ],
   },
   {
     title: "Global",
@@ -37,8 +40,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
 
   return (
     <main className="flex min-h-screen w-full bg-background">
-      <aside className="hidden w-72 shrink-0 border-r bg-sidebar text-sidebar-foreground lg:flex">
-        <div className="flex w-full flex-col">
+      <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden border-r bg-sidebar text-sidebar-foreground lg:flex">
+        <div className="flex h-full w-full flex-col">
           <div className="border-b px-4 py-4">
             <Link href="/" className="flex items-center gap-3 rounded-md p-2">
               <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
@@ -49,7 +52,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   Automata Studio
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  Global + Content Ops
+                  Admin Console
                 </p>
               </div>
             </Link>

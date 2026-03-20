@@ -1,0 +1,42 @@
+---
+description: Enforce this repo's FSD layer, public API, and import-order rules
+globs: apps/*/src/**/*
+alwaysApply: false
+---
+
+# FSD Convention
+
+- FSD layers in this repo are `app -> _pages -> widgets -> features -> entities -> shared`. Treat `_pages` as the `pages` layer.
+- Keep layer direction strict: same layer or lower layer imports only. Never import upward.
+- Cross-slice imports must use the slice public API such as `@/widgets/foo` or `@/entities/bar`, not deep internal paths.
+- Same-slice segment imports may use relative paths such as `../model`, `../ui`, `../lib`, `./config`.
+- Absolute deep imports are allowed only for `shared` segments like `@/shared/api/...`, `@/shared/lib/...`, `@/shared/ui/...`.
+- Workspace package imports via `@packages/*` are allowed.
+- If another slice lacks a usable public API, add or update its `index.ts` instead of importing internals directly.
+- Keep responsibilities aligned:
+  - `app`: route entry, providers, top-level composition only
+  - `_pages`: screen-level composition
+  - `widgets`: large independent UI blocks
+  - `features`: user actions and scenarios
+  - `entities`: domain entities, adapters, state
+  - `shared`: generic, domain-agnostic utilities and UI
+- Do not move domain logic into `shared` just because multiple slices reuse it.
+- Keep `app` files thin. Prefer composing `_pages`, `widgets`, and `features` over implementing business logic directly in route files.
+- Preserve import order as `builtin -> external -> internal(app -> _pages -> widgets -> features -> entities -> shared) -> parent -> sibling -> index`.
+- Treat FSD lint failures as architecture issues to fix, not rules to bypass.
+
+```ts
+// bad
+import { usePaymentConfirm } from "@/features/payment-confirm/model/usePaymentConfirm";
+
+// good
+import { usePaymentConfirm } from "@/features/payment-confirm";
+```
+
+```ts
+// bad
+import { useCharactersListModel } from "@/widgets/characters-list/model/useCharactersListModel";
+
+// good
+import { CharactersList } from "@/widgets/characters-list";
+```
