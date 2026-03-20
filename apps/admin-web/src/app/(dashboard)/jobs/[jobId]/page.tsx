@@ -45,6 +45,28 @@ const toSeedForm = (input?: {
   };
 };
 
+const buildExperimentScore = (input: {
+  status?: string;
+  sceneCount: number;
+  assetReadyCount: number;
+  autoPublish?: boolean | null;
+}) => {
+  const base =
+    input.status === "UPLOADED"
+      ? 92
+      : input.status === "RENDERED"
+        ? 80
+        : input.status === "ASSETS_READY"
+          ? 72
+          : input.status === "SCENE_JSON_READY"
+            ? 61
+            : 45;
+  const coverageBonus =
+    input.sceneCount > 0 ? Math.min(6, input.assetReadyCount * 2) : 0;
+  const publishBonus = input.autoPublish ? 3 : 0;
+  return base + coverageBonus + publishBonus;
+};
+
 export default function JobDetailPage() {
   const queryClient = useQueryClient();
   const params = useParams<{ jobId: string }>();
@@ -105,6 +127,84 @@ export default function JobDetailPage() {
     () => detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0,
     [detail?.assets.length, detail?.sceneJson?.scenes.length],
   );
+  const readyAssetCount = useMemo(() => {
+    return (detail?.assets ?? []).filter(
+      (asset) => asset.imageS3Key || asset.videoClipS3Key || asset.voiceS3Key,
+    ).length;
+  }, [detail?.assets]);
+  const experimentOptions = useMemo(() => {
+    return [
+      {
+        title: "Scene Package",
+        value: "structured scene JSON",
+        note: "renderer-independent timeline source of truth",
+      },
+      {
+        title: "Layout Preset",
+        value:
+          detail?.job.contentType === "daily-total"
+            ? "headline-top"
+            : detail?.job.contentType === "tarot-daily"
+              ? "fact-card"
+              : "caption-heavy",
+        note: "template candidate for next rerender",
+      },
+      {
+        title: "Renderer Track",
+        value:
+          detail?.job.status === "RENDERED" || detail?.job.status === "UPLOADED"
+            ? "ShotstackRenderer MVP"
+            : "renderer abstraction ready",
+        note: "FFmpeg/Fargate swap should stay behind same scene package",
+      },
+      {
+        title: "Asset Strategy",
+        value: readyAssetCount > 0 ? "asset-first orchestration" : "awaiting assets",
+        note: "image / video / voice generated before final composition",
+      },
+    ];
+  }, [detail?.job.contentType, detail?.job.status, readyAssetCount]);
+  const compareRows = useMemo(() => {
+    const score = buildExperimentScore({
+      status: detail?.job.status,
+      sceneCount,
+      assetReadyCount: readyAssetCount,
+      autoPublish: detail?.job.autoPublish,
+    });
+    return [
+      {
+        label: contentBrief?.variant ?? detail?.job.variant ?? "current",
+        focus: "balanced current",
+        hook: "current hook",
+        renderer:
+          detail?.job.status === "RENDERED" || detail?.job.status === "UPLOADED"
+            ? "shotstack"
+            : "scene-only",
+        score,
+      },
+      {
+        label: "hook-boost",
+        focus: "stronger headline / caption opening",
+        hook: "more aggressive hook",
+        renderer: "same renderer",
+        score: Math.max(0, score - 4),
+      },
+      {
+        label: "visual-fallback",
+        focus: "image-first fallback / lighter assets",
+        hook: "same hook",
+        renderer: "shotstack -> ffmpeg spike",
+        score: Math.max(0, score - 8),
+      },
+    ];
+  }, [
+    contentBrief?.variant,
+    detail?.job.autoPublish,
+    detail?.job.status,
+    detail?.job.variant,
+    readyAssetCount,
+    sceneCount,
+  ]);
 
   return (
     <div className="space-y-6">
@@ -196,6 +296,21 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
+          <CardTitle>Production Option Tracks</CardTitle>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          {experimentOptions.map((item) => (
+            <div key={item.title} className="rounded-lg border p-4 text-sm">
+              <p className="text-xs text-muted-foreground">{item.title}</p>
+              <p className="mt-1 font-medium">{item.value}</p>
+              <p className="mt-2 text-xs text-muted-foreground">{item.note}</p>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
           <CardTitle>Script Planning</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -280,20 +395,17 @@ export default function JobDetailPage() {
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-3 md:grid-cols-3">
-            <div className="rounded-lg border p-3 text-sm">
-              <p className="font-medium">Variant A</p>
-              <p className="mt-1 text-muted-foreground">
-                current selected version
-              </p>
-            </div>
-            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Variant B</p>
-              <p className="mt-1">hook stronger, CTA softer</p>
-            </div>
-            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
-              <p className="font-medium text-foreground">Variant C</p>
-              <p className="mt-1">visual-first scene layout</p>
-            </div>
+            {compareRows.map((row) => (
+              <div key={row.label} className="rounded-lg border p-3 text-sm">
+                <p className="font-medium">{row.label}</p>
+                <p className="mt-1 text-muted-foreground">{row.focus}</p>
+                <div className="mt-3 space-y-1 text-xs text-muted-foreground">
+                  <p>Hook: {row.hook}</p>
+                  <p>Renderer: {row.renderer}</p>
+                  <p>Score: {row.score}</p>
+                </div>
+              </div>
+            ))}
           </div>
           <div className="flex flex-wrap gap-2">
             <Button
@@ -343,6 +455,27 @@ export default function JobDetailPage() {
           <CardTitle>Image / Video / Upload</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border p-3 text-sm">
+              <p className="font-medium">Asset Coverage</p>
+              <p className="mt-1 text-muted-foreground">
+                {readyAssetCount}/{detail?.assets.length ?? 0} scenes have at least one
+                generated asset
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 text-sm">
+              <p className="font-medium">Render Path</p>
+              <p className="mt-1 text-muted-foreground">
+                scene package {"->"} asset validation {"->"} renderer {"->"} review/publish
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 text-sm">
+              <p className="font-medium">Fallback Strategy</p>
+              <p className="mt-1 text-muted-foreground">
+                video fail {"->"} image fallback / TTS fail {"->"} alternate provider
+              </p>
+            </div>
+          </div>
           <div className="grid gap-3 md:grid-cols-3">
             {(detail?.assets ?? []).slice(0, 3).map((asset) => (
               <div

@@ -104,6 +104,29 @@ export default function DashboardPage() {
   }, [jobs, pendingReviews.length]);
 
   const recentJobs = useMemo(() => jobs.slice(0, 8), [jobs]);
+  const experimentLanes = useMemo(() => {
+    return [
+      {
+        title: "Scene JSON Standard",
+        note: "topic -> structured script -> scene package",
+        items: ["headline-top", "fact-card", "caption-heavy"],
+      },
+      {
+        title: "Renderer Abstraction",
+        note: "Shotstack MVP now, FFmpeg/Fargate later",
+        items: [
+          "ShotstackRenderer",
+          "FfmpegRenderer",
+          "shared render(service)",
+        ],
+      },
+      {
+        title: "Asset Generation",
+        note: "image / video / audio generated before composition",
+        items: ["video-first", "image fallback", "tts retry"],
+      },
+    ];
+  }, []);
 
   return (
     <div className="space-y-6">
@@ -255,6 +278,34 @@ export default function DashboardPage() {
           </CardContent>
         </Card>
       </div>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Experiment Program</CardTitle>
+          <CardDescription>
+            콘텐츠 밖 글로벌 대시보드에서는 어떤 옵션 축을 개발 중인지와 비교
+            방향을 통합해서 봅니다.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="grid gap-4 md:grid-cols-3">
+          {experimentLanes.map((lane) => (
+            <div key={lane.title} className="rounded-lg border p-4">
+              <p className="font-medium">{lane.title}</p>
+              <p className="mt-1 text-sm text-muted-foreground">{lane.note}</p>
+              <div className="mt-3 flex flex-wrap gap-2">
+                {lane.items.map((item) => (
+                  <span
+                    key={item}
+                    className="rounded-md bg-muted px-2 py-1 text-xs"
+                  >
+                    {item}
+                  </span>
+                ))}
+              </div>
+            </div>
+          ))}
+        </CardContent>
+      </Card>
 
       <Card>
         <CardHeader>

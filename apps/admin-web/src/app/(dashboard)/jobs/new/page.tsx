@@ -1,6 +1,6 @@
 "use client";
 
-import { ChangeEvent, useEffect, useState } from "react";
+import { ChangeEvent, Suspense, useEffect, useState } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { useCreateDraftJobMutation } from "@packages/graphql";
 import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
@@ -20,7 +20,7 @@ type DraftForm = {
   publishAt: string;
 };
 
-export default function NewJobPage() {
+function NewJobPageContent() {
   const router = useRouter();
   const searchParams = useSearchParams();
   const [form, setForm] = useState<DraftForm>({
@@ -161,5 +161,28 @@ export default function NewJobPage() {
         </CardContent>
       </Card>
     </div>
+  );
+}
+
+export default function NewJobPage() {
+  return (
+    <Suspense
+      fallback={
+        <div className="space-y-6">
+          <Card>
+            <CardHeader>
+              <CardTitle>Create Content Job</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <p className="text-sm text-muted-foreground">
+                Loading content form...
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+      }
+    >
+      <NewJobPageContent />
+    </Suspense>
   );
 }
