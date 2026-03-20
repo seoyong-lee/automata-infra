@@ -30,9 +30,13 @@ export default function ReviewsPage() {
   return (
     <Card>
       <CardHeader>
-        <CardTitle>Pending Reviews</CardTitle>
+        <CardTitle>Review Queue</CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
+        <p className="text-sm text-muted-foreground">
+          영상 전체 승인보다 scene 단위 문제를 빨리 찾고, 필요한 부분만 다시
+          생성하는 검수 큐입니다.
+        </p>
         {pending.isLoading ? (
           <p className="text-sm text-muted-foreground">Loading...</p>
         ) : null}
@@ -49,6 +53,21 @@ export default function ReviewsPage() {
             <div className="flex flex-wrap items-center gap-3">
               <strong className="font-mono text-xs">{item.jobId}</strong>
               <Badge variant="outline">{item.status}</Badge>
+              <Badge variant="secondary">Preview ready</Badge>
+            </div>
+            <div className="grid gap-3 text-sm md:grid-cols-2">
+              <div className="rounded-md bg-muted/50 p-3">
+                <p className="font-medium">Warnings</p>
+                <p className="mt-1 text-muted-foreground">
+                  scene 3 visual check, CTA tone review, subtitle timing review
+                </p>
+              </div>
+              <div className="rounded-md bg-muted/50 p-3">
+                <p className="font-medium">Quick Summary</p>
+                <p className="mt-1 text-muted-foreground">
+                  preview compare, scene timeline, subtitle overlay toggle
+                </p>
+              </div>
             </div>
             <div className="flex flex-wrap gap-2">
               <Button
@@ -61,6 +80,12 @@ export default function ReviewsPage() {
                 }
               >
                 Approve
+              </Button>
+              <Button size="sm" variant="secondary">
+                Regenerate Scene 3
+              </Button>
+              <Button size="sm" variant="secondary">
+                Regenerate TTS
               </Button>
               <Button
                 size="sm"
@@ -76,7 +101,7 @@ export default function ReviewsPage() {
               </Button>
               <Button
                 size="sm"
-                variant="secondary"
+                variant="outline"
                 onClick={() =>
                   requestUpload.mutate({
                     jobId: item.jobId,

@@ -34,6 +34,10 @@ type AdminJob {
   channelId: String!
   topicId: String!
   status: JobStatus!
+  contentType: String
+  variant: String
+  autoPublish: Boolean
+  publishAt: AWSDateTime
   language: String!
   targetDurationSec: Int!
   videoTitle: String!
@@ -49,8 +53,42 @@ type AdminJob {
   reviewRequestedAt: AWSDateTime
   uploadStatus: UploadStatus
   uploadVideoId: String
+  contentBriefS3Key: String
   topicSeedS3Key: String
   topicS3Key: String
+}
+
+type ContentBriefSeed {
+  date: AWSDate!
+  fortuneType: String!
+  audience: String!
+  style: String!
+  tone: String!
+  topicKey: String!
+}
+
+type ContentBriefConstraints {
+  maxScenes: Int!
+  mustHaveHook: Boolean!
+  mustHaveCTA: Boolean!
+  safetyLevel: String!
+  noMedicalOrLegalClaims: Boolean!
+}
+
+type ContentBrief {
+  jobId: ID!
+  contentType: String!
+  variant: String!
+  channelId: String!
+  language: String!
+  targetPlatform: String!
+  targetDurationSec: Int!
+  titleIdea: String!
+  stylePreset: String!
+  autoPublish: Boolean
+  publishAt: AWSDateTime
+  seed: ContentBriefSeed!
+  constraints: ContentBriefConstraints!
 }
 
 type TopicSeed {
@@ -93,6 +131,7 @@ type SceneAsset {
 
 type JobDraftDetail {
   job: AdminJob!
+  contentBrief: ContentBrief
   topicSeed: TopicSeed
   topicPlan: TopicSeed
   sceneJson: SceneJsonPayload
@@ -174,9 +213,13 @@ input UpdateLlmStepSettingsInput {
 input CreateDraftJobInput {
   channelId: String!
   targetLanguage: String!
+  contentType: String!
+  variant: String!
   titleIdea: String!
   targetDurationSec: Int!
   stylePreset: String!
+  autoPublish: Boolean
+  publishAt: AWSDateTime
 }
 
 input UpdateTopicSeedInput {

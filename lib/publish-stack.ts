@@ -64,6 +64,12 @@ export class PublishStack extends Stack {
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
+      YOUTUBE_SECRETS_JSON: JSON.stringify(
+        props.envConfig.youtubeSecrets ?? {},
+      ),
+      CHANNEL_CONFIGS_JSON: JSON.stringify(
+        props.envConfig.channelConfigs ?? {},
+      ),
     };
 
     const reviewHandler = createLambda(
@@ -225,6 +231,12 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(metricsCollector);
     props.reviewQueue.grantConsumeMessages(reviewHandler);
     props.stateMachine.grantTaskResponse(reviewHandler);
+    uploadHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
     props.jobsTable.grantReadData(listJobsResolver);
     props.jobsTable.grantReadData(getJobResolver);
     props.jobsTable.grantReadData(pendingReviewsResolver);

@@ -14,9 +14,13 @@ export const mapTopicPlanJobMeta = (result: TopicPlanResult): JobMetaItem => {
     SK: "META",
     jobId: result.jobId,
     channelId: result.channelId,
+    contentType: result.contentType,
+    variant: result.variant,
     topicId: result.topicId,
     topicHash,
     status: "PLANNED",
+    autoPublish: result.autoPublish,
+    publishAt: result.publishAt,
     language: result.targetLanguage,
     targetDurationSec: result.targetDurationSec,
     videoTitle: result.titleIdea,
@@ -33,5 +37,9 @@ export const mapTopicPlanJobMeta = (result: TopicPlanResult): JobMetaItem => {
     GSI2SK: `${result.createdAt}#JOB#${result.jobId}`,
     GSI3PK: `TOPIC#${topicHash}`,
     GSI3SK: `${result.createdAt}#JOB#${result.jobId}`,
+    GSI4PK: result.contentType ? `CONTENT#${result.contentType}` : undefined,
+    GSI4SK: result.contentType
+      ? `${result.createdAt}#JOB#${result.jobId}`
+      : undefined,
   };
 };

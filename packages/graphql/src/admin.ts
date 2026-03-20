@@ -31,6 +31,10 @@ export type AdminJob = {
   reviewAction?: "PENDING" | "APPROVE" | "REJECT" | "REGENERATE" | null;
   channelId: string;
   topicId: string;
+  contentType?: string | null;
+  variant?: string | null;
+  autoPublish?: boolean | null;
+  publishAt?: string | null;
   language: string;
   targetDurationSec: number;
   retryCount: number;
@@ -44,6 +48,7 @@ export type AdminJob = {
   reviewRequestedAt?: string | null;
   uploadStatus?: string | null;
   uploadVideoId?: string | null;
+  contentBriefS3Key?: string | null;
   topicSeedS3Key?: string | null;
   topicS3Key?: string | null;
   updatedAt: string;
@@ -64,6 +69,35 @@ export type TopicSeed = {
   titleIdea: string;
   targetDurationSec: number;
   stylePreset: string;
+};
+
+export type ContentBrief = {
+  jobId: string;
+  contentType: string;
+  variant: string;
+  channelId: string;
+  language: string;
+  targetPlatform: string;
+  targetDurationSec: number;
+  titleIdea: string;
+  stylePreset: string;
+  autoPublish?: boolean | null;
+  publishAt?: string | null;
+  seed: {
+    date: string;
+    fortuneType: string;
+    audience: string;
+    style: string;
+    tone: string;
+    topicKey: string;
+  };
+  constraints: {
+    maxScenes: number;
+    mustHaveHook: boolean;
+    mustHaveCTA: boolean;
+    safetyLevel: "default" | "strict" | "relaxed";
+    noMedicalOrLegalClaims: boolean;
+  };
 };
 
 export type SceneJsonScene = {
@@ -98,6 +132,7 @@ export type SceneAsset = {
 
 export type JobDraftDetail = {
   job: AdminJob;
+  contentBrief?: ContentBrief | null;
   topicSeed?: TopicSeed | null;
   topicPlan?: TopicSeed | null;
   sceneJson?: SceneJsonPayload | null;
@@ -131,7 +166,13 @@ const adminJobsQuery = `
         status
         reviewAction
         channelId
+        contentType
+        variant
+        autoPublish
+        publishAt
         videoTitle
+        targetDurationSec
+        retryCount
         updatedAt
       }
       nextToken
@@ -182,6 +223,10 @@ const jobDraftQuery = `
         reviewAction
         channelId
         topicId
+        contentType
+        variant
+        autoPublish
+        publishAt
         language
         targetDurationSec
         retryCount
@@ -196,8 +241,37 @@ const jobDraftQuery = `
         reviewRequestedAt
         uploadStatus
         uploadVideoId
+        contentBriefS3Key
         topicSeedS3Key
         topicS3Key
+      }
+      contentBrief {
+        jobId
+        contentType
+        variant
+        channelId
+        language
+        targetPlatform
+        targetDurationSec
+        titleIdea
+        stylePreset
+        autoPublish
+        publishAt
+        seed {
+          date
+          fortuneType
+          audience
+          style
+          tone
+          topicKey
+        }
+        constraints {
+          maxScenes
+          mustHaveHook
+          mustHaveCTA
+          safetyLevel
+          noMedicalOrLegalClaims
+        }
       }
       topicSeed {
         channelId
@@ -291,12 +365,17 @@ const createDraftJobMutation = `
       status
       channelId
       topicId
+      contentType
+      variant
+      autoPublish
+      publishAt
       language
       targetDurationSec
       retryCount
       createdAt
       updatedAt
       videoTitle
+      contentBriefS3Key
       topicSeedS3Key
       topicS3Key
     }
@@ -618,7 +697,16 @@ export const useUpdateLlmStepSettingsMutation = (
 };
 
 export const useCreateDraftJobMutation = (
-  options?: UseMutationOptions<{ createDraftJob: AdminJob }, Error, TopicSeed>,
+  options?: UseMutationOptions<
+    { createDraftJob: AdminJob },
+    Error,
+    TopicSeed & {
+      contentType: string;
+      variant: string;
+      autoPublish?: boolean;
+      publishAt?: string;
+    }
+  >,
 ) => {
   return useMutation({
     mutationFn: async (input) => {

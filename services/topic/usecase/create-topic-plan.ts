@@ -13,10 +13,14 @@ export type TopicPlanResult = {
   jobId: string;
   topicId: string;
   channelId: string;
+  contentType?: string;
+  variant?: string;
   targetLanguage: string;
   targetDurationSec: number;
   titleIdea: string;
   stylePreset: string;
+  autoPublish?: boolean;
+  publishAt?: string;
   status: string;
   topicS3Key: string;
   createdAt: string;
@@ -31,9 +35,13 @@ type TopicPlanSeed = {
 type TopicSeedOverrides = {
   channelId?: string;
   targetLanguage?: string;
+  contentType?: string;
+  variant?: string;
   titleIdea?: string;
   targetDurationSec?: number;
   stylePreset?: string;
+  autoPublish?: boolean;
+  publishAt?: string;
 };
 
 const validateTopicPlanSeed = (payload: unknown): TopicPlanSeed => {
@@ -65,8 +73,27 @@ type CreateTopicPlanDeps = {
   topicSeed?: TopicSeedOverrides;
 };
 
-const resolveJobId = (createdAt: string, jobId?: string): string => {
-  return jobId ?? `job_${createdAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
+const normalizeSlug = (value: string): string => {
+  const normalized = value
+    .trim()
+    .toLowerCase()
+    .replace(/[^a-z0-9]+/g, "-")
+    .replace(/^-+|-+$/g, "");
+  return normalized || "item";
+};
+
+const resolveJobId = (
+  createdAt: string,
+  jobId?: string,
+  topicSeed?: TopicSeedOverrides,
+): string => {
+  if (jobId) {
+    return jobId;
+  }
+  if (topicSeed?.contentType && topicSeed.variant) {
+    return `job_${createdAt.slice(0, 10).replace(/-/g, "")}_${normalizeSlug(topicSeed.contentType)}_${normalizeSlug(topicSeed.variant)}`;
+  }
+  return `job_${createdAt.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
 };
 
 const resolveTopicContext = (deps: CreateTopicPlanDeps) => {
@@ -114,11 +141,38 @@ const generateSeed = async (input: {
   return generated.output;
 };
 
+const buildTopicPlanResult = (input: {
+  jobId: string;
+  createdAt: string;
+  channelId: string;
+  targetLanguage: string;
+  topicSeed?: TopicSeedOverrides;
+  seed: TopicPlanSeed;
+}): TopicPlanResult => {
+  return {
+    jobId: input.jobId,
+    topicId: `topic_${input.jobId}`,
+    channelId: input.channelId,
+    contentType: input.topicSeed?.contentType,
+    variant: input.topicSeed?.variant,
+    targetLanguage: input.targetLanguage,
+    targetDurationSec:
+      input.topicSeed?.targetDurationSec ?? input.seed.targetDurationSec,
+    titleIdea: input.topicSeed?.titleIdea ?? input.seed.titleIdea,
+    stylePreset: input.topicSeed?.stylePreset ?? input.seed.stylePreset,
+    autoPublish: input.topicSeed?.autoPublish,
+    publishAt: input.topicSeed?.publishAt,
+    status: "PLANNED",
+    topicS3Key: `topics/${input.jobId}/topic.json`,
+    createdAt: input.createdAt,
+  };
+};
+
 export const createTopicPlan = async (
   deps: CreateTopicPlanDeps = {},
 ): Promise<TopicPlanResult> => {
   const createdAt = (deps.now ?? (() => new Date().toISOString()))();
-  const jobId = resolveJobId(createdAt, deps.jobId);
+  const jobId = resolveJobId(createdAt, deps.jobId, deps.topicSeed);
   const { channelId, targetLanguage } = resolveTopicContext(deps);
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
@@ -131,17 +185,12 @@ export const createTopicPlan = async (
         targetLanguage,
       });
 
-  return {
+  return buildTopicPlanResult({
     jobId,
-    topicId: `topic_${jobId}`,
+    createdAt,
     channelId,
     targetLanguage,
-    targetDurationSec:
-      deps.topicSeed?.targetDurationSec ?? seed.targetDurationSec,
-    titleIdea: deps.topicSeed?.titleIdea ?? seed.titleIdea,
-    stylePreset: deps.topicSeed?.stylePreset ?? seed.stylePreset,
-    status: "PLANNED",
-    topicS3Key: `topics/${jobId}/topic.json`,
-    createdAt,
-  };
+    topicSeed: deps.topicSeed,
+    seed,
+  });
 };

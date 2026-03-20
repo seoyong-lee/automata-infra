@@ -16,6 +16,18 @@ export type VideoFactoryEnvConfig = {
   elevenLabsSecretId: string;
   shotstackSecretId: string;
   googleOAuthSecretId?: string;
+  youtubeSecrets?: Record<string, string>;
+  channelConfigs?: Record<
+    string,
+    {
+      youtubeSecretName?: string;
+      youtubeAccountType?: string;
+      autoPublishEnabled?: boolean;
+      defaultVisibility?: "private" | "unlisted" | "public";
+      defaultCategoryId?: number;
+      playlistId?: string;
+    }
+  >;
 };
 
 export type BaseStackProps = {

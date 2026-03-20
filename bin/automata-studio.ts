@@ -65,6 +65,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.shotstackSecretId ?? `${projectPrefix}/shotstack`,
   googleOAuthSecretId:
     envConfig.googleOAuthSecretId ?? `${projectPrefix}/google-oauth-admin`,
+  youtubeSecrets: envConfig.youtubeSecrets ?? {},
+  channelConfigs: envConfig.channelConfigs ?? {},
 };
 
 const sharedStack = new SharedStack(app, `${projectPrefix}-shared`, {

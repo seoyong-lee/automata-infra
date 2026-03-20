@@ -2,6 +2,8 @@ export const mapUploadResult = (input: {
   jobId: string;
   uploadedAt: string;
   youtubeVideoId: string;
+  visibility: string;
+  publishAt?: string;
 }) => {
   return {
     jobId: input.jobId,
@@ -9,8 +11,9 @@ export const mapUploadResult = (input: {
     upload: {
       platform: "youtube",
       youtubeVideoId: input.youtubeVideoId,
-      visibility: "private",
+      visibility: input.visibility,
       uploadedAt: input.uploadedAt,
+      publishAt: input.publishAt,
     },
   };
 };

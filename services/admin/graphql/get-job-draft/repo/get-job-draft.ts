@@ -1,5 +1,6 @@
 import {
   getJobOrThrow,
+  getStoredContentBrief,
   getStoredSceneJson,
   getStoredTopicPlan,
   getStoredTopicSeed,
@@ -9,15 +10,18 @@ import { mapJobDraftDetail } from "../../shared/mapper/map-job-draft-detail";
 
 export const getJobDraft = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
-  const [topicSeed, topicPlan, sceneJson, assets] = await Promise.all([
-    getStoredTopicSeed(job),
-    getStoredTopicPlan(job),
-    getStoredSceneJson(job),
-    listStoredSceneAssets(jobId),
-  ]);
+  const [contentBrief, topicSeed, topicPlan, sceneJson, assets] =
+    await Promise.all([
+      getStoredContentBrief(job),
+      getStoredTopicSeed(job),
+      getStoredTopicPlan(job),
+      getStoredSceneJson(job),
+      listStoredSceneAssets(jobId),
+    ]);
 
   return mapJobDraftDetail({
     job,
+    contentBrief,
     topicSeed,
     topicPlan,
     sceneJson,

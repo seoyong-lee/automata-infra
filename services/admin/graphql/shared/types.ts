@@ -31,6 +31,10 @@ export type AdminJobDto = {
   channelId: string;
   topicId: string;
   status: JobStatus;
+  contentType?: string;
+  variant?: string;
+  autoPublish?: boolean;
+  publishAt?: string;
   language: string;
   targetDurationSec: number;
   videoTitle: string;
@@ -46,6 +50,7 @@ export type AdminJobDto = {
   reviewRequestedAt?: string;
   uploadStatus?: UploadStatus;
   uploadVideoId?: string;
+  contentBriefS3Key?: string;
   topicSeedS3Key?: string;
   topicS3Key?: string;
 };
@@ -81,6 +86,42 @@ export type TopicSeedDto = {
   stylePreset: string;
 };
 
+export type ContentBriefDto = {
+  jobId: string;
+  contentType: string;
+  variant: string;
+  channelId: string;
+  language: string;
+  targetPlatform: string;
+  targetDurationSec: number;
+  titleIdea: string;
+  stylePreset: string;
+  autoPublish?: boolean;
+  publishAt?: string;
+  seed: {
+    date: string;
+    fortuneType: string;
+    audience: string;
+    style: string;
+    tone: string;
+    topicKey: string;
+  };
+  constraints: {
+    maxScenes: number;
+    mustHaveHook: boolean;
+    mustHaveCTA: boolean;
+    safetyLevel: "default" | "strict" | "relaxed";
+    noMedicalOrLegalClaims: boolean;
+  };
+};
+
+export type CreateDraftJobInputDto = TopicSeedDto & {
+  contentType: string;
+  variant: string;
+  autoPublish?: boolean;
+  publishAt?: string;
+};
+
 export type SceneJsonSceneDto = {
   sceneId: number;
   durationSec: number;
@@ -113,6 +154,7 @@ export type SceneAssetDto = {
 
 export type JobDraftDetailDto = {
   job: AdminJobDto;
+  contentBrief?: ContentBriefDto;
   topicSeed?: TopicSeedDto;
   topicPlan?: TopicSeedDto;
   sceneJson?: SceneJsonDto;

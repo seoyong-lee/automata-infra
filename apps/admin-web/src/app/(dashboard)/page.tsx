@@ -1,6 +1,19 @@
 "use client";
 
+import Link from "next/link";
+import { useEffect, useMemo, useState, type ChangeEvent } from "react";
+import {
+  useAdminJobsQuery,
+  useCreateDraftJobMutation,
+  useJobDraftQuery,
+  useLlmSettingsQuery,
+  useRunAssetGenerationMutation,
+  useRunSceneJsonMutation,
+  useRunTopicPlanMutation,
+  useUpdateTopicSeedMutation,
+} from "@packages/graphql";
 import { Badge } from "@packages/ui/badge";
+import { Button } from "@packages/ui/button";
 import {
   Card,
   CardContent,
@@ -8,215 +21,476 @@ import {
   CardHeader,
   CardTitle,
 } from "@packages/ui/card";
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@packages/ui/table";
-import { useAdminJobsQuery, usePendingReviewsQuery } from "@packages/graphql";
+import { Input } from "@packages/ui/input";
 import { getErrorMessage } from "@packages/utils";
-import {
-  Activity,
-  CircleDollarSign,
-  Clock3,
-  ClipboardCheck,
-} from "lucide-react";
-import type { ComponentType } from "react";
+import { useQueryClient } from "@tanstack/react-query";
 
-type MetricCardProps = {
-  title: string;
-  value: string;
-  description: string;
-  icon: ComponentType<{ className?: string }>;
-  badge?: string;
+type WorkbenchForm = {
+  contentType: string;
+  channelId: string;
+  targetLanguage: string;
+  targetDurationSec: string;
+  titleIdea: string;
+  tone: string;
+  stylePreset: string;
+  hookStrength: string;
+  sceneCount: string;
+  visualPreset: string;
+  voicePreset: string;
+  promptVersion: string;
+  seed: string;
 };
 
-function MetricCard({
-  title,
-  value,
-  description,
-  icon: Icon,
-  badge,
-}: MetricCardProps) {
+const defaultForm: WorkbenchForm = {
+  contentType: "daily-saju-fortune",
+  channelId: "history-en",
+  targetLanguage: "en",
+  targetDurationSec: "35",
+  titleIdea: "",
+  tone: "calm_direct",
+  stylePreset: "dark_ambient_story",
+  hookStrength: "medium",
+  sceneCount: "5",
+  visualPreset: "mystic_ambient",
+  voicePreset: "narration-default",
+  promptVersion: "v1",
+  seed: "",
+};
+
+const buildVariantLabel = (index: number): string => {
   return (
-    <Card>
-      <CardHeader className="pb-2">
-        <div className="flex items-start justify-between gap-2">
-          <CardDescription>{title}</CardDescription>
-          <div className="flex items-center gap-2">
-            {badge ? (
-              <Badge variant="outline" className="rounded-full">
-                {badge}
-              </Badge>
-            ) : null}
-            <Icon className="size-4 text-muted-foreground" />
-          </div>
-        </div>
-      </CardHeader>
-      <CardContent>
-        <CardTitle className="text-2xl font-semibold tabular-nums">
-          {value}
-        </CardTitle>
-        <p className="mt-1 text-sm text-muted-foreground">{description}</p>
-      </CardContent>
-    </Card>
+    ["Variant A", "Variant B", "Variant C"][index] ?? `Variant ${index + 1}`
   );
-}
+};
+
+const estimateCost = (sceneCount: number, status: string): string => {
+  const multiplier =
+    status === "ASSETS_READY"
+      ? 0.06
+      : status === "SCENE_JSON_READY"
+        ? 0.03
+        : 0.01;
+  return `$${(0.02 + sceneCount * multiplier).toFixed(2)}`;
+};
 
 export default function DashboardPage() {
-  const jobs = useAdminJobsQuery({ limit: 20 });
-  const pending = usePendingReviewsQuery({ limit: 10 });
-  const recentJobs = (jobs.data?.items ?? []).slice(0, 8);
-  const pendingReviews = pending.data?.items ?? [];
+  const queryClient = useQueryClient();
+  const jobs = useAdminJobsQuery({ limit: 12 });
+  const llmSettings = useLlmSettingsQuery();
+  const [form, setForm] = useState<WorkbenchForm>(defaultForm);
+  const variants = useMemo(
+    () => (jobs.data?.items ?? []).slice(0, 3),
+    [jobs.data],
+  );
+  const [selectedJobId, setSelectedJobId] = useState<string>("");
+  const selectedVariant =
+    variants.find((item) => item.jobId === selectedJobId) ??
+    variants[0] ??
+    null;
+  const selectedDetail = useJobDraftQuery(
+    { jobId: selectedVariant?.jobId ?? "" },
+    { enabled: Boolean(selectedVariant?.jobId) },
+  );
 
-  const inProgressCount = (jobs.data?.items ?? []).filter((job) =>
-    [
-      "PLANNED",
-      "SCENE_JSON_READY",
-      "ASSET_GENERATING",
-      "ASSETS_READY",
-    ].includes(job.status),
-  ).length;
+  useEffect(() => {
+    if (!selectedJobId && variants[0]?.jobId) {
+      setSelectedJobId(variants[0].jobId);
+    }
+  }, [selectedJobId, variants]);
+
+  const refresh = async (jobId?: string) => {
+    await queryClient.invalidateQueries({ queryKey: ["adminJobs"] });
+    if (jobId) {
+      await queryClient.invalidateQueries({ queryKey: ["jobDraft", jobId] });
+    }
+  };
+
+  const createDraft = useCreateDraftJobMutation({
+    onSuccess: async ({ createDraftJob }) => {
+      setSelectedJobId(createDraftJob.jobId);
+      await refresh(createDraftJob.jobId);
+    },
+  });
+  const updateSeed = useUpdateTopicSeedMutation({
+    onSuccess: async (_data, vars) => refresh(vars.jobId),
+  });
+  const runTopicPlan = useRunTopicPlanMutation({
+    onSuccess: async ({ runTopicPlan }) => refresh(runTopicPlan.jobId),
+  });
+  const runSceneJson = useRunSceneJsonMutation({
+    onSuccess: async ({ runSceneJson }) => refresh(runSceneJson.jobId),
+  });
+  const runAssetGeneration = useRunAssetGenerationMutation({
+    onSuccess: async ({ runAssetGeneration }) =>
+      refresh(runAssetGeneration.jobId),
+  });
+
+  const onInput =
+    (key: keyof WorkbenchForm) => (event: ChangeEvent<HTMLInputElement>) => {
+      setForm((current) => ({
+        ...current,
+        [key]: event.target.value,
+      }));
+    };
+
+  const persistSeed = async (): Promise<string | null> => {
+    const currentJobId = selectedVariant?.jobId;
+    if (!currentJobId) {
+      return null;
+    }
+    await updateSeed.mutateAsync({
+      jobId: currentJobId,
+      channelId: form.channelId,
+      targetLanguage: form.targetLanguage,
+      titleIdea: form.titleIdea,
+      targetDurationSec: Number(form.targetDurationSec),
+      stylePreset: form.stylePreset,
+    });
+    return currentJobId;
+  };
+
+  const generateBrief = async () => {
+    await createDraft.mutateAsync({
+      channelId: form.channelId,
+      targetLanguage: form.targetLanguage,
+      contentType: "dashboard-draft",
+      variant: "v1",
+      titleIdea: form.titleIdea,
+      targetDurationSec: Number(form.targetDurationSec),
+      stylePreset: form.stylePreset,
+      autoPublish: false,
+    });
+  };
+
+  const generateSceneJson = async () => {
+    const jobId = (await persistSeed()) ?? selectedVariant?.jobId;
+    if (!jobId) {
+      return;
+    }
+    await runTopicPlan.mutateAsync({ jobId });
+    await runSceneJson.mutateAsync({ jobId });
+  };
+
+  const generateFullPreview = async () => {
+    const jobId = (await persistSeed()) ?? selectedVariant?.jobId;
+    if (!jobId) {
+      return;
+    }
+    await runTopicPlan.mutateAsync({ jobId });
+    await runSceneJson.mutateAsync({ jobId });
+    await runAssetGeneration.mutateAsync({ jobId });
+  };
+
+  const inspector = selectedDetail.data;
 
   return (
     <div className="space-y-6">
-      <div className="grid grid-cols-1 gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <MetricCard
-          title="Total Jobs"
-          value={(jobs.data?.items.length ?? 0).toLocaleString()}
-          description="현재 조회 범위 내 전체 작업 수"
-          icon={Activity}
-        />
-        <MetricCard
-          title="Pending Reviews"
-          value={pendingReviews.length.toLocaleString()}
-          description="승인 또는 반려 대기 건"
-          icon={ClipboardCheck}
-          // badge="Action required"
-        />
-        <MetricCard
-          title="In Progress"
-          value={inProgressCount.toLocaleString()}
-          description="생성 파이프라인 진행 중"
-          icon={Clock3}
-        />
-        <MetricCard
-          title="Ready To Upload"
-          value={(jobs.data?.items ?? [])
-            .filter((job) => job.status === "APPROVED")
-            .length.toLocaleString()}
-          description="업로드 요청 가능 상태"
-          icon={CircleDollarSign}
-        />
-      </div>
+      <Card>
+        <CardHeader>
+          <CardTitle>Workbench</CardTitle>
+          <CardDescription>
+            아이디어를 빠르게 시안으로 바꾸고, 비교하고, 일부만 다시 생성하는
+            실험실입니다.
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-      <div className="grid grid-cols-1 gap-4 xl:grid-cols-2">
+      <div className="grid gap-6 xl:grid-cols-[1.05fr_1.1fr_0.85fr]">
         <Card>
           <CardHeader>
-            <CardTitle>Recent Jobs</CardTitle>
+            <CardTitle>Input Panel</CardTitle>
             <CardDescription>
-              최신 작업 상태를 빠르게 확인합니다.
+              콘텐츠 타입, 톤, 스타일, provider 조합을 조절해 실험합니다.
             </CardDescription>
           </CardHeader>
-          <CardContent>
-            {jobs.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading jobs...</p>
-            ) : null}
-            {jobs.error ? (
+          <CardContent className="space-y-4">
+            <div className="grid gap-4 md:grid-cols-2">
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Content Type</span>
+                <Input
+                  value={form.contentType}
+                  onChange={onInput("contentType")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Channel</span>
+                <Input value={form.channelId} onChange={onInput("channelId")} />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Language</span>
+                <Input
+                  value={form.targetLanguage}
+                  onChange={onInput("targetLanguage")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Target Duration</span>
+                <Input
+                  type="number"
+                  value={form.targetDurationSec}
+                  onChange={onInput("targetDurationSec")}
+                />
+              </label>
+              <label className="space-y-2 text-sm md:col-span-2">
+                <span className="font-medium">Topic / Date</span>
+                <Input value={form.titleIdea} onChange={onInput("titleIdea")} />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Tone</span>
+                <Input value={form.tone} onChange={onInput("tone")} />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Style</span>
+                <Input
+                  value={form.stylePreset}
+                  onChange={onInput("stylePreset")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Hook Strength</span>
+                <Input
+                  value={form.hookStrength}
+                  onChange={onInput("hookStrength")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Scene Count</span>
+                <Input
+                  value={form.sceneCount}
+                  onChange={onInput("sceneCount")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Visual Preset</span>
+                <Input
+                  value={form.visualPreset}
+                  onChange={onInput("visualPreset")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Voice Preset</span>
+                <Input
+                  value={form.voicePreset}
+                  onChange={onInput("voicePreset")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Prompt Version</span>
+                <Input
+                  value={form.promptVersion}
+                  onChange={onInput("promptVersion")}
+                />
+              </label>
+              <label className="space-y-2 text-sm">
+                <span className="font-medium">Seed</span>
+                <Input value={form.seed} onChange={onInput("seed")} />
+              </label>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button disabled={createDraft.isPending} onClick={generateBrief}>
+                {createDraft.isPending ? "Generating..." : "Generate Brief"}
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={runSceneJson.isPending || runTopicPlan.isPending}
+                onClick={generateSceneJson}
+              >
+                Generate Scene JSON
+              </Button>
+              <Button
+                variant="secondary"
+                disabled={
+                  runSceneJson.isPending ||
+                  runTopicPlan.isPending ||
+                  runAssetGeneration.isPending
+                }
+                onClick={generateFullPreview}
+              >
+                Generate Full Preview
+              </Button>
+              <Button
+                variant="outline"
+                onClick={() => (window.location.href = "/templates")}
+              >
+                Save as Template
+              </Button>
+            </div>
+            {createDraft.error ? (
               <p className="text-sm text-destructive">
-                {getErrorMessage(jobs.error)}
+                {getErrorMessage(createDraft.error)}
               </p>
-            ) : null}
-            {!jobs.isLoading && !jobs.error ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Title</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {recentJobs.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        No jobs found.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    recentJobs.map((job) => (
-                      <TableRow key={job.jobId}>
-                        <TableCell className="font-mono text-xs">
-                          {job.jobId}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="rounded-full">
-                            {job.status}
-                          </Badge>
-                        </TableCell>
-                        <TableCell>{job.videoTitle}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
             ) : null}
           </CardContent>
         </Card>
 
         <Card>
           <CardHeader>
-            <CardTitle>Pending Reviews Queue</CardTitle>
-            <CardDescription>리뷰 큐 적체 여부를 확인합니다.</CardDescription>
+            <CardTitle>Variant Compare</CardTitle>
+            <CardDescription>
+              최근 시안 3개를 한 화면에서 비교하고 다음 액션을 고릅니다.
+            </CardDescription>
           </CardHeader>
-          <CardContent>
-            {pending.isLoading ? (
+          <CardContent className="space-y-4">
+            {jobs.isLoading ? (
               <p className="text-sm text-muted-foreground">
-                Loading reviews...
+                Loading variants...
               </p>
             ) : null}
-            {pending.error ? (
+            {jobs.error ? (
               <p className="text-sm text-destructive">
-                {getErrorMessage(pending.error)}
+                {getErrorMessage(jobs.error)}
               </p>
             ) : null}
-            {!pending.isLoading && !pending.error ? (
-              <Table>
-                <TableHeader>
-                  <TableRow>
-                    <TableHead>Job</TableHead>
-                    <TableHead>Status</TableHead>
-                    <TableHead>Requested At</TableHead>
-                  </TableRow>
-                </TableHeader>
-                <TableBody>
-                  {pendingReviews.length === 0 ? (
-                    <TableRow>
-                      <TableCell colSpan={3} className="text-muted-foreground">
-                        No pending reviews.
-                      </TableCell>
-                    </TableRow>
-                  ) : (
-                    pendingReviews.slice(0, 8).map((review) => (
-                      <TableRow key={review.jobId}>
-                        <TableCell className="font-mono text-xs">
-                          {review.jobId}
-                        </TableCell>
-                        <TableCell>
-                          <Badge variant="outline" className="rounded-full">
-                            {review.status}
+            <div className="grid gap-4">
+              {variants.map((job, index) => {
+                const sceneCount = inspector?.sceneJson?.scenes.length ?? 5;
+                const isSelected = selectedVariant?.jobId === job.jobId;
+                return (
+                  <button
+                    key={job.jobId}
+                    type="button"
+                    onClick={() => setSelectedJobId(job.jobId)}
+                    className={`rounded-xl border p-4 text-left transition-colors ${
+                      isSelected
+                        ? "border-primary bg-primary/5"
+                        : "border-border hover:bg-accent/40"
+                    }`}
+                  >
+                    <div className="flex items-center justify-between gap-3">
+                      <div className="space-y-1">
+                        <div className="flex items-center gap-2">
+                          <Badge variant="outline">
+                            {buildVariantLabel(index)}
                           </Badge>
-                        </TableCell>
-                        <TableCell>{review.reviewRequestedAt ?? "-"}</TableCell>
-                      </TableRow>
-                    ))
-                  )}
-                </TableBody>
-              </Table>
-            ) : null}
+                          <Badge variant="secondary">{job.status}</Badge>
+                        </div>
+                        <p className="font-medium">{job.videoTitle}</p>
+                        <p className="text-xs text-muted-foreground">
+                          {job.jobId}
+                        </p>
+                      </div>
+                      <div className="text-right text-xs text-muted-foreground">
+                        <p>Scene count: {sceneCount}</p>
+                        <p>Est. cost: {estimateCost(sceneCount, job.status)}</p>
+                        <p>Duration: {job.targetDurationSec}s</p>
+                      </div>
+                    </div>
+                    <div className="mt-3 flex flex-wrap gap-2">
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
+                        Open
+                      </span>
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
+                        Duplicate
+                      </span>
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
+                        Regenerate Hook
+                      </span>
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
+                        Regenerate Visuals
+                      </span>
+                      <span className="rounded-md bg-muted px-2 py-1 text-xs">
+                        Promote
+                      </span>
+                    </div>
+                  </button>
+                );
+              })}
+              {!jobs.isLoading && variants.length === 0 ? (
+                <p className="text-sm text-muted-foreground">
+                  아직 비교할 시안이 없습니다. 왼쪽에서 brief를 먼저 생성하세요.
+                </p>
+              ) : null}
+            </div>
+          </CardContent>
+        </Card>
+
+        <Card>
+          <CardHeader>
+            <CardTitle>Inspector</CardTitle>
+            <CardDescription>
+              선택한 variant의 상태, 모델, 비용, 실패 지점, 재생성 액션을
+              확인합니다.
+            </CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {selectedVariant ? (
+              <>
+                <div className="space-y-2 text-sm">
+                  <p>
+                    <span className="font-medium">Status:</span>{" "}
+                    {selectedVariant.status}
+                  </p>
+                  <p>
+                    <span className="font-medium">Prompt Version:</span>{" "}
+                    {form.promptVersion}
+                  </p>
+                  <p>
+                    <span className="font-medium">Updated:</span>{" "}
+                    {selectedVariant.updatedAt}
+                  </p>
+                  <p>
+                    <span className="font-medium">Cost:</span>{" "}
+                    {estimateCost(
+                      inspector?.sceneJson?.scenes.length ?? 5,
+                      selectedVariant.status,
+                    )}
+                  </p>
+                  <p>
+                    <span className="font-medium">LLM Configured Steps:</span>{" "}
+                    {llmSettings.data?.length ?? 0}
+                  </p>
+                </div>
+                <div className="space-y-2 rounded-lg border p-3 text-sm">
+                  <p className="font-medium">Quick Actions</p>
+                  <div className="flex flex-wrap gap-2">
+                    <Button size="sm" variant="outline">
+                      Regenerate scene 2 only
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      Swap TTS voice
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      Change hook
+                    </Button>
+                    <Button size="sm" variant="outline">
+                      Rebuild render plan
+                    </Button>
+                  </div>
+                </div>
+                <div className="space-y-2 rounded-lg border p-3 text-sm">
+                  <p className="font-medium">Next Step</p>
+                  <div className="flex flex-col gap-2">
+                    <Link
+                      className="text-primary hover:underline"
+                      href={`/jobs/${selectedVariant.jobId}`}
+                    >
+                      Open full job detail
+                    </Link>
+                    <Link
+                      className="text-primary hover:underline"
+                      href="/reviews"
+                    >
+                      Send to review queue
+                    </Link>
+                    <Link
+                      className="text-primary hover:underline"
+                      href="/templates"
+                    >
+                      Promote to template
+                    </Link>
+                  </div>
+                </div>
+                {selectedDetail.error ? (
+                  <p className="text-sm text-destructive">
+                    {getErrorMessage(selectedDetail.error)}
+                  </p>
+                ) : null}
+              </>
+            ) : (
+              <p className="text-sm text-muted-foreground">
+                선택된 variant가 없습니다.
+              </p>
+            )}
           </CardContent>
         </Card>
       </div>

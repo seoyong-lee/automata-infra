@@ -7,13 +7,13 @@ import { Button } from "@packages/ui/button";
 import { cn } from "@packages/ui";
 import type { ComponentType, ReactNode } from "react";
 import {
-  PanelLeftOpen,
   Settings,
-  SquareTerminal,
   ClipboardCheck,
   Cog,
   WandSparkles,
-  FilePlus2,
+  FolderKanban,
+  LayoutTemplate,
+  Sparkles,
 } from "lucide-react";
 
 type NavSection = {
@@ -27,20 +27,23 @@ type NavSection = {
 
 const navSections: NavSection[] = [
   {
-    title: "홈",
-    items: [{ title: "대시보드", href: "/", icon: SquareTerminal }],
+    title: "Studio",
+    items: [{ title: "Workbench", href: "/", icon: Sparkles }],
   },
   {
-    title: "운영",
+    title: "Library",
     items: [
-      { title: "리뷰", href: "/reviews", icon: ClipboardCheck },
-      { title: "잡 목록", href: "/jobs", icon: WandSparkles },
-      { title: "새 잡", href: "/jobs/new", icon: FilePlus2 },
+      { title: "Jobs", href: "/jobs", icon: FolderKanban },
+      { title: "Templates", href: "/templates", icon: LayoutTemplate },
     ],
   },
   {
-    title: "시스템",
-    items: [{ title: "설정", href: "/settings", icon: Settings }],
+    title: "Review",
+    items: [{ title: "Review Queue", href: "/reviews", icon: ClipboardCheck }],
+  },
+  {
+    title: "System",
+    items: [{ title: "Settings", href: "/settings", icon: Settings }],
   },
 ];
 
@@ -61,7 +64,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                   Automata Studio
                 </p>
                 <p className="truncate text-xs text-muted-foreground">
-                  Admin Console
+                  Content Studio
                 </p>
               </div>
             </Link>
@@ -117,19 +120,25 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
           <div className="flex items-center justify-between border-b pb-4 lg:hidden">
             <nav className="flex items-center gap-3 text-sm font-medium">
               <Link href="/" className="text-foreground hover:text-primary">
-                Overview
-              </Link>
-              <Link
-                href="/reviews"
-                className="text-muted-foreground hover:text-primary"
-              >
-                Reviews
+                Workbench
               </Link>
               <Link
                 href="/jobs"
                 className="text-muted-foreground hover:text-primary"
               >
                 Jobs
+              </Link>
+              <Link
+                href="/templates"
+                className="text-muted-foreground hover:text-primary"
+              >
+                Templates
+              </Link>
+              <Link
+                href="/reviews"
+                className="text-muted-foreground hover:text-primary"
+              >
+                Review
               </Link>
               <Link
                 href="/settings"

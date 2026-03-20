@@ -1,0 +1,37 @@
+---
+description: Use zod as the source of truth for API contracts
+alwaysApply: true
+---
+
+# API Zod Contracts
+
+When working on client, admin GraphQL, or shared API contracts, use `zod` schemas as the source of truth.
+
+## Rules
+
+- Define request/response contract schemas in shared contract files before wiring UI or resolver code.
+- Reuse existing shared schemas and parsers instead of duplicating ad hoc field validation.
+- Client forms, mutation inputs, resolver argument parsers, and persisted JSON payloads should align to the same `zod` contract.
+- Prefer `z.infer<typeof schema>` types over hand-written duplicate TypeScript types when the schema is the canonical contract.
+- If an API shape changes, update the shared `zod` schema first, then propagate the change to client hooks, resolver parsers, and persistence code.
+- Do not introduce new free-form `Record<string, unknown>` parsing paths when a shared contract schema should exist.
+
+## Preferred Pattern
+
+```typescript
+// shared contract
+export const createDraftJobInputSchema = z.object({
+  channelId: z.string().trim().min(1),
+  targetLanguage: z.string().trim().min(1),
+  titleIdea: z.string().trim().min(1),
+  targetDurationSec: z.number().int().positive(),
+  stylePreset: z.string().trim().min(1),
+});
+
+export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
+
+// resolver parser
+export const parseCreateDraftJobArgs = (args: Record<string, unknown>) => {
+  return createDraftJobInputSchema.parse(args.input);
+};
+```

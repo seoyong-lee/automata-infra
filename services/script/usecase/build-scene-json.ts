@@ -15,10 +15,14 @@ type TopicPlanResult = {
   jobId: string;
   topicId: string;
   channelId: string;
+  contentType?: string;
+  variant?: string;
   targetLanguage: string;
   targetDurationSec: number;
   titleIdea: string;
   stylePreset: string;
+  autoPublish?: boolean;
+  publishAt?: string;
 };
 
 export type SceneJsonResult = TopicPlanResult & {

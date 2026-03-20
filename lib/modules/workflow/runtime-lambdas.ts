@@ -66,6 +66,8 @@ export const createWorkflowLambdas = (
     OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
     ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
     SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
+    YOUTUBE_SECRETS_JSON: JSON.stringify(props.envConfig.youtubeSecrets ?? {}),
+    CHANNEL_CONFIGS_JSON: JSON.stringify(props.envConfig.channelConfigs ?? {}),
   };
 
   const lambdas: WorkflowLambdas = {
@@ -159,6 +161,12 @@ export const createWorkflowLambdas = (
   }
 
   props.reviewQueue.grantSendMessages(lambdas.reviewRequest);
+  lambdas.uploadWorker.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: ["secretsmanager:GetSecretValue"],
+      resources: ["*"],
+    }),
+  );
 
   return lambdas;
 };

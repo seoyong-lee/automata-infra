@@ -1,5 +1,6 @@
 import { putJsonToS3 } from "../../../../shared/lib/aws/runtime";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
+import { parseTopicSeedInput } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import { createTopicPlan } from "../../../../topic/usecase/create-topic-plan";
 import {
   getJobOrThrow,
@@ -13,11 +14,12 @@ export const runAdminTopicPlan = async (jobId: string) => {
   if (!topicSeed) {
     throw new Error("topic seed not found");
   }
+  const validatedTopicSeed = parseTopicSeedInput(topicSeed);
 
   await updateJobMeta(jobId, {}, "PLANNING");
   const planned = await createTopicPlan({
     jobId,
-    topicSeed,
+    topicSeed: validatedTopicSeed,
   });
   await putJsonToS3(planned.topicS3Key, planned);
   await updateJobMeta(

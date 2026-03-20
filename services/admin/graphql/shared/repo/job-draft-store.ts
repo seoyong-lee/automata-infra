@@ -6,11 +6,20 @@ import {
   listSceneAssets,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
-import type { SceneJsonDto, SceneJsonSceneDto, TopicSeedDto } from "../types";
+import type {
+  ContentBriefDto,
+  SceneJsonDto,
+  SceneJsonSceneDto,
+  TopicSeedDto,
+} from "../types";
 import type { SceneJson } from "../../../../../types/render/scene-json";
 
 export const buildTopicSeedKey = (jobId: string): string => {
   return `drafts/${jobId}/topic-seed.json`;
+};
+
+export const buildContentBriefKey = (jobId: string): string => {
+  return `drafts/${jobId}/content-brief.json`;
 };
 
 export const buildTopicPlanKey = (jobId: string): string => {
@@ -63,6 +72,16 @@ export const getStoredTopicSeed = async (
   return (await getJsonFromS3<TopicSeedDto>(key)) ?? undefined;
 };
 
+export const getStoredContentBrief = async (
+  job: JobMetaItem,
+): Promise<ContentBriefDto | undefined> => {
+  const key = job.contentBriefS3Key;
+  if (!key) {
+    return undefined;
+  }
+  return (await getJsonFromS3<ContentBriefDto>(key)) ?? undefined;
+};
+
 export const getStoredTopicPlan = async (
   job: JobMetaItem,
 ): Promise<TopicSeedDto | undefined> => {
@@ -104,6 +123,31 @@ export const saveTopicSeed = async (input: {
       language: input.topicSeed.targetLanguage,
       targetDurationSec: input.topicSeed.targetDurationSec,
       videoTitle: input.topicSeed.titleIdea,
+    },
+    input.status,
+  );
+  return key;
+};
+
+export const saveContentBrief = async (input: {
+  jobId: string;
+  contentBrief: ContentBriefDto;
+  status?: string;
+}): Promise<string> => {
+  const key = buildContentBriefKey(input.jobId);
+  await putJsonToS3(key, input.contentBrief);
+  await updateJobMeta(
+    input.jobId,
+    {
+      contentBriefS3Key: key,
+      contentType: input.contentBrief.contentType,
+      variant: input.contentBrief.variant,
+      channelId: input.contentBrief.channelId,
+      language: input.contentBrief.language,
+      targetDurationSec: input.contentBrief.targetDurationSec,
+      videoTitle: input.contentBrief.titleIdea,
+      autoPublish: input.contentBrief.autoPublish ?? false,
+      publishAt: input.contentBrief.publishAt,
     },
     input.status,
   );

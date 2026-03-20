@@ -21,5 +21,23 @@
   "openAiSecretId": "automata-studio/openai",
   "elevenLabsSecretId": "automata-studio/elevenlabs",
   "shotstackSecretId": "automata-studio/shotstack",
-  "googleOAuthSecretId": "automata-studio/google-oauth-admin"
+  "googleOAuthSecretId": "automata-studio/google-oauth-admin",
+  "youtubeSecrets": {
+    "saju-shorts-ko": "youtube-oauth-saju-shorts-ko",
+    "tarot-ko": "youtube-oauth-tarot-ko"
+  },
+  "channelConfigs": {
+    "saju-shorts-ko": {
+      "youtubeAccountType": "personal",
+      "autoPublishEnabled": true,
+      "defaultVisibility": "public",
+      "defaultCategoryId": 22
+    },
+    "tarot-ko": {
+      "youtubeAccountType": "personal",
+      "autoPublishEnabled": false,
+      "defaultVisibility": "unlisted",
+      "defaultCategoryId": 22
+    }
+  }
 }

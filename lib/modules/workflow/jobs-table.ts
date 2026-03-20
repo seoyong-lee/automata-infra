@@ -35,5 +35,11 @@ export const createJobsTable = (
     sortKey: { name: "GSI3SK", type: dynamodb.AttributeType.STRING },
   });
 
+  table.addGlobalSecondaryIndex({
+    indexName: "GSI4",
+    partitionKey: { name: "GSI4PK", type: dynamodb.AttributeType.STRING },
+    sortKey: { name: "GSI4SK", type: dynamodb.AttributeType.STRING },
+  });
+
   return table;
 };

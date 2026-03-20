@@ -1,8 +1,15 @@
 "use client";
 
 import Link from "next/link";
+import { Badge } from "@packages/ui/badge";
 import { useAdminJobsQuery } from "@packages/graphql";
-import { Card, CardContent, CardHeader, CardTitle } from "@packages/ui/card";
+import {
+  Card,
+  CardContent,
+  CardDescription,
+  CardHeader,
+  CardTitle,
+} from "@packages/ui/card";
 import { Button } from "@packages/ui/button";
 import { getErrorMessage } from "@packages/utils";
 
@@ -15,7 +22,13 @@ export default function JobsPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader className="flex flex-row items-center justify-between gap-4">
-          <CardTitle>Jobs</CardTitle>
+          <div className="space-y-1">
+            <CardTitle>Jobs</CardTitle>
+            <CardDescription>
+              운영 로그가 아니라, 좋은 실험 결과를 다시 쓰기 위한
+              카탈로그입니다.
+            </CardDescription>
+          </div>
           <Button onClick={() => (window.location.href = "/jobs/new")}>
             Create Draft Job
           </Button>
@@ -31,37 +44,81 @@ export default function JobsPage() {
         </p>
       ) : null}
 
-      <Card>
-        <CardContent className="p-0">
-          <table className="w-full text-sm">
-            <thead className="border-b bg-muted/30">
-              <tr>
-                <th className="px-4 py-3 text-left font-medium">Job ID</th>
-                <th className="px-4 py-3 text-left font-medium">Status</th>
-                <th className="px-4 py-3 text-left font-medium">Title</th>
-                <th className="px-4 py-3 text-left font-medium">Updated</th>
-              </tr>
-            </thead>
-            <tbody>
-              {(jobsQuery.data?.items ?? []).map((job) => (
-                <tr key={job.jobId} className="border-b last:border-0">
-                  <td className="px-4 py-3">
-                    <Link
-                      className="text-primary hover:underline"
-                      href={`/jobs/${job.jobId}`}
-                    >
-                      {job.jobId}
-                    </Link>
-                  </td>
-                  <td className="px-4 py-3">{job.status}</td>
-                  <td className="px-4 py-3">{job.videoTitle}</td>
-                  <td className="px-4 py-3">{job.updatedAt}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
-        </CardContent>
-      </Card>
+      <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
+        {(jobsQuery.data?.items ?? []).map((job, index) => (
+          <Card key={job.jobId}>
+            <CardHeader className="space-y-3">
+              <div className="flex items-center justify-between gap-2">
+                <Badge variant="outline">{job.status}</Badge>
+                <span className="text-xs text-muted-foreground">
+                  {job.variant
+                    ? `Variant ${job.variant}`
+                    : `Variant ${["A", "B", "C"][index % 3]}`}
+                </span>
+              </div>
+              <div>
+                <CardTitle className="text-base">{job.videoTitle}</CardTitle>
+                <CardDescription className="mt-1 font-mono text-xs">
+                  {job.jobId}
+                </CardDescription>
+              </div>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="grid grid-cols-2 gap-3 text-xs text-muted-foreground">
+                <div>
+                  <p className="font-medium text-foreground">Channel</p>
+                  <p>{job.channelId}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Content</p>
+                  <p>{job.contentType ?? "-"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Duration</p>
+                  <p>{job.targetDurationSec}s</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Retry</p>
+                  <p>{job.retryCount}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Publish</p>
+                  <p>{job.autoPublish ? "auto" : "review"}</p>
+                </div>
+                <div>
+                  <p className="font-medium text-foreground">Updated</p>
+                  <p>{job.updatedAt}</p>
+                </div>
+              </div>
+              <div className="flex flex-wrap gap-2 text-xs">
+                <span className="rounded-md bg-muted px-2 py-1">
+                  Clone as new job
+                </span>
+                <span className="rounded-md bg-muted px-2 py-1">
+                  Resume failed job
+                </span>
+                <span className="rounded-md bg-muted px-2 py-1">
+                  Compare with previous
+                </span>
+                <span className="rounded-md bg-muted px-2 py-1">
+                  Promote to template
+                </span>
+              </div>
+              <div className="flex items-center justify-between">
+                <Link
+                  className="text-sm text-primary hover:underline"
+                  href={`/jobs/${job.jobId}`}
+                >
+                  Open experiment
+                </Link>
+                <span className="text-xs text-muted-foreground">
+                  est. ${((job.targetDurationSec / 10) * 0.04).toFixed(2)}
+                </span>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
     </div>
   );
 }

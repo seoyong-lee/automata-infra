@@ -11,9 +11,13 @@ export type JobMetaItem = {
   SK: "META";
   jobId: string;
   channelId: string;
+  contentType?: string;
+  variant?: string;
   topicId: string;
   topicHash: string;
   status: string;
+  autoPublish?: boolean;
+  publishAt?: string;
   language: string;
   targetDurationSec: number;
   videoTitle: string;
@@ -35,6 +39,7 @@ export type JobMetaItem = {
   reviewPreviewS3Key?: string;
   uploadStatus?: string;
   uploadVideoId?: string;
+  contentBriefS3Key?: string;
   createdAt: string;
   updatedAt: string;
   GSI1PK: string;
@@ -43,6 +48,8 @@ export type JobMetaItem = {
   GSI2SK: string;
   GSI3PK: string;
   GSI3SK: string;
+  GSI4PK?: string;
+  GSI4SK?: string;
 };
 
 export type QueryPage<T> = {
@@ -133,6 +140,28 @@ export const updateJobMeta = async (
       "#gsi1pk = :gsi1pk",
       "#gsi1sk = :gsi1sk",
     );
+  }
+
+  if (
+    typeof fields.channelId === "string" &&
+    fields.channelId.trim().length > 0
+  ) {
+    names["#gsi2pk"] = "GSI2PK";
+    names["#gsi2sk"] = "GSI2SK";
+    values[":gsi2pk"] = `CHANNEL#${fields.channelId}`;
+    values[":gsi2sk"] = `${updatedAt}#JOB#${jobId}`;
+    assignments.push("#gsi2pk = :gsi2pk", "#gsi2sk = :gsi2sk");
+  }
+
+  if (
+    typeof fields.contentType === "string" &&
+    fields.contentType.trim().length > 0
+  ) {
+    names["#gsi4pk"] = "GSI4PK";
+    names["#gsi4sk"] = "GSI4SK";
+    values[":gsi4pk"] = `CONTENT#${fields.contentType}`;
+    values[":gsi4sk"] = `${updatedAt}#JOB#${jobId}`;
+    assignments.push("#gsi4pk = :gsi4pk", "#gsi4sk = :gsi4sk");
   }
 
   for (const [key, value] of Object.entries(fields)) {
@@ -285,6 +314,27 @@ export const listJobMetasByChannel = async (input: {
     keyConditionExpression: "GSI2PK = :channelPk",
     expressionAttributeValues: {
       ":channelPk": `CHANNEL#${input.channelId}`,
+    },
+    scanIndexForward: false,
+    limit: input.limit ?? 20,
+    exclusiveStartKey: decodeNextToken(input.nextToken),
+  });
+  return {
+    items: page.items,
+    nextToken: encodeNextToken(page.lastEvaluatedKey),
+  };
+};
+
+export const listJobMetasByContentType = async (input: {
+  contentType: string;
+  limit?: number;
+  nextToken?: string;
+}): Promise<QueryPage<JobMetaItem>> => {
+  const page = await queryItemsPage<JobMetaItem>({
+    indexName: "GSI4",
+    keyConditionExpression: "GSI4PK = :contentPk",
+    expressionAttributeValues: {
+      ":contentPk": `CONTENT#${input.contentType}`,
     },
     scanIndexForward: false,
     limit: input.limit ?? 20,

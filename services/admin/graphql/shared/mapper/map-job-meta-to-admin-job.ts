@@ -32,6 +32,10 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     channelId: job.channelId,
     topicId: job.topicId,
     status: toJobStatus(job.status),
+    contentType: job.contentType,
+    variant: job.variant,
+    autoPublish: job.autoPublish,
+    publishAt: job.publishAt,
     language: job.language,
     targetDurationSec: job.targetDurationSec,
     videoTitle: job.videoTitle,
@@ -47,6 +51,7 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     reviewRequestedAt: job.reviewRequestedAt,
     uploadStatus: toUploadStatus(job.uploadStatus),
     uploadVideoId: job.uploadVideoId,
+    contentBriefS3Key: job.contentBriefS3Key,
     topicSeedS3Key: job.topicSeedS3Key,
     topicS3Key: job.topicS3Key,
   };

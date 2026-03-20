@@ -208,12 +208,54 @@ export class WorkflowStack extends Stack {
     });
     const workflowComplete = new sfn.Succeed(this, "WorkflowComplete");
 
+    const autoPublishEnabled = new sfn.Choice(this, "AutoPublishEnabled");
     const reviewDecision = new sfn.Choice(this, "ReviewDecision");
     const regenerationScope = new sfn.Choice(this, "RegenerationScope");
     const rejected = new sfn.Succeed(this, "Rejected");
     const uploadAndCollectMetrics = sfn.Chain.start(uploadYoutube)
       .next(collectMetrics)
       .next(workflowComplete);
+    const reviewFlow = requestReview.next(
+      reviewDecision
+        .when(
+          sfn.Condition.stringEquals("$.reviewDecision.action", "approve"),
+          uploadAndCollectMetrics,
+        )
+        .when(
+          sfn.Condition.stringEquals("$.reviewDecision.action", "regenerate"),
+          regenerationScope
+            .when(
+              sfn.Condition.stringEquals(
+                "$.reviewDecision.regenerationScope",
+                "image",
+              ),
+              generateSceneImages,
+            )
+            .when(
+              sfn.Condition.stringEquals(
+                "$.reviewDecision.regenerationScope",
+                "video",
+              ),
+              generateSceneVideo,
+            )
+            .when(
+              sfn.Condition.stringEquals(
+                "$.reviewDecision.regenerationScope",
+                "voice",
+              ),
+              generateSceneTts,
+            )
+            .when(
+              sfn.Condition.stringEquals(
+                "$.reviewDecision.regenerationScope",
+                "metadata",
+              ),
+              buildSceneJson,
+            )
+            .otherwise(composeFinalVideo),
+        )
+        .otherwise(rejected),
+    );
 
     const definition = planTopic
       .next(buildSceneJson)
@@ -221,47 +263,13 @@ export class WorkflowStack extends Stack {
       .next(validateAssets)
       .next(buildRenderPlan)
       .next(composeFinalVideo)
-      .next(requestReview)
       .next(
-        reviewDecision
+        autoPublishEnabled
           .when(
-            sfn.Condition.stringEquals("$.reviewDecision.action", "approve"),
+            sfn.Condition.booleanEquals("$.autoPublish", true),
             uploadAndCollectMetrics,
           )
-          .when(
-            sfn.Condition.stringEquals("$.reviewDecision.action", "regenerate"),
-            regenerationScope
-              .when(
-                sfn.Condition.stringEquals(
-                  "$.reviewDecision.regenerationScope",
-                  "image",
-                ),
-                generateSceneImages,
-              )
-              .when(
-                sfn.Condition.stringEquals(
-                  "$.reviewDecision.regenerationScope",
-                  "video",
-                ),
-                generateSceneVideo,
-              )
-              .when(
-                sfn.Condition.stringEquals(
-                  "$.reviewDecision.regenerationScope",
-                  "voice",
-                ),
-                generateSceneTts,
-              )
-              .when(
-                sfn.Condition.stringEquals(
-                  "$.reviewDecision.regenerationScope",
-                  "metadata",
-                ),
-                buildSceneJson,
-              )
-              .otherwise(composeFinalVideo),
-          )
-          .otherwise(rejected),
+          .otherwise(reviewFlow),
       );
 
     this.stateMachine = new sfn.StateMachine(this, "VideoFactoryStateMachine", {

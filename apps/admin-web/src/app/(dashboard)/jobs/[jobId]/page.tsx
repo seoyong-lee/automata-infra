@@ -50,6 +50,7 @@ export default function JobDetailPage() {
   const jobId = params?.jobId ?? "";
   const detailQuery = useJobDraftQuery({ jobId }, { enabled: Boolean(jobId) });
   const detail = detailQuery.data;
+  const contentBrief = detail?.contentBrief;
 
   const [seedForm, setSeedForm] = useState<SeedForm>(() => toSeedForm());
   const [sceneJsonText, setSceneJsonText] = useState<string>("");
@@ -108,12 +109,35 @@ export default function JobDetailPage() {
     <div className="space-y-6">
       <Card>
         <CardHeader>
-          <CardTitle>Job Detail</CardTitle>
+          <CardTitle>Experiment Detail</CardTitle>
         </CardHeader>
-        <CardContent className="space-y-1 text-sm text-muted-foreground">
-          <p>Job ID: {jobId}</p>
-          <p>Status: {detail?.job.status ?? "-"}</p>
-          <p>Scenes: {sceneCount}</p>
+        <CardContent className="grid gap-4 md:grid-cols-4">
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Job ID</p>
+            <p className="mt-1 font-mono text-xs">{jobId}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Status</p>
+            <p className="mt-1 text-sm font-medium">
+              {detail?.job.status ?? "-"}
+            </p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Content Type</p>
+            <p className="mt-1 text-sm font-medium">
+              {contentBrief?.contentType ?? detail?.job.contentType ?? "-"}
+            </p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Scene Count</p>
+            <p className="mt-1 text-sm font-medium">{sceneCount}</p>
+          </div>
+          <div className="rounded-lg border p-4">
+            <p className="text-xs text-muted-foreground">Est. Cost</p>
+            <p className="mt-1 text-sm font-medium">
+              ${((sceneCount || 5) * 0.06).toFixed(2)}
+            </p>
+          </div>
         </CardContent>
       </Card>
 
@@ -128,7 +152,47 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Topic Seed</CardTitle>
+          <CardTitle>Summary</CardTitle>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="rounded-lg border p-4 text-sm text-muted-foreground">
+            좋은 시안은 저장하고, 아쉬운 부분은 특정 scene 또는 특정 단계만 다시
+            생성하는 실험 상세 화면입니다.
+          </div>
+          <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+            <div className="rounded-lg border p-4 text-sm">
+              <p className="text-xs text-muted-foreground">Variant</p>
+              <p className="mt-1 font-medium">
+                {contentBrief?.variant ?? detail?.job.variant ?? "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border p-4 text-sm">
+              <p className="text-xs text-muted-foreground">Publish Mode</p>
+              <p className="mt-1 font-medium">
+                {(contentBrief?.autoPublish ?? detail?.job.autoPublish)
+                  ? "Auto publish"
+                  : "Needs review"}
+              </p>
+            </div>
+            <div className="rounded-lg border p-4 text-sm">
+              <p className="text-xs text-muted-foreground">Publish At</p>
+              <p className="mt-1 font-medium">
+                {contentBrief?.publishAt ?? detail?.job.publishAt ?? "-"}
+              </p>
+            </div>
+            <div className="rounded-lg border p-4 text-sm">
+              <p className="text-xs text-muted-foreground">Target Platform</p>
+              <p className="mt-1 font-medium">
+                {contentBrief?.targetPlatform ?? "youtube-shorts"}
+              </p>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+
+      <Card>
+        <CardHeader>
+          <CardTitle>Brief</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -208,9 +272,25 @@ export default function JobDetailPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Scene JSON</CardTitle>
+          <CardTitle>Scene JSON + Compare</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
+          <div className="grid gap-3 md:grid-cols-3">
+            <div className="rounded-lg border p-3 text-sm">
+              <p className="font-medium">Variant A</p>
+              <p className="mt-1 text-muted-foreground">
+                current selected version
+              </p>
+            </div>
+            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Variant B</p>
+              <p className="mt-1">hook stronger, CTA softer</p>
+            </div>
+            <div className="rounded-lg border p-3 text-sm text-muted-foreground">
+              <p className="font-medium text-foreground">Variant C</p>
+              <p className="mt-1">visual-first scene layout</p>
+            </div>
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               variant="secondary"
@@ -259,6 +339,20 @@ export default function JobDetailPage() {
           <CardTitle>Asset Generation</CardTitle>
         </CardHeader>
         <CardContent className="space-y-3">
+          <div className="grid gap-3 md:grid-cols-3">
+            {(detail?.assets ?? []).slice(0, 3).map((asset) => (
+              <div
+                key={asset.sceneId}
+                className="rounded-lg border p-3 text-sm"
+              >
+                <p className="font-medium">Scene {asset.sceneId}</p>
+                <p className="mt-1 text-muted-foreground">
+                  image {asset.imageS3Key ? "ready" : "pending"} / voice{" "}
+                  {asset.voiceS3Key ? "ready" : "pending"}
+                </p>
+              </div>
+            ))}
+          </div>
           <div className="flex flex-wrap gap-2">
             <Button
               disabled={runAssetGeneration.isPending}
@@ -279,7 +373,7 @@ export default function JobDetailPage() {
               variant="outline"
               onClick={() => (window.location.href = "/reviews")}
             >
-              Open Reviews
+              Open Review Queue
             </Button>
           </div>
           {runAssetGeneration.error ? (
@@ -293,8 +387,8 @@ export default function JobDetailPage() {
             </p>
           ) : null}
           <p className="text-xs text-muted-foreground">
-            자산 생성 후 기존 리뷰/업로드 흐름은 리뷰 화면에서 이어서
-            진행합니다.
+            이 단계에서는 전체 재생성보다 특정 scene, TTS, visual만 다시
+            생성하는 흐름이 우선입니다.
           </p>
         </CardContent>
       </Card>

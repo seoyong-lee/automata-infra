@@ -11,19 +11,27 @@ import { getErrorMessage } from "@packages/utils";
 type DraftForm = {
   channelId: string;
   targetLanguage: string;
+  contentType: string;
+  variant: string;
   titleIdea: string;
   targetDurationSec: string;
   stylePreset: string;
+  autoPublish: boolean;
+  publishAt: string;
 };
 
 export default function NewJobPage() {
   const router = useRouter();
   const [form, setForm] = useState<DraftForm>({
-    channelId: "history-en",
-    targetLanguage: "en",
+    channelId: "saju-shorts-ko",
+    targetLanguage: "ko",
+    contentType: "daily-total",
+    variant: "v1",
     titleIdea: "",
     targetDurationSec: "45",
-    stylePreset: "dark_ambient_story",
+    stylePreset: "mystic_daily_short",
+    autoPublish: false,
+    publishAt: "",
   });
 
   const mutation = useCreateDraftJobMutation({
@@ -36,7 +44,10 @@ export default function NewJobPage() {
     (key: keyof DraftForm) => (event: ChangeEvent<HTMLInputElement>) => {
       setForm((current) => ({
         ...current,
-        [key]: event.target.value,
+        [key]:
+          event.target.type === "checkbox"
+            ? event.target.checked
+            : event.target.value,
       }));
     };
 
@@ -59,6 +70,17 @@ export default function NewJobPage() {
                 onChange={onInput("targetLanguage")}
               />
             </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Content Type</span>
+              <Input
+                value={form.contentType}
+                onChange={onInput("contentType")}
+              />
+            </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Variant</span>
+              <Input value={form.variant} onChange={onInput("variant")} />
+            </label>
             <label className="space-y-2 text-sm md:col-span-2">
               <span className="font-medium">Title Idea</span>
               <Input value={form.titleIdea} onChange={onInput("titleIdea")} />
@@ -78,6 +100,22 @@ export default function NewJobPage() {
                 onChange={onInput("stylePreset")}
               />
             </label>
+            <label className="space-y-2 text-sm">
+              <span className="font-medium">Publish At (optional)</span>
+              <Input
+                type="datetime-local"
+                value={form.publishAt}
+                onChange={onInput("publishAt")}
+              />
+            </label>
+            <label className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm">
+              <input
+                type="checkbox"
+                checked={form.autoPublish}
+                onChange={onInput("autoPublish")}
+              />
+              <span className="font-medium">Auto publish after render</span>
+            </label>
           </div>
           <Button
             disabled={mutation.isPending}
@@ -85,9 +123,15 @@ export default function NewJobPage() {
               mutation.mutate({
                 channelId: form.channelId,
                 targetLanguage: form.targetLanguage,
+                contentType: form.contentType,
+                variant: form.variant,
                 titleIdea: form.titleIdea,
                 targetDurationSec: Number(form.targetDurationSec),
                 stylePreset: form.stylePreset,
+                autoPublish: form.autoPublish,
+                publishAt: form.publishAt
+                  ? new Date(form.publishAt).toISOString()
+                  : undefined,
               })
             }
           >

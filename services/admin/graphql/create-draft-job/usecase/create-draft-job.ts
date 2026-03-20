@@ -1,11 +1,11 @@
 import { createDraftJob } from "../repo/create-draft-job";
-import type { TopicSeedDto } from "../../shared/types";
+import type { CreateDraftJobInputDto } from "../../shared/types";
 
 export const createAdminDraftJob = async (input: {
-  topicSeed: TopicSeedDto;
+  draft: CreateDraftJobInputDto;
 }) => {
   return createDraftJob({
-    topicSeed: input.topicSeed,
+    draft: input.draft,
     now: new Date().toISOString(),
   });
 };
