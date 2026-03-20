@@ -83,7 +83,13 @@ void test("createTopicPlan uses shared LLM generation with deterministic output"
     generateStructuredData,
   });
 
-  assert.deepEqual(result, topicPlanExpected);
+  assert.deepEqual(result, {
+    ...topicPlanExpected,
+    contentType: undefined,
+    variant: undefined,
+    autoPublish: undefined,
+    publishAt: undefined,
+  });
 });
 
 void test("buildSceneJson uses injected LLM generator and matches golden output", async () => {

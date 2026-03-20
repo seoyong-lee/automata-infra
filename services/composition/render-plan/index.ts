@@ -9,6 +9,8 @@ import {
 type RenderPlanEvent = {
   jobId: string;
   sceneJson: {
+    videoTitle: string;
+    language: string;
     scenes: Array<{
       sceneId: number;
       durationSec: number;
@@ -18,6 +20,10 @@ type RenderPlanEvent = {
   imageAssets?: Array<{
     sceneId: number;
     imageS3Key?: string;
+  }>;
+  videoAssets?: Array<{
+    sceneId: number;
+    videoClipS3Key?: string;
   }>;
   voiceAssets?: Array<{
     sceneId: number;
@@ -30,6 +36,7 @@ export const buildRenderPlanScenes = (
 ): { totalDurationSec: number; scenes: Array<Record<string, unknown>> } => {
   let cursorSec = 0;
   const imageAssets = event.imageAssets ?? [];
+  const videoAssets = event.videoAssets ?? [];
   const voiceAssets = event.voiceAssets ?? [];
 
   const scenes = event.sceneJson.scenes.map((scene) => {
@@ -42,12 +49,16 @@ export const buildRenderPlanScenes = (
     const voiceAsset = voiceAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
+    const videoAsset = videoAssets.find(
+      (asset) => asset.sceneId === scene.sceneId,
+    );
 
     return {
       sceneId: scene.sceneId,
       startSec,
       endSec: cursorSec,
       imageS3Key: imageAsset?.imageS3Key,
+      videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
       subtitle: scene.subtitle,
     };
@@ -96,12 +107,24 @@ export const run: Handler<
       voiceS3Key:
         typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined,
     }));
+  const videoAssets =
+    event.videoAssets ??
+    sceneAssets.map((scene) => ({
+      sceneId: scene.sceneId,
+      videoClipS3Key:
+        typeof scene.videoClipS3Key === "string"
+          ? scene.videoClipS3Key
+          : undefined,
+    }));
   const builtScenes = buildRenderPlanScenes({
     ...event,
     imageAssets,
+    videoAssets,
     voiceAssets,
   });
   const renderPlan = {
+    videoTitle: event.sceneJson.videoTitle,
+    language: event.sceneJson.language,
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
     outputKey: `render-plans/${event.jobId}/render-plan.json`,

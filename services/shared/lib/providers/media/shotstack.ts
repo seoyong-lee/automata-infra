@@ -1,5 +1,6 @@
 import { getSecretJson, putJsonToS3 } from "../../aws/runtime";
 import { fetchJsonWithRetry, pollUntil } from "../http/retry";
+import { mapRenderPlanToShotstackEdit } from "./shotstack-mapper";
 
 type ShotstackSecret = {
   apiKey: string;
@@ -10,12 +11,19 @@ const DONE_STATUSES = new Set(["done", "finished", "completed", "success"]);
 const FAILED_STATUSES = new Set(["failed", "error", "cancelled", "canceled"]);
 
 const resolveShotstackStatus = (payload: Record<string, unknown>): string => {
-  const nested = (payload as { response?: { status?: string } }).response
-    ?.status;
+  const response = (payload as { response?: { status?: string } }).response;
+  const nested = response?.status;
   if (typeof nested === "string") {
     return nested.toLowerCase();
   }
   return typeof payload.status === "string" ? payload.status.toLowerCase() : "";
+};
+
+const getShotstackResponse = (
+  payload: Record<string, unknown>,
+): Record<string, unknown> => {
+  const response = (payload as { response?: Record<string, unknown> }).response;
+  return response ?? payload;
 };
 
 const buildShotstackHeaders = (apiKey: string) => {
@@ -74,9 +82,14 @@ export const composeWithShotstack = async (input: {
 }): Promise<Record<string, unknown>> => {
   const secret = await getSecretJson<ShotstackSecret>(input.secretId);
   const rawKey = `logs/${input.jobId}/composition/shotstack-request.json`;
+  const shotstackEdit = mapRenderPlanToShotstackEdit(input.renderPlan);
 
   if (!secret?.apiKey) {
-    await putJsonToS3(rawKey, { mocked: true, renderPlan: input.renderPlan });
+    await putJsonToS3(rawKey, {
+      mocked: true,
+      renderPlan: input.renderPlan,
+      shotstackEdit,
+    });
     return {
       provider: "mock",
       mocked: true,
@@ -91,7 +104,7 @@ export const composeWithShotstack = async (input: {
   const submitted = await submitShotstackRender({
     endpoint,
     apiKey: secret.apiKey,
-    renderPlan: input.renderPlan,
+    renderPlan: shotstackEdit,
   });
   const renderId =
     (submitted as { response?: { id?: string } }).response?.id ?? null;
@@ -105,9 +118,20 @@ export const composeWithShotstack = async (input: {
     });
   }
   await putJsonToS3(rawKey, {
+    edit: shotstackEdit,
     submit: submitted,
     final: payload,
   });
+
+  const resolvedPayload = getShotstackResponse(payload);
+  const videoUrl =
+    typeof resolvedPayload.url === "string" ? resolvedPayload.url : undefined;
+  const thumbnailUrl =
+    typeof resolvedPayload.thumbnail === "string"
+      ? resolvedPayload.thumbnail
+      : typeof resolvedPayload.poster === "string"
+        ? resolvedPayload.poster
+        : undefined;
 
   return {
     provider: "shotstack",
@@ -117,5 +141,7 @@ export const composeWithShotstack = async (input: {
     finalVideoS3Key: `rendered/${input.jobId}/final.mp4`,
     thumbnailS3Key: `rendered/${input.jobId}/thumbnail.jpg`,
     previewS3Key: `previews/${input.jobId}/preview.mp4`,
+    sourceVideoUrl: videoUrl,
+    sourceThumbnailUrl: thumbnailUrl,
   };
 };

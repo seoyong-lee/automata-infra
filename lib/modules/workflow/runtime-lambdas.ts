@@ -1,5 +1,6 @@
 import * as path from "path";
 import { Duration } from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
@@ -30,6 +31,7 @@ type CreateWorkflowLambdasProps = {
   jobsTable: dynamodb.Table;
   llmConfigTable: dynamodb.Table;
   reviewQueue: sqs.Queue;
+  previewDistribution: cloudfront.Distribution;
 };
 
 const createLambda = (
@@ -68,6 +70,8 @@ export const createWorkflowLambdas = (
     SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
     YOUTUBE_SECRETS_JSON: JSON.stringify(props.envConfig.youtubeSecrets ?? {}),
     CHANNEL_CONFIGS_JSON: JSON.stringify(props.envConfig.channelConfigs ?? {}),
+    PREVIEW_DISTRIBUTION_DOMAIN:
+      props.previewDistribution.distributionDomainName,
   };
 
   const lambdas: WorkflowLambdas = {

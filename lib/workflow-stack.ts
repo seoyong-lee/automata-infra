@@ -49,6 +49,7 @@ export class WorkflowStack extends Stack {
       jobsTable: this.jobsTable,
       llmConfigTable: props.llmConfigTable,
       reviewQueue: queues.reviewQueue,
+      previewDistribution: props.previewDistribution,
     });
 
     const planTopic = new tasks.LambdaInvoke(this, "PlanTopic", {

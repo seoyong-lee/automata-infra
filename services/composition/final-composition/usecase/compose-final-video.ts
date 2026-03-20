@@ -6,6 +6,8 @@ type CompositionResult = Record<string, unknown> & {
   previewS3Key: string;
   provider: string;
   providerRenderId?: string | null;
+  sourceVideoUrl?: string;
+  sourceThumbnailUrl?: string;
 };
 
 export const composeFinalVideo = async (input: {
