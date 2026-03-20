@@ -5,8 +5,15 @@ type AuditOperation =
   | "adminJob"
   | "pendingReviews"
   | "jobTimeline"
+  | "jobDraft"
   | "llmSettings"
-  | "updateLlmStepSettings";
+  | "updateLlmStepSettings"
+  | "createDraftJob"
+  | "updateTopicSeed"
+  | "runTopicPlan"
+  | "runSceneJson"
+  | "updateSceneJson"
+  | "runAssetGeneration";
 
 type ResolverAuditLogInput = {
   operation: AuditOperation;

@@ -4,7 +4,10 @@ export type GraphqlResolverEvent<TArgs> = {
 };
 
 export type JobStatus =
+  | "DRAFT"
+  | "PLANNING"
   | "PLANNED"
+  | "SCENE_JSON_BUILDING"
   | "SCENE_JSON_READY"
   | "ASSET_GENERATING"
   | "ASSETS_READY"
@@ -43,6 +46,8 @@ export type AdminJobDto = {
   reviewRequestedAt?: string;
   uploadStatus?: UploadStatus;
   uploadVideoId?: string;
+  topicSeedS3Key?: string;
+  topicS3Key?: string;
 };
 
 export type ConnectionDto<T> = {
@@ -66,4 +71,50 @@ export type LlmStepSettingsDto = {
 
 export type LlmSettingsDto = {
   items: LlmStepSettingsDto[];
+};
+
+export type TopicSeedDto = {
+  channelId: string;
+  targetLanguage: string;
+  titleIdea: string;
+  targetDurationSec: number;
+  stylePreset: string;
+};
+
+export type SceneJsonSceneDto = {
+  sceneId: number;
+  durationSec: number;
+  narration: string;
+  imagePrompt: string;
+  videoPrompt?: string;
+  subtitle: string;
+  bgmMood?: string;
+  sfx?: string[];
+};
+
+export type SceneJsonDto = {
+  videoTitle: string;
+  language: string;
+  scenes: SceneJsonSceneDto[];
+};
+
+export type SceneAssetDto = {
+  sceneId: number;
+  imageS3Key?: string;
+  videoClipS3Key?: string;
+  voiceS3Key?: string;
+  durationSec?: number;
+  narration?: string;
+  subtitle?: string;
+  imagePrompt?: string;
+  videoPrompt?: string;
+  validationStatus?: string;
+};
+
+export type JobDraftDetailDto = {
+  job: AdminJobDto;
+  topicSeed?: TopicSeedDto;
+  topicPlan?: TopicSeedDto;
+  sceneJson?: SceneJsonDto;
+  assets: SceneAssetDto[];
 };

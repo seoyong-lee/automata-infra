@@ -12,6 +12,8 @@ import {
   SquareTerminal,
   ClipboardCheck,
   Cog,
+  WandSparkles,
+  FilePlus2,
 } from "lucide-react";
 
 type NavSection = {
@@ -30,7 +32,11 @@ const navSections: NavSection[] = [
   },
   {
     title: "운영",
-    items: [{ title: "리뷰", href: "/reviews", icon: ClipboardCheck }],
+    items: [
+      { title: "리뷰", href: "/reviews", icon: ClipboardCheck },
+      { title: "잡 목록", href: "/jobs", icon: WandSparkles },
+      { title: "새 잡", href: "/jobs/new", icon: FilePlus2 },
+    ],
   },
   {
     title: "시스템",
@@ -118,6 +124,12 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
                 className="text-muted-foreground hover:text-primary"
               >
                 Reviews
+              </Link>
+              <Link
+                href="/jobs"
+                className="text-muted-foreground hover:text-primary"
+              >
+                Jobs
               </Link>
               <Link
                 href="/settings"

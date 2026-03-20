@@ -1,0 +1,26 @@
+import {
+  getJobOrThrow,
+  getStoredSceneJson,
+  getStoredTopicPlan,
+  getStoredTopicSeed,
+  listStoredSceneAssets,
+} from "../../shared/repo/job-draft-store";
+import { mapJobDraftDetail } from "../../shared/mapper/map-job-draft-detail";
+
+export const getJobDraft = async (jobId: string) => {
+  const job = await getJobOrThrow(jobId);
+  const [topicSeed, topicPlan, sceneJson, assets] = await Promise.all([
+    getStoredTopicSeed(job),
+    getStoredTopicPlan(job),
+    getStoredSceneJson(job),
+    listStoredSceneAssets(jobId),
+  ]);
+
+  return mapJobDraftDetail({
+    job,
+    topicSeed,
+    topicPlan,
+    sceneJson,
+    assets,
+  });
+};

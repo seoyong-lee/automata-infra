@@ -22,6 +22,8 @@ export type JobMetaItem = {
   reviewMode: boolean;
   retryCount: number;
   lastError: string | null;
+  topicSeedS3Key?: string;
+  topicS3Key?: string;
   sceneJsonS3Key?: string;
   renderPlanS3Key?: string;
   finalVideoS3Key?: string;

@@ -13,6 +13,7 @@ type Query {
   adminJob(jobId: ID!): AdminJob
   pendingReviews(limit: Int, nextToken: String): AdminReviewTaskConnection!
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
+  jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
 }
 
@@ -20,6 +21,12 @@ type Mutation {
   submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
+  createDraftJob(input: CreateDraftJobInput!): AdminJob!
+  updateTopicSeed(input: UpdateTopicSeedInput!): TopicSeed!
+  runTopicPlan(input: RunTopicPlanInput!): AdminJob!
+  runSceneJson(input: RunSceneJsonInput!): AdminJob!
+  updateSceneJson(input: UpdateSceneJsonInput!): JobDraftDetail!
+  runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
 }
 
 type AdminJob {
@@ -42,6 +49,54 @@ type AdminJob {
   reviewRequestedAt: AWSDateTime
   uploadStatus: UploadStatus
   uploadVideoId: String
+  topicSeedS3Key: String
+  topicS3Key: String
+}
+
+type TopicSeed {
+  channelId: String!
+  targetLanguage: String!
+  titleIdea: String!
+  targetDurationSec: Int!
+  stylePreset: String!
+}
+
+type SceneJsonScene {
+  sceneId: Int!
+  durationSec: Int!
+  narration: String!
+  imagePrompt: String!
+  videoPrompt: String
+  subtitle: String!
+  bgmMood: String
+  sfx: [String!]
+}
+
+type SceneJsonPayload {
+  videoTitle: String!
+  language: String!
+  scenes: [SceneJsonScene!]!
+}
+
+type SceneAsset {
+  sceneId: Int!
+  imageS3Key: String
+  videoClipS3Key: String
+  voiceS3Key: String
+  durationSec: Int
+  narration: String
+  subtitle: String
+  imagePrompt: String
+  videoPrompt: String
+  validationStatus: String
+}
+
+type JobDraftDetail {
+  job: AdminJob!
+  topicSeed: TopicSeed
+  topicPlan: TopicSeed
+  sceneJson: SceneJsonPayload
+  assets: [SceneAsset!]!
 }
 
 type AdminReviewTask {
@@ -116,6 +171,40 @@ input UpdateLlmStepSettingsInput {
   userPrompt: String!
 }
 
+input CreateDraftJobInput {
+  channelId: String!
+  targetLanguage: String!
+  titleIdea: String!
+  targetDurationSec: Int!
+  stylePreset: String!
+}
+
+input UpdateTopicSeedInput {
+  jobId: ID!
+  channelId: String!
+  targetLanguage: String!
+  titleIdea: String!
+  targetDurationSec: Int!
+  stylePreset: String!
+}
+
+input RunTopicPlanInput {
+  jobId: ID!
+}
+
+input RunSceneJsonInput {
+  jobId: ID!
+}
+
+input UpdateSceneJsonInput {
+  jobId: ID!
+  sceneJson: AWSJSON!
+}
+
+input RunAssetGenerationInput {
+  jobId: ID!
+}
+
 type UploadRequestResult {
   ok: Boolean!
   jobId: ID!
@@ -124,7 +213,10 @@ type UploadRequestResult {
 }
 
 enum JobStatus {
+  DRAFT
+  PLANNING
   PLANNED
+  SCENE_JSON_BUILDING
   SCENE_JSON_READY
   ASSET_GENERATING
   ASSETS_READY

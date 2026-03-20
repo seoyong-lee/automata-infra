@@ -18,6 +18,13 @@ type CreatePublishGraphqlApiProps = {
   requestUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
+  getJobDraftResolver: lambda.IFunction;
+  createDraftJobResolver: lambda.IFunction;
+  updateTopicSeedResolver: lambda.IFunction;
+  runTopicPlanResolver: lambda.IFunction;
+  runSceneJsonResolver: lambda.IFunction;
+  updateSceneJsonResolver: lambda.IFunction;
+  runAssetGenerationResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -87,6 +94,13 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "GetJobDraft",
+    "jobDraft",
+    "Query",
+    props.getJobDraftResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "SubmitReviewDecision",
     "submitReviewDecision",
     "Mutation",
@@ -112,6 +126,48 @@ export const createPublishGraphqlApi = (
     "updateLlmStepSettings",
     "Mutation",
     props.updateLlmSettingsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CreateDraftJob",
+    "createDraftJob",
+    "Mutation",
+    props.createDraftJobResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateTopicSeed",
+    "updateTopicSeed",
+    "Mutation",
+    props.updateTopicSeedResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunTopicPlan",
+    "runTopicPlan",
+    "Mutation",
+    props.runTopicPlanResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunSceneJson",
+    "runSceneJson",
+    "Mutation",
+    props.runSceneJsonResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateSceneJson",
+    "updateSceneJson",
+    "Mutation",
+    props.updateSceneJsonResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunAssetGeneration",
+    "runAssetGeneration",
+    "Mutation",
+    props.runAssetGenerationResolver,
   );
 
   return {

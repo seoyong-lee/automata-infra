@@ -47,5 +47,7 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     reviewRequestedAt: job.reviewRequestedAt,
     uploadStatus: toUploadStatus(job.uploadStatus),
     uploadVideoId: job.uploadVideoId,
+    topicSeedS3Key: job.topicSeedS3Key,
+    topicS3Key: job.topicS3Key,
   };
 };

@@ -3,6 +3,7 @@ import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
+import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as s3 from "aws-cdk-lib/aws-s3";
@@ -60,6 +61,9 @@ export class PublishStack extends Stack {
       JOBS_TABLE_NAME: props.jobsTable.tableName,
       CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
       REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
+      OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
+      RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
+      ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
     };
 
     const reviewHandler = createLambda(
@@ -149,6 +153,69 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const getJobDraftResolver = createLambda(
+      this,
+      "AdminGetJobDraftResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/get-job-draft/handler.ts",
+      ),
+      environment,
+    );
+    const createDraftJobResolver = createLambda(
+      this,
+      "AdminCreateDraftJobResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/create-draft-job/handler.ts",
+      ),
+      environment,
+    );
+    const updateTopicSeedResolver = createLambda(
+      this,
+      "AdminUpdateTopicSeedResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/update-topic-seed/handler.ts",
+      ),
+      environment,
+    );
+    const runTopicPlanResolver = createLambda(
+      this,
+      "AdminRunTopicPlanResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/run-topic-plan/handler.ts",
+      ),
+      environment,
+    );
+    const runSceneJsonResolver = createLambda(
+      this,
+      "AdminRunSceneJsonResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/run-scene-json/handler.ts",
+      ),
+      environment,
+    );
+    const updateSceneJsonResolver = createLambda(
+      this,
+      "AdminUpdateSceneJsonResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/update-scene-json/handler.ts",
+      ),
+      environment,
+    );
+    const runAssetGenerationResolver = createLambda(
+      this,
+      "AdminRunAssetGenerationResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/run-asset-generation/handler.ts",
+      ),
+      environment,
+    );
 
     props.assetsBucket.grantReadWrite(reviewHandler);
     props.assetsBucket.grantReadWrite(uploadHandler);
@@ -164,9 +231,59 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(jobTimelineResolver);
     props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
     props.jobsTable.grantReadWriteData(requestUploadResolver);
+    props.jobsTable.grantReadWriteData(getJobDraftResolver);
+    props.jobsTable.grantReadWriteData(createDraftJobResolver);
+    props.jobsTable.grantReadWriteData(updateTopicSeedResolver);
+    props.jobsTable.grantReadWriteData(runTopicPlanResolver);
+    props.jobsTable.grantReadWriteData(runSceneJsonResolver);
+    props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
+    props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
+    props.assetsBucket.grantReadWrite(getJobDraftResolver);
+    props.assetsBucket.grantReadWrite(createDraftJobResolver);
+    props.assetsBucket.grantReadWrite(updateTopicSeedResolver);
+    props.assetsBucket.grantReadWrite(runTopicPlanResolver);
+    props.assetsBucket.grantReadWrite(runSceneJsonResolver);
+    props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
+    props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
+    runTopicPlanResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    runSceneJsonResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    runAssetGenerationResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    runTopicPlanResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      }),
+    );
+    runSceneJsonResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      }),
+    );
 
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,
@@ -190,6 +307,13 @@ export class PublishStack extends Stack {
       requestUploadResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
+      getJobDraftResolver,
+      createDraftJobResolver,
+      updateTopicSeedResolver,
+      runTopicPlanResolver,
+      runSceneJsonResolver,
+      updateSceneJsonResolver,
+      runAssetGenerationResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

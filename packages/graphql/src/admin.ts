@@ -11,7 +11,10 @@ import { UnauthorizedError } from "./client/errors";
 export type AdminJob = {
   jobId: string;
   status:
+    | "DRAFT"
+    | "PLANNING"
     | "PLANNED"
+    | "SCENE_JSON_BUILDING"
     | "SCENE_JSON_READY"
     | "ASSET_GENERATING"
     | "ASSETS_READY"
@@ -27,7 +30,22 @@ export type AdminJob = {
     | "METRICS_COLLECTED";
   reviewAction?: "PENDING" | "APPROVE" | "REJECT" | "REGENERATE" | null;
   channelId: string;
+  topicId: string;
+  language: string;
+  targetDurationSec: number;
+  retryCount: number;
+  createdAt: string;
   videoTitle: string;
+  sceneJsonS3Key?: string | null;
+  renderPlanS3Key?: string | null;
+  finalVideoS3Key?: string | null;
+  thumbnailS3Key?: string | null;
+  previewS3Key?: string | null;
+  reviewRequestedAt?: string | null;
+  uploadStatus?: string | null;
+  uploadVideoId?: string | null;
+  topicSeedS3Key?: string | null;
+  topicS3Key?: string | null;
   updatedAt: string;
 };
 
@@ -39,6 +57,52 @@ export type PendingReview = {
 };
 
 export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
+
+export type TopicSeed = {
+  channelId: string;
+  targetLanguage: string;
+  titleIdea: string;
+  targetDurationSec: number;
+  stylePreset: string;
+};
+
+export type SceneJsonScene = {
+  sceneId: number;
+  durationSec: number;
+  narration: string;
+  imagePrompt: string;
+  videoPrompt?: string | null;
+  subtitle: string;
+  bgmMood?: string | null;
+  sfx?: string[] | null;
+};
+
+export type SceneJsonPayload = {
+  videoTitle: string;
+  language: string;
+  scenes: SceneJsonScene[];
+};
+
+export type SceneAsset = {
+  sceneId: number;
+  imageS3Key?: string | null;
+  videoClipS3Key?: string | null;
+  voiceS3Key?: string | null;
+  durationSec?: number | null;
+  narration?: string | null;
+  subtitle?: string | null;
+  imagePrompt?: string | null;
+  videoPrompt?: string | null;
+  validationStatus?: string | null;
+};
+
+export type JobDraftDetail = {
+  job: AdminJob;
+  topicSeed?: TopicSeed | null;
+  topicPlan?: TopicSeed | null;
+  sceneJson?: SceneJsonPayload | null;
+  assets: SceneAsset[];
+};
 
 export type LlmStepSettings = {
   stepKey: string;
@@ -109,6 +173,76 @@ const llmSettingsQuery = `
   }
 `;
 
+const jobDraftQuery = `
+  query JobDraft($jobId: ID!) {
+    jobDraft(jobId: $jobId) {
+      job {
+        jobId
+        status
+        reviewAction
+        channelId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        updatedAt
+        videoTitle
+        sceneJsonS3Key
+        renderPlanS3Key
+        finalVideoS3Key
+        thumbnailS3Key
+        previewS3Key
+        reviewRequestedAt
+        uploadStatus
+        uploadVideoId
+        topicSeedS3Key
+        topicS3Key
+      }
+      topicSeed {
+        channelId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+      }
+      topicPlan {
+        channelId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+      }
+    }
+  }
+`;
+
 const submitReviewMutation = `
   mutation SubmitReviewDecision($input: SubmitReviewDecisionInput!) {
     submitReviewDecision(input: $input) {
@@ -146,6 +280,144 @@ const updateLlmStepSettingsMutation = `
       userPrompt
       updatedAt
       updatedBy
+    }
+  }
+`;
+
+const createDraftJobMutation = `
+  mutation CreateDraftJob($input: CreateDraftJobInput!) {
+    createDraftJob(input: $input) {
+      jobId
+      status
+      channelId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      updatedAt
+      videoTitle
+      topicSeedS3Key
+      topicS3Key
+    }
+  }
+`;
+
+const updateTopicSeedMutation = `
+  mutation UpdateTopicSeed($input: UpdateTopicSeedInput!) {
+    updateTopicSeed(input: $input) {
+      channelId
+      targetLanguage
+      titleIdea
+      targetDurationSec
+      stylePreset
+    }
+  }
+`;
+
+const runTopicPlanMutation = `
+  mutation RunTopicPlan($input: RunTopicPlanInput!) {
+    runTopicPlan(input: $input) {
+      jobId
+      status
+      updatedAt
+      topicS3Key
+      videoTitle
+      channelId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+    }
+  }
+`;
+
+const runSceneJsonMutation = `
+  mutation RunSceneJson($input: RunSceneJsonInput!) {
+    runSceneJson(input: $input) {
+      jobId
+      status
+      updatedAt
+      sceneJsonS3Key
+      videoTitle
+      channelId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+    }
+  }
+`;
+
+const updateSceneJsonMutation = `
+  mutation UpdateSceneJson($input: UpdateSceneJsonInput!) {
+    updateSceneJson(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        sceneJsonS3Key
+        channelId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        channelId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+      }
+      topicPlan {
+        channelId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+      }
+    }
+  }
+`;
+
+const runAssetGenerationMutation = `
+  mutation RunAssetGeneration($input: RunAssetGenerationInput!) {
+    runAssetGeneration(input: $input) {
+      jobId
+      status
+      updatedAt
+      channelId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      videoTitle
     }
   }
 `;
@@ -252,6 +524,31 @@ export const useLlmSettingsQuery = (
   });
 };
 
+export const useJobDraftQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      JobDraftDetail | null,
+      Error,
+      JobDraftDetail | null,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["jobDraft", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{ jobDraft: JobDraftDetail | null }>(
+        jobDraftQuery,
+        vars,
+      );
+      return data.jobDraft;
+    },
+    ...options,
+  });
+};
+
 export const useSubmitReviewDecisionMutation = (
   options?: UseMutationOptions<
     { submitReviewDecision: { ok: boolean; status: string } },
@@ -315,6 +612,100 @@ export const useUpdateLlmStepSettingsMutation = (
         updateLlmStepSettingsMutation,
         { input },
       );
+    },
+    ...options,
+  });
+};
+
+export const useCreateDraftJobMutation = (
+  options?: UseMutationOptions<{ createDraftJob: AdminJob }, Error, TopicSeed>,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ createDraftJob: AdminJob }>(createDraftJobMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateTopicSeedMutation = (
+  options?: UseMutationOptions<
+    { updateTopicSeed: TopicSeed },
+    Error,
+    TopicSeed & { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ updateTopicSeed: TopicSeed }>(updateTopicSeedMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useRunTopicPlanMutation = (
+  options?: UseMutationOptions<
+    { runTopicPlan: AdminJob },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ runTopicPlan: AdminJob }>(runTopicPlanMutation, { input });
+    },
+    ...options,
+  });
+};
+
+export const useRunSceneJsonMutation = (
+  options?: UseMutationOptions<
+    { runSceneJson: AdminJob },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ runSceneJson: AdminJob }>(runSceneJsonMutation, { input });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateSceneJsonMutation = (
+  options?: UseMutationOptions<
+    { updateSceneJson: JobDraftDetail },
+    Error,
+    { jobId: string; sceneJson: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ updateSceneJson: JobDraftDetail }>(updateSceneJsonMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useRunAssetGenerationMutation = (
+  options?: UseMutationOptions<
+    { runAssetGeneration: AdminJob },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ runAssetGeneration: AdminJob }>(runAssetGenerationMutation, {
+        input,
+      });
     },
     ...options,
   });
