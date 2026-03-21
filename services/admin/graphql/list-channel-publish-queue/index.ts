@@ -32,7 +32,7 @@ export const run: Handler<
       phase: "succeeded",
       actor,
     });
-    return result;
+    return Array.isArray(result) ? result : [];
   } catch (error) {
     const mapped = toGraphqlResolverError(error);
     logResolverAudit({

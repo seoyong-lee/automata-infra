@@ -977,10 +977,21 @@ export const useChannelPublishQueueQuery = (
   return useQuery({
     queryKey: ["channelPublishQueue", vars.contentId],
     queryFn: async () => {
-      const data = await gql<{
-        channelPublishQueue: ChannelPublishQueueItem[];
-      }>(channelPublishQueueQuery, vars);
-      return data.channelPublishQueue;
+      try {
+        const data = await gql<{
+          channelPublishQueue: ChannelPublishQueueItem[] | null;
+        }>(channelPublishQueueQuery, vars);
+        return data.channelPublishQueue ?? [];
+      } catch (e) {
+        const msg = e instanceof Error ? e.message : String(e);
+        if (
+          /channelPublishQueue/i.test(msg) &&
+          (/non-nullable|null/i.test(msg) || /Cannot return null/i.test(msg))
+        ) {
+          return [];
+        }
+        throw e;
+      }
     },
     enabled: Boolean(vars.contentId),
     ...options,

@@ -29,8 +29,9 @@ type Query {
   llmSettings: LlmSettings!
   """
   채널(콘텐츠)별 출고 대기 큐. 제작 완료 후 편성·예약 발행 전 단계.
+  필드는 null 허용(리졸버 미배포·일시 실패 시) — 클라이언트는 빈 배열로 처리.
   """
-  channelPublishQueue(contentId: ID!): [ChannelPublishQueueItem!]!
+  channelPublishQueue(contentId: ID!): [ChannelPublishQueueItem!]
 }
 
 type Mutation {
