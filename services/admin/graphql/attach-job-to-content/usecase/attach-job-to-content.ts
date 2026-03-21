@@ -37,7 +37,9 @@ export const attachAdminJobToContent = async (
   }
 
   if (!isUnattached(job.contentId)) {
-    throw badUserInput("job is already attached to a content");
+    throw badUserInput(
+      "이미 채널에 연결된 제작 아이템은 다른 채널로 옮기거나 중복 연결할 수 없습니다.",
+    );
   }
 
   if (job.topicSeedS3Key) {

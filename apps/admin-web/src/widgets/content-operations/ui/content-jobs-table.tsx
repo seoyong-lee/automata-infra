@@ -9,7 +9,7 @@ import { useMemo } from 'react';
 
 import type { ColumnDef } from '@tanstack/react-table';
 
-import { createContentJobsColumns } from './content-jobs-columns';
+import { createContentJobsColumns, type ContentJobsColumnsOptions } from './content-jobs-columns';
 
 type Props = {
   jobs: AdminJob[];
@@ -18,6 +18,8 @@ type Props = {
   contentId?: string;
   /** 지정 시 위 규칙 대신 이 URL로 새 제작 아이템 생성 링크를 둔다. */
   newJobHrefOverride?: string;
+  /** 카탈로그와 맞추면 연결 채널 열에 이름·링크가 보인다. */
+  channelLabelById?: ContentJobsColumnsOptions['channelLabelById'];
   /** 행 우측 액션(예: 미연결 제작 아이템 → 채널 연결). */
   renderJobAction?: (job: AdminJob) => ReactNode;
 };
@@ -26,10 +28,10 @@ function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName 
   switch (columnId) {
     case 'status':
       return { header: 'min-w-[140px]' };
-    case 'contentType':
-      return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
     case 'contentId':
       return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
+    case 'contentType':
+      return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
     case 'targetDurationSec':
       return { header: 'text-right [&_button]:ml-auto', cell: 'text-right' };
     case 'updatedAt':
@@ -48,11 +50,12 @@ export function ContentJobsTable({
   isLoading,
   contentId,
   newJobHrefOverride,
+  channelLabelById,
   renderJobAction,
 }: Props) {
   const router = useRouter();
   const columns = useMemo((): ColumnDef<AdminJob>[] => {
-    const base = createContentJobsColumns();
+    const base = createContentJobsColumns({ channelLabelById });
     if (!renderJobAction) {
       return base;
     }
@@ -68,7 +71,7 @@ export function ContentJobsTable({
         ),
       },
     ];
-  }, [renderJobAction]);
+  }, [renderJobAction, channelLabelById]);
 
   const newJobHref =
     newJobHrefOverride ??

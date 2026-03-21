@@ -417,6 +417,59 @@ export const listJobMetasByStatus = async (input: {
   });
 };
 
+/** Admin 목록: 상태별 GSI1을 병렬 조회한 뒤 updatedAt 기준으로 합쳐 최근 N건. (글로벌 정렬은 각 상태에서 최대 `limit`건까지 가져온 뒤 합치므로 근사치) */
+const ALL_JOB_STATUSES_FOR_ADMIN: readonly string[] = [
+  "DRAFT",
+  "PLANNING",
+  "PLANNED",
+  "SCENE_JSON_BUILDING",
+  "SCENE_JSON_READY",
+  "ASSET_GENERATING",
+  "ASSETS_READY",
+  "VALIDATING",
+  "RENDER_PLAN_READY",
+  "RENDERED",
+  "REVIEW_PENDING",
+  "APPROVED",
+  "REJECTED",
+  "UPLOAD_QUEUED",
+  "UPLOADED",
+  "FAILED",
+  "METRICS_COLLECTED",
+];
+
+export const listJobMetasMergedByRecent = async (input: {
+  limit: number;
+  nextToken?: string;
+}): Promise<QueryPage<JobMetaItem>> => {
+  if (input.nextToken) {
+    return { items: [], nextToken: null };
+  }
+  const perStatusLimit = input.limit;
+  const pages = await Promise.all(
+    ALL_JOB_STATUSES_FOR_ADMIN.map((status) =>
+      listJobMetasByStatus({
+        status,
+        limit: perStatusLimit,
+        nextToken: undefined,
+      }),
+    ),
+  );
+  const byId = new Map<string, JobMetaItem>();
+  for (const page of pages) {
+    for (const item of page.items) {
+      byId.set(item.jobId, item);
+    }
+  }
+  const merged = [...byId.values()].sort(
+    (a, b) => new Date(b.updatedAt).getTime() - new Date(a.updatedAt).getTime(),
+  );
+  return {
+    items: merged.slice(0, input.limit),
+    nextToken: null,
+  };
+};
+
 /** GSI2 — 레거시 식별자(비 cnt_) 또는 구버전 CHANNEL# 파티션 조회 */
 export const listJobMetasByGsi2Partition = async (input: {
   partitionId: string;

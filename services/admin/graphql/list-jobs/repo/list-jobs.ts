@@ -3,6 +3,7 @@ import {
   listJobMetasByContentId,
   listJobMetasByGsi2Partition,
   listJobMetasByStatus,
+  listJobMetasMergedByRecent,
 } from "../../../../shared/lib/store/video-jobs";
 
 export const listJobs = async (input: {
@@ -35,8 +36,7 @@ export const listJobs = async (input: {
       nextToken: input.nextToken,
     });
   }
-  return listJobMetasByStatus({
-    status: "REVIEW_PENDING",
+  return listJobMetasMergedByRecent({
     limit: input.limit,
     nextToken: input.nextToken,
   });

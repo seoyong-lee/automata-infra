@@ -11,7 +11,8 @@ type Query {
   adminJobs(
     status: JobStatus
     """
-    특정 콘텐츠 하위 잡만 조회(cnt_… 또는 레거시 식별자)
+    특정 채널(contentId) 하위 제작 아이템만 조회(cnt_… 또는 레거시 식별자).
+    생략하고 status 도 생략하면 전체 상태를 병합해 최근 수정 순으로 반환한다.
     """
     contentId: String
     limit: Int

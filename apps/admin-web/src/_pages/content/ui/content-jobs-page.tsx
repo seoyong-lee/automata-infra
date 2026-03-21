@@ -19,6 +19,14 @@ function ContentJobsPageBody() {
     return contentsQuery.data?.items.find((c) => c.contentId === contentId)?.label;
   }, [contentsQuery.data?.items, contentId]);
 
+  const channelLabelById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of contentsQuery.data?.items ?? []) {
+      m[c.contentId] = c.label;
+    }
+    return m;
+  }, [contentsQuery.data?.items]);
+
   const sortedJobs = useMemo(() => {
     const items = jobsQuery.data?.items ?? [];
     return [...items].sort(
@@ -49,7 +57,12 @@ function ContentJobsPageBody() {
         />
       </div>
 
-      <ContentJobsTable jobs={sortedJobs} isLoading={jobsQuery.isLoading} contentId={contentId} />
+      <ContentJobsTable
+        jobs={sortedJobs}
+        isLoading={jobsQuery.isLoading}
+        contentId={contentId}
+        channelLabelById={channelLabelById}
+      />
     </div>
   );
 }

@@ -1,10 +1,17 @@
 'use client';
 
+import { ADMIN_UNASSIGNED_CONTENT_ID } from '@packages/graphql';
 import { Badge } from '@packages/ui/badge';
+import Link from 'next/link';
 import type { ColumnDef } from '@tanstack/react-table';
 
 import type { AdminJob } from '@/entities/admin-job';
 import { DataTableColumnHeader } from '@/shared/ui/data-table-column-header';
+
+export type ContentJobsColumnsOptions = {
+  /** contentId → 채널 표시 이름(카탈로그와 동기). 없으면 ID만 표시. */
+  channelLabelById?: Record<string, string>;
+};
 
 function formatUpdatedAt(iso: string) {
   try {
@@ -20,7 +27,10 @@ function formatUpdatedAt(iso: string) {
   }
 }
 
-export function createContentJobsColumns(): ColumnDef<AdminJob>[] {
+export function createContentJobsColumns(
+  options?: ContentJobsColumnsOptions,
+): ColumnDef<AdminJob>[] {
+  const channelLabelById = options?.channelLabelById ?? {};
   return [
     {
       accessorKey: 'status',
@@ -41,6 +51,44 @@ export function createContentJobsColumns(): ColumnDef<AdminJob>[] {
         </span>
       ),
       filterFn: 'includesString',
+    },
+    {
+      accessorKey: 'contentId',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="연결 채널" />,
+      cell: ({ row }) => {
+        const id = row.original.contentId;
+        if (!id || id === ADMIN_UNASSIGNED_CONTENT_ID) {
+          return <span className="text-muted-foreground">미연결</span>;
+        }
+        const label = channelLabelById[id];
+        const href = `/content/${encodeURIComponent(id)}/jobs`;
+        return (
+          <div className="flex min-w-0 max-w-[min(20rem,40vw)] flex-col gap-0.5">
+            {label ? (
+              <Link
+                href={href}
+                className="truncate font-medium hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {label}
+              </Link>
+            ) : (
+              <Link
+                href={href}
+                className="truncate font-mono text-xs hover:underline"
+                onClick={(e) => e.stopPropagation()}
+              >
+                {id}
+              </Link>
+            )}
+            {label ? (
+              <span className="truncate font-mono text-[11px] text-muted-foreground" title={id}>
+                {id}
+              </span>
+            ) : null}
+          </div>
+        );
+      },
     },
     {
       accessorKey: 'contentType',

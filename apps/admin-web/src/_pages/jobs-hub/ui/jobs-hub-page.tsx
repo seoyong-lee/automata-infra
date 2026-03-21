@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@packages/ui';
 import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { ADMIN_UNASSIGNED_CONTENT_ID } from '@packages/graphql';
@@ -17,8 +16,7 @@ import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 function JobsHubPageBody() {
   const queryClient = useQueryClient();
   const jobsQuery = useAdminJobs({
-    contentId: ADMIN_UNASSIGNED_CONTENT_ID,
-    limit: 100,
+    limit: 200,
   });
   const contentsQuery = useAdminContents({ limit: 200 });
 
@@ -42,11 +40,19 @@ function JobsHubPageBody() {
 
   const contentOptions = contentsQuery.data?.items ?? [];
 
+  const channelLabelById = useMemo(() => {
+    const m: Record<string, string> = {};
+    for (const c of contentOptions) {
+      m[c.contentId] = c.label;
+    }
+    return m;
+  }, [contentOptions]);
+
   return (
     <div className="space-y-8">
       <AdminPageHeader
         title="제작 아이템"
-        subtitle="채널에 아직 연결하지 않은 한 편 단위 작업입니다. 준비되면 채널에 연결하거나, 채널 상세에서 바로 만들 수도 있습니다."
+        subtitle="미연결·채널에 연결된 제작 아이템을 한 목록에서 봅니다. 연결된 항목은 어떤 채널에 붙어 있는지 표시됩니다. 한 번 연결된 뒤에는 다른 채널로 옮길 수 없습니다(재연결·중복 연결 불가)."
       />
 
       {linkJobId ? (
@@ -110,24 +116,30 @@ function JobsHubPageBody() {
         jobs={sortedJobs}
         isLoading={jobsQuery.isLoading}
         newJobHrefOverride="/jobs/new"
-        renderJobAction={(job) => (
-          <Button
-            type="button"
-            variant="secondary"
-            size="sm"
-            onClick={() => setLinkJobId(job.jobId)}
-          >
-            채널에 연결
-          </Button>
-        )}
+        channelLabelById={channelLabelById}
+        renderJobAction={(job) =>
+          !job.contentId || job.contentId === ADMIN_UNASSIGNED_CONTENT_ID ? (
+            <Button
+              type="button"
+              variant="secondary"
+              size="sm"
+              onClick={() => setLinkJobId(job.jobId)}
+            >
+              채널에 연결
+            </Button>
+          ) : null
+        }
       />
 
       <p className="text-sm text-muted-foreground">
         <Link href="/content" className="text-foreground underline underline-offset-4">
           채널
         </Link>
-        에서 채널을 등록한 뒤, 여기서 제작 아이템을 연결하거나 채널별 제작 아이템 목록에서 작업할 수
-        있습니다.
+        을 등록한 뒤 미연결 항목에 붙이거나,{' '}
+        <Link href="/content" className="text-foreground underline underline-offset-4">
+          채널 상세
+        </Link>
+        의 제작 아이템 목록에서 채널별로 작업할 수도 있습니다.
       </p>
     </div>
   );

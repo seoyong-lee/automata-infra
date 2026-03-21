@@ -5,7 +5,7 @@ export const parseListJobsArgs = (args: Record<string, unknown>) => {
     nextToken: typeof args.nextToken === "string" ? args.nextToken : undefined,
     limit:
       typeof args.limit === "number" && args.limit > 0
-        ? Math.min(args.limit, 100)
+        ? Math.min(args.limit, 200)
         : 20,
   };
 };
