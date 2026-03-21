@@ -1,6 +1,7 @@
 import {
   type AdminJob,
   useAdminJobsQuery,
+  useAttachJobToContentMutation,
   useCreateDraftJobMutation,
   usePendingReviewsQuery,
   useRequestUploadMutation,
@@ -18,3 +19,4 @@ export const useCreateDraftJob = useCreateDraftJobMutation;
 export const usePendingReviews = usePendingReviewsQuery;
 export const useRequestJobUpload = useRequestUploadMutation;
 export const useSubmitReviewDecision = useSubmitReviewDecisionMutation;
+export const useAttachJobToContent = useAttachJobToContentMutation;

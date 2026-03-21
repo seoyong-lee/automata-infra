@@ -1,4 +1,4 @@
-import type { ContentJobDraftDetail } from '@/entities/content-job';
+import type { ContentJobDraftDetail, SeedForm } from '@/entities/content-job';
 
 export type WorkspaceView =
   | 'ideation'
@@ -9,13 +9,7 @@ export type WorkspaceView =
   | 'review'
   | 'upload';
 
-export type SeedForm = {
-  contentId: string;
-  targetLanguage: string;
-  titleIdea: string;
-  targetDurationSec: string;
-  stylePreset: string;
-};
+export type { SeedForm };
 
 export type JobDraftDetail = ContentJobDraftDetail;
 

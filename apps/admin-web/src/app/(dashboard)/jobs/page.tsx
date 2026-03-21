@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { JobsHubPage } from '@/_pages/jobs-hub';
 
 export default function JobsRoute() {
-  redirect('/content');
+  return <JobsHubPage />;
 }

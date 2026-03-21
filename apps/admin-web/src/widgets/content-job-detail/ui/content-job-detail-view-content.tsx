@@ -22,6 +22,7 @@ function ContentJobDetailIdeationView({ pageData }: { pageData: ContentJobDetail
     <ContentJobDetailSeedFormPanel
       key={detailVm.seedFormKey}
       initialValue={detailVm.seedFormInitialValue}
+      hasTopicPlan={Boolean(pageData.detail?.job.topicS3Key)}
       isRunningTopicPlan={pageData.isRunningTopicPlan}
       isSaving={pageData.isSavingTopicSeed}
       onRunTopicPlan={pageData.runTopicPlan}

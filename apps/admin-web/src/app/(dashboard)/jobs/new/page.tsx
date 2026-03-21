@@ -1,5 +1,5 @@
-import { redirect } from 'next/navigation';
+import { StandaloneCreateJobPage } from '@/_pages/jobs-hub';
 
-export default function NewJobRoute() {
-  redirect('/content');
+export default function StandaloneNewJobRoute() {
+  return <StandaloneCreateJobPage />;
 }

@@ -5,10 +5,9 @@ import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { Input } from '@packages/ui/input';
 import { getErrorMessage } from '@packages/utils';
 import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { ChangeEvent, Suspense, useMemo, useState } from 'react';
+import { useRouter } from 'next/navigation';
+import { ChangeEvent, Suspense, useState } from 'react';
 
-import { useAdminContents } from '@/entities/admin-content';
 import { useCreateDraftJob } from '@/entities/admin-job';
 import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
@@ -22,15 +21,8 @@ type DraftForm = {
   publishAt: string;
 };
 
-function CreateJobInContentContent() {
+function StandaloneCreateJobContent() {
   const router = useRouter();
-  const params = useParams();
-  const contentId = typeof params.contentId === 'string' ? params.contentId : '';
-  const contentsQuery = useAdminContents({ limit: 100 });
-  const content = useMemo(
-    () => contentsQuery.data?.items.find((c) => c.contentId === contentId),
-    [contentsQuery.data?.items, contentId],
-  );
 
   const [form, setForm] = useState<DraftForm>({
     targetLanguage: 'ko',
@@ -54,28 +46,13 @@ function CreateJobInContentContent() {
     }));
   };
 
-  const jobsListHref = `/content/${encodeURIComponent(contentId)}/jobs`;
-
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <AdminPageBack href={jobsListHref} label="이 콘텐츠 잡 목록으로" />
+        <AdminPageBack href="/jobs" label="잡 목록으로" />
         <AdminPageHeader
-          eyebrow={
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/content" className="hover:text-foreground">
-                콘텐츠 관리
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <Link href={jobsListHref} className="hover:text-foreground">
-                {content?.label ?? contentId}
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground">새 잡</span>
-            </div>
-          }
-          title="제작 잡 만들기"
-          subtitle="한 번에 잡을 만들고 토픽 플랜까지 완료합니다. 이후 스크립트·에셋·업로드로 이어갑니다."
+          title="잡 만들기"
+          subtitle="잡을 만듭니다. 채널은 이후 잡 목록에서 연결할 수 있습니다."
         />
       </div>
 
@@ -84,21 +61,7 @@ function CreateJobInContentContent() {
           <CardTitle>잡·토픽 정보</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
-          {!contentsQuery.isLoading && !content ? (
-            <p className="text-sm text-destructive">
-              이 contentId에 해당하는 콘텐츠를 찾을 수 없습니다.{' '}
-              <Link href="/content" className="underline">
-                목록으로
-              </Link>
-            </p>
-          ) : null}
-
           <div className="grid gap-4 md:grid-cols-2">
-            <div className="rounded-lg border p-4 text-sm md:col-span-2">
-              <p className="text-xs text-muted-foreground">콘텐츠</p>
-              <p className="mt-1 font-medium">{content?.label ?? '…'}</p>
-              <p className="mt-1 font-mono text-xs text-muted-foreground">{content?.contentId}</p>
-            </div>
             <label className="space-y-2 text-sm">
               <span className="font-medium">언어</span>
               <Input value={form.targetLanguage} onChange={onInput('targetLanguage')} />
@@ -112,7 +75,7 @@ function CreateJobInContentContent() {
               />
             </label>
             <label className="space-y-2 text-sm md:col-span-2">
-              <span className="font-medium">제목 아이디어</span>
+              <span className="font-medium">아이디어 제목</span>
               <Input value={form.titleIdea} onChange={onInput('titleIdea')} />
             </label>
             <label className="space-y-2 text-sm md:col-span-2">
@@ -131,10 +94,9 @@ function CreateJobInContentContent() {
 
           <div className="flex flex-wrap gap-2">
             <Button
-              disabled={mutation.isPending || !content || !form.titleIdea.trim()}
+              disabled={mutation.isPending || !form.titleIdea.trim()}
               onClick={() =>
                 mutation.mutate({
-                  contentId,
                   targetLanguage: form.targetLanguage,
                   titleIdea: form.titleIdea.trim(),
                   targetDurationSec: Number(form.targetDurationSec),
@@ -148,7 +110,7 @@ function CreateJobInContentContent() {
               {mutation.isPending ? '생성 중…' : '잡 만들기 (토픽 플랜 포함)'}
             </Button>
             <Link
-              href={jobsListHref}
+              href="/jobs"
               className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
             >
               취소
@@ -163,19 +125,19 @@ function CreateJobInContentContent() {
   );
 }
 
-export function CreateJobInContentPage() {
+export function StandaloneCreateJobPage() {
   return (
     <Suspense
       fallback={
         <div className="space-y-6">
           <div className="space-y-3">
-            <AdminPageBack href="/content" label="콘텐츠 목록으로" />
-            <AdminPageHeader title="제작 잡 만들기" subtitle="불러오는 중…" />
+            <AdminPageBack href="/jobs" label="잡 목록으로" />
+            <AdminPageHeader title="미연결 잡 만들기" subtitle="불러오는 중…" />
           </div>
         </div>
       }
     >
-      <CreateJobInContentContent />
+      <StandaloneCreateJobContent />
     </Suspense>
   );
 }

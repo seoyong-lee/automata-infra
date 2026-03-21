@@ -8,6 +8,8 @@ import {
   useUpdateTopicSeedMutation,
 } from '@packages/graphql';
 
+export type { SeedForm } from './seed-form';
+
 export type ContentJobDraftDetail = NonNullable<ReturnType<typeof useJobDraftQuery>['data']>;
 
 export const useContentJobDraft = useJobDraftQuery;

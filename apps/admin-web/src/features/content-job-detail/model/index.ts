@@ -6,10 +6,4 @@ export type CompareRow = {
   score: number;
 };
 
-export type SeedForm = {
-  contentId: string;
-  targetLanguage: string;
-  titleIdea: string;
-  targetDurationSec: string;
-  stylePreset: string;
-};
+export type { SeedForm } from '@/entities/content-job';

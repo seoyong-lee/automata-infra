@@ -29,7 +29,7 @@ export function ContentJobDetailPage() {
   const rawStep = params?.step;
   const stepParam = Array.isArray(rawStep) ? rawStep[0] : rawStep;
   const parsedTab = parseDetailWorkspaceTabParam(stepParam);
-  const activeTab = parsedTab ?? 'script';
+  const activeTab = parsedTab ?? 'ideation';
   const activeView: WorkspaceView = detailTabKeyToWorkspaceView(activeTab);
 
   useEffect(() => {
@@ -41,7 +41,7 @@ export function ContentJobDetailPage() {
       return;
     }
     if (!stepParam || !parseDetailWorkspaceTabParam(stepParam)) {
-      router.replace(`/jobs/${jobId}/script`);
+      router.replace(`/jobs/${jobId}/ideation`);
     }
   }, [jobId, router, stepParam]);
 
@@ -54,17 +54,11 @@ export function ContentJobDetailPage() {
       <div className="space-y-3">
         <AdminPageHeader
           backHref={pageData.detailVm.contentLineHref}
-          eyebrow={
-            <ContentJobDetailBreadcrumb
-              contentLineHref={pageData.detailVm.contentLineHref}
-              detail={pageData.detail}
-            />
-          }
+          eyebrow={<ContentJobDetailBreadcrumb detail={pageData.detail} />}
           title={pageTitle}
-          subtitle="스크립트·영상·이미지·업로드 단계를 조회합니다."
+          subtitle="토픽·시드에서 방향을 잡은 뒤, 스크립트·미디어·업로드 단계로 진행합니다."
           actions={
             <ContentJobDetailHeaderActions
-              contentLineHref={pageData.detailVm.contentLineHref}
               detail={pageData.detail}
               newJobHref={pageData.detailVm.newJobHref}
             />

@@ -1,7 +1,7 @@
 import type { WorkspaceView } from '../model/types';
 
 /** URL·탭에서 사용하는 콘텐츠 상세 패널(한 번에 하나만 표시). */
-export const detailWorkspaceTabKeys = ['script', 'video', 'image', 'upload'] as const;
+export const detailWorkspaceTabKeys = ['ideation', 'script', 'video', 'image', 'upload'] as const;
 
 export type DetailWorkspaceTabKey = (typeof detailWorkspaceTabKeys)[number];
 
@@ -10,6 +10,12 @@ export const detailWorkspaceTabs: Array<{
   label: string;
   description: string;
 }> = [
+  {
+    key: 'ideation',
+    label: '토픽·시드',
+    description:
+      '제목·길이·톤 등 자연어 입력으로 토픽을 다듬고, 필요 시 토픽 플랜을 다시 돌립니다.',
+  },
   {
     key: 'script',
     label: '스크립트',

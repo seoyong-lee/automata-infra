@@ -7,8 +7,8 @@ export const workspaceViews: Array<{
 }> = [
   {
     key: 'ideation',
-    label: '아이데이션',
-    description: '제작 1단계: 주제·길이·톤 등 기획 입력을 정합니다.',
+    label: '토픽·시드',
+    description: '제작 1단계: 잡과 함께 토픽 플랜이 만들어집니다. 여기서는 시드만 수정합니다.',
   },
   {
     key: 'script',

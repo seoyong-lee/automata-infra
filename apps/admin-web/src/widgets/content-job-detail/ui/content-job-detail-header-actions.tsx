@@ -6,13 +6,11 @@ import Link from 'next/link';
 import { JobDraftDetail } from '../model';
 
 type ContentJobDetailHeaderActionsProps = {
-  contentLineHref: string;
   detail?: JobDraftDetail;
   newJobHref: string;
 };
 
 export function ContentJobDetailHeaderActions({
-  contentLineHref,
   detail,
   newJobHref,
 }: ContentJobDetailHeaderActionsProps) {

@@ -1,6 +1,8 @@
 'use client';
 
+import { cn } from '@packages/ui';
 import { useQueryClient } from '@tanstack/react-query';
+import Link from 'next/link';
 import { Suspense } from 'react';
 
 import { useAdminContents, useDeleteContent } from '@/entities/admin-content';
@@ -23,8 +25,8 @@ function ContentCatalogPageBody() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="콘텐츠 관리"
-        subtitle="콘텐츠 단위로 각 항목에서 하위 잡을 관리합니다."
+        title="콘텐츠"
+        subtitle="채널(콘텐츠) 카탈로그입니다. 아직 채널을 정하지 않은 제작 잡은 잡 메뉴에서 다룹니다."
       />
       <ContentCatalogTable
         items={list.data?.items ?? []}

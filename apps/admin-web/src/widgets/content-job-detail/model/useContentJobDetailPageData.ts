@@ -43,6 +43,7 @@ export const useContentJobDetailPageData = (jobId: string) => {
         titleIdea: seedForm.titleIdea,
         targetDurationSec: Number(seedForm.targetDurationSec),
         stylePreset: seedForm.stylePreset,
+        creativeBrief: seedForm.creativeBrief.trim() || undefined,
       }),
     updateSceneJsonError: mutations.updateSceneJson.error,
     updateTopicSeedError: mutations.updateTopicSeed.error,
