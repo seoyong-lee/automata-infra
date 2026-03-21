@@ -9,7 +9,7 @@ export const primaryWorkspaceSections: Array<{
 }> = [
   { key: 'planning', label: '기획·스크립트', steps: ['ideation', 'script'] },
   { key: 'media', label: '이미지·음성·영상', steps: ['image', 'voice', 'video'] },
-  { key: 'delivery', label: '렌더·배포', steps: ['review', 'upload'] },
+  { key: 'delivery', label: '렌더·출고 준비', steps: ['review', 'upload'] },
 ];
 
 export function getPrimarySectionForStep(step: WorkspaceView): ContentPrimarySection {

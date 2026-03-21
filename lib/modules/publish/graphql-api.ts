@@ -33,6 +33,8 @@ type CreatePublishGraphqlApiProps = {
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
   approvePipelineExecutionResolver: lambda.IFunction;
+  channelPublishQueueResolver: lambda.IFunction;
+  enqueueToChannelPublishQueueResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (

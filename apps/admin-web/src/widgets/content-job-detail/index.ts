@@ -10,6 +10,6 @@ export * from './ui/content-job-detail-logs-view';
 export * from './ui/content-job-detail-overview-view';
 export * from './ui/content-job-detail-render-review-view';
 export * from './ui/content-job-detail-templates-view';
-export * from './ui/content-job-detail-uploads-view';
+export * from './ui/content-job-detail-shipping-prep-view';
 export * from './ui/content-job-detail-nested-tabs';
 export * from './ui/content-job-detail-view-content';

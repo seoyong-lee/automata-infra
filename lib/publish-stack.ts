@@ -298,6 +298,24 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const channelPublishQueueResolver = createLambda(
+      this,
+      "AdminChannelPublishQueueResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/list-channel-publish-queue/handler.ts",
+      ),
+      environment,
+    );
+    const enqueueToChannelPublishQueueResolver = createLambda(
+      this,
+      "AdminEnqueueToChannelPublishQueueResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/enqueue-to-channel-publish-queue/handler.ts",
+      ),
+      environment,
+    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -367,6 +385,8 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
     props.jobsTable.grantReadWriteData(approvePipelineExecutionResolver);
+    props.jobsTable.grantReadData(channelPublishQueueResolver);
+    props.jobsTable.grantReadWriteData(enqueueToChannelPublishQueueResolver);
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
@@ -480,6 +500,8 @@ export class PublishStack extends Stack {
       deleteJobResolver,
       attachJobToContentResolver,
       approvePipelineExecutionResolver,
+      channelPublishQueueResolver,
+      enqueueToChannelPublishQueueResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

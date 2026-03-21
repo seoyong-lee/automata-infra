@@ -11,6 +11,7 @@ import { generateSceneVideos } from "../../../../video-generation/usecase/genera
 import { saveVideoAssets } from "../../../../video-generation/repo/save-video-assets";
 import { generateSceneVoices } from "../../../../voice/usecase/generate-scene-voices";
 import { saveVoiceAssets } from "../../../../voice/repo/save-voice-assets";
+import { resolveSceneJsonS3KeyForAssetGeneration } from "../../shared/lib/resolve-approved-pipeline-input";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import type { SceneJson } from "../../../../../types/render/scene-json";
@@ -22,10 +23,16 @@ const pipelineAsyncEnabled = (): boolean =>
 
 export const runAssetGenerationCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
-  if (!job.sceneJsonS3Key) {
+  const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
+    jobId,
+    job,
+  );
+  if (!sceneResolved) {
     throw new Error("scene json not found");
   }
-  const sceneJson = await getJsonFromS3<SceneJson>(job.sceneJsonS3Key);
+  const sceneJson = await getJsonFromS3<SceneJson>(
+    sceneResolved.sceneJsonS3Key,
+  );
   if (!sceneJson) {
     throw new Error("scene json payload not found");
   }
@@ -88,7 +95,14 @@ export const runAdminAssetGeneration = async (
   triggeredBy?: string,
 ) => {
   const job = await getJobOrThrow(jobId);
-  const inputSnapshotId = job.sceneJsonS3Key ?? undefined;
+  const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
+    jobId,
+    job,
+  );
+  if (!sceneResolved) {
+    throw new Error("scene json not found");
+  }
+  const inputSnapshotId = sceneResolved.sceneJsonS3Key;
 
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({

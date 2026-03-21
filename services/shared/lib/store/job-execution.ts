@@ -203,7 +203,15 @@ export const listJobExecutionRows = async (
       ":exec": "EXEC#",
     },
     scanIndexForward: false,
-    limit: 100,
+    limit: 500,
   });
   return items;
+};
+
+export const getJobExecutionByExecutionId = async (
+  jobId: string,
+  executionId: string,
+): Promise<JobExecutionRow | undefined> => {
+  const rows = await listJobExecutionRows(jobId);
+  return rows.find((r) => r.executionId === executionId);
 };

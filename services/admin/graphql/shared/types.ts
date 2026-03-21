@@ -17,10 +17,31 @@ export type JobStatus =
   | "REVIEW_PENDING"
   | "APPROVED"
   | "REJECTED"
+  | "READY_TO_SCHEDULE"
   | "UPLOAD_QUEUED"
   | "UPLOADED"
   | "FAILED"
   | "METRICS_COLLECTED";
+
+export type ChannelPublishQueueItemStatus =
+  | "QUEUED"
+  | "SCHEDULED"
+  | "PUBLISHED"
+  | "REMOVED";
+
+export type ChannelPublishQueueItemDto = {
+  queueItemId: string;
+  channelId: string;
+  jobId: string;
+  status: ChannelPublishQueueItemStatus;
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+  scheduledAt?: string;
+  publishedAt?: string;
+  note?: string;
+  enqueuedBy?: string;
+};
 
 export type ReviewAction = "PENDING" | "APPROVE" | "REJECT" | "REGENERATE";
 export type UploadStatus = "QUEUED" | "UPLOADED";

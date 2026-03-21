@@ -4,6 +4,7 @@ import {
   startJobExecution,
   startQueuedJobExecution,
 } from "../../../../shared/lib/store/job-execution";
+import { resolveTopicS3KeyForSceneBuild } from "../../shared/lib/resolve-approved-pipeline-input";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
@@ -20,11 +21,14 @@ const pipelineAsyncEnabled = (): boolean =>
 
 export const runSceneJsonCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
-  if (!job.topicS3Key) {
+  const topicResolved = await resolveTopicS3KeyForSceneBuild(jobId, job);
+  if (!topicResolved) {
     throw new Error("topic plan not found");
   }
 
-  const topicPlan = await getJsonFromS3<TopicPlanResult>(job.topicS3Key);
+  const topicPlan = await getJsonFromS3<TopicPlanResult>(
+    topicResolved.topicS3Key,
+  );
   if (!topicPlan) {
     throw new Error("topic plan payload not found");
   }
@@ -61,7 +65,11 @@ export const runAdminSceneJson = async (
   triggeredBy?: string,
 ) => {
   const job = await getJobOrThrow(jobId);
-  const inputSnapshotId = job.topicS3Key ?? undefined;
+  const topicResolved = await resolveTopicS3KeyForSceneBuild(jobId, job);
+  if (!topicResolved) {
+    throw new Error("topic plan not found");
+  }
+  const inputSnapshotId = topicResolved.topicS3Key;
 
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({

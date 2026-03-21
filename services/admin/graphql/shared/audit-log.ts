@@ -2,6 +2,8 @@ type AuditOperation =
   | "submitReviewDecision"
   | "requestUpload"
   | "approvePipelineExecution"
+  | "enqueueToChannelPublishQueue"
+  | "channelPublishQueue"
   | "attachJobToContent"
   | "adminJobs"
   | "adminJob"

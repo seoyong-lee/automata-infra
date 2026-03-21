@@ -43,8 +43,9 @@ export const jobDetailRouteTabs: Array<{
   },
   {
     key: 'publish',
-    label: '렌더·업로드',
-    description: '프리뷰·최종 렌더와 메타·예약·플랫폼 업로드를 다룹니다.',
+    label: '렌더·출고 준비',
+    description:
+      '프리뷰·최종 렌더·검수와 출고 준비입니다. 실제 업로드·예약은 채널의 출고 큐에서 진행합니다.',
   },
   {
     key: 'timeline',

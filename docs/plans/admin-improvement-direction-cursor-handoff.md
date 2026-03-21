@@ -2,7 +2,7 @@
 
 **한 줄 요약:** 단순 UI 손질이 아니라 **도메인 단위 재정의 + 상세 화면 구조 개편 + 후보/채택/실행 분리**가 목표다.
 
-관련 문서: 짧은 IA·탭 초안은 [`admin-client-revision-workbench.md`](./admin-client-revision-workbench.md), 전체 아키텍처 실행 기준은 [`../implementation-overview-external-review.md`](../implementation-overview-external-review.md), 최근 구현 스냅샷은 [`../recent-work-summary.md`](../recent-work-summary.md).
+관련 문서: 짧은 IA·탭 초안은 [`admin-client-revision-workbench.md`](./admin-client-revision-workbench.md), **후보·채택·continuation·검수 설계안 대비 구현 추적**은 [`admin-pipeline-workbench-continuation-review.md`](./admin-pipeline-workbench-continuation-review.md), 전체 아키텍처 실행 기준은 [`../implementation-overview-external-review.md`](../implementation-overview-external-review.md), 최근 구현 스냅샷은 [`../recent-work-summary.md`](../recent-work-summary.md).
 
 ---
 

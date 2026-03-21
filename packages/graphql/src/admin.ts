@@ -25,6 +25,7 @@ export type AdminJob = {
     | "REVIEW_PENDING"
     | "APPROVED"
     | "REJECTED"
+    | "READY_TO_SCHEDULE"
     | "UPLOAD_QUEUED"
     | "UPLOADED"
     | "FAILED"
@@ -55,6 +56,20 @@ export type AdminJob = {
   approvedSceneExecutionId?: string | null;
   approvedAssetExecutionId?: string | null;
   updatedAt: string;
+};
+
+export type ChannelPublishQueueItem = {
+  queueItemId: string;
+  channelId: string;
+  jobId: string;
+  status: "QUEUED" | "SCHEDULED" | "PUBLISHED" | "REMOVED";
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+  scheduledAt?: string | null;
+  publishedAt?: string | null;
+  note?: string | null;
+  enqueuedBy?: string | null;
 };
 
 export type PendingReview = {
@@ -301,6 +316,24 @@ const jobExecutionsQuery = `
       errorMessage
       inputSnapshotId
       outputArtifactS3Key
+    }
+  }
+`;
+
+const channelPublishQueueQuery = `
+  query ChannelPublishQueue($contentId: ID!) {
+    channelPublishQueue(contentId: $contentId) {
+      queueItemId
+      channelId
+      jobId
+      status
+      priority
+      createdAt
+      updatedAt
+      scheduledAt
+      publishedAt
+      note
+      enqueuedBy
     }
   }
 `;
@@ -698,6 +731,24 @@ const approvePipelineExecutionMutation = `
   }
 `;
 
+const enqueueToChannelPublishQueueMutation = `
+  mutation EnqueueToChannelPublishQueue($input: EnqueueToChannelPublishQueueInput!) {
+    enqueueToChannelPublishQueue(input: $input) {
+      queueItemId
+      channelId
+      jobId
+      status
+      priority
+      createdAt
+      updatedAt
+      scheduledAt
+      publishedAt
+      note
+      enqueuedBy
+    }
+  }
+`;
+
 const gql = async <T>(query: string, variables?: Record<string, unknown>) => {
   const runtime = getGraphqlRuntime();
   const token = runtime.getToken ? await runtime.getToken() : null;
@@ -909,6 +960,49 @@ export const fetchJobExecutions = async (
     { jobId },
   );
   return data.jobExecutions;
+};
+
+export const useChannelPublishQueueQuery = (
+  vars: { contentId: string },
+  options?: Omit<
+    UseQueryOptions<
+      ChannelPublishQueueItem[],
+      Error,
+      ChannelPublishQueueItem[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["channelPublishQueue", vars.contentId],
+    queryFn: async () => {
+      const data = await gql<{
+        channelPublishQueue: ChannelPublishQueueItem[];
+      }>(channelPublishQueueQuery, vars);
+      return data.channelPublishQueue;
+    },
+    enabled: Boolean(vars.contentId),
+    ...options,
+  });
+};
+
+export const useEnqueueToChannelPublishQueueMutation = (
+  options?: UseMutationOptions<
+    { enqueueToChannelPublishQueue: ChannelPublishQueueItem },
+    Error,
+    { contentId: string; jobId: string; note?: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ enqueueToChannelPublishQueue: ChannelPublishQueueItem }>(
+        enqueueToChannelPublishQueueMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
 };
 
 export const useSubmitReviewDecisionMutation = (

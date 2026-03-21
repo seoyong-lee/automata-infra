@@ -38,8 +38,8 @@ export const workspaceViews: Array<{
   },
   {
     key: 'upload',
-    label: '업로드',
-    description: '제작 7단계: 배포·공개 설정 후 발행합니다.',
+    label: '출고 준비',
+    description: '제작 7단계: 검수 후 채널 출고 큐에 올리고, 편성·발행은 채널에서 합니다.',
   },
 ];
 

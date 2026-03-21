@@ -17,6 +17,7 @@ function buildPendingState(mutations: ContentJobDetailMutations) {
     isSavingTopicSeed: mutations.updateTopicSeed.isPending,
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
     isUploading: mutations.requestUpload.isPending,
+    isEnqueueingToChannelQueue: mutations.enqueueToChannelPublishQueue.isPending,
   };
 }
 
@@ -49,6 +50,9 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
       mutations.approvePipelineExecution.mutate({ jobId, executionId }),
     approvePipelineExecutionError: mutations.approvePipelineExecution.error,
     upload: () => mutations.requestUpload.mutate({ jobId }),
+    enqueueToChannelQueue: (contentId: string) =>
+      mutations.enqueueToChannelPublishQueue.mutate({ contentId, jobId }),
+    enqueueToChannelQueueError: mutations.enqueueToChannelPublishQueue.error,
   };
 }
 
@@ -74,7 +78,7 @@ export const useContentJobDetailPageData = (jobId: string) => {
   const detail = detailQuery.data ?? undefined;
   const detailVm = useMemo(() => buildContentJobDetailViewModel(detail), [detail]);
   const refresh = createContentJobDetailRefresh(queryClient, jobId);
-  const mutations = useContentJobDetailMutations(refresh);
+  const mutations = useContentJobDetailMutations(jobId, refresh);
 
   return buildContentJobDetailPageSnapshot(jobId, detail, detailQuery, detailVm, mutations);
 };

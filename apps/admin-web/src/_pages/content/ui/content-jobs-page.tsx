@@ -4,9 +4,10 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { Suspense, useMemo } from 'react';
 
+import { ContentChannelSubnav } from '@/widgets/content-channel';
+import { ContentJobsTable } from '@/widgets/content-operations';
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
-import { ContentJobsTable } from '@/widgets/content-operations';
 import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
@@ -49,13 +50,11 @@ function ContentJobsPageBody() {
             </div>
           }
           title="채널 상세"
-          subtitle={
-            label
-              ? `행을 선택하면 제작 아이템 상세로 이동합니다.`
-              : '행을 선택하면 제작 아이템 상세로 이동합니다.'
-          }
+          subtitle="제작 아이템·출고 큐·예약 발행을 채널 단위로 다룹니다."
         />
       </div>
+
+      <ContentChannelSubnav contentId={contentId} />
 
       <ContentJobsTable
         jobs={sortedJobs}

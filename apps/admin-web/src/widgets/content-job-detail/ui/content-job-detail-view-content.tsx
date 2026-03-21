@@ -8,8 +8,8 @@ import type { AssetStage, JobDetailRouteTabKey } from '../model';
 import type { ContentJobDetailPageData } from '../model/useContentJobDetailPageData';
 import { ContentJobDetailAssetsHubView } from './content-job-detail-assets-hub-view';
 import { ContentJobDetailOverviewView } from './content-job-detail-overview-view';
-import { ContentJobDetailStageApprovalWorkbench } from './content-job-detail-stage-approval-workbench';
 import { ContentJobDetailPublishView } from './content-job-detail-publish-view';
+import { ContentJobDetailStageApprovalWorkbench } from './content-job-detail-stage-approval-workbench';
 import { ContentJobDetailTimelineView } from './content-job-detail-timeline-view';
 
 type ContentJobDetailViewContentProps = {
@@ -97,7 +97,7 @@ export function ContentJobDetailViewContent({
   }
 
   if (activeTab === 'publish') {
-    return <ContentJobDetailPublishView pageData={pageData} />;
+    return <ContentJobDetailPublishView jobId={jobId} pageData={pageData} />;
   }
 
   if (activeTab === 'timeline') {

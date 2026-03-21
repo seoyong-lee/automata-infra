@@ -1,5 +1,6 @@
 import {
   useApprovePipelineExecutionMutation,
+  useEnqueueToChannelPublishQueueMutation,
   useJobDraftQuery,
   useRequestUploadMutation,
   useRunAssetGenerationMutation,
@@ -21,3 +22,4 @@ export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;
 export const useUpdateContentJobTopicSeed = useUpdateTopicSeedMutation;
 export const useApproveContentJobPipelineExecution = useApprovePipelineExecutionMutation;
+export const useEnqueueContentJobToChannelQueue = useEnqueueToChannelPublishQueueMutation;

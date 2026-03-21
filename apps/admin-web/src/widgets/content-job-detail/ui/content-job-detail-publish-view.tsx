@@ -2,14 +2,15 @@
 
 import type { ContentJobDetailPageData } from '../model/useContentJobDetailPageData';
 import { ContentJobDetailRenderReviewView } from './content-job-detail-render-review-view';
-import { ContentJobDetailUploadsView } from './content-job-detail-uploads-view';
+import { ContentJobDetailShippingPrepView } from './content-job-detail-shipping-prep-view';
 
 type ContentJobDetailPublishViewProps = {
+  jobId: string;
   pageData: ContentJobDetailPageData;
 };
 
-/** 렌더·검수와 업로드·발행을 한 탭에서 다루되, 섹션은 분리한다. */
-export function ContentJobDetailPublishView({ pageData }: ContentJobDetailPublishViewProps) {
+/** 렌더·검수와 출고 준비(채널 큐)를 한 탭에서 다룬다. */
+export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetailPublishViewProps) {
   return (
     <div className="space-y-10">
       <section className="space-y-3">
@@ -21,12 +22,17 @@ export function ContentJobDetailPublishView({ pageData }: ContentJobDetailPublis
         />
       </section>
       <section className="space-y-3">
-        <h2 className="text-lg font-semibold">업로드·발행</h2>
-        <ContentJobDetailUploadsView
+        <h2 className="text-lg font-semibold">출고 준비</h2>
+        <ContentJobDetailShippingPrepView
+          jobId={jobId}
           detail={pageData.detail}
-          error={pageData.requestUploadError}
-          isUploading={pageData.isUploading}
+          contentId={pageData.detail?.job.contentId}
+          enqueueError={pageData.enqueueToChannelQueueError}
+          isEnqueueing={pageData.isEnqueueingToChannelQueue}
+          onEnqueueToChannel={pageData.enqueueToChannelQueue}
           onOpenReviews={pageData.openReviews}
+          isUploading={pageData.isUploading}
+          requestUploadError={pageData.requestUploadError}
           onUpload={pageData.upload}
         />
       </section>
