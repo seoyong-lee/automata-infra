@@ -85,6 +85,8 @@ export type TopicSeedDto = {
   titleIdea: string;
   targetDurationSec: number;
   stylePreset: string;
+  /** 자유 서술 기획 메모. Scene JSON 프롬프트에 반영. */
+  creativeBrief?: string;
 };
 
 export type ContentBriefDto = {
@@ -117,13 +119,24 @@ export type ContentBriefDto = {
 };
 
 export type CreateDraftJobInputDto = {
-  contentId: string;
+  /** 생략 시 미연결 잡(`ADMIN_UNASSIGNED_CONTENT_ID`)으로 생성 */
+  contentId?: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
   stylePreset: string;
+  creativeBrief?: string;
   autoPublish?: boolean;
   publishAt?: string;
+  /**
+   * false가 아니면 잡 생성 직후 토픽 플랜까지 실행한다. 생략 시 true와 동일.
+   */
+  runTopicPlan?: boolean;
+};
+
+export type AttachJobToContentInputDto = {
+  jobId: string;
+  contentId: string;
 };
 
 export type CreateContentInputDto = {

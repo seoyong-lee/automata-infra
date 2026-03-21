@@ -32,6 +32,16 @@ const hasMessage = (error: unknown): error is { message: string } => {
   );
 };
 
+/** Admin 전용: 클라이언트에 원인을 알리되, 한 줄·길이 제한으로 로그/응답을 막는다. */
+const sanitizeResolverMessage = (message: string): string => {
+  const oneLine = message.replace(/\s+/g, " ").trim();
+  const max = 900;
+  if (oneLine.length <= max) {
+    return oneLine;
+  }
+  return `${oneLine.slice(0, max)}…`;
+};
+
 export const toGraphqlResolverError = (
   error: unknown,
 ): GraphqlResolverError => {
@@ -48,7 +58,13 @@ export const toGraphqlResolverError = (
     });
   }
 
-  if (message.includes("required") || message.includes("invalid")) {
+  const lower = message.toLowerCase();
+  if (
+    lower.includes("required") ||
+    lower.includes("invalid") ||
+    lower.includes("must be") ||
+    lower.includes("non-empty")
+  ) {
     return new GraphqlResolverError({
       code: "BAD_USER_INPUT",
       message,
@@ -62,9 +78,10 @@ export const toGraphqlResolverError = (
     });
   }
 
+  const detail = sanitizeResolverMessage(message);
   return new GraphqlResolverError({
     code: "INTERNAL_SERVER_ERROR",
-    message: "internal server error",
+    message: detail.length > 0 ? detail : "internal server error",
   });
 };
 

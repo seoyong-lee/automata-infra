@@ -7,6 +7,21 @@ const nonEmpty = z.string().trim().min(1);
 const publishAtSchema = z.string().trim().min(1);
 const jobVariantSchema = z.string().trim().min(1);
 
+/** 미연결 잡 전용 placeholder contentId. 실제 카탈로그에는 등록하지 않는다. */
+export const ADMIN_UNASSIGNED_CONTENT_ID = "__unassigned__";
+
+const optionalCreativeBrief = z
+  .string()
+  .max(8000)
+  .optional()
+  .transform((s) => {
+    if (s === undefined) {
+      return undefined;
+    }
+    const t = s.trim();
+    return t.length === 0 ? undefined : t;
+  });
+
 export const topicSeedInputSchema = z
   .object({
     contentId: nonEmpty,
@@ -14,21 +29,51 @@ export const topicSeedInputSchema = z
     titleIdea: nonEmpty,
     targetDurationSec: z.number().int().positive(),
     stylePreset: nonEmpty,
+    /** 씬·내레이션 방향을 자유 서술로 적는 필드. Scene JSON 프롬프트에 포함된다. */
+    creativeBrief: optionalCreativeBrief,
   })
   .strict();
 
-/** 잡은 반드시 등록된 콘텐츠(카탈로그) 하위에서만 생성 */
+const optionalCatalogContentId = z.preprocess((v) => {
+  if (v === null || v === undefined || v === "") {
+    return undefined;
+  }
+  if (typeof v !== "string") {
+    return v;
+  }
+  const t = v.trim();
+  return t === "" ? undefined : t;
+}, nonEmpty.optional());
+
+/**
+ * contentId 생략 시 미연결 잡(placeholder `ADMIN_UNASSIGNED_CONTENT_ID`)으로 생성.
+ * `runTopicPlan` 생략 또는 true: 잡 생성 직후 토픽 플랜까지 한 번에 실행(기본 동작).
+ */
 export const createDraftJobInputSchema = z
   .object({
-    contentId: nonEmpty,
+    contentId: optionalCatalogContentId,
     targetLanguage: nonEmpty,
     titleIdea: nonEmpty,
     targetDurationSec: z.number().int().positive(),
     stylePreset: nonEmpty,
+    creativeBrief: optionalCreativeBrief,
     autoPublish: z.boolean().optional(),
     publishAt: publishAtSchema.optional(),
+    /** false일 때만 시드만 두고 DRAFT로 둔다. */
+    runTopicPlan: z.boolean().optional(),
   })
   .strict();
+
+export const attachJobToContentInputSchema = z
+  .object({
+    jobId: nonEmpty,
+    contentId: nonEmpty,
+  })
+  .strict();
+
+export type AttachJobToContentInput = z.infer<
+  typeof attachJobToContentInputSchema
+>;
 
 /** 콘텐츠 = 채널 단일 단위 (유튜브 게시 설정은 동일 레코드에 저장). 식별자는 contentId만 사용. */
 export const createContentInputSchema = z
@@ -181,6 +226,12 @@ export const parseCreateDraftJobInput = (
   payload: unknown,
 ): CreateDraftJobInput => {
   return createDraftJobInputSchema.parse(payload);
+};
+
+export const parseAttachJobToContentInput = (
+  payload: unknown,
+): AttachJobToContentInput => {
+  return attachJobToContentInputSchema.parse(payload);
 };
 
 export const parseCreateContentInput = (

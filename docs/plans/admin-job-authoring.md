@@ -421,6 +421,8 @@ Admin resolver는 기존 서비스 구조 원칙을 그대로 따른다.
 
 ## Data Model Notes
 
+**콘텐츠 · 잡 · 토픽(시드/플랜)의 관계, 용어 사전, 향후 “아이디어 선행 → 콘텐츠 부착” 옵션**은 별도 문서에서 관리한다: [`content-job-topic-domain.md`](./content-job-topic-domain.md).
+
 콘텐츠 관리형 UI에서는 `job`만으로는 부족하고, `channel`, `content line`, `job` 세 레벨 모두의 요약이 필요하다.
 
 권장 원칙:

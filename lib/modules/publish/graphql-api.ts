@@ -30,6 +30,7 @@ type CreatePublishGraphqlApiProps = {
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
+  attachJobToContentResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -208,6 +209,13 @@ export const createPublishGraphqlApi = (
     "deleteJob",
     "Mutation",
     props.deleteJobResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "AttachJobToContent",
+    "attachJobToContent",
+    "Mutation",
+    props.attachJobToContentResolver,
   );
 
   return {

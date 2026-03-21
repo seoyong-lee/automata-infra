@@ -6,6 +6,7 @@ import { buildSceneJson } from "../../../../script/usecase/build-scene-json";
 import type { TopicPlanResult } from "../../../../topic/usecase/create-topic-plan";
 import { getSceneJsonKey } from "../../../../script/normalize/get-scene-json-key";
 import { persistSceneAssets } from "../../../../script/repo/persist-scene-assets";
+import type { TopicSeedDto } from "../../shared/types";
 
 export const runAdminSceneJson = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
@@ -18,8 +19,17 @@ export const runAdminSceneJson = async (jobId: string) => {
     throw new Error("topic plan payload not found");
   }
 
+  const topicSeed = job.topicSeedS3Key
+    ? ((await getJsonFromS3<TopicSeedDto>(job.topicSeedS3Key)) ?? undefined)
+    : undefined;
+
+  const sceneJsonInput: TopicPlanResult = {
+    ...topicPlan,
+    creativeBrief: topicSeed?.creativeBrief ?? topicPlan.creativeBrief,
+  };
+
   await updateJobMeta(jobId, {}, "SCENE_JSON_BUILDING");
-  const sceneJson = await buildSceneJson(topicPlan);
+  const sceneJson = await buildSceneJson(sceneJsonInput);
   const sceneJsonS3Key = getSceneJsonKey(jobId);
   await putJsonToS3(sceneJsonS3Key, sceneJson);
   await persistSceneAssets(jobId, sceneJson);

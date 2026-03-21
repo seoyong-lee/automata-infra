@@ -40,6 +40,22 @@ export const expectNumber = (value: unknown, label: string): number => {
   return value;
 };
 
+/** LLM JSON often returns numeric fields as strings; accept finite numbers and numeric strings. */
+export const expectNumberCoerced = (value: unknown, label: string): number => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+
+  if (typeof value === "string" && value.trim() !== "") {
+    const n = Number(value.trim());
+    if (Number.isFinite(n)) {
+      return n;
+    }
+  }
+
+  return fail(`${label} must be a valid number`);
+};
+
 export const expectArray = <T>(
   value: unknown,
   label: string,

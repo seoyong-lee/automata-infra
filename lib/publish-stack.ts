@@ -228,6 +228,15 @@ export class PublishStack extends Stack {
       path.join(process.cwd(), "services/admin/graphql/delete-job/handler.ts"),
       environment,
     );
+    const attachJobToContentResolver = createLambda(
+      this,
+      "AdminAttachJobToContentResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/attach-job-to-content/handler.ts",
+      ),
+      environment,
+    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -294,6 +303,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
+    props.jobsTable.grantReadWriteData(attachJobToContentResolver);
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
@@ -305,6 +315,7 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.assetsBucket.grantReadWrite(deleteJobResolver);
+    props.assetsBucket.grantReadWrite(attachJobToContentResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
@@ -327,6 +338,21 @@ export class PublishStack extends Stack {
       }),
     );
     runTopicPlanResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      }),
+    );
+    createDraftJobResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    createDraftJobResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "bedrock:InvokeModel",
@@ -379,6 +405,7 @@ export class PublishStack extends Stack {
       updateSceneJsonResolver,
       runAssetGenerationResolver,
       deleteJobResolver,
+      attachJobToContentResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

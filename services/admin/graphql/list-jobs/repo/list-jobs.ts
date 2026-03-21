@@ -1,3 +1,4 @@
+import { ADMIN_UNASSIGNED_CONTENT_ID } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import {
   listJobMetasByContentId,
   listJobMetasByGsi2Partition,
@@ -11,7 +12,10 @@ export const listJobs = async (input: {
   limit: number;
 }) => {
   if (input.contentId) {
-    if (input.contentId.startsWith("cnt_")) {
+    if (
+      input.contentId.startsWith("cnt_") ||
+      input.contentId === ADMIN_UNASSIGNED_CONTENT_ID
+    ) {
       return listJobMetasByContentId({
         contentId: input.contentId,
         limit: input.limit,

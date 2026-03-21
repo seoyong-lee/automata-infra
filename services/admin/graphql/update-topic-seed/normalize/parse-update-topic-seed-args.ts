@@ -20,6 +20,23 @@ const asDuration = (value: unknown): number => {
   return value;
 };
 
+const asOptionalCreativeBrief = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw badUserInput("creativeBrief must be a string");
+  }
+  const trimmed = value.trim();
+  if (trimmed.length === 0) {
+    return undefined;
+  }
+  if (trimmed.length > 8000) {
+    throw badUserInput("creativeBrief is too long");
+  }
+  return trimmed;
+};
+
 export const parseUpdateTopicSeedArgs = (
   args: Record<string, unknown>,
 ): { jobId: string; topicSeed: TopicSeedDto } => {
@@ -39,6 +56,7 @@ export const parseUpdateTopicSeedArgs = (
       titleIdea: asString(input.titleIdea, "titleIdea"),
       targetDurationSec: asDuration(input.targetDurationSec),
       stylePreset: asString(input.stylePreset, "stylePreset"),
+      creativeBrief: asOptionalCreativeBrief(input.creativeBrief),
     },
   };
 };

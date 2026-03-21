@@ -72,6 +72,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
       "- targetLanguage: {{targetLanguage}}",
       "- targetDurationSec: {{targetDurationSec}}",
       "- stylePreset: {{stylePreset}}",
+      "- creativeBrief (author notes, beats, tone, must-include or avoid): {{creativeBrief}}",
     ].join("\n"),
   },
   metadata: {

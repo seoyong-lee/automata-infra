@@ -1,6 +1,10 @@
 import { createHash, randomUUID } from "crypto";
 import { putJsonToS3 } from "../../../../shared/lib/aws/runtime";
 import {
+  ADMIN_UNASSIGNED_CONTENT_ID,
+  parseContentBrief,
+} from "../../../../shared/lib/contracts/canonical-io-schemas";
+import {
   getContentMeta,
   gsi2PkForContentId,
   putJobMeta,
@@ -16,7 +20,6 @@ import type {
   CreateDraftJobInputDto,
   TopicSeedDto,
 } from "../../shared/types";
-import { parseContentBrief } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import { notFound } from "../../shared/errors";
 
 const LEGACY_CONTENT_TYPE = "default";
@@ -35,8 +38,9 @@ const normalizeSlug = (value: string): string => {
   return normalized || "item";
 };
 
-const buildJobId = (nowIso: string): string => {
-  return `job_${nowIso.replace(/[-:.TZ]/g, "").slice(0, 14)}_${randomUUID().slice(0, 8)}`;
+/** 타임스탬프 조합 없이 UUID만 사용 (충돌 확률 무시 가능 수준). */
+const buildJobId = (): string => {
+  return `job_${randomUUID().replace(/-/g, "")}`;
 };
 
 const buildTopicSeed = (
@@ -49,6 +53,9 @@ const buildTopicSeed = (
     titleIdea: draft.titleIdea,
     targetDurationSec: draft.targetDurationSec,
     stylePreset: draft.stylePreset,
+    ...(draft.creativeBrief !== undefined && draft.creativeBrief !== ""
+      ? { creativeBrief: draft.creativeBrief }
+      : {}),
   };
 };
 
@@ -94,20 +101,25 @@ export const createDraftJob = async (input: {
   draft: CreateDraftJobInputDto;
   now: string;
 }) => {
-  const parent = await getContentMeta(input.draft.contentId);
-  if (!parent) {
+  const requested = input.draft.contentId;
+  const useUnassigned =
+    requested === undefined || requested === ADMIN_UNASSIGNED_CONTENT_ID;
+
+  const parent = useUnassigned ? null : await getContentMeta(requested);
+  if (!useUnassigned && !parent) {
     throw notFound("content not found");
   }
 
-  const contentId = parent.contentId;
-  const jobId = buildJobId(input.now);
+  const contentId = parent?.contentId ?? ADMIN_UNASSIGNED_CONTENT_ID;
+  const contentLabel = parent?.label ?? "미연결";
+  const jobId = buildJobId();
   const topicSeed = buildTopicSeed(input.draft, contentId);
   const contentBrief = buildContentBrief({
     draft: input.draft,
     jobId,
     now: input.now,
     contentId,
-    contentLabel: parent.label,
+    contentLabel,
   });
   const topicSeedS3Key = buildTopicSeedKey(jobId);
   const contentBriefS3Key = buildContentBriefKey(jobId);

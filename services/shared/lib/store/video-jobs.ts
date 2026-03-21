@@ -236,6 +236,12 @@ export const updateJobMeta = async (
     values[":gsi2pk"] = gsi2PkForContentId(fields.contentId);
     values[":gsi2sk"] = `${updatedAt}#JOB#${jobId}`;
     assignments.push("#gsi2pk = :gsi2pk", "#gsi2sk = :gsi2sk");
+    /** 카탈로그 콘텐츠별 잡 목록(GSI5). contentId 변경 시 새 파티션으로 옮긴다. */
+    names["#gsi5pk"] = "GSI5PK";
+    names["#gsi5sk"] = "GSI5SK";
+    values[":gsi5pk"] = `CONTENT#${fields.contentId}`;
+    values[":gsi5sk"] = `${updatedAt}#JOB#${jobId}`;
+    assignments.push("#gsi5pk = :gsi5pk", "#gsi5sk = :gsi5sk");
   }
 
   if (
@@ -247,14 +253,6 @@ export const updateJobMeta = async (
     values[":gsi4pk"] = `CONTENT#${fields.contentType}`;
     values[":gsi4sk"] = `${updatedAt}#JOB#${jobId}`;
     assignments.push("#gsi4pk = :gsi4pk", "#gsi4sk = :gsi4sk");
-  }
-
-  if (existing?.contentId) {
-    names["#gsi5pk"] = "GSI5PK";
-    names["#gsi5sk"] = "GSI5SK";
-    values[":gsi5pk"] = `CONTENT#${existing.contentId}`;
-    values[":gsi5sk"] = `${updatedAt}#JOB#${jobId}`;
-    assignments.push("#gsi5pk = :gsi5pk", "#gsi5sk = :gsi5sk");
   }
 
   for (const [key, value] of Object.entries(fields)) {

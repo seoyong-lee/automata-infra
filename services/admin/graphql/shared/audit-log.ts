@@ -1,6 +1,7 @@
 type AuditOperation =
   | "submitReviewDecision"
   | "requestUpload"
+  | "attachJobToContent"
   | "adminJobs"
   | "adminJob"
   | "pendingReviews"
@@ -29,6 +30,8 @@ type ResolverAuditLogInput = {
   action?: string;
   errorCode?: string;
   errorMessage?: string;
+  /** 매핑 전 원본 에러 메시지(디버깅). */
+  errorCause?: string;
 };
 
 export const logResolverAudit = (input: ResolverAuditLogInput): void => {

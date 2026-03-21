@@ -19,6 +19,8 @@ export type TopicPlanResult = {
   targetDurationSec: number;
   titleIdea: string;
   stylePreset: string;
+  /** 시드의 자유 서술 메모. Scene JSON 생성 시 프롬프트에 사용. */
+  creativeBrief?: string;
   autoPublish?: boolean;
   publishAt?: string;
   status: string;
@@ -40,6 +42,7 @@ type TopicSeedOverrides = {
   titleIdea?: string;
   targetDurationSec?: number;
   stylePreset?: string;
+  creativeBrief?: string;
   autoPublish?: boolean;
   publishAt?: string;
 };
@@ -141,6 +144,33 @@ const generateSeed = async (input: {
   return generated.output;
 };
 
+const mergeCoalescedSeed = (
+  seed: TopicPlanSeed,
+  topicSeed?: TopicSeedOverrides,
+): Pick<TopicPlanSeed, "targetDurationSec" | "titleIdea" | "stylePreset"> => {
+  return {
+    targetDurationSec: topicSeed?.targetDurationSec ?? seed.targetDurationSec,
+    titleIdea: topicSeed?.titleIdea ?? seed.titleIdea,
+    stylePreset: topicSeed?.stylePreset ?? seed.stylePreset,
+  };
+};
+
+const topicSeedCreativeBrief = (
+  topicSeed?: TopicSeedOverrides,
+): string | undefined => {
+  const trimmed = topicSeed?.creativeBrief?.trim();
+  return trimmed ? trimmed : undefined;
+};
+
+const topicSeedOptionalMeta = (topicSeed?: TopicSeedOverrides) => {
+  return {
+    contentType: topicSeed?.contentType,
+    variant: topicSeed?.variant,
+    autoPublish: topicSeed?.autoPublish,
+    publishAt: topicSeed?.publishAt,
+  };
+};
+
 const buildTopicPlanResult = (input: {
   jobId: string;
   createdAt: string;
@@ -149,19 +179,16 @@ const buildTopicPlanResult = (input: {
   topicSeed?: TopicSeedOverrides;
   seed: TopicPlanSeed;
 }): TopicPlanResult => {
+  const merged = mergeCoalescedSeed(input.seed, input.topicSeed);
+  const meta = topicSeedOptionalMeta(input.topicSeed);
   return {
     jobId: input.jobId,
     topicId: `topic_${input.jobId}`,
     contentId: input.contentId,
-    contentType: input.topicSeed?.contentType,
-    variant: input.topicSeed?.variant,
     targetLanguage: input.targetLanguage,
-    targetDurationSec:
-      input.topicSeed?.targetDurationSec ?? input.seed.targetDurationSec,
-    titleIdea: input.topicSeed?.titleIdea ?? input.seed.titleIdea,
-    stylePreset: input.topicSeed?.stylePreset ?? input.seed.stylePreset,
-    autoPublish: input.topicSeed?.autoPublish,
-    publishAt: input.topicSeed?.publishAt,
+    ...merged,
+    creativeBrief: topicSeedCreativeBrief(input.topicSeed),
+    ...meta,
     status: "PLANNED",
     topicS3Key: `topics/${input.jobId}/topic.json`,
     createdAt: input.createdAt,

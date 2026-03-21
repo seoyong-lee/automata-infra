@@ -69,6 +69,7 @@ export type TopicSeed = {
   titleIdea: string;
   targetDurationSec: number;
   stylePreset: string;
+  creativeBrief?: string | null;
 };
 
 export type ContentBrief = {
@@ -157,6 +158,9 @@ export type Connection<T> = {
   items: T[];
   nextToken?: string | null;
 };
+
+/** 백엔드 `ADMIN_UNASSIGNED_CONTENT_ID`와 동기. 미연결 잡 전용 placeholder. */
+export const ADMIN_UNASSIGNED_CONTENT_ID = "__unassigned__";
 
 export type AdminContent = {
   contentId: string;
@@ -316,6 +320,7 @@ const jobDraftQuery = `
         titleIdea
         targetDurationSec
         stylePreset
+        creativeBrief
       }
       topicPlan {
         contentId
@@ -323,6 +328,7 @@ const jobDraftQuery = `
         titleIdea
         targetDurationSec
         stylePreset
+        creativeBrief
       }
       sceneJson {
         videoTitle
@@ -451,6 +457,26 @@ const updateContentMutation = `
   }
 `;
 
+const attachJobToContentMutation = `
+  mutation AttachJobToContent($input: AttachJobToContentInput!) {
+    attachJobToContent(input: $input) {
+      jobId
+      contentId
+      status
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      updatedAt
+      videoTitle
+      contentBriefS3Key
+      topicSeedS3Key
+      topicS3Key
+    }
+  }
+`;
+
 const createDraftJobMutation = `
   mutation CreateDraftJob($input: CreateDraftJobInput!) {
     createDraftJob(input: $input) {
@@ -545,6 +571,7 @@ const updateSceneJsonMutation = `
         titleIdea
         targetDurationSec
         stylePreset
+        creativeBrief
       }
       topicPlan {
         contentId
@@ -552,6 +579,7 @@ const updateSceneJsonMutation = `
         titleIdea
         targetDurationSec
         stylePreset
+        creativeBrief
       }
       sceneJson {
         videoTitle
@@ -888,24 +916,81 @@ export const useDeleteContentMutation = (
   });
 };
 
+const buildCreateDraftJobVariables = (input: {
+  contentId?: string;
+  targetLanguage: string;
+  titleIdea: string;
+  targetDurationSec: number;
+  stylePreset: string;
+  creativeBrief?: string;
+  autoPublish?: boolean;
+  publishAt?: string;
+  runTopicPlan?: boolean;
+}): { input: Record<string, unknown> } => {
+  const payload: Record<string, unknown> = {
+    targetLanguage: input.targetLanguage,
+    titleIdea: input.titleIdea,
+    targetDurationSec: input.targetDurationSec,
+    stylePreset: input.stylePreset,
+  };
+  const cid = input.contentId;
+  if (cid != null && String(cid).trim() !== "") {
+    payload.contentId = String(cid).trim();
+  }
+  if (input.creativeBrief != null && String(input.creativeBrief).trim() !== "") {
+    payload.creativeBrief = String(input.creativeBrief).trim();
+  }
+  if (input.autoPublish !== undefined) {
+    payload.autoPublish = input.autoPublish;
+  }
+  if (input.publishAt != null && String(input.publishAt).trim() !== "") {
+    payload.publishAt = input.publishAt;
+  }
+  if (input.runTopicPlan !== undefined) {
+    payload.runTopicPlan = input.runTopicPlan;
+  }
+  return { input: payload };
+};
+
 export const useCreateDraftJobMutation = (
   options?: UseMutationOptions<
     { createDraftJob: AdminJob },
     Error,
     {
-      contentId: string;
+      contentId?: string;
       targetLanguage: string;
       titleIdea: string;
       targetDurationSec: number;
       stylePreset: string;
+      creativeBrief?: string;
       autoPublish?: boolean;
       publishAt?: string;
+      /** false면 시드만 두고 DRAFT 유지. 생략 시 백엔드에서 토픽 플랜까지 실행. */
+      runTopicPlan?: boolean;
     }
   >,
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ createDraftJob: AdminJob }>(createDraftJobMutation, {
+      return gql<{ createDraftJob: AdminJob }>(
+        createDraftJobMutation,
+        buildCreateDraftJobVariables(input),
+      );
+    },
+    ...options,
+  });
+};
+
+export const useAttachJobToContentMutation = (
+  options?: UseMutationOptions<
+    { attachJobToContent: AdminJob },
+    Error,
+    { jobId: string; contentId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ attachJobToContent: AdminJob }>(attachJobToContentMutation, {
         input,
       });
     },

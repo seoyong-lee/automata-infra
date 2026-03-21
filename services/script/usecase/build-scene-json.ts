@@ -4,7 +4,7 @@ import {
 } from "../../shared/lib/llm";
 import {
   expectArray,
-  expectNumber,
+  expectNumberCoerced,
   expectOptionalString,
   expectRecord,
   expectString,
@@ -21,6 +21,7 @@ type TopicPlanResult = {
   targetDurationSec: number;
   titleIdea: string;
   stylePreset: string;
+  creativeBrief?: string;
   autoPublish?: boolean;
   publishAt?: string;
 };
@@ -71,11 +72,11 @@ const validateSceneJson = (payload: unknown): SceneJson => {
       const record = expectRecord(scene, `sceneJson.scenes[${index}]`);
 
       return {
-        sceneId: expectNumber(
+        sceneId: expectNumberCoerced(
           record.sceneId,
           `sceneJson.scenes[${index}].sceneId`,
         ),
-        durationSec: expectNumber(
+        durationSec: expectNumberCoerced(
           record.durationSec,
           `sceneJson.scenes[${index}].durationSec`,
         ),
@@ -131,6 +132,7 @@ export const buildSceneJson = async (
       targetLanguage: event.targetLanguage,
       targetDurationSec: event.targetDurationSec,
       stylePreset: event.stylePreset,
+      creativeBrief: event.creativeBrief ?? "",
     },
     validate: validateSceneJson,
     buildMockResult: () => buildMockSceneJson(event),
