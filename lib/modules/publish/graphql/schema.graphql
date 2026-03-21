@@ -20,6 +20,10 @@ type Query {
   adminJob(jobId: ID!): AdminJob
   pendingReviews(limit: Int, nextToken: String): AdminReviewTaskConnection!
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
+  """
+  파이프라인 단계 실행 이력(토픽 플랜·씬 JSON·에셋 생성 등). Dynamo `EXEC#` 아이템.
+  """
+  jobExecutions(jobId: ID!): [PipelineExecution!]!
   jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
 }
@@ -186,6 +190,30 @@ type JobTimelineItem {
   pk: String!
   sk: String!
   data: AWSJSON!
+}
+
+enum PipelineStageType {
+  TOPIC_PLAN
+  SCENE_JSON
+  ASSET_GENERATION
+}
+
+enum ExecutionStatus {
+  QUEUED
+  RUNNING
+  SUCCEEDED
+  FAILED
+}
+
+type PipelineExecution {
+  executionId: ID!
+  jobId: ID!
+  stageType: PipelineStageType!
+  status: ExecutionStatus!
+  triggeredBy: String
+  startedAt: AWSDateTime!
+  completedAt: AWSDateTime
+  errorMessage: String
 }
 
 type LlmSettings {

@@ -46,21 +46,21 @@ function JobsHubPageBody() {
     <div className="space-y-8">
       <AdminPageHeader
         title="제작 아이템"
-        subtitle="채널(콘텐츠)에 아직 연결하지 않은 한 편 단위 작업입니다. 준비되면 채널에 연결하거나, 채널 상세에서 바로 만들 수도 있습니다."
+        subtitle="채널에 아직 연결하지 않은 한 편 단위 작업입니다. 준비되면 채널에 연결하거나, 채널 상세에서 바로 만들 수도 있습니다."
       />
 
       {linkJobId ? (
         <Card>
           <CardHeader>
-            <CardTitle className="text-base">콘텐츠에 연결</CardTitle>
+            <CardTitle className="text-base">채널에 연결</CardTitle>
             <CardDescription>
-              잡 <span className="font-mono text-xs">{linkJobId}</span>을(를) 유튜브에 맞춘
-              콘텐츠(채널)에 붙입니다. 시드·브리프·토픽 플랜의 contentId도 함께 갱신됩니다.
+              제작 아이템 <span className="font-mono text-xs">{linkJobId}</span>을(를) 유튜브에 맞춘
+              채널에 붙입니다. 시드·브리프·토픽 플랜의 contentId도 함께 갱신됩니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="flex flex-col gap-4 sm:flex-row sm:items-end">
             <label className="flex min-w-0 flex-1 flex-col gap-2 text-sm">
-              <span className="font-medium">콘텐츠</span>
+              <span className="font-medium">채널</span>
               <select
                 className="h-9 w-full rounded-md border border-input bg-background px-3 text-sm"
                 value={pickContentId}
@@ -117,16 +117,17 @@ function JobsHubPageBody() {
             size="sm"
             onClick={() => setLinkJobId(job.jobId)}
           >
-            콘텐츠에 연결
+            채널에 연결
           </Button>
         )}
       />
 
       <p className="text-sm text-muted-foreground">
         <Link href="/content" className="text-foreground underline underline-offset-4">
-          콘텐츠 관리
+          채널
         </Link>
-        에서 채널을 등록한 뒤, 여기서 잡을 연결하거나 콘텐츠별 잡 목록에서 작업할 수 있습니다.
+        에서 채널을 등록한 뒤, 여기서 제작 아이템을 연결하거나 채널별 제작 아이템 목록에서 작업할 수
+        있습니다.
       </p>
     </div>
   );
@@ -137,7 +138,7 @@ export function JobsHubPage() {
     <Suspense
       fallback={
         <div className="space-y-8">
-          <AdminPageHeader title="잡" subtitle="불러오는 중…" />
+          <AdminPageHeader title="제작 아이템" subtitle="불러오는 중…" />
         </div>
       }
     >

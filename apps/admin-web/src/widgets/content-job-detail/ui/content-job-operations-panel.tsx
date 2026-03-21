@@ -21,7 +21,7 @@ export function ContentJobOperationsPanel({ jobId }: ContentJobOperationsPanelPr
   const detailVm = useMemo(() => buildContentJobDetailViewModel(detail), [detail]);
 
   if (!jobId) {
-    return <p className="text-sm text-muted-foreground">콘텐츠를 선택하세요.</p>;
+    return <p className="text-sm text-muted-foreground">제작 아이템을 선택하세요.</p>;
   }
 
   if (detailQuery.isLoading) {

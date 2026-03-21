@@ -6,6 +6,7 @@ type AuditOperation =
   | "adminJob"
   | "pendingReviews"
   | "jobTimeline"
+  | "jobExecutions"
   | "jobDraft"
   | "llmSettings"
   | "updateLlmStepSettings"

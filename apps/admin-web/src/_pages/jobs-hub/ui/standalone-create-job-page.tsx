@@ -49,16 +49,16 @@ function StandaloneCreateJobContent() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <AdminPageBack href="/jobs" label="잡 목록으로" />
+        <AdminPageBack href="/jobs" label="제작 아이템 목록으로" />
         <AdminPageHeader
-          title="잡 만들기"
-          subtitle="잡을 만듭니다. 채널은 이후 잡 목록에서 연결할 수 있습니다."
+          title="제작 아이템 만들기"
+          subtitle="제작 아이템을 만듭니다. 채널은 이후 제작 아이템 목록에서 연결할 수 있습니다."
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>잡·토픽 정보</CardTitle>
+          <CardTitle>제작 아이템·토픽 정보</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           <div className="grid gap-4 md:grid-cols-2">
@@ -107,7 +107,7 @@ function StandaloneCreateJobContent() {
                 })
               }
             >
-              {mutation.isPending ? '생성 중…' : '잡 만들기 (토픽 플랜 포함)'}
+              {mutation.isPending ? '생성 중…' : '제작 아이템 만들기 (토픽 플랜 포함)'}
             </Button>
             <Link
               href="/jobs"
@@ -131,8 +131,8 @@ export function StandaloneCreateJobPage() {
       fallback={
         <div className="space-y-6">
           <div className="space-y-3">
-            <AdminPageBack href="/jobs" label="잡 목록으로" />
-            <AdminPageHeader title="미연결 잡 만들기" subtitle="불러오는 중…" />
+            <AdminPageBack href="/jobs" label="제작 아이템 목록으로" />
+            <AdminPageHeader title="미연결 제작 아이템 만들기" subtitle="불러오는 중…" />
           </div>
         </div>
       }

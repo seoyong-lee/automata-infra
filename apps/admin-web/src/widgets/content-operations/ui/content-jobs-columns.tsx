@@ -44,7 +44,7 @@ export function createContentJobsColumns(): ColumnDef<AdminJob>[] {
     },
     {
       accessorKey: 'contentType',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="콘텐츠 타입" />,
+      header: ({ column }) => <DataTableColumnHeader column={column} title="채널 유형" />,
       cell: ({ row }) => (
         <span className="text-muted-foreground">{row.original.contentType ?? '—'}</span>
       ),

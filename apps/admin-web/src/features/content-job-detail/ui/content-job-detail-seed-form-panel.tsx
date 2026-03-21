@@ -10,7 +10,7 @@ import { SeedForm } from '../model';
 
 type ContentJobDetailSeedFormPanelProps = {
   initialValue: SeedForm;
-  /** 잡 생성 시 또는 이후 실행으로 토픽 플랜 S3가 있는지 */
+  /** 제작 아이템 생성 시 또는 이후 실행으로 토픽 플랜 S3가 있는지 */
   hasTopicPlan: boolean;
   isRunningTopicPlan: boolean;
   isSaving: boolean;
@@ -63,8 +63,9 @@ export function ContentJobDetailSeedFormPanel({
       <CardContent className="space-y-4">
         <p className="text-sm text-muted-foreground">
           제목·길이·스타일은 메타 정보이고, 아래 &quot;기획 메모&quot;에 각 씬에서 말할 내용·톤·금지
-          사항 등을 자유롭게 적으면 Scene JSON 생성 시 프롬프트에 반영됩니다. 잡을 만들 때 이미 토픽
-          플랜까지 진행된 경우, 시드를 고친 뒤 저장하고 필요할 때만 플랜을 다시 돌리면 됩니다.
+          사항 등을 자유롭게 적으면 Scene JSON 생성 시 프롬프트에 반영됩니다. 제작 아이템을 만들 때
+          이미 토픽 플랜까지 진행된 경우, 시드를 고친 뒤 저장하고 필요할 때만 플랜을 다시 돌리면
+          됩니다.
         </p>
         {hasTopicPlan ? (
           <p className="rounded-md border border-border bg-muted/40 px-3 py-2 text-sm text-foreground">
@@ -73,8 +74,8 @@ export function ContentJobDetailSeedFormPanel({
           </p>
         ) : (
           <p className="rounded-md border border-amber-500/40 bg-amber-500/10 px-3 py-2 text-sm text-foreground">
-            아직 토픽 플랜이 없습니다. 아래에서 실행하거나, 잡을 새로 만들 때 함께 생성되게 할 수
-            있습니다.
+            아직 토픽 플랜이 없습니다. 아래에서 실행하거나, 제작 아이템을 새로 만들 때 함께 생성되게
+            할 수 있습니다.
           </p>
         )}
         <div className="grid gap-4 md:grid-cols-2">

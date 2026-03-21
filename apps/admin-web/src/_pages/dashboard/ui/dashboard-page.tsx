@@ -145,7 +145,7 @@ export function DashboardPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="대시보드"
-        subtitle="모든 콘텐츠를 한곳에서 묶어 병목·에러·리뷰 대기·업로드 진행 상태를 파악하는 운영 현황입니다."
+        subtitle="모든 채널을 한곳에서 묶어 병목·에러·리뷰 대기·업로드 진행 상태를 파악하는 운영 현황입니다."
       />
 
       {jobsQuery.error ? (
@@ -179,13 +179,13 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle>Channel Health</CardTitle>
             <CardDescription>
-              유튜브 채널 단위로 현재 잡 수, 업로드 완료 수, 막힌 작업 수를 봅니다.
+              유튜브 채널 단위로 현재 제작 아이템 수, 업로드 완료 수, 막힌 작업 수를 봅니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {channelRows.length === 0 ? (
               <p className="text-sm text-muted-foreground">
-                아직 집계할 채널이 없습니다. 먼저 콘텐츠 채널을 추가하거나 잡을 생성하세요.
+                아직 집계할 채널이 없습니다. 먼저 채널을 추가하거나 제작 아이템을 생성하세요.
               </p>
             ) : null}
             {channelRows.map((row) => (
@@ -213,7 +213,7 @@ export function DashboardPage() {
           <CardHeader>
             <CardTitle>Latest Jobs</CardTitle>
             <CardDescription>
-              최근 업데이트된 잡을 기준으로 전체 콘텐츠 흐름을 빠르게 확인합니다.
+              최근 업데이트된 제작 아이템을 기준으로 전체 채널 흐름을 빠르게 확인합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -242,7 +242,7 @@ export function DashboardPage() {
               </div>
             ))}
             {!jobsQuery.isLoading && recentJobs.length === 0 ? (
-              <p className="text-sm text-muted-foreground">아직 생성된 잡이 없습니다.</p>
+              <p className="text-sm text-muted-foreground">아직 생성된 제작 아이템이 없습니다.</p>
             ) : null}
           </CardContent>
         </Card>

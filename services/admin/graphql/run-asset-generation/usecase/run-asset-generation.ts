@@ -1,4 +1,9 @@
 import { getJsonFromS3 } from "../../../../shared/lib/aws/runtime";
+import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
+import {
+  startJobExecution,
+  startQueuedJobExecution,
+} from "../../../../shared/lib/store/job-execution";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { generateSceneImages } from "../../../../image/usecase/generate-scene-images";
 import { saveImageAssets } from "../../../../image/repo/save-image-assets";
@@ -10,7 +15,12 @@ import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import type { SceneJson } from "../../../../../types/render/scene-json";
 
-export const runAdminAssetGeneration = async (jobId: string) => {
+const pipelineAsyncEnabled = (): boolean =>
+  (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
+    process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
+  Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
+
+export const runAssetGenerationCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
   if (!job.sceneJsonS3Key) {
     throw new Error("scene json not found");
@@ -71,4 +81,45 @@ export const runAdminAssetGeneration = async (jobId: string) => {
 
   const updated = await getJobOrThrow(jobId);
   return mapJobMetaToAdminJob(updated);
+};
+
+export const runAdminAssetGeneration = async (
+  jobId: string,
+  triggeredBy?: string,
+) => {
+  if (pipelineAsyncEnabled()) {
+    const { sk, finish } = await startQueuedJobExecution({
+      jobId,
+      stageType: "ASSET_GENERATION",
+      triggeredBy,
+    });
+    try {
+      await invokePipelineWorkerAsync({
+        jobId,
+        executionSk: sk,
+        stage: "ASSET_GENERATION",
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await finish("FAILED", msg);
+      throw e;
+    }
+    const job = await getJobOrThrow(jobId);
+    return mapJobMetaToAdminJob(job);
+  }
+
+  const { finish } = await startJobExecution({
+    jobId,
+    stageType: "ASSET_GENERATION",
+    triggeredBy,
+  });
+  try {
+    const result = await runAssetGenerationCore(jobId);
+    await finish("SUCCEEDED");
+    return result;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await finish("FAILED", msg);
+    throw e;
+  }
 };

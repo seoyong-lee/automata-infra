@@ -25,7 +25,7 @@ export function SettingsPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="설정"
-        subtitle="콘텐츠 작업과 분리된 글로벌 영역입니다. 채널 연결, 모델·프롬프트, publish 기본값, 런타임 원칙을 관리합니다. 저장되지 않은 항목은 코드 기본값으로 동작합니다."
+        subtitle="채널·제작 아이템 작업과 분리된 글로벌 영역입니다. 채널 연결, 모델·프롬프트, publish 기본값, 런타임 원칙을 관리합니다. 저장되지 않은 항목은 코드 기본값으로 동작합니다."
       />
       <SettingsSectionTabsCard activeSection={activeSection} onSectionChange={setActiveSection} />
       <SettingsQueryStatus

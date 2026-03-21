@@ -126,9 +126,9 @@ export function ReviewsPageContent() {
 
       <Card>
         <CardHeader>
-          <CardTitle>콘텐츠 작업 목록</CardTitle>
+          <CardTitle>제작 아이템 목록</CardTitle>
           <CardDescription>
-            행 전체를 선택하면 해당 콘텐츠 상세(제작 탭)로 이동합니다.
+            행 전체를 선택하면 해당 채널 상세(제작 탭)로 이동합니다.
           </CardDescription>
         </CardHeader>
         <CardContent>

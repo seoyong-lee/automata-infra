@@ -26,15 +26,15 @@ export function CreateContentPage() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <AdminPageBack href="/content" label="콘텐츠 목록으로" />
+        <AdminPageBack href="/content" label="채널 목록으로" />
         <AdminPageHeader
-          title="콘텐츠 추가"
-          subtitle="콘텐츠는 contentId 하나로 식별합니다. 표시 이름만 정하고, 유튜브 연동은 선택·생성 후에도 설정할 수 있습니다."
+          title="채널 추가"
+          subtitle="채널은 contentId 하나로 식별합니다. 표시 이름만 정하고, 유튜브 연동은 선택·생성 후에도 설정할 수 있습니다."
         />
       </div>
       <Card className="">
         <CardHeader>
-          <CardTitle>새 콘텐츠</CardTitle>
+          <CardTitle>새 채널</CardTitle>
         </CardHeader>
         <CardContent className="gap-4">
           <div className="flex flex-col gap-1 text-sm mb-4">

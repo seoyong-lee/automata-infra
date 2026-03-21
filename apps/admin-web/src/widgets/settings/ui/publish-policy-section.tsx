@@ -26,7 +26,7 @@ export function PublishPolicySection({ contents, channelSummary }: PublishPolicy
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           {contents.length === 0 ? (
-            <p>등록된 콘텐츠가 없습니다.</p>
+            <p>등록된 채널이 없습니다.</p>
           ) : (
             contents.map((c) => (
               <p key={c.contentId}>

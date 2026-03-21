@@ -72,6 +72,49 @@ export class PublishStack extends Stack {
       ),
     };
 
+    const pipelineWorker = new nodejs.NodejsFunction(
+      this,
+      "AdminPipelineWorkerLambda",
+      {
+        entry: path.join(
+          process.cwd(),
+          "services/admin/pipeline-worker/handler.ts",
+        ),
+        handler: "handler",
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: Duration.minutes(15),
+        bundling: {
+          target: "node20",
+          format: nodejs.OutputFormat.CJS,
+        },
+        environment,
+      },
+    );
+    props.jobsTable.grantReadWriteData(pipelineWorker);
+    props.assetsBucket.grantReadWrite(pipelineWorker);
+    props.llmConfigTable.grantReadData(pipelineWorker);
+    pipelineWorker.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    pipelineWorker.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "bedrock:InvokeModel",
+          "bedrock:InvokeModelWithResponseStream",
+        ],
+        resources: ["*"],
+      }),
+    );
+
+    const pipelineTriggerEnv = {
+      ...environment,
+      PIPELINE_WORKER_FUNCTION_NAME: pipelineWorker.functionName,
+      PIPELINE_ASYNC_INVOCATION: "1",
+    };
+
     const reviewHandler = createLambda(
       this,
       "ReviewDecisionLambda",
@@ -120,6 +163,15 @@ export class PublishStack extends Stack {
       path.join(
         process.cwd(),
         "services/admin/graphql/job-timeline/handler.ts",
+      ),
+      environment,
+    );
+    const jobExecutionsResolver = createLambda(
+      this,
+      "AdminJobExecutionsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/job-executions/handler.ts",
       ),
       environment,
     );
@@ -175,7 +227,7 @@ export class PublishStack extends Stack {
         process.cwd(),
         "services/admin/graphql/create-draft-job/handler.ts",
       ),
-      environment,
+      pipelineTriggerEnv,
     );
     const updateTopicSeedResolver = createLambda(
       this,
@@ -193,7 +245,7 @@ export class PublishStack extends Stack {
         process.cwd(),
         "services/admin/graphql/run-topic-plan/handler.ts",
       ),
-      environment,
+      pipelineTriggerEnv,
     );
     const runSceneJsonResolver = createLambda(
       this,
@@ -202,7 +254,7 @@ export class PublishStack extends Stack {
         process.cwd(),
         "services/admin/graphql/run-scene-json/handler.ts",
       ),
-      environment,
+      pipelineTriggerEnv,
     );
     const updateSceneJsonResolver = createLambda(
       this,
@@ -220,7 +272,7 @@ export class PublishStack extends Stack {
         process.cwd(),
         "services/admin/graphql/run-asset-generation/handler.ts",
       ),
-      environment,
+      pipelineTriggerEnv,
     );
     const deleteJobResolver = createLambda(
       this,
@@ -293,6 +345,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(getJobResolver);
     props.jobsTable.grantReadData(pendingReviewsResolver);
     props.jobsTable.grantReadData(jobTimelineResolver);
+    props.jobsTable.grantReadData(jobExecutionsResolver);
     props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
     props.jobsTable.grantReadWriteData(requestUploadResolver);
     props.jobsTable.grantReadWriteData(getJobDraftResolver);
@@ -375,6 +428,11 @@ export class PublishStack extends Stack {
       }),
     );
 
+    pipelineWorker.grantInvoke(createDraftJobResolver);
+    pipelineWorker.grantInvoke(runTopicPlanResolver);
+    pipelineWorker.grantInvoke(runSceneJsonResolver);
+    pipelineWorker.grantInvoke(runAssetGenerationResolver);
+
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,
       domainPrefix:
@@ -394,6 +452,7 @@ export class PublishStack extends Stack {
       getJobResolver,
       pendingReviewsResolver,
       jobTimelineResolver,
+      jobExecutionsResolver,
       submitReviewDecisionResolver,
       requestUploadResolver,
       getLlmSettingsResolver,

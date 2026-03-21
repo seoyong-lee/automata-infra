@@ -14,11 +14,11 @@ import { createContentJobsColumns } from './content-jobs-columns';
 type Props = {
   jobs: AdminJob[];
   isLoading: boolean;
-  /** When set, “새 제작 잡” goes to `/content/:contentId/jobs/new`. */
+  /** When set, “새 제작 아이템” goes to `/content/:contentId/jobs/new`. */
   contentId?: string;
-  /** 지정 시 위 규칙 대신 이 URL로 새 잡 생성 링크를 둔다. */
+  /** 지정 시 위 규칙 대신 이 URL로 새 제작 아이템 생성 링크를 둔다. */
   newJobHrefOverride?: string;
-  /** 행 우측 액션(예: 미연결 잡 → 콘텐츠 연결). */
+  /** 행 우측 액션(예: 미연결 제작 아이템 → 채널 연결). */
   renderJobAction?: (job: AdminJob) => ReactNode;
 };
 
@@ -91,7 +91,7 @@ export function ContentJobsTable({
         <p className="text-sm text-muted-foreground">목록을 불러오는 중입니다…</p>
       ) : null}
       {!isLoading && jobs.length === 0 ? (
-        <p className="text-sm text-muted-foreground">표시할 제작 잡이 없습니다.</p>
+        <p className="text-sm text-muted-foreground">표시할 제작 아이템이 없습니다.</p>
       ) : null}
       {!isLoading && jobs.length > 0 ? (
         <AdminDataTable<AdminJob>
@@ -106,7 +106,7 @@ export function ContentJobsTable({
               href={newJobHref}
               className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              새 잡 만들기
+              새 제작 아이템
             </Link>
           }
           getColumnClassName={getJobColumnClassName}

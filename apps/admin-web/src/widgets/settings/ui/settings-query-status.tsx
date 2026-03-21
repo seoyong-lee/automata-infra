@@ -22,7 +22,7 @@ export function SettingsQueryStatus({
         <p className="text-sm text-destructive">{getErrorMessage(settingsError)}</p>
       ) : null}
       {contentsLoading ? (
-        <p className="text-sm text-muted-foreground">콘텐츠 목록을 불러오는 중…</p>
+        <p className="text-sm text-muted-foreground">채널 목록을 불러오는 중…</p>
       ) : null}
       {contentsError ? (
         <p className="text-sm text-destructive">{getErrorMessage(contentsError)}</p>

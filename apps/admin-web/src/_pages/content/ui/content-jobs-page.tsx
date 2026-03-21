@@ -34,15 +34,17 @@ function ContentJobsPageBody() {
           eyebrow={
             <div className="flex flex-wrap items-center gap-2">
               <Link href="/content" className="hover:text-foreground">
-                콘텐츠 관리
+                채널
               </Link>
               <span className="text-muted-foreground/70">/</span>
               <span className="text-foreground">{(label ?? contentId) || '—'}</span>
             </div>
           }
-          title="콘텐츠 상세"
+          title="채널 상세"
           subtitle={
-            label ? `행을 선택하면 잡 상세로 이동합니다.` : '행을 선택하면 잡 상세로 이동합니다.'
+            label
+              ? `행을 선택하면 제작 아이템 상세로 이동합니다.`
+              : '행을 선택하면 제작 아이템 상세로 이동합니다.'
           }
         />
       </div>
@@ -58,8 +60,8 @@ export function ContentJobsPage() {
       fallback={
         <div className="space-y-8">
           <div className="space-y-3">
-            <AdminPageBack href="/content" label="콘텐츠 목록으로" />
-            <AdminPageHeader title="콘텐츠 상세" subtitle="불러오는 중…" />
+            <AdminPageBack href="/content" label="채널 목록으로" />
+            <AdminPageHeader title="채널 상세" subtitle="불러오는 중…" />
           </div>
         </div>
       }

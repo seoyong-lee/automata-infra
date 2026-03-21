@@ -18,7 +18,7 @@ export function ContentJobDetailContext({ detail }: ContentJobDetailContextProps
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="rounded-lg border p-4 text-sm text-muted-foreground">
-          {'이 화면은 콘텐츠 관리 > 채널 > 콘텐츠 라인 > 잡 순서 중 마지막 깊은 작업 공간입니다.'}
+          {'이 화면은 채널 > 채널 상세 > 제작 아이템 순서 중 마지막 깊은 작업 공간입니다.'}
         </div>
         <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
           {contextCards.map((item) => (

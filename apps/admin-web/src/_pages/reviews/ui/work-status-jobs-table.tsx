@@ -17,7 +17,7 @@ export function WorkStatusJobsTable({ jobs, isLoading }: WorkStatusJobsTableProp
   }
 
   if (jobs.length === 0) {
-    return <p className="text-sm text-muted-foreground">표시할 콘텐츠 작업이 없습니다.</p>;
+    return <p className="text-sm text-muted-foreground">표시할 제작 아이템이 없습니다.</p>;
   }
 
   return (
@@ -26,7 +26,7 @@ export function WorkStatusJobsTable({ jobs, isLoading }: WorkStatusJobsTableProp
         <thead className="border-b border-border bg-muted/40 text-left text-xs font-medium uppercase tracking-wide text-muted-foreground">
           <tr>
             <th className="px-4 py-3">제목</th>
-            <th className="px-4 py-3">콘텐츠 ID</th>
+            <th className="px-4 py-3">채널 ID</th>
             <th className="px-4 py-3">채널</th>
             <th className="px-4 py-3">상태</th>
             <th className="px-4 py-3">수정 시각</th>

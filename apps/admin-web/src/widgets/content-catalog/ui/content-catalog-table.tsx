@@ -55,7 +55,7 @@ export function ContentCatalogTable({ items, isLoading, onDelete, deletingId }: 
     <div className="space-y-4">
       {isLoading ? <p className="text-sm text-muted-foreground">불러오는 중…</p> : null}
       {!isLoading && items.length === 0 ? (
-        <p className="text-sm text-muted-foreground">등록된 콘텐츠가 없습니다.</p>
+        <p className="text-sm text-muted-foreground">등록된 채널이 없습니다.</p>
       ) : null}
       {!isLoading && items.length > 0 ? (
         <AdminDataTable<AdminContent>
@@ -70,7 +70,7 @@ export function ContentCatalogTable({ items, isLoading, onDelete, deletingId }: 
               href="/content/new"
               className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
             >
-              콘텐츠 추가
+              채널 추가
             </Link>
           }
           getColumnClassName={getCatalogColumnClassName}

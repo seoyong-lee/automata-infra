@@ -26,7 +26,7 @@ export function ExecutionsPage() {
     <div className="space-y-8">
       <AdminPageHeader
         title="실행 현황"
-        subtitle="최근 갱신 순 제작 아이템(잡) 목록입니다. 상세에서 단계·실행 이력·렌더·업로드를 이어갑니다."
+        subtitle="최근 갱신 순 제작 아이템 목록입니다. 상세에서 단계·실행 이력·렌더·업로드를 이어갑니다."
       />
 
       <Card>

@@ -15,6 +15,7 @@ type CreatePublishGraphqlApiProps = {
   getJobResolver: lambda.IFunction;
   pendingReviewsResolver: lambda.IFunction;
   jobTimelineResolver: lambda.IFunction;
+  jobExecutionsResolver: lambda.IFunction;
   submitReviewDecisionResolver: lambda.IFunction;
   requestUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
@@ -104,6 +105,13 @@ export const createPublishGraphqlApi = (
     "jobTimeline",
     "Query",
     props.jobTimelineResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "JobExecutions",
+    "jobExecutions",
+    "Query",
+    props.jobExecutionsResolver,
   );
   addLambdaResolver(
     graphqlApi,

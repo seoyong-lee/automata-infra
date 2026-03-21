@@ -6,41 +6,45 @@ import {
 import { logResolverAudit } from "../shared/audit-log";
 import { toGraphqlResolverError } from "../shared/errors";
 import { GraphqlResolverEvent } from "../shared/types";
-import { parseCreateDraftJobArgs } from "./normalize/parse-create-draft-job-args";
-import { createAdminDraftJob } from "./usecase/create-draft-job";
+import { parseJobExecutionsArgs } from "./normalize/parse-job-executions-args";
+import { getAdminJobExecutions } from "./usecase/get-job-executions";
 
 export const run: Handler<
   GraphqlResolverEvent<Record<string, unknown>>,
   unknown
 > = async (event) => {
   const actor = getActor(event.identity);
+  let jobId: string | undefined;
   try {
     assertAdminGroup(event.identity);
-    const parsed = parseCreateDraftJobArgs(
+    const parsed = parseJobExecutionsArgs(
       (event.arguments ?? {}) as Record<string, unknown>,
     );
+    jobId = parsed.jobId;
     logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
+      operation: "jobExecutions",
+      operationType: "query",
       phase: "started",
       actor,
+      jobId,
     });
-    const result = await createAdminDraftJob({ ...parsed, triggeredBy: actor });
+    const result = await getAdminJobExecutions(parsed.jobId);
     logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
+      operation: "jobExecutions",
+      operationType: "query",
       phase: "succeeded",
       actor,
-      jobId: result.jobId,
+      jobId,
     });
     return result;
   } catch (error) {
     const mapped = toGraphqlResolverError(error);
     logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
+      operation: "jobExecutions",
+      operationType: "query",
       phase: "failed",
       actor,
+      jobId,
       errorCode: mapped.code,
       errorMessage: mapped.message,
     });

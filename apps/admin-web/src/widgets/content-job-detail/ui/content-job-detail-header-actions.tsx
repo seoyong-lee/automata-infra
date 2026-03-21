@@ -23,7 +23,7 @@ export function ContentJobDetailHeaderActions({
         }}
         disabled={!detail?.job.contentId}
       >
-        같은 라인으로 새 콘텐츠 만들기
+        같은 라인으로 새 채널 만들기
       </Button>
     </>
   );

@@ -28,7 +28,7 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const result = await runAdminTopicPlan(parsed.jobId);
+    const result = await runAdminTopicPlan(parsed.jobId, actor);
     logResolverAudit({
       operation: "runTopicPlan",
       operationType: "mutation",

@@ -1,4 +1,4 @@
-/** 토픽 시드 폼 — Admin 잡 상세에서 사용. */
+/** 토픽 시드 폼 — Admin 제작 아이템 상세에서 사용. */
 export type SeedForm = {
   contentId: string;
   targetLanguage: string;

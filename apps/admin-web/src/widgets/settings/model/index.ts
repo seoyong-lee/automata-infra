@@ -32,7 +32,7 @@ export const settingsSections: SettingsSectionCard[] = [
   {
     key: 'channels',
     label: 'Channels',
-    description: '콘텐츠(채널)별 유튜브 연결·시크릿·업로드 기본값을 관리합니다.',
+    description: '채널별 유튜브 연결·시크릿·업로드 기본값을 관리합니다.',
   },
   {
     key: 'models',

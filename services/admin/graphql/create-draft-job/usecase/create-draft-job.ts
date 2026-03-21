@@ -4,6 +4,7 @@ import type { CreateDraftJobInputDto } from "../../shared/types";
 
 export const createAdminDraftJob = async (input: {
   draft: CreateDraftJobInputDto;
+  triggeredBy?: string;
 }) => {
   const created = await createDraftJob({
     draft: input.draft,
@@ -15,5 +16,5 @@ export const createAdminDraftJob = async (input: {
     return created;
   }
 
-  return runAdminTopicPlan(created.jobId);
+  return runAdminTopicPlan(created.jobId, input.triggeredBy);
 };

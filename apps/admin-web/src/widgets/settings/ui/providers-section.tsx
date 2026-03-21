@@ -18,7 +18,7 @@ export function ProvidersSection({ items }: ProvidersSectionProps) {
             정책만 노출합니다.
           </p>
           <p>
-            실제 런타임 장애는 대시보드와 콘텐츠 관리에서 감지하고, 기본 연결 정책만 이 영역에서
+            실제 런타임 장애는 대시보드와 채널 메뉴에서 감지하고, 기본 연결 정책만 이 영역에서
             유지합니다.
           </p>
         </CardContent>

@@ -147,6 +147,17 @@ export type JobTimelineItem = {
   data: string;
 };
 
+export type PipelineExecution = {
+  executionId: string;
+  jobId: string;
+  stageType: "TOPIC_PLAN" | "SCENE_JSON" | "ASSET_GENERATION";
+  status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+  triggeredBy?: string | null;
+  startedAt: string;
+  completedAt?: string | null;
+  errorMessage?: string | null;
+};
+
 export type LlmStepSettings = {
   stepKey: string;
   provider: LlmProvider;
@@ -268,6 +279,21 @@ const jobTimelineQuery = `
       pk
       sk
       data
+    }
+  }
+`;
+
+const jobExecutionsQuery = `
+  query JobExecutions($jobId: ID!) {
+    jobExecutions(jobId: $jobId) {
+      executionId
+      jobId
+      stageType
+      status
+      triggeredBy
+      startedAt
+      completedAt
+      errorMessage
     }
   }
 `;
@@ -811,6 +837,31 @@ export const useJobTimelineQuery = (
         vars,
       );
       return data.jobTimeline;
+    },
+    ...options,
+  });
+};
+
+export const useJobExecutionsQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      PipelineExecution[],
+      Error,
+      PipelineExecution[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["jobExecutions", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{ jobExecutions: PipelineExecution[] }>(
+        jobExecutionsQuery,
+        vars,
+      );
+      return data.jobExecutions;
     },
     ...options,
   });

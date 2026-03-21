@@ -28,7 +28,7 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const result = await runAdminSceneJson(parsed.jobId);
+    const result = await runAdminSceneJson(parsed.jobId, actor);
     logResolverAudit({
       operation: "runSceneJson",
       operationType: "mutation",

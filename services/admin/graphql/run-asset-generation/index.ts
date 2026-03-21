@@ -28,7 +28,7 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const result = await runAdminAssetGeneration(parsed.jobId);
+    const result = await runAdminAssetGeneration(parsed.jobId, actor);
     logResolverAudit({
       operation: "runAssetGeneration",
       operationType: "mutation",

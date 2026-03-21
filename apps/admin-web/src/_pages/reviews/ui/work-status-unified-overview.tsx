@@ -32,7 +32,9 @@ export function WorkStatusUnifiedOverview() {
     <Card>
       <CardHeader>
         <CardTitle>전체 작업 통합 현황</CardTitle>
-        <CardDescription>등록된 모든 콘텐츠 작업을 한 화면에서 집계합니다.</CardDescription>
+        <CardDescription>
+          등록된 모든 채널·제작 아이템 작업을 한 화면에서 집계합니다.
+        </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {jobsQuery.error ? (
@@ -46,7 +48,7 @@ export function WorkStatusUnifiedOverview() {
         ) : null}
         <div className="grid gap-3 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-6">
           {[
-            { label: '전체 콘텐츠', value: snapshot.total },
+            { label: '전체 제작 아이템', value: snapshot.total },
             { label: '검수 대기(상태)', value: snapshot.reviewPending },
             { label: '검수 큐(할당)', value: snapshot.pendingQueue },
             { label: '에셋 생성 중', value: snapshot.assetGen },
@@ -60,11 +62,11 @@ export function WorkStatusUnifiedOverview() {
           ))}
         </div>
         <p className="text-sm text-muted-foreground">
-          콘텐츠별 편집·제작은{' '}
+          채널별 편집·제작은{' '}
           <Link href="/content" className="font-medium text-primary hover:underline">
-            콘텐츠 관리
+            채널
           </Link>
-          로 이동하거나, 하단 목록에서 행을 선택해 콘텐츠 상세로 들어갑니다.
+          로 이동하거나, 하단 목록에서 행을 선택해 채널 상세로 들어갑니다.
         </p>
       </CardContent>
     </Card>

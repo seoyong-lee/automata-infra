@@ -1,5 +1,5 @@
-import { getPublishPath } from './detail-values';
 import type { JobDraftDetail, LogItem } from '../model/types';
+import { getPublishPath } from './detail-values';
 
 export const buildOperationalLogs = (
   detail: JobDraftDetail | undefined,
@@ -9,7 +9,7 @@ export const buildOperationalLogs = (
     {
       label: 'Current status',
       value: detail?.job.status ?? '-',
-      note: '콘텐츠 라인 내부에서 이 잡이 어느 단계에 있는지 보여줍니다.',
+      note: '채널 라인 내부에서 이 제작 아이템이 어느 단계에 있는지 보여줍니다.',
     },
     {
       label: 'Topic seed ready',
@@ -34,7 +34,7 @@ export const buildOperationalLogs = (
     {
       label: 'Last updated',
       value: detail?.job.updatedAt ?? '-',
-      note: '운영자가 마지막으로 이 잡을 다시 확인해야 할 시점을 가늠합니다.',
+      note: '운영자가 마지막으로 이 제작 아이템을 다시 확인해야 할 시점을 가늠합니다.',
     },
   ];
 };

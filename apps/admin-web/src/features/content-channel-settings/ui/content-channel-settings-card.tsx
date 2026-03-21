@@ -62,7 +62,7 @@ export function ContentChannelSettingsCard({ content }: Props) {
   const onClearYoutube = () => {
     if (
       !window.confirm(
-        '이 콘텐츠에 저장된 유튜브 게시 설정(시크릿·가시성·플레이리스트 등)을 모두 지울까요?',
+        '이 채널에 저장된 유튜브 게시 설정(시크릿·가시성·플레이리스트 등)을 모두 지울까요?',
       )
     ) {
       return;

@@ -46,7 +46,7 @@ export const jobDetailRouteTabs: Array<{
   {
     key: 'timeline',
     label: '실행 이력',
-    description: '이 잡에 기록된 타임라인·감사 이벤트를 조회합니다.',
+    description: '이 제작 아이템에 기록된 타임라인·감사 이벤트를 조회합니다.',
   },
 ];
 

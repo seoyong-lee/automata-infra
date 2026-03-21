@@ -59,34 +59,34 @@ function CreateJobInContentContent() {
   return (
     <div className="space-y-8">
       <div className="space-y-3">
-        <AdminPageBack href={jobsListHref} label="이 콘텐츠 잡 목록으로" />
+        <AdminPageBack href={jobsListHref} label="이 채널의 제작 아이템 목록으로" />
         <AdminPageHeader
           eyebrow={
             <div className="flex flex-wrap items-center gap-2">
               <Link href="/content" className="hover:text-foreground">
-                콘텐츠 관리
+                채널
               </Link>
               <span className="text-muted-foreground/70">/</span>
               <Link href={jobsListHref} className="hover:text-foreground">
                 {content?.label ?? contentId}
               </Link>
               <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground">새 잡</span>
+              <span className="text-foreground">새 제작 아이템</span>
             </div>
           }
-          title="제작 잡 만들기"
-          subtitle="한 번에 잡을 만들고 토픽 플랜까지 완료합니다. 이후 스크립트·에셋·업로드로 이어갑니다."
+          title="제작 아이템 만들기"
+          subtitle="한 번에 제작 아이템을 만들고 토픽 플랜까지 완료합니다. 이후 스크립트·에셋·업로드로 이어갑니다."
         />
       </div>
 
       <Card>
         <CardHeader>
-          <CardTitle>잡·토픽 정보</CardTitle>
+          <CardTitle>제작 아이템·토픽 정보</CardTitle>
         </CardHeader>
         <CardContent className="space-y-4">
           {!contentsQuery.isLoading && !content ? (
             <p className="text-sm text-destructive">
-              이 contentId에 해당하는 콘텐츠를 찾을 수 없습니다.{' '}
+              이 contentId에 해당하는 채널을 찾을 수 없습니다.{' '}
               <Link href="/content" className="underline">
                 목록으로
               </Link>
@@ -95,7 +95,7 @@ function CreateJobInContentContent() {
 
           <div className="grid gap-4 md:grid-cols-2">
             <div className="rounded-lg border p-4 text-sm md:col-span-2">
-              <p className="text-xs text-muted-foreground">콘텐츠</p>
+              <p className="text-xs text-muted-foreground">채널</p>
               <p className="mt-1 font-medium">{content?.label ?? '…'}</p>
               <p className="mt-1 font-mono text-xs text-muted-foreground">{content?.contentId}</p>
             </div>
@@ -145,7 +145,7 @@ function CreateJobInContentContent() {
                 })
               }
             >
-              {mutation.isPending ? '생성 중…' : '잡 만들기 (토픽 플랜 포함)'}
+              {mutation.isPending ? '생성 중…' : '제작 아이템 만들기 (토픽 플랜 포함)'}
             </Button>
             <Link
               href={jobsListHref}
@@ -169,8 +169,8 @@ export function CreateJobInContentPage() {
       fallback={
         <div className="space-y-6">
           <div className="space-y-3">
-            <AdminPageBack href="/content" label="콘텐츠 목록으로" />
-            <AdminPageHeader title="제작 잡 만들기" subtitle="불러오는 중…" />
+            <AdminPageBack href="/content" label="채널 목록으로" />
+            <AdminPageHeader title="제작 아이템 만들기" subtitle="불러오는 중…" />
           </div>
         </div>
       }
