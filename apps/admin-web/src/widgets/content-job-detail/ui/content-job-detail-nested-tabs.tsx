@@ -21,7 +21,7 @@ export function ContentJobDetailNestedTabs({ jobId, activeTab }: ContentJobDetai
   const activeCopy = detailWorkspaceTabs.find((v) => v.key === activeTab)?.description;
 
   return (
-    <div className="space-y-3">
+    <div className="mb-4">
       <div className="-mx-1 flex flex-wrap gap-2 px-1">
         {detailWorkspaceTabs.map((tab) => (
           <Link

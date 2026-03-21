@@ -50,12 +50,10 @@ export function createContentJobsColumns(): ColumnDef<AdminJob>[] {
       ),
     },
     {
-      accessorKey: 'contentId',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="콘텐츠 ID" />,
+      accessorKey: 'jobId',
+      header: ({ column }) => <DataTableColumnHeader column={column} title="Job ID" />,
       cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">
-          {row.original.contentId ?? '—'}
-        </span>
+        <span className="font-mono text-xs text-muted-foreground">{row.original.jobId}</span>
       ),
     },
     {
@@ -78,13 +76,6 @@ export function createContentJobsColumns(): ColumnDef<AdminJob>[] {
         const b = new Date(String(rowB.getValue(columnId))).getTime();
         return a - b;
       },
-    },
-    {
-      accessorKey: 'jobId',
-      header: ({ column }) => <DataTableColumnHeader column={column} title="Job ID" />,
-      cell: ({ row }) => (
-        <span className="font-mono text-xs text-muted-foreground">{row.original.jobId}</span>
-      ),
     },
   ];
 }

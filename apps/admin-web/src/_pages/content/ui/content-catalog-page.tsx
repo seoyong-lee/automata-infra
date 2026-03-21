@@ -24,7 +24,7 @@ function ContentCatalogPageBody() {
     <div className="space-y-8">
       <AdminPageHeader
         title="콘텐츠 관리"
-        subtitle="콘텐츠(=채널) 단위를 먼저 등록한 뒤, 각 항목에서 하위 잡을 관리합니다."
+        subtitle="콘텐츠 단위로 각 항목에서 하위 잡을 관리합니다."
       />
       <ContentCatalogTable
         items={list.data?.items ?? []}

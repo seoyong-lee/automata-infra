@@ -42,9 +42,7 @@ function ContentJobsPageBody() {
           }
           title="콘텐츠 상세"
           subtitle={
-            label
-              ? `행을 선택하면 콘텐츠 상세로 이동합니다.`
-              : '행을 선택하면 잡 상세로 이동합니다.'
+            label ? `행을 선택하면 잡 상세로 이동합니다.` : '행을 선택하면 잡 상세로 이동합니다.'
           }
         />
       </div>

@@ -16,14 +16,14 @@ export const detailWorkspaceTabs: Array<{
     description: '씬 단위 대본과 구조화된 JSON을 편집합니다.',
   },
   {
-    key: 'video',
-    label: '영상',
-    description: '씬 클립·모션 위주 에셋을 생성합니다.',
-  },
-  {
     key: 'image',
     label: '이미지',
     description: '씬별 이미지를 생성·보완합니다.',
+  },
+  {
+    key: 'video',
+    label: '영상',
+    description: '씬 클립·모션 위주 에셋을 생성합니다.',
   },
   {
     key: 'upload',

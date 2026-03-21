@@ -18,9 +18,6 @@ export function ContentJobDetailHeaderActions({
 }: ContentJobDetailHeaderActionsProps) {
   return (
     <>
-      <Link className="text-sm text-primary hover:underline" href={contentLineHref}>
-        이 콘텐츠의 잡 목록
-      </Link>
       <Button
         variant="outline"
         onClick={() => {

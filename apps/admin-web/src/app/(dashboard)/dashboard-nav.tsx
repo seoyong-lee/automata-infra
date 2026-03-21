@@ -10,6 +10,7 @@ import {
   FilePlay,
   LayoutDashboard,
   Route,
+  ScrollText,
   Settings,
 } from 'lucide-react';
 import Link from 'next/link';
@@ -134,6 +135,19 @@ export function DashboardSidebar() {
           </div>
 
           <Link
+            href="/topics"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+              pathname === '/topics' || pathname.startsWith('/topics/')
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+            )}
+          >
+            <ScrollText className="size-4 shrink-0" />
+            <span>토픽 관리</span>
+          </Link>
+
+          <Link
             href="/reviews"
             className={cn(
               'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
@@ -209,6 +223,9 @@ export function DashboardMobileBar() {
               <ChevronRight className="size-3.5" />
             )}
           </button>
+          <Link href="/topics" className={linkClass(pathname.startsWith('/topics'))}>
+            토픽 관리
+          </Link>
           <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
             작업 현황
           </Link>
