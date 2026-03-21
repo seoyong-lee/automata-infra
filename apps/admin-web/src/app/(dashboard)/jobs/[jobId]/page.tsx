@@ -6,5 +6,5 @@ type JobDetailIndexPageProps = {
 
 export default async function JobDetailIndexPage({ params }: JobDetailIndexPageProps) {
   const { jobId } = await params;
-  redirect(`/jobs/${jobId}/ideation`);
+  redirect(`/jobs/${jobId}/script`);
 }

@@ -12,6 +12,6 @@
     "resolveJsonModule": true,
     "outDir": "cdk.out-ts"
   },
-  "include": ["bin", "lib", "services", "types", "scripts", "apps"],
-  "exclude": ["node_modules", "cdk.out", "cdk.out-ts", "apps/admin-web/node_modules"]
+  "include": ["bin", "lib", "services", "types", "scripts"],
+  "exclude": ["node_modules", "cdk.out", "cdk.out-ts", "apps"]
 }

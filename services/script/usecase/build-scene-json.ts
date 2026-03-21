@@ -14,7 +14,7 @@ import { SceneJson } from "../../../types/render/scene-json";
 type TopicPlanResult = {
   jobId: string;
   topicId: string;
-  channelId: string;
+  contentId: string;
   contentType?: string;
   variant?: string;
   targetLanguage: string;

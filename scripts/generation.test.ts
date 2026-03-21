@@ -64,7 +64,7 @@ void test("createTopicPlan uses shared LLM generation with deterministic output"
   ) => {
     assert.equal(input.stepKey, "topic-plan");
     assert.deepEqual(input.variables, {
-      channelId: "history-en",
+      contentId: "history-en",
       targetLanguage: "en",
     });
 
@@ -77,7 +77,7 @@ void test("createTopicPlan uses shared LLM generation with deterministic output"
   const result = await createTopicPlan({
     now: () => "2026-03-19T12:00:00.000Z",
     loadConfig: () => ({
-      channelId: "history-en",
+      contentId: "history-en",
       targetLanguage: "en",
     }),
     generateStructuredData,

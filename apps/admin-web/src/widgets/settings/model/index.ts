@@ -1,4 +1,4 @@
-import type { YoutubeChannelConfig } from '@/entities/youtube-channel';
+import type { AdminContent } from '@packages/graphql';
 
 export type SettingsSection =
   | 'general'
@@ -18,6 +18,7 @@ export type ChannelSummary = {
   total: number;
   autoPublish: number;
   withPlaylist: number;
+  /** 레거시(env-only) 구분은 제거 — 카탈로그 기준으로만 집계 */
   envSource: number;
   dbSource: number;
 };
@@ -31,7 +32,7 @@ export const settingsSections: SettingsSectionCard[] = [
   {
     key: 'channels',
     label: 'Channels',
-    description: '채널 연결, 시크릿, 업로드 기본값을 관리합니다.',
+    description: '콘텐츠(채널)별 유튜브 연결·시크릿·업로드 기본값을 관리합니다.',
   },
   {
     key: 'models',
@@ -55,12 +56,12 @@ export const settingsSections: SettingsSectionCard[] = [
   },
 ];
 
-export const getChannelSummary = (youtubeConfigs: YoutubeChannelConfig[]): ChannelSummary => {
+export const getChannelSummary = (contents: AdminContent[]): ChannelSummary => {
   return {
-    total: youtubeConfigs.length,
-    autoPublish: youtubeConfigs.filter((config) => config.autoPublishEnabled).length,
-    withPlaylist: youtubeConfigs.filter((config) => Boolean(config.playlistId)).length,
-    envSource: youtubeConfigs.filter((config) => config.source === 'env').length,
-    dbSource: youtubeConfigs.filter((config) => config.source === 'db').length,
+    total: contents.length,
+    autoPublish: contents.filter((c) => c.autoPublishEnabled).length,
+    withPlaylist: contents.filter((c) => Boolean(c.playlistId?.trim())).length,
+    envSource: 0,
+    dbSource: contents.filter((c) => c.youtubeSecretName || c.youtubeUpdatedAt).length,
   };
 };

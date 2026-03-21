@@ -12,7 +12,7 @@ import {
 export type TopicPlanResult = {
   jobId: string;
   topicId: string;
-  channelId: string;
+  contentId: string;
   contentType?: string;
   variant?: string;
   targetLanguage: string;
@@ -33,7 +33,7 @@ type TopicPlanSeed = {
 };
 
 type TopicSeedOverrides = {
-  channelId?: string;
+  contentId?: string;
   targetLanguage?: string;
   contentType?: string;
   variant?: string;
@@ -99,7 +99,7 @@ const resolveJobId = (
 const resolveTopicContext = (deps: CreateTopicPlanDeps) => {
   const configured = (deps.loadConfig ?? loadTopicConfig)();
   return {
-    channelId: deps.topicSeed?.channelId ?? configured.channelId,
+    contentId: deps.topicSeed?.contentId ?? configured.contentId,
     targetLanguage: deps.topicSeed?.targetLanguage ?? configured.targetLanguage,
   };
 };
@@ -125,14 +125,14 @@ const getSeedFromOverrides = (seed: Required<TopicPlanSeed>): TopicPlanSeed => {
 const generateSeed = async (input: {
   generateStructuredData: GenerateStructuredData;
   jobId: string;
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
 }): Promise<TopicPlanSeed> => {
   const generated = await input.generateStructuredData({
     jobId: input.jobId,
     stepKey: "topic-plan",
     variables: {
-      channelId: input.channelId,
+      contentId: input.contentId,
       targetLanguage: input.targetLanguage,
     },
     validate: validateTopicPlanSeed,
@@ -144,7 +144,7 @@ const generateSeed = async (input: {
 const buildTopicPlanResult = (input: {
   jobId: string;
   createdAt: string;
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
   topicSeed?: TopicSeedOverrides;
   seed: TopicPlanSeed;
@@ -152,7 +152,7 @@ const buildTopicPlanResult = (input: {
   return {
     jobId: input.jobId,
     topicId: `topic_${input.jobId}`,
-    channelId: input.channelId,
+    contentId: input.contentId,
     contentType: input.topicSeed?.contentType,
     variant: input.topicSeed?.variant,
     targetLanguage: input.targetLanguage,
@@ -173,7 +173,7 @@ export const createTopicPlan = async (
 ): Promise<TopicPlanResult> => {
   const createdAt = (deps.now ?? (() => new Date().toISOString()))();
   const jobId = resolveJobId(createdAt, deps.jobId, deps.topicSeed);
-  const { channelId, targetLanguage } = resolveTopicContext(deps);
+  const { contentId, targetLanguage } = resolveTopicContext(deps);
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
   const seed = hasCompleteSeed(deps.topicSeed)
@@ -181,14 +181,14 @@ export const createTopicPlan = async (
     : await generateSeed({
         generateStructuredData,
         jobId,
-        channelId,
+        contentId,
         targetLanguage,
       });
 
   return buildTopicPlanResult({
     jobId,
     createdAt,
-    channelId,
+    contentId,
     targetLanguage,
     topicSeed: deps.topicSeed,
     seed,

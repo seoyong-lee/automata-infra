@@ -10,6 +10,7 @@ import { UnauthorizedError } from "./client/errors";
 
 export type AdminJob = {
   jobId: string;
+  contentId?: string | null;
   status:
     | "DRAFT"
     | "PLANNING"
@@ -29,7 +30,6 @@ export type AdminJob = {
     | "FAILED"
     | "METRICS_COLLECTED";
   reviewAction?: "PENDING" | "APPROVE" | "REJECT" | "REGENERATE" | null;
-  channelId: string;
   topicId: string;
   contentType?: string | null;
   variant?: string | null;
@@ -64,7 +64,7 @@ export type PendingReview = {
 export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
 
 export type TopicSeed = {
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
@@ -75,7 +75,7 @@ export type ContentBrief = {
   jobId: string;
   contentType: string;
   variant: string;
-  channelId: string;
+  contentId: string;
   language: string;
   targetPlatform: string;
   targetDurationSec: number;
@@ -153,32 +153,56 @@ export type LlmStepSettings = {
   updatedBy: string;
 };
 
-export type YoutubeChannelConfig = {
-  channelId: string;
-  youtubeSecretName?: string | null;
-  youtubeAccountType?: string | null;
-  autoPublishEnabled?: boolean | null;
-  defaultVisibility?: "private" | "unlisted" | "public" | null;
-  defaultCategoryId?: number | null;
-  playlistId?: string | null;
-  updatedAt: string;
-  updatedBy: string;
-  source: "db" | "env";
-};
-
 export type Connection<T> = {
   items: T[];
   nextToken?: string | null;
 };
 
+export type AdminContent = {
+  contentId: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  youtubeSecretName?: string | null;
+  youtubeAccountType?: string | null;
+  autoPublishEnabled?: boolean | null;
+  defaultVisibility?: string | null;
+  defaultCategoryId?: number | null;
+  playlistId?: string | null;
+  youtubeUpdatedAt?: string | null;
+  youtubeUpdatedBy?: string | null;
+};
+
+const adminContentsQuery = `
+  query AdminContents($limit: Int, $nextToken: String) {
+    adminContents(limit: $limit, nextToken: $nextToken) {
+      items {
+        contentId
+        label
+        createdAt
+        updatedAt
+        youtubeSecretName
+        youtubeAccountType
+        autoPublishEnabled
+        defaultVisibility
+        defaultCategoryId
+        playlistId
+        youtubeUpdatedAt
+        youtubeUpdatedBy
+      }
+      nextToken
+    }
+  }
+`;
+
 const adminJobsQuery = `
-  query AdminJobs($status: JobStatus, $channelId: String, $limit: Int, $nextToken: String) {
-    adminJobs(status: $status, channelId: $channelId, limit: $limit, nextToken: $nextToken) {
+  query AdminJobs($status: JobStatus, $contentId: String, $limit: Int, $nextToken: String) {
+    adminJobs(status: $status, contentId: $contentId, limit: $limit, nextToken: $nextToken) {
       items {
         jobId
+        contentId
         status
         reviewAction
-        channelId
         contentType
         variant
         autoPublish
@@ -227,33 +251,14 @@ const llmSettingsQuery = `
   }
 `;
 
-const youtubeChannelConfigsQuery = `
-  query YoutubeChannelConfigs {
-    youtubeChannelConfigs {
-      items {
-        channelId
-        youtubeSecretName
-        youtubeAccountType
-        autoPublishEnabled
-        defaultVisibility
-        defaultCategoryId
-        playlistId
-        updatedAt
-        updatedBy
-        source
-      }
-    }
-  }
-`;
-
 const jobDraftQuery = `
   query JobDraft($jobId: ID!) {
     jobDraft(jobId: $jobId) {
       job {
         jobId
+        contentId
         status
         reviewAction
-        channelId
         topicId
         contentType
         variant
@@ -281,7 +286,7 @@ const jobDraftQuery = `
         jobId
         contentType
         variant
-        channelId
+        contentId
         language
         targetPlatform
         targetDurationSec
@@ -306,14 +311,14 @@ const jobDraftQuery = `
         }
       }
       topicSeed {
-        channelId
+        contentId
         targetLanguage
         titleIdea
         targetDurationSec
         stylePreset
       }
       topicPlan {
-        channelId
+        contentId
         targetLanguage
         titleIdea
         targetDurationSec
@@ -390,28 +395,58 @@ const updateLlmStepSettingsMutation = `
   }
 `;
 
-const upsertYoutubeChannelConfigMutation = `
-  mutation UpsertYoutubeChannelConfig($input: UpsertYoutubeChannelConfigInput!) {
-    upsertYoutubeChannelConfig(input: $input) {
-      channelId
+const deleteJobMutation = `
+  mutation DeleteJob($jobId: ID!) {
+    deleteJob(jobId: $jobId) {
+      ok
+      jobId
+    }
+  }
+`;
+
+const createContentMutation = `
+  mutation CreateContent($input: CreateContentInput!) {
+    createContent(input: $input) {
+      contentId
+      label
+      createdAt
+      updatedAt
       youtubeSecretName
       youtubeAccountType
       autoPublishEnabled
       defaultVisibility
       defaultCategoryId
       playlistId
-      updatedAt
-      updatedBy
-      source
+      youtubeUpdatedAt
+      youtubeUpdatedBy
     }
   }
 `;
 
-const deleteYoutubeChannelConfigMutation = `
-  mutation DeleteYoutubeChannelConfig($channelId: ID!) {
-    deleteYoutubeChannelConfig(channelId: $channelId) {
+const deleteContentMutation = `
+  mutation DeleteContent($contentId: ID!) {
+    deleteContent(contentId: $contentId) {
       ok
-      channelId
+      contentId
+    }
+  }
+`;
+
+const updateContentMutation = `
+  mutation UpdateContent($input: UpdateContentInput!) {
+    updateContent(input: $input) {
+      contentId
+      label
+      createdAt
+      updatedAt
+      youtubeSecretName
+      youtubeAccountType
+      autoPublishEnabled
+      defaultVisibility
+      defaultCategoryId
+      playlistId
+      youtubeUpdatedAt
+      youtubeUpdatedBy
     }
   }
 `;
@@ -420,8 +455,8 @@ const createDraftJobMutation = `
   mutation CreateDraftJob($input: CreateDraftJobInput!) {
     createDraftJob(input: $input) {
       jobId
+      contentId
       status
-      channelId
       topicId
       contentType
       variant
@@ -443,7 +478,7 @@ const createDraftJobMutation = `
 const updateTopicSeedMutation = `
   mutation UpdateTopicSeed($input: UpdateTopicSeedInput!) {
     updateTopicSeed(input: $input) {
-      channelId
+      contentId
       targetLanguage
       titleIdea
       targetDurationSec
@@ -460,7 +495,7 @@ const runTopicPlanMutation = `
       updatedAt
       topicS3Key
       videoTitle
-      channelId
+      contentId
       topicId
       language
       targetDurationSec
@@ -478,7 +513,7 @@ const runSceneJsonMutation = `
       updatedAt
       sceneJsonS3Key
       videoTitle
-      channelId
+      contentId
       topicId
       language
       targetDurationSec
@@ -496,7 +531,7 @@ const updateSceneJsonMutation = `
         status
         updatedAt
         sceneJsonS3Key
-        channelId
+        contentId
         topicId
         language
         targetDurationSec
@@ -505,14 +540,14 @@ const updateSceneJsonMutation = `
         videoTitle
       }
       topicSeed {
-        channelId
+        contentId
         targetLanguage
         titleIdea
         targetDurationSec
         stylePreset
       }
       topicPlan {
-        channelId
+        contentId
         targetLanguage
         titleIdea
         targetDurationSec
@@ -548,7 +583,7 @@ const runAssetGenerationMutation = `
       jobId
       status
       updatedAt
-      channelId
+      contentId
       topicId
       language
       targetDurationSec
@@ -577,10 +612,35 @@ const gql = async <T>(query: string, variables?: Record<string, unknown>) => {
   }
 };
 
+export const useAdminContentsQuery = (
+  vars: { limit?: number; nextToken?: string },
+  options?: Omit<
+    UseQueryOptions<
+      Connection<AdminContent>,
+      Error,
+      Connection<AdminContent>,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["adminContents", vars.limit ?? 50, vars.nextToken ?? ""],
+    queryFn: async () => {
+      const data = await gql<{ adminContents: Connection<AdminContent> }>(
+        adminContentsQuery,
+        vars,
+      );
+      return data.adminContents;
+    },
+    ...options,
+  });
+};
+
 export const useAdminJobsQuery = (
   vars: {
     status?: AdminJob["status"];
-    channelId?: string;
+    contentId?: string;
     limit?: number;
     nextToken?: string;
   },
@@ -598,7 +658,7 @@ export const useAdminJobsQuery = (
     queryKey: [
       "adminJobs",
       vars.status ?? "",
-      vars.channelId ?? "",
+      vars.contentId ?? "",
       vars.limit ?? 20,
       vars.nextToken ?? "",
     ],
@@ -656,29 +716,6 @@ export const useLlmSettingsQuery = (
         llmSettingsQuery,
       );
       return data.llmSettings.items;
-    },
-    ...options,
-  });
-};
-
-export const useYoutubeChannelConfigsQuery = (
-  options?: Omit<
-    UseQueryOptions<
-      YoutubeChannelConfig[],
-      Error,
-      YoutubeChannelConfig[],
-      readonly unknown[]
-    >,
-    "queryKey" | "queryFn"
-  >,
-) => {
-  return useQuery({
-    queryKey: ["youtubeChannelConfigs"],
-    queryFn: async () => {
-      const data = await gql<{
-        youtubeChannelConfigs: { items: YoutubeChannelConfig[] };
-      }>(youtubeChannelConfigsQuery);
-      return data.youtubeChannelConfigs.items;
     },
     ...options,
   });
@@ -777,44 +814,75 @@ export const useUpdateLlmStepSettingsMutation = (
   });
 };
 
-export const useUpsertYoutubeChannelConfigMutation = (
+export type CreateContentMutationInput = {
+  label: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+};
+
+export type UpdateContentMutationInput = {
+  contentId: string;
+  label?: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+  clearYoutubePublish?: boolean;
+};
+
+export const useCreateContentMutation = (
   options?: UseMutationOptions<
-    { upsertYoutubeChannelConfig: YoutubeChannelConfig },
+    { createContent: AdminContent },
     Error,
-    {
-      channelId: string;
-      youtubeSecretName: string;
-      youtubeAccountType?: string;
-      autoPublishEnabled?: boolean;
-      defaultVisibility?: "private" | "unlisted" | "public";
-      defaultCategoryId?: number;
-      playlistId?: string;
-    }
+    CreateContentMutationInput
   >,
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ upsertYoutubeChannelConfig: YoutubeChannelConfig }>(
-        upsertYoutubeChannelConfigMutation,
-        { input },
-      );
+      return gql<{ createContent: AdminContent }>(createContentMutation, {
+        input,
+      });
     },
     ...options,
   });
 };
 
-export const useDeleteYoutubeChannelConfigMutation = (
+export const useUpdateContentMutation = (
   options?: UseMutationOptions<
-    { deleteYoutubeChannelConfig: { ok: boolean; channelId: string } },
+    { updateContent: AdminContent },
     Error,
-    { channelId: string }
+    UpdateContentMutationInput
   >,
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{
-        deleteYoutubeChannelConfig: { ok: boolean; channelId: string };
-      }>(deleteYoutubeChannelConfigMutation, input);
+      return gql<{ updateContent: AdminContent }>(updateContentMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useDeleteContentMutation = (
+  options?: UseMutationOptions<
+    { deleteContent: { ok: boolean; contentId: string } },
+    Error,
+    { contentId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ deleteContent: { ok: boolean; contentId: string } }>(
+        deleteContentMutation,
+        input,
+      );
     },
     ...options,
   });
@@ -824,9 +892,12 @@ export const useCreateDraftJobMutation = (
   options?: UseMutationOptions<
     { createDraftJob: AdminJob },
     Error,
-    TopicSeed & {
-      contentType: string;
-      variant: string;
+    {
+      contentId: string;
+      targetLanguage: string;
+      titleIdea: string;
+      targetDurationSec: number;
+      stylePreset: string;
       autoPublish?: boolean;
       publishAt?: string;
     }
@@ -837,6 +908,24 @@ export const useCreateDraftJobMutation = (
       return gql<{ createDraftJob: AdminJob }>(createDraftJobMutation, {
         input,
       });
+    },
+    ...options,
+  });
+};
+
+export const useDeleteJobMutation = (
+  options?: UseMutationOptions<
+    { deleteJob: { ok: boolean; jobId: string } },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ deleteJob: { ok: boolean; jobId: string } }>(
+        deleteJobMutation,
+        input,
+      );
     },
     ...options,
   });

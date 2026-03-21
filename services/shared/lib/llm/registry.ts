@@ -47,7 +47,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
       "- stylePreset should be a concise snake_case style label.",
       "",
       "Inputs:",
-      "- channelId: {{channelId}}",
+      "- contentId: {{contentId}}",
       "- targetLanguage: {{targetLanguage}}",
     ].join("\n"),
   },

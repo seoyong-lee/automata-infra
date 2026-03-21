@@ -3,32 +3,37 @@
 import { cn } from '@packages/ui';
 import Link from 'next/link';
 
-import { workspaceViews } from '../lib/workspace-views';
-import type { WorkspaceView } from '../model/types';
+import { detailWorkspaceTabs, type DetailWorkspaceTabKey } from '../lib/detail-workspace-tabs';
 
 type ContentJobDetailNestedTabsProps = {
   jobId: string;
-  activeView: WorkspaceView;
+  activeTab: DetailWorkspaceTabKey;
+  /** 목록으로 돌아갈 경로 (기본: 콘텐츠 카탈로그). */
+  listHref?: string;
 };
 
 const tabClassName =
   'inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
 
-export function ContentJobDetailNestedTabs({ jobId, activeView }: ContentJobDetailNestedTabsProps) {
+export function ContentJobDetailNestedTabs({
+  jobId,
+  activeTab,
+  listHref = '/content',
+}: ContentJobDetailNestedTabsProps) {
   if (!jobId) {
     return null;
   }
 
-  const activeCopy = workspaceViews.find((v) => v.key === activeView)?.description;
+  const activeCopy = detailWorkspaceTabs.find((v) => v.key === activeTab)?.description;
 
   return (
     <div className="space-y-3">
       <p className="text-xs font-medium uppercase tracking-wide text-muted-foreground">
-        콘텐츠 제작 단계
+        콘텐츠 상세
       </p>
-      <div className="-mx-1 flex gap-2 overflow-x-auto px-1 pb-1">
+      <div className="-mx-1 flex flex-wrap gap-2 px-1 pb-1">
         <Link
-          href="/jobs"
+          href={listHref}
           className={cn(
             tabClassName,
             'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
@@ -36,18 +41,18 @@ export function ContentJobDetailNestedTabs({ jobId, activeView }: ContentJobDeta
         >
           목록
         </Link>
-        {workspaceViews.map((view) => (
+        {detailWorkspaceTabs.map((tab) => (
           <Link
-            key={view.key}
-            href={`/jobs/${jobId}/${view.key}`}
+            key={tab.key}
+            href={`/jobs/${jobId}/${tab.key}`}
             className={cn(
               tabClassName,
-              activeView === view.key
+              activeTab === tab.key
                 ? 'bg-primary text-primary-foreground'
                 : 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
             )}
           >
-            {view.label}
+            {tab.label}
           </Link>
         ))}
       </div>

@@ -16,7 +16,7 @@ type NavItem = {
 
 const navItems: NavItem[] = [
   { title: '대시보드', href: '/', icon: LayoutDashboard },
-  { title: '콘텐츠 관리', href: '/jobs', icon: FilePlay },
+  { title: '콘텐츠 관리', href: '/content', icon: FilePlay },
   { title: '작업 현황', href: '/reviews', icon: Route },
   { title: '설정', href: '/settings', icon: Settings },
 ];
@@ -81,7 +81,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
               <Link href="/" className="text-foreground hover:text-primary">
                 대시보드
               </Link>
-              <Link href="/jobs" className="text-muted-foreground hover:text-primary">
+              <Link href="/content" className="text-muted-foreground hover:text-primary">
                 콘텐츠 관리
               </Link>
               <Link href="/reviews" className="text-muted-foreground hover:text-primary">

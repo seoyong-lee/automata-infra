@@ -29,7 +29,7 @@ const toUploadStatus = (status?: string): UploadStatus | undefined => {
 export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
   return {
     jobId: job.jobId,
-    channelId: job.channelId,
+    contentId: job.contentId,
     topicId: job.topicId,
     status: toJobStatus(job.status),
     contentType: job.contentType,

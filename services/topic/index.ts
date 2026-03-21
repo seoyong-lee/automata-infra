@@ -7,7 +7,7 @@ type TopicEvent = {
   contentBrief?: {
     contentType?: string;
     variant?: string;
-    channelId?: string;
+    contentId?: string;
     language?: string;
     targetDurationSec?: number;
     titleIdea?: string;
@@ -16,7 +16,7 @@ type TopicEvent = {
     publishAt?: string;
   };
   topicSeed?: {
-    channelId?: string;
+    contentId?: string;
     targetLanguage?: string;
     contentType?: string;
     variant?: string;
@@ -26,7 +26,7 @@ type TopicEvent = {
     autoPublish?: boolean;
     publishAt?: string;
   };
-  channelId?: string;
+  contentId?: string;
   targetLanguage?: string;
   contentType?: string;
   variant?: string;
@@ -42,7 +42,7 @@ const extractTopicSeed = (event: TopicEvent) => {
     event.topicSeed ??
     (event.contentBrief
       ? {
-          channelId: event.contentBrief.channelId,
+          contentId: event.contentBrief.contentId,
           targetLanguage: event.contentBrief.language,
           contentType: event.contentBrief.contentType,
           variant: event.contentBrief.variant,
@@ -54,7 +54,7 @@ const extractTopicSeed = (event: TopicEvent) => {
         }
       : event);
   return {
-    channelId: source.channelId,
+    contentId: source.contentId,
     targetLanguage: source.targetLanguage,
     contentType: source.contentType,
     variant: source.variant,

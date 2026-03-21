@@ -1,5 +1,7 @@
 import {
+  deleteItemFromTable,
   getItem,
+  getJobsTableName,
   putItem,
   queryItems,
   queryItemsPage,
@@ -10,7 +12,7 @@ export type JobMetaItem = {
   PK: string;
   SK: "META";
   jobId: string;
-  channelId: string;
+  contentId?: string;
   contentType?: string;
   variant?: string;
   topicId: string;
@@ -50,7 +52,63 @@ export type JobMetaItem = {
   GSI3SK: string;
   GSI4PK?: string;
   GSI4SK?: string;
+  GSI5PK?: string;
+  GSI5SK?: string;
 };
+
+/**
+ * 최상위 단위: 콘텐츠 = 채널(하나의 ID로 통합).
+ * PK = CONTENT#${contentId}, SK = META
+ * 유튜브 게시 설정은 CONFIG_TABLE이 아닌 동일 아이템에 저장한다.
+ */
+export type ContentItem = {
+  PK: string;
+  SK: "META";
+  contentId: string;
+  /** 표시용 이름 */
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  /** 전체 콘텐츠 목록 조회용 고정 파티션 */
+  GSI6PK: string;
+  GSI6SK: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+  youtubeUpdatedAt?: string;
+  youtubeUpdatedBy?: string;
+};
+
+export const CONTENT_CATALOG_GSI_PK = "CONTENT_CATALOG";
+
+/**
+ * 잡 메타의 GSI2 파티션. 카탈로그 콘텐츠(cnt_…)는 GSI5와 동일한 CONTENT# 접두사를 쓰고,
+ * 레거시 토픽 전용 잡은 CHANNEL# 접두사를 유지한다.
+ */
+export const gsi2PkForContentId = (contentId: string): string => {
+  if (contentId.startsWith("cnt_")) {
+    return `CONTENT#${contentId}`;
+  }
+  return `CHANNEL#${contentId}`;
+};
+
+type JobMetaRow = JobMetaItem & { channelId?: string };
+
+const normalizeJobMeta = (raw: JobMetaRow): JobMetaItem => {
+  const { channelId: legacy, ...rest } = raw;
+  const contentId = rest.contentId ?? legacy;
+  return { ...rest, contentId };
+};
+
+const mapJobMetaPage = (
+  page: QueryPage<JobMetaItem>,
+): QueryPage<JobMetaItem> => ({
+  items: page.items.map((x) => normalizeJobMeta(x as JobMetaRow)),
+  nextToken: page.nextToken,
+});
 
 export type QueryPage<T> = {
   items: T[];
@@ -101,6 +159,8 @@ const decodeNextToken = (
 
 const jobPk = (jobId: string): string => `JOB#${jobId}`;
 
+export const contentPk = (contentId: string): string => `CONTENT#${contentId}`;
+
 export const putJobMeta = async (item: JobMetaItem): Promise<void> => {
   await putItem(item);
 };
@@ -108,8 +168,32 @@ export const putJobMeta = async (item: JobMetaItem): Promise<void> => {
 export const getJobMeta = async (
   jobId: string,
 ): Promise<JobMetaItem | null> => {
-  return getItem<JobMetaItem>({
+  const raw = await getItem<JobMetaRow>({
     PK: jobPk(jobId),
+    SK: "META",
+  });
+  if (!raw) {
+    return null;
+  }
+  return normalizeJobMeta(raw);
+};
+
+export const getContentMeta = async (
+  contentId: string,
+): Promise<ContentItem | null> => {
+  return getItem<ContentItem>({
+    PK: contentPk(contentId),
+    SK: "META",
+  });
+};
+
+export const putContentMeta = async (item: ContentItem): Promise<void> => {
+  await putItem(item as unknown as Record<string, unknown>);
+};
+
+export const deleteContentMeta = async (contentId: string): Promise<void> => {
+  await deleteItemFromTable(getJobsTableName(), {
+    PK: contentPk(contentId),
     SK: "META",
   });
 };
@@ -120,6 +204,7 @@ export const updateJobMeta = async (
   status?: string,
 ): Promise<void> => {
   const updatedAt = new Date().toISOString();
+  const existing = await getJobMeta(jobId);
   const names: Record<string, string> = {
     "#updatedAt": "updatedAt",
   };
@@ -143,12 +228,12 @@ export const updateJobMeta = async (
   }
 
   if (
-    typeof fields.channelId === "string" &&
-    fields.channelId.trim().length > 0
+    typeof fields.contentId === "string" &&
+    fields.contentId.trim().length > 0
   ) {
     names["#gsi2pk"] = "GSI2PK";
     names["#gsi2sk"] = "GSI2SK";
-    values[":gsi2pk"] = `CHANNEL#${fields.channelId}`;
+    values[":gsi2pk"] = gsi2PkForContentId(fields.contentId);
     values[":gsi2sk"] = `${updatedAt}#JOB#${jobId}`;
     assignments.push("#gsi2pk = :gsi2pk", "#gsi2sk = :gsi2sk");
   }
@@ -162,6 +247,14 @@ export const updateJobMeta = async (
     values[":gsi4pk"] = `CONTENT#${fields.contentType}`;
     values[":gsi4sk"] = `${updatedAt}#JOB#${jobId}`;
     assignments.push("#gsi4pk = :gsi4pk", "#gsi4sk = :gsi4sk");
+  }
+
+  if (existing?.contentId) {
+    names["#gsi5pk"] = "GSI5PK";
+    names["#gsi5sk"] = "GSI5SK";
+    values[":gsi5pk"] = `CONTENT#${existing.contentId}`;
+    values[":gsi5sk"] = `${updatedAt}#JOB#${jobId}`;
+    assignments.push("#gsi5pk = :gsi5pk", "#gsi5sk = :gsi5sk");
   }
 
   for (const [key, value] of Object.entries(fields)) {
@@ -267,6 +360,28 @@ export const listJobItems = async (
   });
 };
 
+/** PK 아래 모든 아이템(페이지네이션 포함). */
+export const listAllJobItems = async (
+  jobId: string,
+): Promise<Record<string, unknown>[]> => {
+  const all: Record<string, unknown>[] = [];
+  let exclusiveStartKey: Record<string, unknown> | undefined;
+  do {
+    const page = await queryItemsPage<Record<string, unknown>>({
+      keyConditionExpression: "PK = :pk",
+      expressionAttributeValues: {
+        ":pk": jobPk(jobId),
+      },
+      scanIndexForward: true,
+      limit: 100,
+      exclusiveStartKey,
+    });
+    all.push(...page.items);
+    exclusiveStartKey = page.lastEvaluatedKey;
+  } while (exclusiveStartKey);
+  return all;
+};
+
 export const listSceneAssets = async (
   jobId: string,
 ): Promise<SceneAssetItem[]> => {
@@ -298,14 +413,15 @@ export const listJobMetasByStatus = async (input: {
     limit: input.limit ?? 20,
     exclusiveStartKey: decodeNextToken(input.nextToken),
   });
-  return {
+  return mapJobMetaPage({
     items: page.items,
     nextToken: encodeNextToken(page.lastEvaluatedKey),
-  };
+  });
 };
 
-export const listJobMetasByChannel = async (input: {
-  channelId: string;
+/** GSI2 — 레거시 식별자(비 cnt_) 또는 구버전 CHANNEL# 파티션 조회 */
+export const listJobMetasByGsi2Partition = async (input: {
+  partitionId: string;
   limit?: number;
   nextToken?: string;
 }): Promise<QueryPage<JobMetaItem>> => {
@@ -313,16 +429,16 @@ export const listJobMetasByChannel = async (input: {
     indexName: "GSI2",
     keyConditionExpression: "GSI2PK = :channelPk",
     expressionAttributeValues: {
-      ":channelPk": `CHANNEL#${input.channelId}`,
+      ":channelPk": gsi2PkForContentId(input.partitionId),
     },
     scanIndexForward: false,
     limit: input.limit ?? 20,
     exclusiveStartKey: decodeNextToken(input.nextToken),
   });
-  return {
+  return mapJobMetaPage({
     items: page.items,
     nextToken: encodeNextToken(page.lastEvaluatedKey),
-  };
+  });
 };
 
 export const listJobMetasByContentType = async (input: {
@@ -338,6 +454,49 @@ export const listJobMetasByContentType = async (input: {
     },
     scanIndexForward: false,
     limit: input.limit ?? 20,
+    exclusiveStartKey: decodeNextToken(input.nextToken),
+  });
+  return mapJobMetaPage({
+    items: page.items,
+    nextToken: encodeNextToken(page.lastEvaluatedKey),
+  });
+};
+
+/** 카탈로그 콘텐츠(contentId)에 속한 잡 메타 목록 */
+export const listJobMetasByContentId = async (input: {
+  contentId: string;
+  limit?: number;
+  nextToken?: string;
+}): Promise<QueryPage<JobMetaItem>> => {
+  const page = await queryItemsPage<JobMetaItem>({
+    indexName: "GSI5",
+    keyConditionExpression: "GSI5PK = :pk",
+    expressionAttributeValues: {
+      ":pk": `CONTENT#${input.contentId}`,
+    },
+    scanIndexForward: false,
+    limit: input.limit ?? 50,
+    exclusiveStartKey: decodeNextToken(input.nextToken),
+  });
+  return mapJobMetaPage({
+    items: page.items,
+    nextToken: encodeNextToken(page.lastEvaluatedKey),
+  });
+};
+
+/** 등록된 콘텐츠(=채널) 전체 목록 */
+export const listAllContentMetas = async (input: {
+  limit?: number;
+  nextToken?: string;
+}): Promise<QueryPage<ContentItem>> => {
+  const page = await queryItemsPage<ContentItem>({
+    indexName: "GSI6",
+    keyConditionExpression: "GSI6PK = :pk",
+    expressionAttributeValues: {
+      ":pk": CONTENT_CATALOG_GSI_PK,
+    },
+    scanIndexForward: false,
+    limit: input.limit ?? 50,
     exclusiveStartKey: decodeNextToken(input.nextToken),
   });
   return {

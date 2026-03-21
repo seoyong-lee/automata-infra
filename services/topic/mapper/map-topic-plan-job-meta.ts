@@ -1,5 +1,8 @@
 import { createHash } from "crypto";
-import { JobMetaItem } from "../../shared/lib/store/video-jobs";
+import {
+  gsi2PkForContentId,
+  type JobMetaItem,
+} from "../../shared/lib/store/video-jobs";
 import { TopicPlanResult } from "../usecase/create-topic-plan";
 
 const buildTopicHash = (titleIdea: string): string => {
@@ -13,7 +16,7 @@ export const mapTopicPlanJobMeta = (result: TopicPlanResult): JobMetaItem => {
     PK: `JOB#${result.jobId}`,
     SK: "META",
     jobId: result.jobId,
-    channelId: result.channelId,
+    contentId: result.contentId,
     contentType: result.contentType,
     variant: result.variant,
     topicId: result.topicId,
@@ -33,7 +36,7 @@ export const mapTopicPlanJobMeta = (result: TopicPlanResult): JobMetaItem => {
     updatedAt: result.createdAt,
     GSI1PK: "STATUS#PLANNED",
     GSI1SK: result.createdAt,
-    GSI2PK: `CHANNEL#${result.channelId}`,
+    GSI2PK: gsi2PkForContentId(result.contentId),
     GSI2SK: `${result.createdAt}#JOB#${result.jobId}`,
     GSI3PK: `TOPIC#${topicHash}`,
     GSI3SK: `${result.createdAt}#JOB#${result.jobId}`,

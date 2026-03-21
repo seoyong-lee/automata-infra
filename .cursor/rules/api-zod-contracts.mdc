@@ -21,7 +21,7 @@ When working on client, admin GraphQL, or shared API contracts, use `zod` schema
 ```typescript
 // shared contract
 export const createDraftJobInputSchema = z.object({
-  channelId: z.string().trim().min(1),
+  contentId: z.string().trim().min(1),
   targetLanguage: z.string().trim().min(1),
   titleIdea: z.string().trim().min(1),
   targetDurationSec: z.number().int().positive(),

@@ -7,7 +7,7 @@ export type CompareRow = {
 };
 
 export type SeedForm = {
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: string;

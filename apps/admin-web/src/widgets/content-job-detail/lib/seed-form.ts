@@ -1,7 +1,7 @@
 import type { JobDraftDetail, SeedForm } from '../model/types';
 
 type SeedSource = {
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
@@ -10,7 +10,7 @@ type SeedSource = {
 
 export const toSeedForm = (input?: SeedSource | null): SeedForm => {
   return {
-    channelId: input?.channelId ?? '',
+    contentId: input?.contentId ?? '',
     targetLanguage: input?.targetLanguage ?? '',
     titleIdea: input?.titleIdea ?? '',
     targetDurationSec:

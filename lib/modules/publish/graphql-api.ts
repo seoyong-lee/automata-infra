@@ -10,6 +10,7 @@ export type PublishGraphqlResources = {
 type CreatePublishGraphqlApiProps = {
   projectPrefix: string;
   userPool: import("aws-cdk-lib/aws-cognito").IUserPool;
+  listContentsResolver: lambda.IFunction;
   listJobsResolver: lambda.IFunction;
   getJobResolver: lambda.IFunction;
   pendingReviewsResolver: lambda.IFunction;
@@ -18,16 +19,17 @@ type CreatePublishGraphqlApiProps = {
   requestUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
-  getYoutubeChannelConfigsResolver: lambda.IFunction;
-  upsertYoutubeChannelConfigResolver: lambda.IFunction;
-  deleteYoutubeChannelConfigResolver: lambda.IFunction;
   getJobDraftResolver: lambda.IFunction;
+  createContentResolver: lambda.IFunction;
+  updateContentResolver: lambda.IFunction;
+  deleteContentResolver: lambda.IFunction;
   createDraftJobResolver: lambda.IFunction;
   updateTopicSeedResolver: lambda.IFunction;
   runTopicPlanResolver: lambda.IFunction;
   runSceneJsonResolver: lambda.IFunction;
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
+  deleteJobResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -67,6 +69,13 @@ export const createPublishGraphqlApi = (
     },
   });
 
+  addLambdaResolver(
+    graphqlApi,
+    "ListAdminContents",
+    "adminContents",
+    "Query",
+    props.listContentsResolver,
+  );
   addLambdaResolver(
     graphqlApi,
     "ListAdminJobs",
@@ -125,13 +134,6 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
-    "GetYoutubeChannelConfigs",
-    "youtubeChannelConfigs",
-    "Query",
-    props.getYoutubeChannelConfigsResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
     "UpdateLlmStepSettings",
     "updateLlmStepSettings",
     "Mutation",
@@ -139,17 +141,24 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
-    "UpsertYoutubeChannelConfig",
-    "upsertYoutubeChannelConfig",
+    "CreateContent",
+    "createContent",
     "Mutation",
-    props.upsertYoutubeChannelConfigResolver,
+    props.createContentResolver,
   );
   addLambdaResolver(
     graphqlApi,
-    "DeleteYoutubeChannelConfig",
-    "deleteYoutubeChannelConfig",
+    "UpdateContent",
+    "updateContent",
     "Mutation",
-    props.deleteYoutubeChannelConfigResolver,
+    props.updateContentResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "DeleteContent",
+    "deleteContent",
+    "Mutation",
+    props.deleteContentResolver,
   );
   addLambdaResolver(
     graphqlApi,
@@ -192,6 +201,13 @@ export const createPublishGraphqlApi = (
     "runAssetGeneration",
     "Mutation",
     props.runAssetGenerationResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "DeleteJob",
+    "deleteJob",
+    "Mutation",
+    props.deleteJobResolver,
   );
 
   return {

@@ -61,7 +61,7 @@ export function WorkStatusUnifiedOverview() {
         </div>
         <p className="text-sm text-muted-foreground">
           콘텐츠별 편집·제작은{' '}
-          <Link href="/jobs" className="font-medium text-primary hover:underline">
+          <Link href="/content" className="font-medium text-primary hover:underline">
             콘텐츠 관리
           </Link>
           로 이동하거나, 하단 목록에서 행을 선택해 콘텐츠 상세로 들어갑니다.

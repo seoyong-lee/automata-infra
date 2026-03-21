@@ -4,6 +4,7 @@ import {
 } from "@aws-sdk/client-secrets-manager";
 import { SendMessageCommand, SQSClient } from "@aws-sdk/client-sqs";
 import {
+  DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
   PutObjectCommand,
@@ -271,6 +272,31 @@ export const getJsonFromS3 = async <T>(key: string): Promise<T | null> => {
 
   const body = await result.Body.transformToString();
   return JSON.parse(body) as T;
+};
+
+export const deleteObjectFromS3 = async (key: string): Promise<void> => {
+  try {
+    await s3Client.send(
+      new DeleteObjectCommand({
+        Bucket: getAssetsBucketName(),
+        Key: key,
+      }),
+    );
+  } catch (error) {
+    const maybe = error as {
+      name?: string;
+      $metadata?: { httpStatusCode?: number };
+    };
+    const status = maybe.$metadata?.httpStatusCode;
+    if (
+      maybe.name === "NotFound" ||
+      maybe.name === "NoSuchKey" ||
+      status === 404
+    ) {
+      return;
+    }
+    throw error;
+  }
 };
 
 export const headObjectFromS3 = async (

@@ -6,8 +6,8 @@ import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@pack
 import { getErrorMessage } from '@packages/utils';
 import Link from 'next/link';
 import { useMemo } from 'react';
+import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs, usePendingReviews } from '@/entities/admin-job';
-import { useYoutubeChannelConfigs } from '@/entities/youtube-channel';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 const formatStatusLabel = (status: string) => {
@@ -16,12 +16,12 @@ const formatStatusLabel = (status: string) => {
 
 export function DashboardPage() {
   const jobsQuery = useAdminJobs({ limit: 100 });
+  const contentsQuery = useAdminContents({ limit: 100 });
   const pendingReviewsQuery = usePendingReviews({ limit: 50 });
-  const youtubeChannelsQuery = useYoutubeChannelConfigs();
 
   const jobs = jobsQuery.data?.items ?? [];
   const pendingReviews = pendingReviewsQuery.data?.items ?? [];
-  const youtubeChannels = youtubeChannelsQuery.data ?? [];
+  const catalog = contentsQuery.data?.items ?? [];
 
   const metrics = useMemo(() => {
     const counts = jobs.reduce<Record<string, number>>((acc, job) => {
@@ -41,7 +41,7 @@ export function DashboardPage() {
 
   const metricCards = useMemo(() => {
     return [
-      { title: 'Total Jobs', value: metrics.totalJobs, href: '/jobs' },
+      { title: 'Total Jobs', value: metrics.totalJobs, href: '/content' },
       {
         title: 'Rendered / Uploaded',
         value: metrics.renderedJobs,
@@ -66,27 +66,29 @@ export function DashboardPage() {
   }, [metrics]);
 
   const channelRows = useMemo(() => {
-    const channelIds = Array.from(
-      new Set([
-        ...youtubeChannels.map((item) => item.channelId),
-        ...jobs.map((item) => item.channelId),
-      ]),
+    const contentIds = Array.from(
+      new Set(
+        [...catalog.map((c) => c.contentId), ...jobs.map((item) => item.contentId)].filter(
+          (id): id is string => Boolean(id),
+        ),
+      ),
     ).sort();
 
-    return channelIds.map((channelId) => {
-      const channelJobs = jobs.filter((job) => job.channelId === channelId);
+    return contentIds.map((contentId) => {
+      const channelJobs = jobs.filter((job) => job.contentId === contentId);
       const uploadedCount = channelJobs.filter((job) => job.status === 'UPLOADED').length;
       const blockedCount = channelJobs.filter(
         (job) => job.status === 'FAILED' || job.status === 'REVIEW_PENDING',
       ).length;
       return {
-        channelId,
+        contentId,
+        contentHref: `/content/${encodeURIComponent(contentId)}/jobs`,
         totalJobs: channelJobs.length,
         uploadedCount,
         blockedCount,
       };
     });
-  }, [jobs, youtubeChannels]);
+  }, [jobs, catalog]);
 
   const bottlenecks = useMemo(() => {
     return [
@@ -145,7 +147,7 @@ export function DashboardPage() {
         subtitle="모든 콘텐츠를 한곳에서 묶어 병목·에러·리뷰 대기·업로드 진행 상태를 파악하는 운영 현황입니다."
         actions={
           <>
-            <Button variant="secondary" onClick={() => (window.location.href = '/jobs')}>
+            <Button variant="secondary" onClick={() => (window.location.href = '/content')}>
               콘텐츠 관리
             </Button>
             <Button variant="outline" onClick={() => (window.location.href = '/settings')}>
@@ -161,8 +163,8 @@ export function DashboardPage() {
       {pendingReviewsQuery.error ? (
         <p className="text-sm text-destructive">{getErrorMessage(pendingReviewsQuery.error)}</p>
       ) : null}
-      {youtubeChannelsQuery.error ? (
-        <p className="text-sm text-destructive">{getErrorMessage(youtubeChannelsQuery.error)}</p>
+      {contentsQuery.error ? (
+        <p className="text-sm text-destructive">{getErrorMessage(contentsQuery.error)}</p>
       ) : null}
 
       <div className="grid gap-4 md:grid-cols-2 xl:grid-cols-5">
@@ -197,21 +199,18 @@ export function DashboardPage() {
             ) : null}
             {channelRows.map((row) => (
               <div
-                key={row.channelId}
+                key={row.contentId}
                 className="flex items-center justify-between rounded-lg border p-4"
               >
                 <div className="space-y-1">
-                  <p className="font-medium">{row.channelId}</p>
+                  <p className="font-medium font-mono text-sm">{row.contentId}</p>
                   <p className="text-xs text-muted-foreground">
                     uploaded {row.uploadedCount} / blocked {row.blockedCount}
                   </p>
                 </div>
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{row.totalJobs} jobs</Badge>
-                  <Link
-                    className="text-sm text-primary hover:underline"
-                    href={`/jobs?channelId=${encodeURIComponent(row.channelId)}`}
-                  >
+                  <Link className="text-sm text-primary hover:underline" href={row.contentHref}>
                     Open content
                   </Link>
                 </div>
@@ -249,31 +248,6 @@ export function DashboardPage() {
 
       <Card>
         <CardHeader>
-          <CardTitle>Experiment Program</CardTitle>
-          <CardDescription>
-            콘텐츠 밖 글로벌 대시보드에서는 어떤 옵션 축을 개발 중인지와 비교 방향을 통합해서
-            봅니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="grid gap-4 md:grid-cols-3">
-          {experimentLanes.map((lane) => (
-            <div key={lane.title} className="rounded-lg border p-4">
-              <p className="font-medium">{lane.title}</p>
-              <p className="mt-1 text-sm text-muted-foreground">{lane.note}</p>
-              <div className="mt-3 flex flex-wrap gap-2">
-                {lane.items.map((item) => (
-                  <span key={item} className="rounded-md bg-muted px-2 py-1 text-xs">
-                    {item}
-                  </span>
-                ))}
-              </div>
-            </div>
-          ))}
-        </CardContent>
-      </Card>
-
-      <Card>
-        <CardHeader>
           <CardTitle>Latest Jobs</CardTitle>
           <CardDescription>
             최근 업데이트된 잡을 기준으로 전체 콘텐츠 흐름을 빠르게 확인합니다.
@@ -290,7 +264,7 @@ export function DashboardPage() {
             >
               <div className="space-y-1">
                 <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{job.channelId}</Badge>
+                  <Badge variant="outline">{job.contentId}</Badge>
                   <Badge variant="secondary">{formatStatusLabel(job.status)}</Badge>
                   {job.contentType ? (
                     <span className="text-xs text-muted-foreground">{job.contentType}</span>

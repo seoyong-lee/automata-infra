@@ -1,17 +1,17 @@
-import { getErrorMessage } from "@packages/utils";
+import { getErrorMessage } from '@packages/utils';
 
 type SettingsQueryStatusProps = {
   settingsLoading: boolean;
   settingsError: unknown;
-  youtubeConfigsLoading: boolean;
-  youtubeConfigsError: unknown;
+  contentsLoading: boolean;
+  contentsError: unknown;
 };
 
 export function SettingsQueryStatus({
   settingsLoading,
   settingsError,
-  youtubeConfigsLoading,
-  youtubeConfigsError,
+  contentsLoading,
+  contentsError,
 }: SettingsQueryStatusProps) {
   return (
     <>
@@ -19,19 +19,13 @@ export function SettingsQueryStatus({
         <p className="text-sm text-muted-foreground">Loading settings...</p>
       ) : null}
       {settingsError ? (
-        <p className="text-sm text-destructive">
-          {getErrorMessage(settingsError)}
-        </p>
+        <p className="text-sm text-destructive">{getErrorMessage(settingsError)}</p>
       ) : null}
-      {youtubeConfigsLoading ? (
-        <p className="text-sm text-muted-foreground">
-          Loading YouTube channels...
-        </p>
+      {contentsLoading ? (
+        <p className="text-sm text-muted-foreground">콘텐츠 목록을 불러오는 중…</p>
       ) : null}
-      {youtubeConfigsError ? (
-        <p className="text-sm text-destructive">
-          {getErrorMessage(youtubeConfigsError)}
-        </p>
+      {contentsError ? (
+        <p className="text-sm text-destructive">{getErrorMessage(contentsError)}</p>
       ) : null}
     </>
   );

@@ -2,6 +2,7 @@ export type {
   CompareRow,
   ContextCard,
   ContentJobDetailViewModel,
+  DetailWorkspaceTabKey,
   ExperimentOption,
   JobDraftDetail,
   LogItem,
@@ -11,6 +12,10 @@ export type {
 export {
   buildContentJobDetailContextCards,
   buildContentJobDetailViewModel,
+  detailTabKeyToWorkspaceView,
+  detailWorkspaceTabKeys,
+  detailWorkspaceTabs,
+  parseDetailWorkspaceTabParam,
   parseWorkspaceViewParam,
   toSeedForm,
   workspaceViewKeys,

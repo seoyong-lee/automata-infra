@@ -12,7 +12,7 @@ export type VideoJobStatus =
 
 export type VideoJob = {
   jobId: string;
-  channelId: string;
+  contentId: string;
   topicId: string;
   status: VideoJobStatus;
   language: string;

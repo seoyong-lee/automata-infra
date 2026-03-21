@@ -37,7 +37,7 @@ export function GeneralSection({ items, channelSummary }: GeneralSectionProps) {
       </Card>
       <Card>
         <CardHeader>
-          <CardTitle className="text-base">DB-backed Channels</CardTitle>
+          <CardTitle className="text-base">유튜브 설정 있는 콘텐츠</CardTitle>
         </CardHeader>
         <CardContent>
           <p className="text-2xl font-semibold">{channelSummary.dbSource}</p>
@@ -59,7 +59,7 @@ export function GeneralSection({ items, channelSummary }: GeneralSectionProps) {
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
           <p>Playlist configured: {channelSummary.withPlaylist}</p>
-          <p>Env-backed channels: {channelSummary.envSource}</p>
+          <p>콘텐츠 카탈로그 항목 수: {channelSummary.total}</p>
           <p>
             Prompt/model steps: {items.map((item) => stepTitle(item.stepKey)).join(', ') || '-'}
           </p>

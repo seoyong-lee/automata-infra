@@ -34,7 +34,7 @@ export const parseUpdateTopicSeedArgs = (
   return {
     jobId,
     topicSeed: {
-      channelId: asString(input.channelId, "channelId"),
+      contentId: asString(input.contentId, "contentId"),
       targetLanguage: asString(input.targetLanguage, "targetLanguage"),
       titleIdea: asString(input.titleIdea, "titleIdea"),
       targetDurationSec: asDuration(input.targetDurationSec),

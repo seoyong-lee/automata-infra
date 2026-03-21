@@ -4,9 +4,16 @@ schema {
 }
 
 type Query {
+  """
+  등록된 콘텐츠(=채널) 목록
+  """
+  adminContents(limit: Int, nextToken: String): ContentConnection!
   adminJobs(
     status: JobStatus
-    channelId: String
+    """
+    특정 콘텐츠 하위 잡만 조회(cnt_… 또는 레거시 식별자)
+    """
+    contentId: String
     limit: Int
     nextToken: String
   ): AdminJobConnection!
@@ -15,28 +22,27 @@ type Query {
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
   jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
-  youtubeChannelConfigs: YoutubeChannelConfigConnection!
 }
 
 type Mutation {
   submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
-  upsertYoutubeChannelConfig(
-    input: UpsertYoutubeChannelConfigInput!
-  ): YoutubeChannelConfig!
-  deleteYoutubeChannelConfig(channelId: ID!): DeleteYoutubeChannelConfigResult!
+  createContent(input: CreateContentInput!): Content!
+  updateContent(input: UpdateContentInput!): Content!
+  deleteContent(contentId: ID!): DeleteContentResult!
   createDraftJob(input: CreateDraftJobInput!): AdminJob!
   updateTopicSeed(input: UpdateTopicSeedInput!): TopicSeed!
   runTopicPlan(input: RunTopicPlanInput!): AdminJob!
   runSceneJson(input: RunSceneJsonInput!): AdminJob!
   updateSceneJson(input: UpdateSceneJsonInput!): JobDraftDetail!
   runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
+  deleteJob(jobId: ID!): DeleteJobResult!
 }
 
 type AdminJob {
   jobId: ID!
-  channelId: String!
+  contentId: ID
   topicId: String!
   status: JobStatus!
   contentType: String
@@ -84,7 +90,7 @@ type ContentBrief {
   jobId: ID!
   contentType: String!
   variant: String!
-  channelId: String!
+  contentId: String!
   language: String!
   targetPlatform: String!
   targetDurationSec: Int!
@@ -97,7 +103,7 @@ type ContentBrief {
 }
 
 type TopicSeed {
-  channelId: String!
+  contentId: String!
   targetLanguage: String!
   titleIdea: String!
   targetDurationSec: Int!
@@ -171,26 +177,34 @@ type LlmSettings {
   items: [LlmStepSettings!]!
 }
 
-type YoutubeChannelConfigConnection {
-  items: [YoutubeChannelConfig!]!
-}
-
-type YoutubeChannelConfig {
-  channelId: ID!
+type Content {
+  contentId: ID!
+  label: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
   youtubeSecretName: String
   youtubeAccountType: String
   autoPublishEnabled: Boolean
   defaultVisibility: String
   defaultCategoryId: Int
   playlistId: String
-  updatedAt: AWSDateTime!
-  updatedBy: String!
-  source: String!
+  youtubeUpdatedAt: AWSDateTime
+  youtubeUpdatedBy: String
 }
 
-type DeleteYoutubeChannelConfigResult {
+type ContentConnection {
+  items: [Content!]!
+  nextToken: String
+}
+
+type DeleteContentResult {
   ok: Boolean!
-  channelId: ID!
+  contentId: ID!
+}
+
+type DeleteJobResult {
+  ok: Boolean!
+  jobId: ID!
 }
 
 type LlmStepSettings {
@@ -237,9 +251,9 @@ input UpdateLlmStepSettingsInput {
   userPrompt: String!
 }
 
-input UpsertYoutubeChannelConfigInput {
-  channelId: ID!
-  youtubeSecretName: String!
+input CreateContentInput {
+  label: String!
+  youtubeSecretName: String
   youtubeAccountType: String
   autoPublishEnabled: Boolean
   defaultVisibility: String
@@ -247,11 +261,21 @@ input UpsertYoutubeChannelConfigInput {
   playlistId: String
 }
 
+input UpdateContentInput {
+  contentId: ID!
+  label: String
+  youtubeSecretName: String
+  youtubeAccountType: String
+  autoPublishEnabled: Boolean
+  defaultVisibility: String
+  defaultCategoryId: Int
+  playlistId: String
+  clearYoutubePublish: Boolean
+}
+
 input CreateDraftJobInput {
-  channelId: String!
+  contentId: ID!
   targetLanguage: String!
-  contentType: String!
-  variant: String!
   titleIdea: String!
   targetDurationSec: Int!
   stylePreset: String!
@@ -261,7 +285,7 @@ input CreateDraftJobInput {
 
 input UpdateTopicSeedInput {
   jobId: ID!
-  channelId: String!
+  contentId: String!
   targetLanguage: String!
   titleIdea: String!
   targetDurationSec: Int!

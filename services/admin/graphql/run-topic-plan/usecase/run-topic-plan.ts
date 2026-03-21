@@ -26,7 +26,7 @@ export const runAdminTopicPlan = async (jobId: string) => {
     jobId,
     {
       topicS3Key: planned.topicS3Key,
-      channelId: planned.channelId,
+      contentId: planned.contentId,
       language: planned.targetLanguage,
       targetDurationSec: planned.targetDurationSec,
       videoTitle: planned.titleIdea,

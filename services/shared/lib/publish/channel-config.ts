@@ -21,7 +21,7 @@ const channelConfigsSchema = z.record(z.string(), channelConfigSchema);
 export type ChannelPublishConfig = z.infer<typeof channelConfigSchema>;
 export type UploadVisibility = z.infer<typeof visibilitySchema>;
 export type ChannelPublishConfigRecord = ChannelPublishConfig & {
-  channelId: string;
+  contentId: string;
   updatedAt: string;
   updatedBy: string;
   source: "db" | "env";
@@ -62,13 +62,13 @@ export const getChannelConfigsMap = (): Record<
 };
 
 export const getChannelPublishConfig = (
-  channelId: string,
+  contentId: string,
 ): (ChannelPublishConfig & { youtubeSecretName?: string }) | undefined => {
   const channelConfigs = getChannelConfigsMap();
   const youtubeSecrets = getYoutubeSecretsMap();
-  const channelConfig = channelConfigs[channelId];
+  const channelConfig = channelConfigs[contentId];
   const youtubeSecretName =
-    channelConfig?.youtubeSecretName ?? youtubeSecrets[channelId];
+    channelConfig?.youtubeSecretName ?? youtubeSecrets[contentId];
 
   if (!channelConfig && !youtubeSecretName) {
     return undefined;
@@ -84,17 +84,17 @@ export const listEnvChannelPublishConfigs =
   (): ChannelPublishConfigRecord[] => {
     const channelConfigs = getChannelConfigsMap();
     const youtubeSecrets = getYoutubeSecretsMap();
-    const channelIds = Array.from(
+    const contentIds = Array.from(
       new Set([...Object.keys(channelConfigs), ...Object.keys(youtubeSecrets)]),
     ).sort();
 
-    return channelIds.map((channelId) => {
-      const channelConfig = channelConfigs[channelId];
+    return contentIds.map((contentId) => {
+      const channelConfig = channelConfigs[contentId];
       return {
-        channelId,
+        contentId,
         ...channelConfig,
         youtubeSecretName:
-          channelConfig?.youtubeSecretName ?? youtubeSecrets[channelId],
+          channelConfig?.youtubeSecretName ?? youtubeSecrets[contentId],
         updatedAt: fallbackUpdatedAt,
         updatedBy: "env",
         source: "env" as const,

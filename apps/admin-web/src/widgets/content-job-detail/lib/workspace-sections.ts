@@ -28,5 +28,5 @@ export function getPrimarySectionMeta(section: ContentPrimarySection) {
 
 export function getFirstStepInPrimarySection(section: ContentPrimarySection): WorkspaceView {
   const meta = getPrimarySectionMeta(section);
-  return meta?.steps[0] ?? 'ideation';
+  return meta?.steps[0] ?? 'script';
 }

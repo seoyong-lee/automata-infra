@@ -28,7 +28,8 @@ export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
 
 export type AdminJobDto = {
   jobId: string;
-  channelId: string;
+  /** 카탈로그 콘텐츠 ID (레거시 잡은 비어 있을 수 있음) */
+  contentId?: string;
   topicId: string;
   status: JobStatus;
   contentType?: string;
@@ -78,25 +79,8 @@ export type LlmSettingsDto = {
   items: LlmStepSettingsDto[];
 };
 
-export type YoutubeChannelConfigDto = {
-  channelId: string;
-  youtubeSecretName?: string;
-  youtubeAccountType?: string;
-  autoPublishEnabled?: boolean;
-  defaultVisibility?: "private" | "unlisted" | "public";
-  defaultCategoryId?: number;
-  playlistId?: string;
-  updatedAt: string;
-  updatedBy: string;
-  source: "db" | "env";
-};
-
-export type YoutubeChannelConfigListDto = {
-  items: YoutubeChannelConfigDto[];
-};
-
 export type TopicSeedDto = {
-  channelId: string;
+  contentId: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
@@ -107,7 +91,7 @@ export type ContentBriefDto = {
   jobId: string;
   contentType: string;
   variant: string;
-  channelId: string;
+  contentId: string;
   language: string;
   targetPlatform: string;
   targetDurationSec: number;
@@ -132,11 +116,51 @@ export type ContentBriefDto = {
   };
 };
 
-export type CreateDraftJobInputDto = TopicSeedDto & {
-  contentType: string;
-  variant: string;
+export type CreateDraftJobInputDto = {
+  contentId: string;
+  targetLanguage: string;
+  titleIdea: string;
+  targetDurationSec: number;
+  stylePreset: string;
   autoPublish?: boolean;
   publishAt?: string;
+};
+
+export type CreateContentInputDto = {
+  label: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+};
+
+export type UpdateContentInputDto = {
+  contentId: string;
+  label?: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+  clearYoutubePublish?: boolean;
+};
+
+export type ContentDto = {
+  contentId: string;
+  label: string;
+  createdAt: string;
+  updatedAt: string;
+  youtubeSecretName?: string;
+  youtubeAccountType?: string;
+  autoPublishEnabled?: boolean;
+  defaultVisibility?: "private" | "unlisted" | "public";
+  defaultCategoryId?: number;
+  playlistId?: string;
+  youtubeUpdatedAt?: string;
+  youtubeUpdatedBy?: string;
 };
 
 export type SceneJsonSceneDto = {

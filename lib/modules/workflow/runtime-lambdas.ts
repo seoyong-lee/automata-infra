@@ -62,7 +62,7 @@ export const createWorkflowLambdas = (
     JOBS_TABLE_NAME: props.jobsTable.tableName,
     CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
     REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
-    CHANNEL_ID: props.envConfig.channelId,
+    DEFAULT_CONTENT_ID: props.envConfig.defaultContentId,
     DEFAULT_LANGUAGE: props.envConfig.defaultLanguage,
     RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
     OPENAI_SECRET_ID: props.envConfig.openAiSecretId,

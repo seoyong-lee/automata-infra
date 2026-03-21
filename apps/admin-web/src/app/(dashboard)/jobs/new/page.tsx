@@ -1,5 +1,5 @@
-import { CreateContentJobPage } from "@/_pages/create-content-job";
+import { redirect } from 'next/navigation';
 
 export default function NewJobRoute() {
-  return <CreateContentJobPage />;
+  redirect('/content');
 }

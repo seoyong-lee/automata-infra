@@ -1,17 +1,14 @@
 import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
+import type { AdminContent } from '@packages/graphql';
 
-import type { YoutubeChannelConfig } from '@/entities/youtube-channel';
 import { type ChannelSummary } from '../model';
 
 type PublishPolicySectionProps = {
-  youtubeConfigs: YoutubeChannelConfig[];
+  contents: AdminContent[];
   channelSummary: ChannelSummary;
 };
 
-export function PublishPolicySection({
-  youtubeConfigs,
-  channelSummary,
-}: PublishPolicySectionProps) {
+export function PublishPolicySection({ contents, channelSummary }: PublishPolicySectionProps) {
   return (
     <div className="grid gap-6 md:grid-cols-2 xl:grid-cols-3">
       <Card>
@@ -19,8 +16,8 @@ export function PublishPolicySection({
           <CardTitle>Auto Publish Policy</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Auto publish enabled channels: {channelSummary.autoPublish}</p>
-          <p>Manual review channels: {channelSummary.total - channelSummary.autoPublish}</p>
+          <p>Auto publish enabled: {channelSummary.autoPublish}</p>
+          <p>Manual review emphasis: {channelSummary.total - channelSummary.autoPublish}</p>
         </CardContent>
       </Card>
       <Card>
@@ -28,12 +25,13 @@ export function PublishPolicySection({
           <CardTitle>Visibility Defaults</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          {youtubeConfigs.length === 0 ? (
-            <p>채널 설정이 아직 없습니다.</p>
+          {contents.length === 0 ? (
+            <p>등록된 콘텐츠가 없습니다.</p>
           ) : (
-            youtubeConfigs.map((config) => (
-              <p key={config.channelId}>
-                {config.channelId}: {config.defaultVisibility ?? 'unset'}
+            contents.map((c) => (
+              <p key={c.contentId}>
+                <span className="font-mono text-xs">{c.contentId}</span> · {c.label}:{' '}
+                {c.defaultVisibility ?? 'unset'}
               </p>
             ))
           )}
@@ -44,8 +42,8 @@ export function PublishPolicySection({
           <CardTitle>Playlist Coverage</CardTitle>
         </CardHeader>
         <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>Playlist configured channels: {channelSummary.withPlaylist}</p>
-          <p>Playlist missing channels: {channelSummary.total - channelSummary.withPlaylist}</p>
+          <p>Playlist configured: {channelSummary.withPlaylist}</p>
+          <p>Playlist missing: {channelSummary.total - channelSummary.withPlaylist}</p>
         </CardContent>
       </Card>
     </div>

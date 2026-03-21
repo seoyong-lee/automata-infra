@@ -39,11 +39,11 @@ export function WorkStatusJobsTable({ jobs, isLoading }: WorkStatusJobsTableProp
               role="link"
               tabIndex={0}
               className="cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/40"
-              onClick={() => router.push(`/jobs/${job.jobId}/ideation`)}
+              onClick={() => router.push(`/jobs/${job.jobId}/script`)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  router.push(`/jobs/${job.jobId}/ideation`);
+                  router.push(`/jobs/${job.jobId}/script`);
                 }
               }}
             >
@@ -51,7 +51,7 @@ export function WorkStatusJobsTable({ jobs, isLoading }: WorkStatusJobsTableProp
                 {job.videoTitle || '—'}
               </td>
               <td className="px-4 py-3 font-mono text-xs text-muted-foreground">{job.jobId}</td>
-              <td className="px-4 py-3 text-muted-foreground">{job.channelId}</td>
+              <td className="px-4 py-3 text-muted-foreground">{job.contentId}</td>
               <td className="px-4 py-3">
                 <span className="rounded-md bg-muted px-2 py-1 text-xs font-medium">
                   {job.status}

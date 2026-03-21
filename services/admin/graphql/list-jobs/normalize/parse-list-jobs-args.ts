@@ -1,7 +1,7 @@
 export const parseListJobsArgs = (args: Record<string, unknown>) => {
   return {
     status: typeof args.status === "string" ? args.status : undefined,
-    channelId: typeof args.channelId === "string" ? args.channelId : undefined,
+    contentId: typeof args.contentId === "string" ? args.contentId : undefined,
     nextToken: typeof args.nextToken === "string" ? args.nextToken : undefined,
     limit:
       typeof args.limit === "number" && args.limit > 0

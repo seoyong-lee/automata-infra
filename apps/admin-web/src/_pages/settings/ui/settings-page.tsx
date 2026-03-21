@@ -9,17 +9,17 @@ import {
   SettingsSectionTabsCard,
   type SettingsSection,
 } from '@/widgets/settings';
+import { useAdminContents } from '@/entities/admin-content';
 import { useLlmSettings } from '@/entities/llm-step';
-import { useYoutubeChannelConfigs } from '@/entities/youtube-channel';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 export function SettingsPage() {
   const settingsQuery = useLlmSettings();
-  const youtubeConfigsQuery = useYoutubeChannelConfigs();
+  const contentsQuery = useAdminContents({ limit: 100 });
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const items = settingsQuery.data ?? [];
-  const youtubeConfigs = youtubeConfigsQuery.data ?? [];
-  const channelSummary = getChannelSummary(youtubeConfigs);
+  const contents = contentsQuery.data?.items ?? [];
+  const channelSummary = getChannelSummary(contents);
 
   return (
     <div className="space-y-8">
@@ -31,13 +31,13 @@ export function SettingsPage() {
       <SettingsQueryStatus
         settingsLoading={settingsQuery.isLoading}
         settingsError={settingsQuery.error}
-        youtubeConfigsLoading={youtubeConfigsQuery.isLoading}
-        youtubeConfigsError={youtubeConfigsQuery.error}
+        contentsLoading={contentsQuery.isLoading}
+        contentsError={contentsQuery.error}
       />
       <SettingsSectionContent
         activeSection={activeSection}
         items={items}
-        youtubeConfigs={youtubeConfigs}
+        contents={contents}
         channelSummary={channelSummary}
       />
     </div>

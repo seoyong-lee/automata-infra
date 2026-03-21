@@ -14,7 +14,7 @@
   "enableAdminSignup": false,
   "workflowScheduleExpression": "rate(6 hours)",
   "workflowScheduleEnabled": true,
-  "channelId": "history-en",
+  "defaultContentId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,
   "runwaySecretId": "automata-studio/runway",

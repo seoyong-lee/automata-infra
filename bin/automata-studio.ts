@@ -54,7 +54,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
   workflowScheduleExpression:
     envConfig.workflowScheduleExpression ?? "rate(6 hours)",
   workflowScheduleEnabled: envConfig.workflowScheduleEnabled ?? true,
-  channelId: envConfig.channelId ?? "history-en",
+  defaultContentId:
+    envConfig.defaultContentId ?? envConfig.channelId ?? "history-en",
   defaultLanguage: envConfig.defaultLanguage ?? "en",
   enableFargateComposition: envConfig.enableFargateComposition ?? false,
   runwaySecretId: envConfig.runwaySecretId ?? `${projectPrefix}/runway`,

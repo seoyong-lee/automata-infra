@@ -10,7 +10,8 @@ import {
   ContentJobDetailHeaderActions,
   ContentJobDetailNestedTabs,
   ContentJobDetailViewContent,
-  parseWorkspaceViewParam,
+  detailTabKeyToWorkspaceView,
+  parseDetailWorkspaceTabParam,
   useContentJobDetailPageData,
   type WorkspaceView,
 } from '@/widgets/content-job-detail';
@@ -26,8 +27,9 @@ export function ContentJobDetailPage() {
   const jobId = (Array.isArray(rawJobId) ? rawJobId[0] : rawJobId) ?? '';
   const rawStep = params?.step;
   const stepParam = Array.isArray(rawStep) ? rawStep[0] : rawStep;
-  const parsed = parseWorkspaceViewParam(stepParam);
-  const activeView: WorkspaceView = parsed ?? 'ideation';
+  const parsedTab = parseDetailWorkspaceTabParam(stepParam);
+  const activeTab = parsedTab ?? 'script';
+  const activeView: WorkspaceView = detailTabKeyToWorkspaceView(activeTab);
 
   useEffect(() => {
     if (!jobId) {
@@ -37,12 +39,16 @@ export function ContentJobDetailPage() {
       router.replace('/reviews');
       return;
     }
-    if (!stepParam || !parseWorkspaceViewParam(stepParam)) {
-      router.replace(`/jobs/${jobId}/ideation`);
+    if (!stepParam || !parseDetailWorkspaceTabParam(stepParam)) {
+      router.replace(`/jobs/${jobId}/script`);
     }
   }, [jobId, router, stepParam]);
 
   const pageData = useContentJobDetailPageData(jobId);
+  const jobsListHref =
+    pageData.detail?.job.contentId != null && pageData.detail.job.contentId !== ''
+      ? `/content/${encodeURIComponent(pageData.detail.job.contentId)}/jobs`
+      : '/content';
 
   return (
     <div className="space-y-8">
@@ -54,7 +60,7 @@ export function ContentJobDetailPage() {
           />
         }
         title="콘텐츠 상세"
-        subtitle="영역·세부 탭을 고르면 아래에 해당 단계 편집 영역만 표시됩니다."
+        subtitle="스크립트·영상·이미지·업로드 중 한 탭만 선택해 해당 패널을 표시합니다."
         actions={
           <>
             <Link
@@ -72,7 +78,7 @@ export function ContentJobDetailPage() {
         }
       />
 
-      <ContentJobDetailNestedTabs jobId={jobId} activeView={activeView} />
+      <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} listHref={jobsListHref} />
 
       {pageData.detailQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading job draft...</p>

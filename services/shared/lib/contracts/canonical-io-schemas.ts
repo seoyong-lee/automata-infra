@@ -9,7 +9,7 @@ const jobVariantSchema = z.string().trim().min(1);
 
 export const topicSeedInputSchema = z
   .object({
-    channelId: nonEmpty,
+    contentId: nonEmpty,
     targetLanguage: nonEmpty,
     titleIdea: nonEmpty,
     targetDurationSec: z.number().int().positive(),
@@ -17,12 +17,43 @@ export const topicSeedInputSchema = z
   })
   .strict();
 
-export const createDraftJobInputSchema = topicSeedInputSchema
-  .extend({
-    contentType: nonEmpty,
-    variant: jobVariantSchema,
+/** 잡은 반드시 등록된 콘텐츠(카탈로그) 하위에서만 생성 */
+export const createDraftJobInputSchema = z
+  .object({
+    contentId: nonEmpty,
+    targetLanguage: nonEmpty,
+    titleIdea: nonEmpty,
+    targetDurationSec: z.number().int().positive(),
+    stylePreset: nonEmpty,
     autoPublish: z.boolean().optional(),
     publishAt: publishAtSchema.optional(),
+  })
+  .strict();
+
+/** 콘텐츠 = 채널 단일 단위 (유튜브 게시 설정은 동일 레코드에 저장). 식별자는 contentId만 사용. */
+export const createContentInputSchema = z
+  .object({
+    label: nonEmpty,
+    youtubeSecretName: z.string().trim().min(1).optional(),
+    youtubeAccountType: z.string().trim().min(1).optional(),
+    autoPublishEnabled: z.boolean().optional(),
+    defaultVisibility: z.enum(["private", "unlisted", "public"]).optional(),
+    defaultCategoryId: z.number().int().positive().optional(),
+    playlistId: z.string().trim().min(1).optional(),
+  })
+  .strict();
+
+export const updateContentInputSchema = z
+  .object({
+    contentId: nonEmpty,
+    label: nonEmpty.optional(),
+    youtubeSecretName: z.string().optional(),
+    youtubeAccountType: z.string().optional(),
+    autoPublishEnabled: z.boolean().optional(),
+    defaultVisibility: z.enum(["private", "unlisted", "public"]).optional(),
+    defaultCategoryId: z.number().int().positive().optional(),
+    playlistId: z.string().optional(),
+    clearYoutubePublish: z.boolean().optional(),
   })
   .strict();
 
@@ -37,7 +68,7 @@ export const contentBriefSchema = z
     jobId: nonEmpty,
     contentType: nonEmpty,
     variant: jobVariantSchema,
-    channelId: nonEmpty,
+    contentId: nonEmpty,
     language: nonEmpty,
     targetPlatform: nonEmpty,
     targetDurationSec: z.number().int().positive(),
@@ -126,6 +157,8 @@ export type ScriptSection = z.infer<typeof scriptSectionSchema>;
 export type ScriptStructure = z.infer<typeof scriptStructureSchema>;
 export type TopicSeedInput = z.infer<typeof topicSeedInputSchema>;
 export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
+export type CreateContentInput = z.infer<typeof createContentInputSchema>;
+export type UpdateContentInput = z.infer<typeof updateContentInputSchema>;
 export type RunTopicPlanInput = z.infer<typeof runTopicPlanInputSchema>;
 
 export const parseContentBrief = (payload: unknown): ContentBrief => {
@@ -148,6 +181,18 @@ export const parseCreateDraftJobInput = (
   payload: unknown,
 ): CreateDraftJobInput => {
   return createDraftJobInputSchema.parse(payload);
+};
+
+export const parseCreateContentInput = (
+  payload: unknown,
+): CreateContentInput => {
+  return createContentInputSchema.parse(payload);
+};
+
+export const parseUpdateContentInput = (
+  payload: unknown,
+): UpdateContentInput => {
+  return updateContentInputSchema.parse(payload);
 };
 
 export const parseRunTopicPlanInput = (payload: unknown): RunTopicPlanInput => {

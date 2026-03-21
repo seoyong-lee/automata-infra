@@ -1,5 +1,5 @@
-import { ContentOperationsPage } from "@/_pages/content-operations";
+import { redirect } from 'next/navigation';
 
 export default function JobsRoute() {
-  return <ContentOperationsPage />;
+  redirect('/content');
 }

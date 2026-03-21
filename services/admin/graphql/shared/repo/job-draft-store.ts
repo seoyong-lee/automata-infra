@@ -119,7 +119,7 @@ export const saveTopicSeed = async (input: {
     input.jobId,
     {
       topicSeedS3Key: key,
-      channelId: input.topicSeed.channelId,
+      contentId: input.topicSeed.contentId,
       language: input.topicSeed.targetLanguage,
       targetDurationSec: input.topicSeed.targetDurationSec,
       videoTitle: input.topicSeed.titleIdea,
@@ -142,7 +142,7 @@ export const saveContentBrief = async (input: {
       contentBriefS3Key: key,
       contentType: input.contentBrief.contentType,
       variant: input.contentBrief.variant,
-      channelId: input.contentBrief.channelId,
+      contentId: input.contentBrief.contentId,
       language: input.contentBrief.language,
       targetDurationSec: input.contentBrief.targetDurationSec,
       videoTitle: input.contentBrief.titleIdea,
@@ -165,7 +165,7 @@ export const saveTopicPlan = async (input: {
     input.jobId,
     {
       topicS3Key: key,
-      channelId: input.topicPlan.channelId,
+      contentId: input.topicPlan.contentId,
       language: input.topicPlan.targetLanguage,
       targetDurationSec: input.topicPlan.targetDurationSec,
       videoTitle: input.topicPlan.titleIdea,

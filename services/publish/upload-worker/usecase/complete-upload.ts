@@ -26,12 +26,12 @@ const youtubeOAuthSecretSchema = z
   .strict();
 
 const buildVideoDescription = (input: {
-  channelId: string;
+  contentId: string;
   contentType?: string;
   jobId: string;
 }): string => {
   const lines = [
-    `Channel: ${input.channelId}`,
+    `Content: ${input.contentId}`,
     input.contentType ? `Content: ${input.contentType}` : null,
     `Job: ${input.jobId}`,
   ].filter((value): value is string => Boolean(value));
@@ -99,7 +99,7 @@ const uploadVideo = async (input: {
       snippet: {
         title: input.job.videoTitle,
         description: buildVideoDescription({
-          channelId: input.job.channelId,
+          contentId: input.job.contentId ?? "unknown",
           contentType: input.job.contentType,
           jobId: input.jobId,
         }),
@@ -150,12 +150,14 @@ const maybeAddToPlaylist = async (input: {
 
 export const completeUpload = async (jobId: string) => {
   const job = await getUploadJob(jobId);
-  const channelConfig = await getResolvedChannelPublishConfig(job.channelId);
+  const contentId = job.contentId;
+  if (!contentId) {
+    throw new Error("job has no contentId; cannot resolve publish config");
+  }
+  const channelConfig = await getResolvedChannelPublishConfig(contentId);
   const secretName = channelConfig?.youtubeSecretName;
   if (!secretName) {
-    throw new Error(
-      `youtube secret not configured for channel ${job.channelId}`,
-    );
+    throw new Error(`youtube secret not configured for content ${contentId}`);
   }
 
   const secret = await getYoutubeSecret(secretName);

@@ -74,3 +74,17 @@ export const badUserInput = (message: string): GraphqlResolverError => {
     message,
   });
 };
+
+export const notFound = (message: string): GraphqlResolverError => {
+  return new GraphqlResolverError({
+    code: "NOT_FOUND",
+    message,
+  });
+};
+
+export const conflict = (message: string): GraphqlResolverError => {
+  return new GraphqlResolverError({
+    code: "CONFLICT",
+    message,
+  });
+};

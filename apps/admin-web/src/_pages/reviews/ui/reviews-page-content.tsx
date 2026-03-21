@@ -70,7 +70,7 @@ export function ReviewsPageContent() {
                 <Badge variant="outline">{item.status}</Badge>
                 <Badge variant="secondary">Preview ready</Badge>
                 <Link
-                  href={`/jobs/${item.jobId}/ideation`}
+                  href={`/jobs/${item.jobId}/script`}
                   className={`${linkOutlineBtnSm} ml-auto shrink-0`}
                 >
                   콘텐츠 상세

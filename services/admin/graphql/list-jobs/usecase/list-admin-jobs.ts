@@ -4,7 +4,7 @@ import { listJobs } from "../repo/list-jobs";
 
 export const listAdminJobs = async (input: {
   status?: string;
-  channelId?: string;
+  contentId?: string;
   nextToken?: string;
   limit: number;
 }): Promise<ConnectionDto<ReturnType<typeof mapJobMetaToAdminJob>>> => {

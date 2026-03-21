@@ -1,8 +1,10 @@
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { putJsonToS3 } from "../../../../shared/lib/aws/runtime";
 import {
+  getContentMeta,
+  gsi2PkForContentId,
   putJobMeta,
-  JobMetaItem,
+  type JobMetaItem,
 } from "../../../../shared/lib/store/video-jobs";
 import {
   buildContentBriefKey,
@@ -15,6 +17,10 @@ import type {
   TopicSeedDto,
 } from "../../shared/types";
 import { parseContentBrief } from "../../../../shared/lib/contracts/canonical-io-schemas";
+import { notFound } from "../../shared/errors";
+
+const LEGACY_CONTENT_TYPE = "default";
+const LEGACY_VARIANT = "default";
 
 const buildTopicHash = (titleIdea: string): string => {
   return createHash("sha256").update(titleIdea).digest("hex").slice(0, 16);
@@ -29,21 +35,16 @@ const normalizeSlug = (value: string): string => {
   return normalized || "item";
 };
 
-const buildJobId = (
-  nowIso: string,
-  contentType?: string,
-  variant?: string,
-): string => {
-  if (contentType && variant) {
-    const yyyymmdd = nowIso.slice(0, 10).replace(/-/g, "");
-    return `job_${yyyymmdd}_${normalizeSlug(contentType)}_${normalizeSlug(variant)}`;
-  }
-  return `job_${nowIso.replace(/[-:.TZ]/g, "").slice(0, 14)}`;
+const buildJobId = (nowIso: string): string => {
+  return `job_${nowIso.replace(/[-:.TZ]/g, "").slice(0, 14)}_${randomUUID().slice(0, 8)}`;
 };
 
-const buildTopicSeed = (draft: CreateDraftJobInputDto): TopicSeedDto => {
+const buildTopicSeed = (
+  draft: CreateDraftJobInputDto,
+  contentId: string,
+): TopicSeedDto => {
   return {
-    channelId: draft.channelId,
+    contentId,
     targetLanguage: draft.targetLanguage,
     titleIdea: draft.titleIdea,
     targetDurationSec: draft.targetDurationSec,
@@ -55,13 +56,15 @@ const buildContentBrief = (input: {
   draft: CreateDraftJobInputDto;
   jobId: string;
   now: string;
+  contentId: string;
+  contentLabel: string;
 }): ContentBriefDto => {
   const date = input.now.slice(0, 10);
   return parseContentBrief({
     jobId: input.jobId,
-    contentType: input.draft.contentType,
-    variant: input.draft.variant,
-    channelId: input.draft.channelId,
+    contentType: LEGACY_CONTENT_TYPE,
+    variant: LEGACY_VARIANT,
+    contentId: input.contentId,
     language: input.draft.targetLanguage,
     targetPlatform: "youtube-shorts",
     targetDurationSec: input.draft.targetDurationSec,
@@ -71,8 +74,8 @@ const buildContentBrief = (input: {
     publishAt: input.draft.publishAt,
     seed: {
       date,
-      fortuneType: input.draft.contentType,
-      audience: input.draft.channelId,
+      fortuneType: LEGACY_CONTENT_TYPE,
+      audience: input.contentLabel,
       style: input.draft.stylePreset,
       tone: "default",
       topicKey: normalizeSlug(input.draft.titleIdea),
@@ -91,16 +94,20 @@ export const createDraftJob = async (input: {
   draft: CreateDraftJobInputDto;
   now: string;
 }) => {
-  const jobId = buildJobId(
-    input.now,
-    input.draft.contentType,
-    input.draft.variant,
-  );
-  const topicSeed = buildTopicSeed(input.draft);
+  const parent = await getContentMeta(input.draft.contentId);
+  if (!parent) {
+    throw notFound("content not found");
+  }
+
+  const contentId = parent.contentId;
+  const jobId = buildJobId(input.now);
+  const topicSeed = buildTopicSeed(input.draft, contentId);
   const contentBrief = buildContentBrief({
     draft: input.draft,
     jobId,
     now: input.now,
+    contentId,
+    contentLabel: parent.label,
   });
   const topicSeedS3Key = buildTopicSeedKey(jobId);
   const contentBriefS3Key = buildContentBriefKey(jobId);
@@ -114,9 +121,9 @@ export const createDraftJob = async (input: {
     PK: `JOB#${jobId}`,
     SK: "META",
     jobId,
-    channelId: topicSeed.channelId,
-    contentType: input.draft.contentType,
-    variant: input.draft.variant,
+    contentType: LEGACY_CONTENT_TYPE,
+    variant: LEGACY_VARIANT,
+    contentId,
     topicId: `topic_${jobId}`,
     topicHash,
     status: "DRAFT",
@@ -136,12 +143,14 @@ export const createDraftJob = async (input: {
     updatedAt: input.now,
     GSI1PK: "STATUS#DRAFT",
     GSI1SK: input.now,
-    GSI2PK: `CHANNEL#${topicSeed.channelId}`,
+    GSI2PK: gsi2PkForContentId(contentId),
     GSI2SK: `${input.now}#JOB#${jobId}`,
     GSI3PK: `TOPIC#${topicHash}`,
     GSI3SK: `${input.now}#JOB#${jobId}`,
-    GSI4PK: `CONTENT#${input.draft.contentType}`,
+    GSI4PK: `CONTENT#${LEGACY_CONTENT_TYPE}`,
     GSI4SK: `${input.now}#JOB#${jobId}`,
+    GSI5PK: `CONTENT#${contentId}`,
+    GSI5SK: `${input.now}#JOB#${jobId}`,
   };
 
   await putJobMeta(item);

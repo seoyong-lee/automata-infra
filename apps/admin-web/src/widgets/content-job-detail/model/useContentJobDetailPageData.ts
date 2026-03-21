@@ -38,7 +38,7 @@ export const useContentJobDetailPageData = (jobId: string) => {
     saveTopicSeed: (seedForm: SeedForm) =>
       mutations.updateTopicSeed.mutate({
         jobId,
-        channelId: seedForm.channelId,
+        contentId: seedForm.contentId,
         targetLanguage: seedForm.targetLanguage,
         titleIdea: seedForm.titleIdea,
         targetDurationSec: Number(seedForm.targetDurationSec),

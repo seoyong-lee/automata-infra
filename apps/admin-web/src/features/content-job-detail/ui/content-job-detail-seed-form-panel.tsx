@@ -34,7 +34,7 @@ export function ContentJobDetailSeedFormPanel({
     className?: string;
     type?: 'number';
   }> = [
-    { key: 'channelId', label: 'Channel ID' },
+    { key: 'contentId', label: 'Content ID' },
     { key: 'targetLanguage', label: 'Target Language' },
     { key: 'titleIdea', label: 'Title Idea', className: 'md:col-span-2' },
     {

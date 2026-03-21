@@ -159,33 +159,6 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
-    const getYoutubeChannelConfigsResolver = createLambda(
-      this,
-      "AdminGetYoutubeChannelConfigsResolverLambda",
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/get-youtube-channel-configs/handler.ts",
-      ),
-      environment,
-    );
-    const upsertYoutubeChannelConfigResolver = createLambda(
-      this,
-      "AdminUpsertYoutubeChannelConfigResolverLambda",
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/upsert-youtube-channel-config/handler.ts",
-      ),
-      environment,
-    );
-    const deleteYoutubeChannelConfigResolver = createLambda(
-      this,
-      "AdminDeleteYoutubeChannelConfigResolverLambda",
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/delete-youtube-channel-config/handler.ts",
-      ),
-      environment,
-    );
     const getJobDraftResolver = createLambda(
       this,
       "AdminGetJobDraftResolverLambda",
@@ -249,6 +222,48 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const deleteJobResolver = createLambda(
+      this,
+      "AdminDeleteJobResolverLambda",
+      path.join(process.cwd(), "services/admin/graphql/delete-job/handler.ts"),
+      environment,
+    );
+    const listContentsResolver = createLambda(
+      this,
+      "AdminListContentsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/list-contents/handler.ts",
+      ),
+      environment,
+    );
+    const createContentResolver = createLambda(
+      this,
+      "AdminCreateContentResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/create-content/handler.ts",
+      ),
+      environment,
+    );
+    const deleteContentResolver = createLambda(
+      this,
+      "AdminDeleteContentResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/delete-content/handler.ts",
+      ),
+      environment,
+    );
+    const updateContentResolver = createLambda(
+      this,
+      "AdminUpdateContentResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/update-content/handler.ts",
+      ),
+      environment,
+    );
 
     props.assetsBucket.grantReadWrite(reviewHandler);
     props.assetsBucket.grantReadWrite(uploadHandler);
@@ -264,6 +279,7 @@ export class PublishStack extends Stack {
         resources: ["*"],
       }),
     );
+    props.jobsTable.grantReadData(listContentsResolver);
     props.jobsTable.grantReadData(listJobsResolver);
     props.jobsTable.grantReadData(getJobResolver);
     props.jobsTable.grantReadData(pendingReviewsResolver);
@@ -277,6 +293,10 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(runSceneJsonResolver);
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
+    props.jobsTable.grantReadWriteData(deleteJobResolver);
+    props.jobsTable.grantReadWriteData(createContentResolver);
+    props.jobsTable.grantReadWriteData(updateContentResolver);
+    props.jobsTable.grantReadWriteData(deleteContentResolver);
     props.assetsBucket.grantReadWrite(getJobDraftResolver);
     props.assetsBucket.grantReadWrite(createDraftJobResolver);
     props.assetsBucket.grantReadWrite(updateTopicSeedResolver);
@@ -284,11 +304,9 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(runSceneJsonResolver);
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
+    props.assetsBucket.grantReadWrite(deleteJobResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
-    props.llmConfigTable.grantReadData(getYoutubeChannelConfigsResolver);
-    props.llmConfigTable.grantReadWriteData(upsertYoutubeChannelConfigResolver);
-    props.llmConfigTable.grantReadWriteData(deleteYoutubeChannelConfigResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
     runTopicPlanResolver.addToRolePolicy(
       new iam.PolicyStatement({
@@ -341,6 +359,7 @@ export class PublishStack extends Stack {
     const adminGraphql = createPublishGraphqlApi(this, {
       projectPrefix: props.projectPrefix,
       userPool: auth.userPool,
+      listContentsResolver,
       listJobsResolver,
       getJobResolver,
       pendingReviewsResolver,
@@ -349,16 +368,17 @@ export class PublishStack extends Stack {
       requestUploadResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
-      getYoutubeChannelConfigsResolver,
-      upsertYoutubeChannelConfigResolver,
-      deleteYoutubeChannelConfigResolver,
       getJobDraftResolver,
+      createContentResolver,
+      updateContentResolver,
+      deleteContentResolver,
       createDraftJobResolver,
       updateTopicSeedResolver,
       runTopicPlanResolver,
       runSceneJsonResolver,
       updateSceneJsonResolver,
       runAssetGenerationResolver,
+      deleteJobResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

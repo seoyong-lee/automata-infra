@@ -24,7 +24,7 @@ export function ContentJobDetailMetricsCard({
     { label: '콘텐츠 ID', value: jobId, valueClassName: 'font-mono text-xs' },
     { label: '현재 상태', value: detail?.job.status ?? '-' },
     { label: '콘텐츠 유형', value: contentType ?? '-' },
-    { label: '채널', value: detail?.job.channelId ?? '-' },
+    { label: '콘텐츠', value: detail?.job.contentId ?? '-' },
     { label: '씬 수', value: String(sceneCount) },
     { label: '예상 비용', value: `$${((sceneCount || 5) * 0.06).toFixed(2)}` },
   ];

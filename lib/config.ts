@@ -8,7 +8,10 @@ export type VideoFactoryEnvConfig = {
   enableAdminSignup?: boolean;
   workflowScheduleExpression?: string;
   workflowScheduleEnabled?: boolean;
-  channelId: string;
+  /** 토픽 플랜 등 레거시 워크플로 기본 콘텐츠 ID (예: cnt_… 또는 history-en) */
+  defaultContentId: string;
+  /** @deprecated env/config.json 구버전 키 — defaultContentId로 옮기면 제거 */
+  channelId?: string;
   defaultLanguage: string;
   enableFargateComposition: boolean;
   runwaySecretId: string;

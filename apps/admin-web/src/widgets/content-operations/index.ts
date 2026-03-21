@@ -1,4 +1,2 @@
-export * from './ui/content-jobs-section';
-export * from './ui/content-lines-section';
-export * from './ui/selected-channel-section';
-export { useContentOperationsWorkspaceState } from './model';
+export { ContentJobsTable } from './ui/content-jobs-table';
+export { useContentOperationsActions } from './model';

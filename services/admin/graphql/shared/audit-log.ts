@@ -8,15 +8,17 @@ type AuditOperation =
   | "jobDraft"
   | "llmSettings"
   | "updateLlmStepSettings"
-  | "youtubeChannelConfigs"
-  | "upsertYoutubeChannelConfig"
-  | "deleteYoutubeChannelConfig"
   | "createDraftJob"
   | "updateTopicSeed"
   | "runTopicPlan"
   | "runSceneJson"
   | "updateSceneJson"
-  | "runAssetGeneration";
+  | "runAssetGeneration"
+  | "deleteJob"
+  | "createContent"
+  | "updateContent"
+  | "deleteContent"
+  | "adminContents";
 
 type ResolverAuditLogInput = {
   operation: AuditOperation;
