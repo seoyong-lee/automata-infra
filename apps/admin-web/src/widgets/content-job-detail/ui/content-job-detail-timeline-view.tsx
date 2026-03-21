@@ -9,6 +9,18 @@ type ContentJobDetailTimelineViewProps = {
   jobId: string;
 };
 
+function formatDuration(startedAt: string, completedAt?: string | null): string {
+  if (!completedAt) {
+    return '—';
+  }
+  const a = new Date(startedAt).getTime();
+  const b = new Date(completedAt).getTime();
+  if (Number.isNaN(a) || Number.isNaN(b) || b < a) {
+    return '—';
+  }
+  return `${Math.round((b - a) / 1000)}s`;
+}
+
 export function ContentJobDetailTimelineView({ jobId }: ContentJobDetailTimelineViewProps) {
   const exec = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
   const raw = useJobTimelineQuery({ jobId }, { enabled: Boolean(jobId) });
@@ -24,8 +36,9 @@ export function ContentJobDetailTimelineView({ jobId }: ContentJobDetailTimeline
         <CardHeader>
           <CardTitle>파이프라인 실행 이력</CardTitle>
           <CardDescription>
-            토픽 플랜·씬 JSON·에셋 생성 뮤테이션마다 기록됩니다. 실패 시{' '}
-            <code className="text-xs">errorMessage</code>를 확인하세요.
+            실행(Execution)은 &quot;무엇이 돌았는지&quot;이고, 채택(Approval)과는 별개입니다.
+            토픽·씬·에셋 뮤테이션마다 기록됩니다. 입력·산출은 S3 키로 추적합니다. 재시도 액션은 추후
+            연동합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -39,11 +52,14 @@ export function ContentJobDetailTimelineView({ jobId }: ContentJobDetailTimeline
             </p>
           ) : null}
           <div className="overflow-x-auto">
-            <table className="w-full min-w-[640px] border-collapse text-left text-sm">
+            <table className="w-full min-w-[900px] border-collapse text-left text-sm">
               <thead>
                 <tr className="border-b text-xs text-muted-foreground">
                   <th className="py-2 pr-3 font-medium">단계</th>
                   <th className="py-2 pr-3 font-medium">상태</th>
+                  <th className="py-2 pr-3 font-medium">입력</th>
+                  <th className="py-2 pr-3 font-medium">산출</th>
+                  <th className="py-2 pr-3 font-medium">소요</th>
                   <th className="py-2 pr-3 font-medium">시작</th>
                   <th className="py-2 pr-3 font-medium">완료</th>
                   <th className="py-2 pr-3 font-medium">실행자</th>
@@ -55,6 +71,15 @@ export function ContentJobDetailTimelineView({ jobId }: ContentJobDetailTimeline
                   <tr key={row.executionId} className="border-b border-border/60">
                     <td className="py-2 pr-3 font-mono text-xs">{row.stageType}</td>
                     <td className="py-2 pr-3">{row.status}</td>
+                    <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">
+                      {row.inputSnapshotId ?? '—'}
+                    </td>
+                    <td className="py-2 pr-3 font-mono text-[11px] text-muted-foreground">
+                      {row.outputArtifactS3Key ?? '—'}
+                    </td>
+                    <td className="py-2 pr-3 text-xs tabular-nums text-muted-foreground">
+                      {formatDuration(row.startedAt, row.completedAt)}
+                    </td>
                     <td className="py-2 pr-3 text-xs text-muted-foreground">{row.startedAt}</td>
                     <td className="py-2 pr-3 text-xs text-muted-foreground">
                       {row.completedAt ?? '—'}

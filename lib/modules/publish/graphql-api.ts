@@ -32,6 +32,7 @@ type CreatePublishGraphqlApiProps = {
   runAssetGenerationResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
+  approvePipelineExecutionResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -224,6 +225,13 @@ export const createPublishGraphqlApi = (
     "attachJobToContent",
     "Mutation",
     props.attachJobToContentResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ApprovePipelineExecution",
+    "approvePipelineExecution",
+    "Mutation",
+    props.approvePipelineExecutionResolver,
   );
 
   return {

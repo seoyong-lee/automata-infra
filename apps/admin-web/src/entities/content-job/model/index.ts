@@ -1,4 +1,5 @@
 import {
+  useApprovePipelineExecutionMutation,
   useJobDraftQuery,
   useRequestUploadMutation,
   useRunAssetGenerationMutation,
@@ -19,3 +20,4 @@ export const useRunContentJobSceneJson = useRunSceneJsonMutation;
 export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;
 export const useUpdateContentJobTopicSeed = useUpdateTopicSeedMutation;
+export const useApproveContentJobPipelineExecution = useApprovePipelineExecutionMutation;

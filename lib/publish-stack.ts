@@ -289,6 +289,15 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const approvePipelineExecutionResolver = createLambda(
+      this,
+      "AdminApprovePipelineExecutionResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/approve-pipeline-execution/handler.ts",
+      ),
+      environment,
+    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -357,6 +366,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
+    props.jobsTable.grantReadWriteData(approvePipelineExecutionResolver);
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
@@ -469,6 +479,7 @@ export class PublishStack extends Stack {
       runAssetGenerationResolver,
       deleteJobResolver,
       attachJobToContentResolver,
+      approvePipelineExecutionResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

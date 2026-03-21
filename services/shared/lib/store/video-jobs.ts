@@ -42,6 +42,12 @@ export type JobMetaItem = {
   uploadStatus?: string;
   uploadVideoId?: string;
   contentBriefS3Key?: string;
+  /** 문서상 채택본: 토픽 플랜 단계에서 승인한 실행 ID. */
+  approvedTopicExecutionId?: string;
+  /** 씬 JSON 단계에서 승인한 실행 ID. */
+  approvedSceneExecutionId?: string;
+  /** 에셋 생성 단계에서 승인한 실행 ID. */
+  approvedAssetExecutionId?: string;
   createdAt: string;
   updatedAt: string;
   GSI1PK: string;

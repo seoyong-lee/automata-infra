@@ -1,6 +1,7 @@
 type AuditOperation =
   | "submitReviewDecision"
   | "requestUpload"
+  | "approvePipelineExecution"
   | "attachJobToContent"
   | "adminJobs"
   | "adminJob"

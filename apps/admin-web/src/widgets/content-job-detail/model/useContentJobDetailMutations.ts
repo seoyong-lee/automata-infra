@@ -1,4 +1,5 @@
 import {
+  useApproveContentJobPipelineExecution,
   useRequestContentJobUpload,
   useRunContentJobAssetGeneration,
   useRunContentJobSceneJson,
@@ -14,6 +15,7 @@ export const useContentJobDetailMutations = (onSuccess: () => Promise<void>) => 
   const updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
   const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess });
   const requestUpload = useRequestContentJobUpload({ onSuccess });
+  const approvePipelineExecution = useApproveContentJobPipelineExecution({ onSuccess });
 
   return {
     requestUpload,
@@ -22,5 +24,6 @@ export const useContentJobDetailMutations = (onSuccess: () => Promise<void>) => 
     runTopicPlan,
     updateSceneJson,
     updateTopicSeed,
+    approvePipelineExecution,
   };
 };

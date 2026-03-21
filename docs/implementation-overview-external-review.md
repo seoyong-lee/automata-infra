@@ -7,6 +7,8 @@
 
 **최근에 반영된 구체적 변경**(파이프라인 실행 이력·비동기 워커·`adminJobs` 병합 목록·Admin 용어·브레드크럼·제작 아이템 허브 등)은 [`recent-work-summary.md`](./recent-work-summary.md)에 정리해 두었다.
 
+**Admin 전면 개선 방향(도메인·후보/채택·상세 IA·백엔드 우선순위) — Cursor 전달용:** [`plans/admin-improvement-direction-cursor-handoff.md`](./plans/admin-improvement-direction-cursor-handoff.md)
+
 ---
 
 ## 1. 제품 목적 (한 줄)

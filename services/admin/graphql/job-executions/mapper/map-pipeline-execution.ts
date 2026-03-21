@@ -9,6 +9,8 @@ export type PipelineExecutionGql = {
   startedAt: string;
   completedAt?: string | null;
   errorMessage?: string | null;
+  inputSnapshotId?: string | null;
+  outputArtifactS3Key?: string | null;
 };
 
 export const mapPipelineExecution = (
@@ -22,4 +24,6 @@ export const mapPipelineExecution = (
   startedAt: row.startedAt,
   completedAt: row.completedAt ?? null,
   errorMessage: row.errorMessage ?? null,
+  inputSnapshotId: row.inputSnapshotId ?? null,
+  outputArtifactS3Key: row.outputArtifactS3Key ?? null,
 });

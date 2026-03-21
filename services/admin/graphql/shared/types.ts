@@ -54,6 +54,9 @@ export type AdminJobDto = {
   contentBriefS3Key?: string;
   topicSeedS3Key?: string;
   topicS3Key?: string;
+  approvedTopicExecutionId?: string;
+  approvedSceneExecutionId?: string;
+  approvedAssetExecutionId?: string;
 };
 
 export type ConnectionDto<T> = {

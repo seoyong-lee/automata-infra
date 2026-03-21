@@ -2,6 +2,8 @@
 
 본 문서는 **외부 검토용 개요**(`implementation-overview-external-review.md`)와 별도로, **최근에 코드에 반영된 변경**을 한곳에 모은 스냅샷이다. 세부는 GraphQL 스키마·CDK·해당 경로 소스를 우선한다.
 
+**이후 목표(후보/채택·ApprovedSnapshot·상세 워크벤치 전면)**는 [`plans/admin-improvement-direction-cursor-handoff.md`](./plans/admin-improvement-direction-cursor-handoff.md)를 본다.
+
 ---
 
 ## 1. 배경
@@ -95,17 +97,14 @@
 
 ## 8. 주요 경로 빠른 참조
 
-
-| 영역           | 경로                                                                                 |
-| ------------ | ---------------------------------------------------------------------------------- |
-| 실행 저장        | `services/shared/lib/store/job-execution.ts`                                       |
-| 워커 invoke    | `services/shared/lib/aws/invoke-pipeline-worker.ts`                                |
+| 영역                | 경로                                                                               |
+| ------------------- | ---------------------------------------------------------------------------------- |
+| 실행 저장           | `services/shared/lib/store/job-execution.ts`                                       |
+| 워커 invoke         | `services/shared/lib/aws/invoke-pipeline-worker.ts`                                |
 | 파이프라인 워커     | `services/admin/pipeline-worker/`                                                  |
-| 잡 목록 병합      | `services/shared/lib/store/video-jobs.ts` (`listJobMetasMergedByRecent`)           |
-| Admin 잡 쿼리   | `services/admin/graphql/list-jobs/`                                                |
-| 스키마          | `lib/modules/publish/graphql/schema.graphql`                                       |
-| CDK          | `lib/publish-stack.ts`, `lib/modules/publish/graphql-api.ts`                       |
+| 잡 목록 병합        | `services/shared/lib/store/video-jobs.ts` (`listJobMetasMergedByRecent`)           |
+| Admin 잡 쿼리       | `services/admin/graphql/list-jobs/`                                                |
+| 스키마              | `lib/modules/publish/graphql/schema.graphql`                                       |
+| CDK                 | `lib/publish-stack.ts`, `lib/modules/publish/graphql-api.ts`                       |
 | 제작 아이템 허브 UI | `apps/admin-web/src/_pages/jobs-hub/ui/jobs-hub-page.tsx`                          |
-| 브레드크럼        | `apps/admin-web/src/widgets/content-job-detail/lib/build-job-detail-breadcrumb.ts` |
-
-
+| 브레드크럼          | `apps/admin-web/src/widgets/content-job-detail/lib/build-job-detail-breadcrumb.ts` |

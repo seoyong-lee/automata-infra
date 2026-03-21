@@ -1,5 +1,7 @@
 # Admin 클라이언트 수정 계획 (운영 콘솔 · 후보 채택형 워크벤치)
 
+**Cursor·에이전트 전달용 통합본(도메인 재정의·목록/상세·백엔드 우선순위까지 한 파일):** [`admin-improvement-direction-cursor-handoff.md`](./admin-improvement-direction-cursor-handoff.md)
+
 본 문서는 Admin Web(`apps/admin-web`)의 **정보 구조·도메인 단위·화면 책임**을 재정의하기 위한 수정 방향이다. 백엔드 실행 모델(Resolver 슬림화, Step Functions, Execution 이력 등)은 [`implementation-overview-external-review.md`](../implementation-overview-external-review.md)와 맞춘다. 채널·콘텐츠 운영의 큰 그림은 [`admin-job-authoring.md`](./admin-job-authoring.md)와 연결되나, 여기서는 **후보/채택/스냅샷/실행 이력**과 **메뉴·탭·상세 IA**를 구체적으로 고정한다.
 
 ---

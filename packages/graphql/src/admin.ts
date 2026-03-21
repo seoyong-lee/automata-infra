@@ -51,6 +51,9 @@ export type AdminJob = {
   contentBriefS3Key?: string | null;
   topicSeedS3Key?: string | null;
   topicS3Key?: string | null;
+  approvedTopicExecutionId?: string | null;
+  approvedSceneExecutionId?: string | null;
+  approvedAssetExecutionId?: string | null;
   updatedAt: string;
 };
 
@@ -156,6 +159,8 @@ export type PipelineExecution = {
   startedAt: string;
   completedAt?: string | null;
   errorMessage?: string | null;
+  inputSnapshotId?: string | null;
+  outputArtifactS3Key?: string | null;
 };
 
 export type LlmStepSettings = {
@@ -294,6 +299,8 @@ const jobExecutionsQuery = `
       startedAt
       completedAt
       errorMessage
+      inputSnapshotId
+      outputArtifactS3Key
     }
   }
 `;
@@ -328,6 +335,9 @@ const jobDraftQuery = `
         contentBriefS3Key
         topicSeedS3Key
         topicS3Key
+        approvedTopicExecutionId
+        approvedSceneExecutionId
+        approvedAssetExecutionId
       }
       contentBrief {
         jobId
@@ -665,6 +675,29 @@ const runAssetGenerationMutation = `
   }
 `;
 
+const approvePipelineExecutionMutation = `
+  mutation ApprovePipelineExecution($input: ApprovePipelineExecutionInput!) {
+    approvePipelineExecution(input: $input) {
+      jobId
+      status
+      updatedAt
+      contentId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      videoTitle
+      topicS3Key
+      sceneJsonS3Key
+      topicSeedS3Key
+      approvedTopicExecutionId
+      approvedSceneExecutionId
+      approvedAssetExecutionId
+    }
+  }
+`;
+
 const gql = async <T>(query: string, variables?: Record<string, unknown>) => {
   const runtime = getGraphqlRuntime();
   const token = runtime.getToken ? await runtime.getToken() : null;
@@ -865,6 +898,17 @@ export const useJobExecutionsQuery = (
     },
     ...options,
   });
+};
+
+/** 제작 아이템별 실행 이력을 직접 조회할 때(예: 여러 jobId 병렬 요약). */
+export const fetchJobExecutions = async (
+  jobId: string,
+): Promise<PipelineExecution[]> => {
+  const data = await gql<{ jobExecutions: PipelineExecution[] }>(
+    jobExecutionsQuery,
+    { jobId },
+  );
+  return data.jobExecutions;
 };
 
 export const useSubmitReviewDecisionMutation = (
@@ -1188,6 +1232,24 @@ export const useRunAssetGenerationMutation = (
       return gql<{ runAssetGeneration: AdminJob }>(runAssetGenerationMutation, {
         input,
       });
+    },
+    ...options,
+  });
+};
+
+export const useApprovePipelineExecutionMutation = (
+  options?: UseMutationOptions<
+    { approvePipelineExecution: AdminJob },
+    Error,
+    { jobId: string; executionId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ approvePipelineExecution: AdminJob }>(
+        approvePipelineExecutionMutation,
+        { input },
+      );
     },
     ...options,
   });

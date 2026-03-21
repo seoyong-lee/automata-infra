@@ -87,11 +87,15 @@ export const runAdminAssetGeneration = async (
   jobId: string,
   triggeredBy?: string,
 ) => {
+  const job = await getJobOrThrow(jobId);
+  const inputSnapshotId = job.sceneJsonS3Key ?? undefined;
+
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({
       jobId,
       stageType: "ASSET_GENERATION",
       triggeredBy,
+      inputSnapshotId,
     });
     try {
       await invokePipelineWorkerAsync({
@@ -112,10 +116,11 @@ export const runAdminAssetGeneration = async (
     jobId,
     stageType: "ASSET_GENERATION",
     triggeredBy,
+    inputSnapshotId,
   });
   try {
     const result = await runAssetGenerationCore(jobId);
-    await finish("SUCCEEDED");
+    await finish("SUCCEEDED", undefined, result.sceneJsonS3Key);
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

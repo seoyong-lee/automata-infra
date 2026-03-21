@@ -79,7 +79,7 @@ function ContentJobDetailPageBody() {
       <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} />
 
       {pageData.detailQuery.isLoading ? (
-        <p className="text-sm text-muted-foreground">Loading job draft...</p>
+        <p className="text-sm text-muted-foreground">제작 아이템 초안을 불러오는 중…</p>
       ) : null}
       {pageData.detailQuery.error ? (
         <p className="text-sm text-destructive">{getErrorMessage(pageData.detailQuery.error)}</p>

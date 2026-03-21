@@ -54,5 +54,8 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     contentBriefS3Key: job.contentBriefS3Key,
     topicSeedS3Key: job.topicSeedS3Key,
     topicS3Key: job.topicS3Key,
+    approvedTopicExecutionId: job.approvedTopicExecutionId,
+    approvedSceneExecutionId: job.approvedSceneExecutionId,
+    approvedAssetExecutionId: job.approvedAssetExecutionId,
   };
 };

@@ -26,17 +26,20 @@ export const jobDetailRouteTabs: Array<{
   {
     key: 'ideation',
     label: '아이데이션',
-    description: '토픽·시드·플랜 방향을 잡고, 후보를 만들고 채택하는 단계입니다.',
+    description:
+      '토픽·시드·플랜을 다룹니다. 하단에 토픽 플랜 단계 실행 기록이 표시됩니다. 후보 비교·채택은 도입 예정입니다.',
   },
   {
     key: 'scene',
     label: '씬 설계',
-    description: 'brief·씬 JSON을 확정합니다. 렌더 중립 명세의 중심 단계입니다.',
+    description:
+      '구조화 요약과 Raw JSON으로 씬 명세를 다룹니다. 씬 버전·채택 UI는 도입 예정입니다.',
   },
   {
     key: 'assets',
     label: '에셋',
-    description: '씬 단위로 이미지·음성·영상 클립 등을 생성·보완합니다.',
+    description:
+      '씬 단위로 이미지·음성·영상 클립 등을 생성·보완합니다. 상단에 에셋 생성 단계 실행 기록이 표시됩니다.',
   },
   {
     key: 'publish',
@@ -46,7 +49,8 @@ export const jobDetailRouteTabs: Array<{
   {
     key: 'timeline',
     label: '실행 이력',
-    description: '이 제작 아이템에 기록된 타임라인·감사 이벤트를 조회합니다.',
+    description:
+      '파이프라인 단계별 실행(토픽·씬·에셋)과 원시 타임라인을 봅니다. 채택 스냅샷 연동은 추후 보강됩니다.',
   },
 ];
 

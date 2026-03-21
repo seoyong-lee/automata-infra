@@ -41,26 +41,26 @@ export function DashboardPage() {
 
   const metricCards = useMemo(() => {
     return [
-      { title: 'Total Jobs', value: metrics.totalJobs, href: '/content' },
+      { title: '제작 아이템 (표본)', value: metrics.totalJobs, href: '/jobs' },
       {
-        title: 'Rendered / Uploaded',
+        title: '렌더·업로드 완료',
         value: metrics.renderedJobs,
-        href: '/reviews',
+        href: '/jobs',
       },
       {
-        title: 'Pending Review',
+        title: '검수 대기',
         value: metrics.pendingReviews,
         href: '/reviews',
       },
       {
-        title: 'Asset Backlog',
+        title: '에셋 백로그 (근사)',
         value: metrics.assetBacklog,
-        href: '/reviews',
+        href: '/executions',
       },
       {
-        title: 'Failed Jobs',
+        title: '실패 제작 아이템',
         value: metrics.failedJobs,
-        href: '/reviews',
+        href: '/executions',
       },
     ];
   }, [metrics]);
@@ -167,7 +167,7 @@ export function DashboardPage() {
             <CardContent className="space-y-2">
               <p className="text-2xl font-semibold">{card.value}</p>
               <Link className="text-sm text-primary hover:underline" href={card.href}>
-                Open in Content Manager
+                이동
               </Link>
             </CardContent>
           </Card>
@@ -177,9 +177,9 @@ export function DashboardPage() {
       <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
-            <CardTitle>Channel Health</CardTitle>
+            <CardTitle>채널별 요약</CardTitle>
             <CardDescription>
-              유튜브 채널 단위로 현재 제작 아이템 수, 업로드 완료 수, 막힌 작업 수를 봅니다.
+              채널(콘텐츠 ID) 단위로 제작 아이템 수·업로드 완료·막힌 작업을 봅니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
@@ -202,7 +202,7 @@ export function DashboardPage() {
                 <div className="flex items-center gap-2">
                   <Badge variant="outline">{row.totalJobs} jobs</Badge>
                   <Link className="text-sm text-primary hover:underline" href={row.contentHref}>
-                    Open content
+                    채널로
                   </Link>
                 </div>
               </div>
@@ -211,14 +211,12 @@ export function DashboardPage() {
         </Card>
         <Card>
           <CardHeader>
-            <CardTitle>Latest Jobs</CardTitle>
-            <CardDescription>
-              최근 업데이트된 제작 아이템을 기준으로 전체 채널 흐름을 빠르게 확인합니다.
-            </CardDescription>
+            <CardTitle>최근 제작 아이템</CardTitle>
+            <CardDescription>최근 갱신 순(표본)으로 전체 흐름을 빠르게 확인합니다.</CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
             {jobsQuery.isLoading ? (
-              <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+              <p className="text-sm text-muted-foreground">불러오는 중…</p>
             ) : null}
             {recentJobs.map((job) => (
               <div
@@ -236,8 +234,11 @@ export function DashboardPage() {
                   <p className="font-medium">{job.videoTitle}</p>
                   <p className="text-xs text-muted-foreground">{job.updatedAt}</p>
                 </div>
-                <Link className="text-sm text-primary hover:underline" href={`/jobs/${job.jobId}`}>
-                  Open detail
+                <Link
+                  className="text-sm text-primary hover:underline"
+                  href={`/jobs/${job.jobId}/overview`}
+                >
+                  상세
                 </Link>
               </div>
             ))}

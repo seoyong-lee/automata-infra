@@ -37,6 +37,7 @@ export function ContentJobOperationsPanel({ jobId }: ContentJobOperationsPanelPr
       <ContentJobDetailMetricsCard detail={detail} jobId={jobId} sceneCount={detailVm.sceneCount} />
       <ContentJobDetailContext detail={detail} />
       <ContentJobDetailOverviewView
+        jobId={jobId}
         detail={detail}
         experimentOptions={detailVm.experimentOptions}
         readyAssetCount={detailVm.readyAssetCount}

@@ -53,6 +53,10 @@ type Mutation {
   에셋 생성(팬아웃·큐 워커). 목표: 단계·씬 단위 부분 재실행.
   """
   runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
+  """
+  성공한 파이프라인 실행을 해당 단계의 채택본(승인 라인)으로 기록한다. 다음 단계 자동화는 추후 이 포인터를 소비하도록 확장한다.
+  """
+  approvePipelineExecution(input: ApprovePipelineExecutionInput!): AdminJob!
   deleteJob(jobId: ID!): DeleteJobResult!
 }
 
@@ -83,6 +87,9 @@ type AdminJob {
   contentBriefS3Key: String
   topicSeedS3Key: String
   topicS3Key: String
+  approvedTopicExecutionId: String
+  approvedSceneExecutionId: String
+  approvedAssetExecutionId: String
 }
 
 type ContentBriefSeed {
@@ -215,6 +222,19 @@ type PipelineExecution {
   startedAt: AWSDateTime!
   completedAt: AWSDateTime
   errorMessage: String
+  """
+  해당 실행의 입력 기준. 현재는 단계별 입력 S3 키(시드·토픽 플랜·씬 JSON 등). 승인 스냅샷 ID로 확장 가능.
+  """
+  inputSnapshotId: String
+  """
+  성공 시 산출물 S3 키(토픽·씬 JSON 등).
+  """
+  outputArtifactS3Key: String
+}
+
+input ApprovePipelineExecutionInput {
+  jobId: ID!
+  executionId: ID!
 }
 
 type LlmSettings {

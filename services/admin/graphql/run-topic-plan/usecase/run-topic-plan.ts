@@ -52,11 +52,15 @@ export const runAdminTopicPlan = async (
   jobId: string,
   triggeredBy?: string,
 ) => {
+  const job = await getJobOrThrow(jobId);
+  const inputSnapshotId = job.topicSeedS3Key ?? undefined;
+
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({
       jobId,
       stageType: "TOPIC_PLAN",
       triggeredBy,
+      inputSnapshotId,
     });
     try {
       await invokePipelineWorkerAsync({
@@ -77,10 +81,11 @@ export const runAdminTopicPlan = async (
     jobId,
     stageType: "TOPIC_PLAN",
     triggeredBy,
+    inputSnapshotId,
   });
   try {
     const result = await runTopicPlanCore(jobId);
-    await finish("SUCCEEDED");
+    await finish("SUCCEEDED", undefined, result.topicS3Key);
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);

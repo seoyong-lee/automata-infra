@@ -60,11 +60,15 @@ export const runAdminSceneJson = async (
   jobId: string,
   triggeredBy?: string,
 ) => {
+  const job = await getJobOrThrow(jobId);
+  const inputSnapshotId = job.topicS3Key ?? undefined;
+
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({
       jobId,
       stageType: "SCENE_JSON",
       triggeredBy,
+      inputSnapshotId,
     });
     try {
       await invokePipelineWorkerAsync({
@@ -85,10 +89,11 @@ export const runAdminSceneJson = async (
     jobId,
     stageType: "SCENE_JSON",
     triggeredBy,
+    inputSnapshotId,
   });
   try {
     const result = await runSceneJsonCore(jobId);
-    await finish("SUCCEEDED");
+    await finish("SUCCEEDED", undefined, result.sceneJsonS3Key);
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
