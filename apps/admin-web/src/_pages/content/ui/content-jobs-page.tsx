@@ -7,6 +7,7 @@ import { Suspense, useMemo } from 'react';
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
 import { ContentJobsTable } from '@/widgets/content-operations';
+import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 function ContentJobsPageBody() {
@@ -27,26 +28,28 @@ function ContentJobsPageBody() {
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader
-        eyebrow={
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/content" className="hover:text-foreground">
-              콘텐츠 관리
-            </Link>
-            <span className="text-muted-foreground/70">/</span>
-            <span className="text-foreground">{(label ?? contentId) || '—'}</span>
-          </div>
-        }
-        title={label ? `${label} · 제작 잡` : '제작 잡'}
-        subtitle="이 콘텐츠(채널) 단위에 속한 잡만 표시합니다."
-      />
+      <div className="space-y-3">
+        <AdminPageHeader
+          backHref="/content"
+          eyebrow={
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/content" className="hover:text-foreground">
+                콘텐츠 관리
+              </Link>
+              <span className="text-muted-foreground/70">/</span>
+              <span className="text-foreground">{(label ?? contentId) || '—'}</span>
+            </div>
+          }
+          title="콘텐츠 상세"
+          subtitle={
+            label
+              ? `행을 선택하면 콘텐츠 상세로 이동합니다.`
+              : '행을 선택하면 잡 상세로 이동합니다.'
+          }
+        />
+      </div>
 
-      <ContentJobsTable
-        jobs={sortedJobs}
-        isLoading={jobsQuery.isLoading}
-        contentId={contentId}
-        contentLabel={label}
-      />
+      <ContentJobsTable jobs={sortedJobs} isLoading={jobsQuery.isLoading} contentId={contentId} />
     </div>
   );
 }
@@ -56,7 +59,10 @@ export function ContentJobsPage() {
     <Suspense
       fallback={
         <div className="space-y-8">
-          <AdminPageHeader title="제작 잡" subtitle="불러오는 중…" />
+          <div className="space-y-3">
+            <AdminPageBack href="/content" label="콘텐츠 목록으로" />
+            <AdminPageHeader title="콘텐츠 상세" subtitle="불러오는 중…" />
+          </div>
         </div>
       }
     >

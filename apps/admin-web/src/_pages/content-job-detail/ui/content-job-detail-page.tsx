@@ -15,6 +15,7 @@ import {
   useContentJobDetailPageData,
   type WorkspaceView,
 } from '@/widgets/content-job-detail';
+import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 export function ContentJobDetailPage() {
@@ -45,40 +46,33 @@ export function ContentJobDetailPage() {
   }, [jobId, router, stepParam]);
 
   const pageData = useContentJobDetailPageData(jobId);
-  const jobsListHref =
-    pageData.detail?.job.contentId != null && pageData.detail.job.contentId !== ''
-      ? `/content/${encodeURIComponent(pageData.detail.job.contentId)}/jobs`
-      : '/content';
+  const jobTitle = pageData.detail?.job.videoTitle?.trim();
+  const pageTitle = jobTitle ? jobTitle : '잡 상세';
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader
-        eyebrow={
-          <ContentJobDetailBreadcrumb
-            contentLineHref={pageData.detailVm.contentLineHref}
-            detail={pageData.detail}
-          />
-        }
-        title="콘텐츠 상세"
-        subtitle="스크립트·영상·이미지·업로드 중 한 탭만 선택해 해당 패널을 표시합니다."
-        actions={
-          <>
-            <Link
-              href="/reviews"
-              className="inline-flex h-9 items-center justify-center rounded-md bg-secondary px-4 text-sm font-medium text-secondary-foreground transition-colors hover:bg-secondary/80"
-            >
-              작업 현황
-            </Link>
+      <div className="space-y-3">
+        <AdminPageHeader
+          backHref={pageData.detailVm.contentLineHref}
+          eyebrow={
+            <ContentJobDetailBreadcrumb
+              contentLineHref={pageData.detailVm.contentLineHref}
+              detail={pageData.detail}
+            />
+          }
+          title={pageTitle}
+          subtitle="스크립트·영상·이미지·업로드 단계를 조회합니다."
+          actions={
             <ContentJobDetailHeaderActions
               contentLineHref={pageData.detailVm.contentLineHref}
               detail={pageData.detail}
               newJobHref={pageData.detailVm.newJobHref}
             />
-          </>
-        }
-      />
+          }
+        />
+      </div>
 
-      <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} listHref={jobsListHref} />
+      <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} />
 
       {pageData.detailQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">Loading job draft...</p>

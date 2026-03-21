@@ -10,6 +10,7 @@ import { ChangeEvent, Suspense, useMemo, useState } from 'react';
 
 import { useAdminContents } from '@/entities/admin-content';
 import { useCreateDraftJob } from '@/entities/admin-job';
+import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 type DraftForm = {
@@ -57,23 +58,26 @@ function CreateJobInContentContent() {
 
   return (
     <div className="space-y-8">
-      <AdminPageHeader
-        eyebrow={
-          <div className="flex flex-wrap items-center gap-2">
-            <Link href="/content" className="hover:text-foreground">
-              콘텐츠 관리
-            </Link>
-            <span className="text-muted-foreground/70">/</span>
-            <Link href={jobsListHref} className="hover:text-foreground">
-              {content?.label ?? contentId}
-            </Link>
-            <span className="text-muted-foreground/70">/</span>
-            <span className="text-foreground">새 잡</span>
-          </div>
-        }
-        title="제작 잡 만들기"
-        subtitle="선택한 콘텐츠(채널) 아래에 새 잡을 등록합니다. 생성 후 워크스페이스에서 스크립트·에셋·업로드를 이어갑니다."
-      />
+      <div className="space-y-3">
+        <AdminPageBack href={jobsListHref} label="이 콘텐츠 잡 목록으로" />
+        <AdminPageHeader
+          eyebrow={
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/content" className="hover:text-foreground">
+                콘텐츠 관리
+              </Link>
+              <span className="text-muted-foreground/70">/</span>
+              <Link href={jobsListHref} className="hover:text-foreground">
+                {content?.label ?? contentId}
+              </Link>
+              <span className="text-muted-foreground/70">/</span>
+              <span className="text-foreground">새 잡</span>
+            </div>
+          }
+          title="제작 잡 만들기"
+          subtitle="선택한 콘텐츠(채널) 아래에 새 잡을 등록합니다. 생성 후 워크스페이스에서 스크립트·에셋·업로드를 이어갑니다."
+        />
+      </div>
 
       <Card>
         <CardHeader>
@@ -163,7 +167,10 @@ export function CreateJobInContentPage() {
     <Suspense
       fallback={
         <div className="space-y-6">
-          <AdminPageHeader title="제작 잡 만들기" subtitle="불러오는 중…" />
+          <div className="space-y-3">
+            <AdminPageBack href="/content" label="콘텐츠 목록으로" />
+            <AdminPageHeader title="제작 잡 만들기" subtitle="불러오는 중…" />
+          </div>
         </div>
       }
     >

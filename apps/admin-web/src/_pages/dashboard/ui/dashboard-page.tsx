@@ -86,6 +86,7 @@ export function DashboardPage() {
         totalJobs: channelJobs.length,
         uploadedCount,
         blockedCount,
+        contentLabel: catalog.find((c) => c.contentId === contentId)?.label ?? '—',
       };
     });
   }, [jobs, catalog]);
@@ -145,16 +146,6 @@ export function DashboardPage() {
       <AdminPageHeader
         title="대시보드"
         subtitle="모든 콘텐츠를 한곳에서 묶어 병목·에러·리뷰 대기·업로드 진행 상태를 파악하는 운영 현황입니다."
-        actions={
-          <>
-            <Button variant="secondary" onClick={() => (window.location.href = '/content')}>
-              콘텐츠 관리
-            </Button>
-            <Button variant="outline" onClick={() => (window.location.href = '/settings')}>
-              설정
-            </Button>
-          </>
-        }
       />
 
       {jobsQuery.error ? (
@@ -183,7 +174,7 @@ export function DashboardPage() {
         ))}
       </div>
 
-      <div className="grid gap-6 xl:grid-cols-[1.1fr_0.9fr]">
+      <div className="grid gap-4 md:grid-cols-2">
         <Card>
           <CardHeader>
             <CardTitle>Channel Health</CardTitle>
@@ -203,7 +194,7 @@ export function DashboardPage() {
                 className="flex items-center justify-between rounded-lg border p-4"
               >
                 <div className="space-y-1">
-                  <p className="font-medium font-mono text-sm">{row.contentId}</p>
+                  <p className="font-medium font-mono text-sm">{row.contentLabel}</p>
                   <p className="text-xs text-muted-foreground">
                     uploaded {row.uploadedCount} / blocked {row.blockedCount}
                   </p>
@@ -218,71 +209,44 @@ export function DashboardPage() {
             ))}
           </CardContent>
         </Card>
-
         <Card>
           <CardHeader>
-            <CardTitle>Operational Bottlenecks</CardTitle>
+            <CardTitle>Latest Jobs</CardTitle>
             <CardDescription>
-              전체 콘텐츠 기준으로 지금 막히는 구간을 빠르게 확인합니다.
+              최근 업데이트된 잡을 기준으로 전체 콘텐츠 흐름을 빠르게 확인합니다.
             </CardDescription>
           </CardHeader>
           <CardContent className="space-y-3">
-            {bottlenecks.map((item) => (
-              <div key={item.label} className="rounded-lg border p-4">
-                <div className="flex items-center justify-between gap-3">
-                  <p className="font-medium">{item.label}</p>
-                  <Badge variant="secondary">{item.value}</Badge>
+            {jobsQuery.isLoading ? (
+              <p className="text-sm text-muted-foreground">Loading dashboard...</p>
+            ) : null}
+            {recentJobs.map((job) => (
+              <div
+                key={job.jobId}
+                className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
+              >
+                <div className="space-y-1">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <Badge variant="outline">{job.contentId}</Badge>
+                    <Badge variant="secondary">{formatStatusLabel(job.status)}</Badge>
+                    {job.contentType ? (
+                      <span className="text-xs text-muted-foreground">{job.contentType}</span>
+                    ) : null}
+                  </div>
+                  <p className="font-medium">{job.videoTitle}</p>
+                  <p className="text-xs text-muted-foreground">{job.updatedAt}</p>
                 </div>
-                <p className="mt-2 text-sm text-muted-foreground">{item.hint}</p>
-                <Link
-                  className="mt-3 inline-block text-sm text-primary hover:underline"
-                  href={item.href}
-                >
-                  Open in Content Manager
+                <Link className="text-sm text-primary hover:underline" href={`/jobs/${job.jobId}`}>
+                  Open detail
                 </Link>
               </div>
             ))}
+            {!jobsQuery.isLoading && recentJobs.length === 0 ? (
+              <p className="text-sm text-muted-foreground">아직 생성된 잡이 없습니다.</p>
+            ) : null}
           </CardContent>
         </Card>
       </div>
-
-      <Card>
-        <CardHeader>
-          <CardTitle>Latest Jobs</CardTitle>
-          <CardDescription>
-            최근 업데이트된 잡을 기준으로 전체 콘텐츠 흐름을 빠르게 확인합니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-3">
-          {jobsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading dashboard...</p>
-          ) : null}
-          {recentJobs.map((job) => (
-            <div
-              key={job.jobId}
-              className="flex flex-wrap items-center justify-between gap-3 rounded-lg border p-4"
-            >
-              <div className="space-y-1">
-                <div className="flex flex-wrap items-center gap-2">
-                  <Badge variant="outline">{job.contentId}</Badge>
-                  <Badge variant="secondary">{formatStatusLabel(job.status)}</Badge>
-                  {job.contentType ? (
-                    <span className="text-xs text-muted-foreground">{job.contentType}</span>
-                  ) : null}
-                </div>
-                <p className="font-medium">{job.videoTitle}</p>
-                <p className="text-xs text-muted-foreground">{job.updatedAt}</p>
-              </div>
-              <Link className="text-sm text-primary hover:underline" href={`/jobs/${job.jobId}`}>
-                Open detail
-              </Link>
-            </div>
-          ))}
-          {!jobsQuery.isLoading && recentJobs.length === 0 ? (
-            <p className="text-sm text-muted-foreground">아직 생성된 잡이 없습니다.</p>
-          ) : null}
-        </CardContent>
-      </Card>
     </div>
   );
 }

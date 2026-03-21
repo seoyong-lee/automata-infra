@@ -19,7 +19,7 @@ export function ContentJobDetailHeaderActions({
   return (
     <>
       <Link className="text-sm text-primary hover:underline" href={contentLineHref}>
-        콘텐츠 리스트로
+        이 콘텐츠의 잡 목록
       </Link>
       <Button
         variant="outline"

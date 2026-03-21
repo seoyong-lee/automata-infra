@@ -1,93 +1,94 @@
 'use client';
 
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
-import { Table, TableBody, TableHead, TableHeader, TableRow } from '@packages/ui/table';
+import type { AdminJob } from '@/entities/admin-job';
+import { AdminDataTable, type AdminDataTableColumnClassName } from '@/shared/ui/admin-data-table';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import { useCallback, type ReactNode } from 'react';
-import type { AdminJob } from '@/entities/admin-job';
+import type { KeyboardEvent } from 'react';
+import { useMemo } from 'react';
 
-import { ContentJobsTableRow } from './content-jobs-table-row';
+import { createContentJobsColumns } from './content-jobs-columns';
 
 type Props = {
   jobs: AdminJob[];
   isLoading: boolean;
   /** When set, “새 제작 잡” goes to `/content/:contentId/jobs/new`. */
   contentId?: string;
-  contentLabel?: string;
 };
 
-type TableGridProps = {
-  jobs: AdminJob[];
-  onOpen: (jobId: string) => void;
-};
-
-function ContentJobsTableGrid({ jobs, onOpen }: TableGridProps) {
-  return (
-    <Table>
-      <TableHeader>
-        <TableRow>
-          <TableHead className="min-w-[140px]">상태</TableHead>
-          <TableHead>제목</TableHead>
-          <TableHead className="hidden md:table-cell">콘텐츠 타입</TableHead>
-          <TableHead className="hidden lg:table-cell">채널</TableHead>
-          <TableHead className="text-right">길이</TableHead>
-          <TableHead className="hidden sm:table-cell">수정일</TableHead>
-          <TableHead className="hidden xl:table-cell font-mono text-xs">Job ID</TableHead>
-        </TableRow>
-      </TableHeader>
-      <TableBody className="[&_td]:py-2.5">
-        {jobs.map((job) => (
-          <ContentJobsTableRow key={job.jobId} job={job} onOpen={onOpen} />
-        ))}
-      </TableBody>
-    </Table>
-  );
+function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName {
+  switch (columnId) {
+    case 'status':
+      return { header: 'min-w-[140px]' };
+    case 'contentType':
+      return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
+    case 'contentId':
+      return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
+    case 'targetDurationSec':
+      return { header: 'text-right [&_button]:ml-auto', cell: 'text-right' };
+    case 'updatedAt':
+      return { header: 'hidden sm:table-cell', cell: 'hidden sm:table-cell' };
+    case 'jobId':
+      return { header: 'hidden xl:table-cell font-mono text-xs', cell: 'hidden xl:table-cell' };
+    default:
+      return {};
+  }
 }
 
-export function ContentJobsTable({ jobs, isLoading, contentId, contentLabel }: Props) {
+export function ContentJobsTable({ jobs, isLoading, contentId }: Props) {
   const router = useRouter();
+  const columns = useMemo(() => createContentJobsColumns(), []);
 
   const newJobHref = contentId
     ? `/content/${encodeURIComponent(contentId)}/jobs/new`
     : '/content/new';
 
-  const goToDetail = useCallback(
-    (jobId: string) => {
-      router.push(`/jobs/${jobId}/script`);
-    },
-    [router],
-  );
+  const goToJob = (jobId: string) => {
+    router.push(`/jobs/${jobId}/script`);
+  };
 
-  let body: ReactNode = null;
-  if (isLoading) {
-    body = <p className="text-sm text-muted-foreground">목록을 불러오는 중입니다…</p>;
-  } else if (jobs.length === 0) {
-    body = <p className="text-sm text-muted-foreground">표시할 제작 잡이 없습니다.</p>;
-  } else {
-    body = <ContentJobsTableGrid jobs={jobs} onOpen={goToDetail} />;
-  }
+  const onRowKeyDown = (e: KeyboardEvent<HTMLTableRowElement>, jobId: string) => {
+    if (e.key === 'Enter' || e.key === ' ') {
+      e.preventDefault();
+      goToJob(jobId);
+    }
+  };
 
   return (
-    <Card className="flex w-full flex-col gap-4">
-      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between">
-        <div className="space-y-1">
-          <CardTitle className="text-lg">
-            {contentLabel ? `${contentLabel} · ` : null}제작 잡 목록
-          </CardTitle>
-          <CardDescription>
-            각 행은 한 건의 제작 잡입니다. 행을 누르면 상세(스크립트·영상·이미지·업로드)로
-            이동합니다. 콘텐츠(채널)는 먼저 등록한 뒤, 그 하위에만 잡을 둡니다.
-          </CardDescription>
-        </div>
-        <Link
-          href={newJobHref}
-          className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-        >
-          새 제작 잡
-        </Link>
-      </CardHeader>
-      <CardContent>{body}</CardContent>
-    </Card>
+    <div className="space-y-4">
+      {isLoading ? (
+        <p className="text-sm text-muted-foreground">목록을 불러오는 중입니다…</p>
+      ) : null}
+      {!isLoading && jobs.length === 0 ? (
+        <p className="text-sm text-muted-foreground">표시할 제작 잡이 없습니다.</p>
+      ) : null}
+      {!isLoading && jobs.length > 0 ? (
+        <AdminDataTable<AdminJob>
+          data={jobs}
+          columns={columns}
+          getRowId={(row) => row.jobId}
+          initialSorting={[{ id: 'updatedAt', desc: true }]}
+          filterColumnId="videoTitle"
+          filterPlaceholder="제목 검색…"
+          toolbarEnd={
+            <Link
+              href={newJobHref}
+              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
+            >
+              새 잡 만들기
+            </Link>
+          }
+          getColumnClassName={getJobColumnClassName}
+          tableBodyClassName="[&_td]:py-2.5"
+          rowProps={(row) => ({
+            role: 'link',
+            tabIndex: 0,
+            className: 'cursor-pointer',
+            onClick: () => goToJob(row.original.jobId),
+            onKeyDown: (e) => onRowKeyDown(e, row.original.jobId),
+          })}
+        />
+      ) : null}
+    </div>
   );
 }
