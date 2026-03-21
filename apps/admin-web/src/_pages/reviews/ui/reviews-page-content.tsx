@@ -47,8 +47,8 @@ export function ReviewsPageContent() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="작업 현황"
-        subtitle="상단에서 전체 작업을 한눈에 보고, 검수·목록을 이어서 처리합니다. 개별 콘텐츠 제작은 목록에서 행을 눌러 콘텐츠 상세로 이동합니다."
+        title="리뷰 큐"
+        subtitle="검수 대기·실패 조치가 필요한 제작 아이템을 모읍니다. 행에서 제작 상세(렌더·업로드 탭)로 바로 이동할 수 있습니다."
       />
 
       <WorkStatusUnifiedOverview />
@@ -70,10 +70,10 @@ export function ReviewsPageContent() {
                 <Badge variant="outline">{item.status}</Badge>
                 <Badge variant="secondary">Preview ready</Badge>
                 <Link
-                  href={`/jobs/${item.jobId}/script`}
+                  href={`/jobs/${item.jobId}/publish`}
                   className={`${linkOutlineBtnSm} ml-auto shrink-0`}
                 >
-                  콘텐츠 상세
+                  제작 상세
                 </Link>
               </div>
               <div className="grid gap-3 text-sm md:grid-cols-2">

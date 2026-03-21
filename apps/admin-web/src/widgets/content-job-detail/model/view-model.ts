@@ -9,10 +9,14 @@ export { buildContentJobDetailContextCards } from '../lib/detail-context';
 export { toSeedForm } from '../lib/seed-form';
 export { parseWorkspaceViewParam, workspaceViewKeys, workspaceViews } from '../lib/workspace-views';
 export {
-  detailTabKeyToWorkspaceView,
   detailWorkspaceTabKeys,
   detailWorkspaceTabs,
+  getJobDetailLegacyRedirect,
+  jobDetailRouteTabKeys,
+  jobDetailRouteTabs,
+  parseAssetStage,
   parseDetailWorkspaceTabParam,
+  parseJobDetailRouteTabParam,
 } from '../lib/detail-workspace-tabs';
 export type {
   CompareRow,
@@ -24,7 +28,11 @@ export type {
   SeedForm,
   WorkspaceView,
 } from './types';
-export type { DetailWorkspaceTabKey } from '../lib/detail-workspace-tabs';
+export type {
+  AssetStage,
+  DetailWorkspaceTabKey,
+  JobDetailRouteTabKey,
+} from '../lib/detail-workspace-tabs';
 
 export const buildContentJobDetailViewModel = (
   detail?: JobDraftDetail,

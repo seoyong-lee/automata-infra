@@ -3,11 +3,11 @@
 import { cn } from '@packages/ui';
 import Link from 'next/link';
 
-import { detailWorkspaceTabs, type DetailWorkspaceTabKey } from '../lib/detail-workspace-tabs';
+import { jobDetailRouteTabs, type JobDetailRouteTabKey } from '../lib/detail-workspace-tabs';
 
 type ContentJobDetailNestedTabsProps = {
   jobId: string;
-  activeTab: DetailWorkspaceTabKey;
+  activeTab: JobDetailRouteTabKey;
 };
 
 const tabClassName =
@@ -18,12 +18,10 @@ export function ContentJobDetailNestedTabs({ jobId, activeTab }: ContentJobDetai
     return null;
   }
 
-  const activeCopy = detailWorkspaceTabs.find((v) => v.key === activeTab)?.description;
-
   return (
-    <div className="mb-4">
+    <div className="mb-4 space-y-2">
       <div className="-mx-1 flex flex-wrap gap-2 px-1">
-        {detailWorkspaceTabs.map((tab) => (
+        {jobDetailRouteTabs.map((tab) => (
           <Link
             key={tab.key}
             href={`/jobs/${jobId}/${tab.key}`}
@@ -38,6 +36,9 @@ export function ContentJobDetailNestedTabs({ jobId, activeTab }: ContentJobDetai
           </Link>
         ))}
       </div>
+      <p className="text-xs text-muted-foreground">
+        {jobDetailRouteTabs.find((v) => v.key === activeTab)?.description}
+      </p>
     </div>
   );
 }

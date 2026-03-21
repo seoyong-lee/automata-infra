@@ -35,7 +35,7 @@ function StandaloneCreateJobContent() {
 
   const mutation = useCreateDraftJob({
     onSuccess: ({ createDraftJob }) => {
-      router.push(`/jobs/${createDraftJob.jobId}/ideation`);
+      router.push(`/jobs/${createDraftJob.jobId}/overview`);
     },
   });
 

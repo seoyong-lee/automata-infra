@@ -1,36 +1,37 @@
 'use client';
 
 import { getErrorMessage } from '@packages/utils';
-import Link from 'next/link';
-import { useParams, useRouter } from 'next/navigation';
-import { useEffect } from 'react';
+import { useParams, useRouter, useSearchParams } from 'next/navigation';
+import { Suspense, useEffect } from 'react';
 
 import {
   ContentJobDetailBreadcrumb,
   ContentJobDetailHeaderActions,
   ContentJobDetailNestedTabs,
   ContentJobDetailViewContent,
-  detailTabKeyToWorkspaceView,
-  parseDetailWorkspaceTabParam,
+  getJobDetailLegacyRedirect,
+  jobDetailRouteTabs,
+  parseAssetStage,
+  parseJobDetailRouteTabParam,
+  type JobDetailRouteTabKey,
   useContentJobDetailPageData,
-  type WorkspaceView,
 } from '@/widgets/content-job-detail';
-import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
-export function ContentJobDetailPage() {
+function ContentJobDetailPageBody() {
   const params = useParams<{
     jobId: string | string[] | undefined;
     step: string | string[] | undefined;
   }>();
   const router = useRouter();
+  const searchParams = useSearchParams();
   const rawJobId = params?.jobId;
   const jobId = (Array.isArray(rawJobId) ? rawJobId[0] : rawJobId) ?? '';
   const rawStep = params?.step;
   const stepParam = Array.isArray(rawStep) ? rawStep[0] : rawStep;
-  const parsedTab = parseDetailWorkspaceTabParam(stepParam);
-  const activeTab = parsedTab ?? 'ideation';
-  const activeView: WorkspaceView = detailTabKeyToWorkspaceView(activeTab);
+  const assetStage = parseAssetStage(searchParams.get('stage'));
+  const parsedTab = parseJobDetailRouteTabParam(stepParam);
+  const activeTab: JobDetailRouteTabKey = parsedTab ?? 'overview';
 
   useEffect(() => {
     if (!jobId) {
@@ -40,14 +41,20 @@ export function ContentJobDetailPage() {
       router.replace('/reviews');
       return;
     }
-    if (!stepParam || !parseDetailWorkspaceTabParam(stepParam)) {
-      router.replace(`/jobs/${jobId}/ideation`);
+    const legacy = getJobDetailLegacyRedirect(jobId, stepParam);
+    if (legacy) {
+      router.replace(legacy);
+      return;
+    }
+    if (!stepParam || !parseJobDetailRouteTabParam(stepParam)) {
+      router.replace(`/jobs/${jobId}/overview`);
     }
   }, [jobId, router, stepParam]);
 
   const pageData = useContentJobDetailPageData(jobId);
   const jobTitle = pageData.detail?.job.videoTitle?.trim();
-  const pageTitle = jobTitle ? jobTitle : '잡 상세';
+  const pageTitle = jobTitle ? jobTitle : '제작 아이템';
+  const tabDescription = jobDetailRouteTabs.find((t) => t.key === activeTab)?.description;
 
   return (
     <div className="space-y-8">
@@ -56,7 +63,10 @@ export function ContentJobDetailPage() {
           backHref={pageData.detailVm.contentLineHref}
           eyebrow={<ContentJobDetailBreadcrumb detail={pageData.detail} />}
           title={pageTitle}
-          subtitle="토픽·시드에서 방향을 잡은 뒤, 스크립트·미디어·업로드 단계로 진행합니다."
+          subtitle={
+            tabDescription ??
+            '채널·제작 아이템·실행 이력을 분리해, 후보 생성과 채택·재실행 흐름을 맞춥니다.'
+          }
           actions={
             <ContentJobDetailHeaderActions
               detail={pageData.detail}
@@ -75,7 +85,20 @@ export function ContentJobDetailPage() {
         <p className="text-sm text-destructive">{getErrorMessage(pageData.detailQuery.error)}</p>
       ) : null}
 
-      <ContentJobDetailViewContent activeView={activeView} pageData={pageData} />
+      <ContentJobDetailViewContent
+        jobId={jobId}
+        activeTab={activeTab}
+        assetStage={assetStage}
+        pageData={pageData}
+      />
     </div>
+  );
+}
+
+export function ContentJobDetailPage() {
+  return (
+    <Suspense fallback={<p className="text-sm text-muted-foreground">화면을 불러오는 중…</p>}>
+      <ContentJobDetailPageBody />
+    </Suspense>
   );
 }

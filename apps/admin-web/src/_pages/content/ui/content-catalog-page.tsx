@@ -25,8 +25,8 @@ function ContentCatalogPageBody() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="콘텐츠"
-        subtitle="채널(콘텐츠) 카탈로그입니다. 아직 채널을 정하지 않은 제작 잡은 잡 메뉴에서 다룹니다."
+        title="채널"
+        subtitle="운영 라인(채널) 카탈로그입니다. 채널에 붙지 않은 제작 아이템은 제작 아이템 메뉴에서 다룹니다."
       />
       <ContentCatalogTable
         items={list.data?.items ?? []}
@@ -48,7 +48,7 @@ export function ContentCatalogPage() {
     <Suspense
       fallback={
         <div className="space-y-8">
-          <AdminPageHeader title="콘텐츠 관리" subtitle="불러오는 중…" />
+          <AdminPageHeader title="채널" subtitle="불러오는 중…" />
         </div>
       }
     >

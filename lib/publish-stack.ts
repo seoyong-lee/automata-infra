@@ -318,6 +318,10 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(attachJobToContentResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
+    /** generateStepStructuredData → getLlmStepSettings(GetItem) */
+    props.llmConfigTable.grantReadData(createDraftJobResolver);
+    props.llmConfigTable.grantReadData(runTopicPlanResolver);
+    props.llmConfigTable.grantReadData(runSceneJsonResolver);
     props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
     runTopicPlanResolver.addToRolePolicy(
       new iam.PolicyStatement({

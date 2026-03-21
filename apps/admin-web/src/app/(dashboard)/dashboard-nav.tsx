@@ -3,7 +3,15 @@
 import { cn } from '@packages/ui';
 import { Button } from '@packages/ui/button';
 import { logout } from '@packages/auth';
-import { Cog, ImagePlay, LayoutDashboard, Route, Settings, ClipboardList } from 'lucide-react';
+import {
+  Activity,
+  Cog,
+  ImagePlay,
+  LayoutDashboard,
+  ListChecks,
+  Settings,
+  ClipboardList,
+} from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
 
@@ -13,6 +21,10 @@ function isUnderContentPath(pathname: string) {
 
 function isUnderJobsPath(pathname: string) {
   return pathname === '/jobs' || pathname === '/jobs/new' || pathname.startsWith('/jobs/');
+}
+
+function isUnderExecutionsPath(pathname: string) {
+  return pathname === '/executions' || pathname.startsWith('/executions/');
 }
 
 export function DashboardSidebar() {
@@ -57,7 +69,7 @@ export function DashboardSidebar() {
             )}
           >
             <ImagePlay className="size-4 shrink-0" />
-            <span className="truncate">콘텐츠</span>
+            <span className="truncate">채널</span>
           </Link>
 
           <Link
@@ -70,7 +82,20 @@ export function DashboardSidebar() {
             )}
           >
             <ClipboardList className="size-4 shrink-0" />
-            <span className="truncate">잡</span>
+            <span className="truncate">제작 아이템</span>
+          </Link>
+
+          <Link
+            href="/executions"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+              isUnderExecutionsPath(pathname)
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+            )}
+          >
+            <Activity className="size-4 shrink-0" />
+            <span className="truncate">실행 현황</span>
           </Link>
 
           <Link
@@ -82,8 +107,8 @@ export function DashboardSidebar() {
                 : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
             )}
           >
-            <Route className="size-4 shrink-0" />
-            <span>작업 현황</span>
+            <ListChecks className="size-4 shrink-0" />
+            <span>리뷰 큐</span>
           </Link>
 
           <Link
@@ -126,13 +151,16 @@ export function DashboardMobileBar() {
           대시보드
         </Link>
         <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
-          콘텐츠
+          채널
         </Link>
         <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
-          잡
+          제작 아이템
+        </Link>
+        <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
+          실행 현황
         </Link>
         <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
-          작업 현황
+          리뷰 큐
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
           설정

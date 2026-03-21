@@ -4,119 +4,83 @@ import {
   ContentJobDetailSceneBuildPanel,
   ContentJobDetailSeedFormPanel,
 } from '@/features/content-job-detail';
-import type { WorkspaceView } from '../model';
+import type { AssetStage, JobDetailRouteTabKey } from '../model';
 import type { ContentJobDetailPageData } from '../model/useContentJobDetailPageData';
-import { ContentJobDetailAssetsView } from './content-job-detail-assets-view';
-import { ContentJobDetailRenderReviewView } from './content-job-detail-render-review-view';
-import { ContentJobDetailUploadsView } from './content-job-detail-uploads-view';
+import { ContentJobDetailAssetsHubView } from './content-job-detail-assets-hub-view';
+import { ContentJobDetailOverviewView } from './content-job-detail-overview-view';
+import { ContentJobDetailPublishView } from './content-job-detail-publish-view';
+import { ContentJobDetailTimelineView } from './content-job-detail-timeline-view';
 
 type ContentJobDetailViewContentProps = {
-  activeView: WorkspaceView;
+  jobId: string;
+  activeTab: JobDetailRouteTabKey;
+  assetStage: AssetStage;
   pageData: ContentJobDetailPageData;
 };
 
-function ContentJobDetailIdeationView({ pageData }: { pageData: ContentJobDetailPageData }) {
-  const { detailVm } = pageData;
-
-  return (
-    <ContentJobDetailSeedFormPanel
-      key={detailVm.seedFormKey}
-      initialValue={detailVm.seedFormInitialValue}
-      hasTopicPlan={Boolean(pageData.detail?.job.topicS3Key)}
-      isRunningTopicPlan={pageData.isRunningTopicPlan}
-      isSaving={pageData.isSavingTopicSeed}
-      onRunTopicPlan={pageData.runTopicPlan}
-      onSave={pageData.saveTopicSeed}
-      runError={pageData.runTopicPlanError}
-      saveError={pageData.updateTopicSeedError}
-    />
-  );
-}
-
-function ContentJobDetailScriptView({ pageData }: { pageData: ContentJobDetailPageData }) {
-  const { detailVm } = pageData;
-
-  return (
-    <ContentJobDetailSceneBuildPanel
-      key={detailVm.sceneJsonKey}
-      initialValue={detailVm.sceneJsonInitialValue}
-      runError={pageData.runSceneJsonError}
-      saveError={pageData.updateSceneJsonError}
-      isRunning={pageData.isRunningSceneJson}
-      isSaving={pageData.isSavingSceneJson}
-      onRun={pageData.runSceneJson}
-      onSave={pageData.saveSceneJson}
-    />
-  );
-}
-
-function ContentJobDetailAssetStageView({
-  pageData,
-  stage,
-}: {
-  pageData: ContentJobDetailPageData;
-  stage: 'image' | 'voice' | 'video';
-}) {
-  return (
-    <ContentJobDetailAssetsView
-      detail={pageData.detail}
-      error={pageData.runAssetGenerationError}
-      isRunning={pageData.isRunningAssetGeneration}
-      onRun={pageData.runAssetGeneration}
-      stage={stage}
-    />
-  );
-}
-
-function ContentJobDetailReviewStageView({ pageData }: { pageData: ContentJobDetailPageData }) {
-  return (
-    <ContentJobDetailRenderReviewView
-      detail={pageData.detail}
-      onOpenReviews={pageData.openReviews}
-      readyAssetCount={pageData.detailVm.readyAssetCount}
-    />
-  );
-}
-
-function ContentJobDetailUploadStageView({ pageData }: { pageData: ContentJobDetailPageData }) {
-  return (
-    <ContentJobDetailUploadsView
-      detail={pageData.detail}
-      error={pageData.requestUploadError}
-      isUploading={pageData.isUploading}
-      onOpenReviews={pageData.openReviews}
-      onUpload={pageData.upload}
-    />
-  );
-}
-
 export function ContentJobDetailViewContent({
-  activeView,
+  jobId,
+  activeTab,
+  assetStage,
   pageData,
 }: ContentJobDetailViewContentProps) {
-  if (activeView === 'ideation') {
-    return <ContentJobDetailIdeationView pageData={pageData} />;
+  const { detailVm } = pageData;
+
+  if (activeTab === 'overview') {
+    return (
+      <ContentJobDetailOverviewView
+        detail={pageData.detail}
+        experimentOptions={detailVm.experimentOptions}
+        readyAssetCount={detailVm.readyAssetCount}
+        stylePreset={detailVm.seedFormInitialValue.stylePreset}
+      />
+    );
   }
 
-  if (activeView === 'script') {
-    return <ContentJobDetailScriptView pageData={pageData} />;
+  if (activeTab === 'ideation') {
+    return (
+      <ContentJobDetailSeedFormPanel
+        key={detailVm.seedFormKey}
+        initialValue={detailVm.seedFormInitialValue}
+        hasTopicPlan={Boolean(pageData.detail?.job.topicS3Key)}
+        isRunningTopicPlan={pageData.isRunningTopicPlan}
+        isSaving={pageData.isSavingTopicSeed}
+        onRunTopicPlan={pageData.runTopicPlan}
+        onSave={pageData.saveTopicSeed}
+        runError={pageData.runTopicPlanError}
+        saveError={pageData.updateTopicSeedError}
+      />
+    );
   }
 
-  if (activeView === 'image') {
-    return <ContentJobDetailAssetStageView pageData={pageData} stage="image" />;
+  if (activeTab === 'scene') {
+    return (
+      <ContentJobDetailSceneBuildPanel
+        key={detailVm.sceneJsonKey}
+        initialValue={detailVm.sceneJsonInitialValue}
+        runError={pageData.runSceneJsonError}
+        saveError={pageData.updateSceneJsonError}
+        isRunning={pageData.isRunningSceneJson}
+        isSaving={pageData.isSavingSceneJson}
+        onRun={pageData.runSceneJson}
+        onSave={pageData.saveSceneJson}
+      />
+    );
   }
 
-  if (activeView === 'voice') {
-    return <ContentJobDetailAssetStageView pageData={pageData} stage="voice" />;
+  if (activeTab === 'assets') {
+    return (
+      <ContentJobDetailAssetsHubView jobId={jobId} assetStage={assetStage} pageData={pageData} />
+    );
   }
 
-  if (activeView === 'video') {
-    return <ContentJobDetailAssetStageView pageData={pageData} stage="video" />;
+  if (activeTab === 'publish') {
+    return <ContentJobDetailPublishView pageData={pageData} />;
   }
 
-  if (activeView === 'review') {
-    return <ContentJobDetailReviewStageView pageData={pageData} />;
+  if (activeTab === 'timeline') {
+    return <ContentJobDetailTimelineView jobId={jobId} />;
   }
 
-  return <ContentJobDetailUploadStageView pageData={pageData} />;
+  return null;
 }

@@ -140,6 +140,13 @@ export type JobDraftDetail = {
   assets: SceneAsset[];
 };
 
+export type JobTimelineItem = {
+  pk: string;
+  sk: string;
+  /** Raw Dynamo-style payload JSON string (resolver maps full item). */
+  data: string;
+};
+
 export type LlmStepSettings = {
   stepKey: string;
   provider: LlmProvider;
@@ -251,6 +258,16 @@ const llmSettingsQuery = `
         updatedAt
         updatedBy
       }
+    }
+  }
+`;
+
+const jobTimelineQuery = `
+  query JobTimeline($jobId: ID!) {
+    jobTimeline(jobId: $jobId) {
+      pk
+      sk
+      data
     }
   }
 `;
@@ -774,6 +791,31 @@ export const useJobDraftQuery = (
   });
 };
 
+export const useJobTimelineQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      JobTimelineItem[],
+      Error,
+      JobTimelineItem[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["jobTimeline", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{ jobTimeline: JobTimelineItem[] }>(
+        jobTimelineQuery,
+        vars,
+      );
+      return data.jobTimeline;
+    },
+    ...options,
+  });
+};
+
 export const useSubmitReviewDecisionMutation = (
   options?: UseMutationOptions<
     { submitReviewDecision: { ok: boolean; status: string } },
@@ -937,7 +979,10 @@ const buildCreateDraftJobVariables = (input: {
   if (cid != null && String(cid).trim() !== "") {
     payload.contentId = String(cid).trim();
   }
-  if (input.creativeBrief != null && String(input.creativeBrief).trim() !== "") {
+  if (
+    input.creativeBrief != null &&
+    String(input.creativeBrief).trim() !== ""
+  ) {
     payload.creativeBrief = String(input.creativeBrief).trim();
   }
   if (input.autoPublish !== undefined) {

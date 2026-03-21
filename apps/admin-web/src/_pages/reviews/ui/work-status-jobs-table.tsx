@@ -39,11 +39,11 @@ export function WorkStatusJobsTable({ jobs, isLoading }: WorkStatusJobsTableProp
               role="link"
               tabIndex={0}
               className="cursor-pointer border-b border-border/70 transition-colors hover:bg-muted/40"
-              onClick={() => router.push(`/jobs/${job.jobId}/script`)}
+              onClick={() => router.push(`/jobs/${job.jobId}/overview`)}
               onKeyDown={(e) => {
                 if (e.key === 'Enter' || e.key === ' ') {
                   e.preventDefault();
-                  router.push(`/jobs/${job.jobId}/script`);
+                  router.push(`/jobs/${job.jobId}/overview`);
                 }
               }}
             >

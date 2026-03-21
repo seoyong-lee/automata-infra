@@ -75,7 +75,7 @@ export function ContentJobsTable({
     (contentId ? `/content/${encodeURIComponent(contentId)}/jobs/new` : '/content/new');
 
   const goToJob = (jobId: string) => {
-    router.push(`/jobs/${jobId}/ideation`);
+    router.push(`/jobs/${jobId}/overview`);
   };
 
   const onRowKeyDown = (e: KeyboardEvent<HTMLTableRowElement>, jobId: string) => {

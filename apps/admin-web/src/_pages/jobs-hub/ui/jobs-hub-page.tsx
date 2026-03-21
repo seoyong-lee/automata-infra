@@ -45,8 +45,8 @@ function JobsHubPageBody() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="잡"
-        subtitle="콘텐츠(채널)에 아직 연결하지 않은 제작 잡입니다. 준비되면 콘텐츠에 연결하거나, 콘텐츠 상세에서 바로 잡을 만들 수도 있습니다."
+        title="제작 아이템"
+        subtitle="채널(콘텐츠)에 아직 연결하지 않은 한 편 단위 작업입니다. 준비되면 채널에 연결하거나, 채널 상세에서 바로 만들 수도 있습니다."
       />
 
       {linkJobId ? (
