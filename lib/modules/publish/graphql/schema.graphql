@@ -311,6 +311,7 @@ enum PipelineStageType {
   TOPIC_PLAN
   SCENE_JSON
   ASSET_GENERATION
+  FINAL_COMPOSITION
 }
 
 enum ExecutionStatus {
@@ -531,6 +532,7 @@ input SelectSceneImageCandidateInput {
 
 input RunFinalCompositionInput {
   jobId: ID!
+  burnInSubtitles: Boolean
 }
 
 type UploadRequestResult {

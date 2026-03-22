@@ -133,6 +133,7 @@ export type SceneAssetItem = {
   durationSec?: number;
   narration?: string;
   subtitle?: string;
+  voiceDurationSec?: number;
   imagePrompt?: string;
   videoPrompt?: string;
   imageS3Key?: string;
@@ -227,7 +228,7 @@ export const updateJobMeta = async (
   status?: string,
 ): Promise<void> => {
   const updatedAt = new Date().toISOString();
-  const existing = await getJobMeta(jobId);
+  const _existing = await getJobMeta(jobId);
   const names: Record<string, string> = {
     "#updatedAt": "updatedAt",
   };

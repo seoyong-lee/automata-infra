@@ -10,11 +10,16 @@ export type PipelineWorkerAssetGenScope = {
   imageProvider?: "openai" | "byteplus";
 };
 
+export type PipelineWorkerFinalCompositionScope = {
+  burnInSubtitles?: boolean;
+};
+
 export const invokePipelineWorkerAsync = async (input: {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
   assetGenScope?: PipelineWorkerAssetGenScope;
+  finalCompositionScope?: PipelineWorkerFinalCompositionScope;
 }): Promise<void> => {
   const fn = process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim();
   if (!fn) {
@@ -31,6 +36,9 @@ export const invokePipelineWorkerAsync = async (input: {
           stage: input.stage,
           ...(input.assetGenScope
             ? { assetGenScope: input.assetGenScope }
+            : {}),
+          ...(input.finalCompositionScope
+            ? { finalCompositionScope: input.finalCompositionScope }
             : {}),
         }),
       ),

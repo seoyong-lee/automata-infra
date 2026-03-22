@@ -40,6 +40,13 @@ function hasActiveStageExecution(
   );
 }
 
+function hasAnyActiveStageExecution(
+  executions: PipelineExecution[] | undefined,
+  stageTypes: PipelineExecution['stageType'][],
+) {
+  return stageTypes.some((stageType) => hasActiveStageExecution(executions, stageType));
+}
+
 function buildPendingState(
   mutations: ContentJobDetailMutations,
   detail: JobDraftDetail | undefined,
@@ -47,10 +54,11 @@ function buildPendingState(
 ) {
   const status = detail?.job.status;
   const assetExecutionRunning = hasActiveStageExecution(executions, 'ASSET_GENERATION');
+  const finalCompositionRunning = hasActiveStageExecution(executions, 'FINAL_COMPOSITION');
   return {
     isSubmittingAssetGeneration: mutations.runAssetGeneration.isPending,
     isRunningAssetGeneration: mutations.runAssetGeneration.isPending || assetExecutionRunning,
-    isRunningFinalComposition: mutations.runFinalComposition.isPending,
+    isRunningFinalComposition: mutations.runFinalComposition.isPending || finalCompositionRunning,
     isRunningSceneJson: mutations.runSceneJson.isPending || status === 'SCENE_JSON_BUILDING',
     isRunningTopicPlan: mutations.runTopicPlan.isPending || status === 'PLANNING',
     isSavingSceneJson: mutations.updateSceneJson.isPending,
@@ -65,9 +73,7 @@ function buildPendingState(
 
 function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) {
   return {
-    openReviews: () => {
-      window.location.href = '/reviews';
-    },
+    openReviews: () => { window.location.href = '/reviews'; },
     requestUploadError: mutations.requestUpload.error,
     runAssetGeneration: (opts?: {
       targetSceneId?: number;
@@ -78,7 +84,7 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
       mutations.selectSceneImageCandidate.mutate({ jobId, sceneId, candidateId }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
     selectSceneImageCandidateError: mutations.selectSceneImageCandidate.error,
-    runFinalComposition: () => mutations.runFinalComposition.mutate({ jobId }),
+    runFinalComposition: (opts?: { burnInSubtitles?: boolean }) => mutations.runFinalComposition.mutate({ jobId, ...opts }),
     runFinalCompositionError: mutations.runFinalComposition.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),
     runSceneJsonError: mutations.runSceneJson.error,
@@ -128,32 +134,33 @@ function buildContentJobDetailPageSnapshot(
 
 export const useContentJobDetailPageData = (jobId: string) => {
   const queryClient = useQueryClient();
-  const detailQuery = useContentJobDraft(
-    { jobId },
-    {
-      enabled: Boolean(jobId),
-      refetchInterval: (query) =>
-        shouldPollDetail((query.state.data as JobDraftDetail | null | undefined) ?? undefined)
-          ? 3000
-          : false,
-      refetchIntervalInBackground: true,
-    },
-  );
-  const detail = detailQuery.data ?? undefined;
   const executionsQuery = useJobExecutionsQuery(
     { jobId },
     {
       enabled: Boolean(jobId),
       refetchInterval: (query) =>
-        hasActiveStageExecution(
+        hasAnyActiveStageExecution(
           (query.state.data as PipelineExecution[] | undefined) ?? undefined,
-          'ASSET_GENERATION',
+          ['ASSET_GENERATION', 'FINAL_COMPOSITION'],
         )
           ? 3000
           : false,
       refetchIntervalInBackground: true,
     },
   );
+  const detailQuery = useContentJobDraft(
+    { jobId },
+    {
+      enabled: Boolean(jobId),
+      refetchInterval: (query) =>
+        shouldPollDetail((query.state.data as JobDraftDetail | null | undefined) ?? undefined) ||
+        hasActiveStageExecution(executionsQuery.data ?? undefined, 'FINAL_COMPOSITION')
+          ? 3000
+          : false,
+      refetchIntervalInBackground: true,
+    },
+  );
+  const detail = detailQuery.data ?? undefined;
   const executions = executionsQuery.data ?? undefined;
   const detailVm = useMemo(() => buildContentJobDetailViewModel(detail), [detail]);
   const refresh = createContentJobDetailRefresh(queryClient, jobId);

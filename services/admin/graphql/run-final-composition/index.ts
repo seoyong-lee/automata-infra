@@ -28,7 +28,9 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const result = await runAdminFinalComposition(parsed.jobId);
+    const result = await runAdminFinalComposition(parsed.jobId, actor, {
+      burnInSubtitles: parsed.burnInSubtitles,
+    });
     logResolverAudit({
       operation: "runFinalComposition",
       operationType: "mutation",

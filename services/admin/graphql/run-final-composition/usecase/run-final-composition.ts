@@ -1,4 +1,9 @@
 import { getJsonFromS3 } from "../../../../shared/lib/aws/runtime";
+import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
+import {
+  startJobExecution,
+  startQueuedJobExecution,
+} from "../../../../shared/lib/store/job-execution";
 import { listSceneAssets } from "../../../../shared/lib/store/video-jobs";
 import { run as runFinalCompositionStage } from "../../../../composition/final-composition";
 import { run as runRenderPlanStage } from "../../../../composition/render-plan";
@@ -16,12 +21,20 @@ type RenderPipelineContext = {
   voiceAssets: Array<{ sceneId: number; voiceS3Key?: string }>;
 };
 
+export type FinalCompositionScope = {
+  burnInSubtitles?: boolean;
+};
+
 type RenderPlanResult = {
   renderPlan?: Record<string, unknown> & { totalDurationSec?: number };
 };
 
 const noopCallback = (() => undefined) as never;
 const noopContext = {} as never;
+const pipelineAsyncEnabled = (): boolean =>
+  (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
+    process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
+  Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
 const loadRenderPipelineContext = async (
   jobId: string,
@@ -62,8 +75,9 @@ const loadRenderPipelineContext = async (
   };
 };
 
-export const runAdminFinalComposition = async (
+export const runFinalCompositionCore = async (
   jobId: string,
+  scope?: FinalCompositionScope,
 ): Promise<ReturnType<typeof mapJobMetaToAdminJob>> => {
   const context = await loadRenderPipelineContext(jobId);
 
@@ -99,8 +113,13 @@ export const runAdminFinalComposition = async (
   await runFinalCompositionStage(
     {
       jobId,
-      renderPlan: renderPlan as Record<string, unknown> & {
-        totalDurationSec: number;
+      renderPlan: {
+        ...(renderPlan as Record<string, unknown> & {
+          totalDurationSec: number;
+        }),
+        ...(scope?.burnInSubtitles !== undefined
+          ? { burnInSubtitles: scope.burnInSubtitles }
+          : {}),
       },
     },
     noopContext,
@@ -109,4 +128,57 @@ export const runAdminFinalComposition = async (
 
   const updated = await getJobOrThrow(jobId);
   return mapJobMetaToAdminJob(updated);
+};
+
+export const runAdminFinalComposition = async (
+  jobId: string,
+  triggeredBy?: string,
+  scope?: FinalCompositionScope,
+): Promise<ReturnType<typeof mapJobMetaToAdminJob>> => {
+  const job = await getJobOrThrow(jobId);
+  const inputSnapshotId =
+    job.assetManifestS3Key ?? job.sceneJsonS3Key ?? undefined;
+
+  if (pipelineAsyncEnabled()) {
+    const { sk, finish } = await startQueuedJobExecution({
+      jobId,
+      stageType: "FINAL_COMPOSITION",
+      triggeredBy,
+      inputSnapshotId,
+    });
+    try {
+      await invokePipelineWorkerAsync({
+        jobId,
+        executionSk: sk,
+        stage: "FINAL_COMPOSITION",
+        ...(scope ? { finalCompositionScope: scope } : {}),
+      });
+    } catch (e) {
+      const msg = e instanceof Error ? e.message : String(e);
+      await finish("FAILED", msg);
+      throw e;
+    }
+    const refreshed = await getJobOrThrow(jobId);
+    return mapJobMetaToAdminJob(refreshed);
+  }
+
+  const { finish } = await startJobExecution({
+    jobId,
+    stageType: "FINAL_COMPOSITION",
+    triggeredBy,
+    inputSnapshotId,
+  });
+  try {
+    const result = await runFinalCompositionCore(jobId, scope);
+    await finish(
+      "SUCCEEDED",
+      undefined,
+      result.finalVideoS3Key ?? result.previewS3Key,
+    );
+    return result;
+  } catch (e) {
+    const msg = e instanceof Error ? e.message : String(e);
+    await finish("FAILED", msg);
+    throw e;
+  }
 };

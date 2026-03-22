@@ -1,5 +1,6 @@
 import * as path from "path";
 import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
+import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import * as events from "aws-cdk-lib/aws-events";
 import * as targets from "aws-cdk-lib/aws-events-targets";
@@ -23,6 +24,7 @@ export type PublishStackProps = StackProps &
     llmConfigTable: dynamodb.Table;
     reviewQueue: sqs.Queue;
     stateMachine: sfn.StateMachine;
+    previewDistribution: cloudfront.Distribution;
   };
 
 const createLambda = (
@@ -75,6 +77,8 @@ export class PublishStack extends Stack {
       CHANNEL_CONFIGS_JSON: JSON.stringify(
         props.envConfig.channelConfigs ?? {},
       ),
+      PREVIEW_DISTRIBUTION_DOMAIN:
+        props.previewDistribution.distributionDomainName,
     };
 
     const pipelineWorker = new nodejs.NodejsFunction(
@@ -397,7 +401,7 @@ export class PublishStack extends Stack {
         "services/admin/graphql/run-final-composition/handler.ts",
       ),
       {
-        ...environment,
+        ...pipelineTriggerEnv,
         SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
       },
     );
@@ -652,6 +656,7 @@ export class PublishStack extends Stack {
     pipelineWorker.grantInvoke(runTopicPlanResolver);
     pipelineWorker.grantInvoke(runSceneJsonResolver);
     pipelineWorker.grantInvoke(runAssetGenerationResolver);
+    pipelineWorker.grantInvoke(runFinalCompositionResolver);
 
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,

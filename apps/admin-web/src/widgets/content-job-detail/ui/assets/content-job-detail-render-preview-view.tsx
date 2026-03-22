@@ -1,5 +1,6 @@
 'use client';
 
+import { useState } from 'react';
 import { Badge } from '@packages/ui/badge';
 import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
@@ -17,7 +18,7 @@ type ContentJobDetailRenderPreviewViewProps = {
   workflowTimelineHref: string;
   isRunningFinalComposition: boolean;
   runFinalCompositionError: Error | null;
-  onRunFinalComposition: () => void;
+  onRunFinalComposition: (opts?: { burnInSubtitles?: boolean }) => void;
 };
 
 const linkClassName =
@@ -43,6 +44,7 @@ export function ContentJobDetailRenderPreviewView({
   runFinalCompositionError,
   onRunFinalComposition,
 }: ContentJobDetailRenderPreviewViewProps) {
+  const [burnInSubtitles, setBurnInSubtitles] = useState(false);
   const totalScenes = detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0;
   const renderReady = totalScenes > 0 && readyAssetCount === totalScenes;
   const imageReady = hasAnyMedia(detail, 'image');
@@ -110,9 +112,24 @@ export function ContentJobDetailRenderPreviewView({
               </p>
             </div>
           </div>
+          <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
+            <input
+              type="checkbox"
+              className="mt-1 h-4 w-4 rounded border-border"
+              checked={burnInSubtitles}
+              onChange={(event) => setBurnInSubtitles(event.target.checked)}
+              disabled={isRunningFinalComposition}
+            />
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">한글 자막 번인</p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                켜면 각 씬의 `subtitle` 텍스트를 영상 하단에 함께 렌더링합니다.
+              </p>
+            </div>
+          </label>
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
             <Button
-              onClick={onRunFinalComposition}
+              onClick={() => onRunFinalComposition({ burnInSubtitles })}
               disabled={!renderReady || isRunningFinalComposition}
             >
               {isRunningFinalComposition ? '렌더링 중…' : 'Shotstack 렌더 실행'}

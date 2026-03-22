@@ -14,6 +14,7 @@ type RenderPlanEvent = {
     scenes: Array<{
       sceneId: number;
       durationSec: number;
+      narration: string;
       subtitle: string;
       bgmMood?: string;
       sfx?: string[];
@@ -30,7 +31,19 @@ type RenderPlanEvent = {
   voiceAssets?: Array<{
     sceneId: number;
     voiceS3Key?: string;
+    voiceDurationSec?: number;
   }>;
+};
+
+const MIN_SCENE_PADDING_SEC = 0.6;
+const ESTIMATED_NARRATION_CHARS_PER_SEC = 4.5;
+
+const estimateNarrationDurationSec = (narration: string): number => {
+  const compact = narration.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return 0;
+  }
+  return compact.length / ESTIMATED_NARRATION_CHARS_PER_SEC + MIN_SCENE_PADDING_SEC;
 };
 
 export const buildRenderPlanScenes = (
@@ -42,9 +55,6 @@ export const buildRenderPlanScenes = (
   const voiceAssets = event.voiceAssets ?? [];
 
   const scenes = event.sceneJson.scenes.map((scene) => {
-    const startSec = cursorSec;
-    cursorSec += scene.durationSec;
-
     const imageAsset = imageAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
@@ -54,6 +64,14 @@ export const buildRenderPlanScenes = (
     const videoAsset = videoAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
+    const estimatedNarrationSec = estimateNarrationDurationSec(scene.narration);
+    const sceneDurationSec = Math.max(
+      scene.durationSec,
+      estimatedNarrationSec,
+      voiceAsset?.voiceDurationSec ?? 0,
+    );
+    const startSec = cursorSec;
+    cursorSec += sceneDurationSec;
 
     return {
       sceneId: scene.sceneId,

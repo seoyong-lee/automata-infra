@@ -12,6 +12,7 @@ const STAGE_LABEL: Record<PipelineExecution['stageType'], string> = {
   TOPIC_PLAN: '토픽 플랜',
   SCENE_JSON: '씬 JSON',
   ASSET_GENERATION: '에셋 생성',
+  FINAL_COMPOSITION: '최종 렌더',
 };
 
 function formatDurationSec(startedAt: string, completedAt?: string | null): string {

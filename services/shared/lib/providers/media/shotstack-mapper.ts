@@ -1,7 +1,11 @@
 const getRequiredPreviewDomain = (): string => {
-  const domain = process.env.PREVIEW_DISTRIBUTION_DOMAIN;
+  const domain =
+    process.env.PREVIEW_DISTRIBUTION_DOMAIN ??
+    process.env.NEXT_PUBLIC_PREVIEW_DISTRIBUTION_DOMAIN;
   if (!domain) {
-    throw new Error("PREVIEW_DISTRIBUTION_DOMAIN is required");
+    throw new Error(
+      "PREVIEW_DISTRIBUTION_DOMAIN is required (or NEXT_PUBLIC_PREVIEW_DISTRIBUTION_DOMAIN as fallback)",
+    );
   }
   return domain.replace(/^https?:\/\//, "").replace(/\/+$/, "");
 };
@@ -38,6 +42,7 @@ type RenderPlanScene = {
 type RenderPlan = {
   videoTitle?: string;
   language?: string;
+  burnInSubtitles?: boolean;
   totalDurationSec: number;
   soundtrackMood?: string;
   soundtrackSrc?: string;
@@ -48,6 +53,45 @@ type RenderPlan = {
     fps?: number;
   };
   scenes: RenderPlanScene[];
+};
+
+const buildSubtitleTrack = (scenes: RenderPlanScene[]) => {
+  return {
+    clips: scenes
+      .filter(
+        (scene) =>
+          typeof scene.subtitle === "string" &&
+          scene.subtitle.trim().length > 0,
+      )
+      .map((scene) => ({
+        asset: {
+          type: "text",
+          text: scene.subtitle,
+          font: {
+            family: "Noto Sans KR",
+            color: "#ffffff",
+            size: 28,
+          },
+          alignment: {
+            horizontal: "center",
+          },
+          stroke: {
+            color: "#000000",
+            width: 2,
+          },
+        },
+        start: scene.startSec,
+        length: Math.max(0.1, scene.endSec - scene.startSec),
+        transition: {
+          in: "fade",
+          out: "fade",
+        },
+        position: "bottom",
+        offset: {
+          y: 0.08,
+        },
+      })),
+  };
 };
 
 const buildVisualAsset = (scene: RenderPlanScene) => {
@@ -74,21 +118,6 @@ const buildVisualAsset = (scene: RenderPlanScene) => {
       family: "Montserrat ExtraBold",
       color: "#ffffff",
       size: 32,
-    },
-    alignment: {
-      horizontal: "center",
-    },
-  };
-};
-
-const buildTextAsset = (scene: RenderPlanScene) => {
-  return {
-    type: "text",
-    text: scene.subtitle ?? "",
-    font: {
-      family: "Montserrat SemiBold",
-      color: "#ffffff",
-      size: 26,
     },
     alignment: {
       horizontal: "center",
@@ -146,26 +175,10 @@ export const mapRenderPlanToShotstackEdit = (
     },
     {
       clips: parsed.scenes
-        .filter((scene) => Boolean(scene.subtitle))
-        .map((scene) => ({
-          asset: buildTextAsset(scene),
-          start: scene.startSec,
-          length: Math.max(0.1, scene.endSec - scene.startSec),
-          transition: {
-            in: "fade",
-            out: "fade",
-          },
-          position: "bottom",
-          offset: {
-            y: 0.1,
-          },
-        })),
-    },
-    {
-      clips: parsed.scenes
         .map(buildAudioAsset)
         .filter((clip): clip is NonNullable<typeof clip> => Boolean(clip)),
     },
+    ...(parsed.burnInSubtitles ? [buildSubtitleTrack(parsed.scenes)] : []),
   ];
 
   return {

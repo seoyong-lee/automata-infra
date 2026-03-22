@@ -225,7 +225,11 @@ export type JobTimelineItem = {
 export type PipelineExecution = {
   executionId: string;
   jobId: string;
-  stageType: "TOPIC_PLAN" | "SCENE_JSON" | "ASSET_GENERATION";
+  stageType:
+    | "TOPIC_PLAN"
+    | "SCENE_JSON"
+    | "ASSET_GENERATION"
+    | "FINAL_COMPOSITION";
   status: "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
   triggeredBy?: string | null;
   startedAt: string;
@@ -2724,7 +2728,7 @@ export const useRunFinalCompositionMutation = (
   options?: UseMutationOptions<
     { runFinalComposition: AdminJob },
     Error,
-    { jobId: string }
+    { jobId: string; burnInSubtitles?: boolean }
   >,
 ) => {
   return useMutation({

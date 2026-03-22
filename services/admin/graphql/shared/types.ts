@@ -268,6 +268,7 @@ export type SceneAssetDto = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceDurationSec?: number;
   durationSec?: number;
   narration?: string;
   subtitle?: string;

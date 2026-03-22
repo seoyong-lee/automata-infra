@@ -94,6 +94,7 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   region,
   envConfig: resolvedEnvConfig,
   assetsBucket: sharedStack.assetsBucket,
+  previewDistribution: sharedStack.previewDistribution,
   jobsTable: workflowStack.jobsTable,
   llmConfigTable: sharedStack.llmConfigTable,
   reviewQueue: workflowStack.reviewQueue,

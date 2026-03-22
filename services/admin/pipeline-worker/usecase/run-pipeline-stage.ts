@@ -8,34 +8,69 @@ import {
   runAssetGenerationCore,
   type AssetGenerationScope,
 } from "../../graphql/run-asset-generation/usecase/run-asset-generation";
+import {
+  runFinalCompositionCore,
+  type FinalCompositionScope,
+} from "../../graphql/run-final-composition/usecase/run-final-composition";
 import { runSceneJsonCore } from "../../graphql/run-scene-json/usecase/run-scene-json";
 import { runTopicPlanCore } from "../../graphql/run-topic-plan/usecase/run-topic-plan";
+
+const DEFAULT_ASSET_GENERATION_SCOPE: AssetGenerationScope = {
+  modality: "all",
+};
+
+const executeStage = async (input: {
+  jobId: string;
+  stage: JobExecutionStageType;
+  assetGenScope?: AssetGenerationScope;
+  finalCompositionScope?: FinalCompositionScope;
+}): Promise<void> => {
+  if (input.stage === "TOPIC_PLAN") {
+    await runTopicPlanCore(input.jobId);
+    return;
+  }
+  if (input.stage === "SCENE_JSON") {
+    await runSceneJsonCore(input.jobId);
+    return;
+  }
+  if (input.stage === "FINAL_COMPOSITION") {
+    await runFinalCompositionCore(input.jobId, input.finalCompositionScope);
+    return;
+  }
+  await runAssetGenerationCore(
+    input.jobId,
+    input.assetGenScope ?? DEFAULT_ASSET_GENERATION_SCOPE,
+  );
+};
+
+const resolveOutputArtifactS3Key = (
+  stage: JobExecutionStageType,
+  job: Awaited<ReturnType<typeof getJobOrThrow>>,
+): string | undefined => {
+  if (stage === "TOPIC_PLAN") {
+    return job.topicS3Key;
+  }
+  if (stage === "SCENE_JSON") {
+    return job.sceneJsonS3Key;
+  }
+  if (stage === "FINAL_COMPOSITION") {
+    return job.finalVideoS3Key ?? job.previewS3Key;
+  }
+  return job.assetManifestS3Key ?? job.sceneJsonS3Key;
+};
 
 export const runPipelineStage = async (input: {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
   assetGenScope?: AssetGenerationScope;
+  finalCompositionScope?: FinalCompositionScope;
 }): Promise<void> => {
   await markJobExecutionRunning(input.jobId, input.executionSk);
   try {
-    if (input.stage === "TOPIC_PLAN") {
-      await runTopicPlanCore(input.jobId);
-    } else if (input.stage === "SCENE_JSON") {
-      await runSceneJsonCore(input.jobId);
-    } else {
-      const scope: AssetGenerationScope = input.assetGenScope ?? {
-        modality: "all",
-      };
-      await runAssetGenerationCore(input.jobId, scope);
-    }
+    await executeStage(input);
     const job = await getJobOrThrow(input.jobId);
-    const outputArtifactS3Key =
-      input.stage === "TOPIC_PLAN"
-        ? job.topicS3Key
-        : input.stage === "SCENE_JSON"
-          ? job.sceneJsonS3Key
-          : (job.assetManifestS3Key ?? job.sceneJsonS3Key);
+    const outputArtifactS3Key = resolveOutputArtifactS3Key(input.stage, job);
     await finishJobExecution({
       jobId: input.jobId,
       sk: input.executionSk,

@@ -7,7 +7,8 @@ const jobPk = (jobId: string): string => `JOB#${jobId}`;
 export type JobExecutionStageType =
   | "TOPIC_PLAN"
   | "SCENE_JSON"
-  | "ASSET_GENERATION";
+  | "ASSET_GENERATION"
+  | "FINAL_COMPOSITION";
 
 export type JobExecutionStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
 

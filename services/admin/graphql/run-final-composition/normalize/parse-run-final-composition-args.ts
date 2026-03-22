@@ -2,6 +2,7 @@ import { badUserInput } from "../../shared/errors";
 
 export type ParsedRunFinalCompositionArgs = {
   jobId: string;
+  burnInSubtitles?: boolean;
 };
 
 export const parseRunFinalCompositionArgs = (
@@ -20,5 +21,11 @@ export const parseRunFinalCompositionArgs = (
     throw badUserInput("jobId is required");
   }
 
-  return { jobId };
+  const burnInSubtitles =
+    typeof input.burnInSubtitles === "boolean" ? input.burnInSubtitles : undefined;
+
+  return {
+    jobId,
+    ...(burnInSubtitles !== undefined ? { burnInSubtitles } : {}),
+  };
 };
