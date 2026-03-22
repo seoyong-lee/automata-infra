@@ -62,6 +62,16 @@ export class WorkflowStack extends Stack {
       payloadResponseOnly: true,
     });
 
+    /** metadata 재생성 시 씬 JSON만 다시 빌드한 뒤 Map으로 합류하기 위한 별도 상태(동일 Lambda). */
+    const buildSceneJsonAfterRegen = new tasks.LambdaInvoke(
+      this,
+      "BuildSceneJsonAfterRegen",
+      {
+        lambdaFunction: lambdas.sceneJsonBuilder,
+        payloadResponseOnly: true,
+      },
+    );
+
     const generateSceneImages = new tasks.LambdaInvoke(
       this,
       "GenerateSceneImages",
@@ -145,6 +155,50 @@ export class WorkflowStack extends Stack {
       maxAttempts: 3,
     });
 
+    /** 두 번째 Map 전용(동일 Lambda, 별도 Step 상태 — CDK는 Map processor마다 상태 그래프를 분리해야 함). */
+    const generateSceneImageForMapAfterRegen = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneImageForMapAfterRegen",
+      {
+        lambdaFunction: lambdas.imageGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneImageForMapAfterRegen.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
+    const generateSceneVideoForMapAfterRegen = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneVideoForMapAfterRegen",
+      {
+        lambdaFunction: lambdas.videoGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneVideoForMapAfterRegen.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
+    const generateSceneTtsForMapAfterRegen = new tasks.LambdaInvoke(
+      this,
+      "GenerateSceneTtsForMapAfterRegen",
+      {
+        lambdaFunction: lambdas.ttsGenerator,
+        payloadResponseOnly: true,
+      },
+    );
+    generateSceneTtsForMapAfterRegen.addRetry({
+      errors: ["States.TaskFailed"],
+      interval: Duration.seconds(3),
+      backoffRate: 2,
+      maxAttempts: 3,
+    });
+
     const generateSceneAssetsMap = new sfn.Map(this, "GenerateSceneAssets", {
       itemsPath: sfn.JsonPath.stringAt("$.sceneJson.scenes"),
       itemSelector: {
@@ -162,6 +216,30 @@ export class WorkflowStack extends Stack {
       sfn.Chain.start(generateSceneImageForMap)
         .next(generateSceneVideoForMap)
         .next(generateSceneTtsForMap),
+    );
+
+    /** metadata 재생성 시 씬 JSON이 바뀌면 동일 Map을 다시 돌려야 하나, Map은 next를 하나만 가질 수 있어 복제한다. */
+    const generateSceneAssetsMapAfterRegen = new sfn.Map(
+      this,
+      "GenerateSceneAssetsAfterMetadataRegen",
+      {
+        itemsPath: sfn.JsonPath.stringAt("$.sceneJson.scenes"),
+        itemSelector: {
+          "jobId.$": "$.jobId",
+          "sceneId.$": "$$.Map.Item.Value.sceneId",
+          "imagePrompt.$": "$$.Map.Item.Value.imagePrompt",
+          "videoPrompt.$": "$$.Map.Item.Value.videoPrompt",
+          "narration.$": "$$.Map.Item.Value.narration",
+          "durationSec.$": "$$.Map.Item.Value.durationSec",
+        },
+        resultPath: sfn.JsonPath.DISCARD,
+        maxConcurrency: 10,
+      },
+    );
+    generateSceneAssetsMapAfterRegen.itemProcessor(
+      sfn.Chain.start(generateSceneImageForMapAfterRegen)
+        .next(generateSceneVideoForMapAfterRegen)
+        .next(generateSceneTtsForMapAfterRegen),
     );
 
     const validateAssets = new tasks.LambdaInvoke(this, "ValidateAssets", {
@@ -216,6 +294,7 @@ export class WorkflowStack extends Stack {
     const uploadAndCollectMetrics = sfn.Chain.start(uploadYoutube)
       .next(collectMetrics)
       .next(workflowComplete);
+
     const reviewFlow = requestReview.next(
       reviewDecision
         .when(
@@ -230,38 +309,42 @@ export class WorkflowStack extends Stack {
                 "$.reviewDecision.regenerationScope",
                 "image",
               ),
-              generateSceneImages,
+              generateSceneImages.next(validateAssets),
             )
             .when(
               sfn.Condition.stringEquals(
                 "$.reviewDecision.regenerationScope",
                 "video",
               ),
-              generateSceneVideo,
+              generateSceneVideo.next(validateAssets),
             )
             .when(
               sfn.Condition.stringEquals(
                 "$.reviewDecision.regenerationScope",
                 "voice",
               ),
-              generateSceneTts,
+              generateSceneTts.next(validateAssets),
             )
             .when(
               sfn.Condition.stringEquals(
                 "$.reviewDecision.regenerationScope",
                 "metadata",
               ),
-              buildSceneJson,
+              buildSceneJsonAfterRegen
+                .next(generateSceneAssetsMapAfterRegen)
+                .next(validateAssets),
             )
-            .otherwise(composeFinalVideo),
+            .otherwise(rejected),
         )
         .otherwise(rejected),
     );
 
-    const definition = planTopic
-      .next(buildSceneJson)
-      .next(generateSceneAssetsMap)
-      .next(validateAssets)
+    /**
+     * 재생성(이미지/영상/음성/메타데이터) 이후에는 항상
+     * validate → render plan → compose → (autoPublish 또는 다시 review)로 합류한다.
+     * (이전에는 일부 분기가 compose로만 가서 검증·플랜 재계산이 생략됨.)
+     */
+    const rejoinAfterAssetChanges = validateAssets
       .next(buildRenderPlan)
       .next(composeFinalVideo)
       .next(
@@ -272,6 +355,11 @@ export class WorkflowStack extends Stack {
           )
           .otherwise(reviewFlow),
       );
+
+    const definition = planTopic
+      .next(buildSceneJson)
+      .next(generateSceneAssetsMap)
+      .next(rejoinAfterAssetChanges);
 
     this.stateMachine = new sfn.StateMachine(this, "VideoFactoryStateMachine", {
       stateMachineName: `${props.projectPrefix}-workflow`,
