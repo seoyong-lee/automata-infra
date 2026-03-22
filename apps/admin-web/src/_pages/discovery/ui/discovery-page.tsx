@@ -74,8 +74,8 @@ function DiscoveryPageBody() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="발굴·벤치마크"
-        subtitle="외부 채널 벤치마크와 자동 발굴 후보는 특정 우리 채널에 종속되지 않는 전역 탐색 자산으로 다룹니다. 운영 라인을 고르면 그 관점에서 후보·워치리스트·신호를 필터링해 봅니다. 제작 실행은 사이드바 「제작 아이템」에서 관리합니다."
+        title="소재 발굴"
+        subtitle="외부 채널·후보·워치리스트·트렌드 신호를 한 워크스페이스에서 다룹니다. 운영 라인을 고르면 그 관점에서 필터링됩니다. 실제 파이프라인 실행은 「제작 아이템」에서 이어갑니다."
       />
 
       <div className="flex flex-col gap-2 sm:flex-row sm:flex-wrap sm:items-center sm:gap-4">
@@ -107,7 +107,7 @@ function DiscoveryPageBody() {
       </div>
 
       <div className="border-b border-border">
-        <div className="flex flex-wrap gap-1" role="tablist" aria-label="발굴·벤치마크 구역">
+        <div className="flex flex-wrap gap-1" role="tablist" aria-label="소재 발굴 구역">
           {tabDefs.map(({ id, label }) => (
             <button
               key={id}
@@ -134,7 +134,7 @@ function DiscoveryPageBody() {
             <h2 className="text-sm font-semibold tracking-tight">외부 채널 탐색</h2>
             <p className="mt-2 text-muted-foreground">
               YouTube 등 외부 채널 ID를 알면{' '}
-              <strong className="text-foreground">히트·워치리스트</strong> 탭에서 추가해 벤치마크
+              <strong className="text-foreground">히트·워치리스트</strong> 탭에서 추가해 참고용
               라이브러리로 쌓습니다. 검색·자동 발견 API는 이후 연결합니다.
             </p>
             <p className="mt-3 text-muted-foreground">
@@ -174,8 +174,9 @@ function DiscoveryPageBody() {
             <p className="mt-2 text-muted-foreground">
               트렌드 스카우트는 YouTube 등 외부 API 쿼터를 쓰므로{' '}
               <strong className="text-foreground">스케줄 없이</strong>, 아래 버튼으로만 큐에 1건씩
-              넣어 실행합니다. 운영 라인을 고르면 해당 라인(<code className="rounded bg-muted px-1 py-0.5 text-xs">contentId</code>
-              ) 스코프로 메시지가 전달됩니다.
+              넣어 실행합니다. 운영 라인을 고르면 해당 라인(
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">contentId</code>) 스코프로
+              메시지가 전달됩니다.
             </p>
             <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
               <button
@@ -213,8 +214,8 @@ function DiscoveryPageBody() {
             ) : null}
             <p className="mt-4 text-xs text-muted-foreground">
               수집·목록 UI는 이후 연결합니다. 에이전트 실행 이력은{' '}
-              <code className="rounded bg-muted px-1 py-0.5 text-xs">agentRunsForChannel</code> 등으로
-              조회할 수 있습니다.
+              <code className="rounded bg-muted px-1 py-0.5 text-xs">agentRunsForChannel</code>{' '}
+              등으로 조회할 수 있습니다.
             </p>
           </section>
         ) : null}
@@ -241,7 +242,7 @@ export function DiscoveryPage() {
     <Suspense
       fallback={
         <div className="space-y-8">
-          <AdminPageHeader title="발굴·벤치마크" subtitle="불러오는 중…" />
+          <AdminPageHeader title="소재 발굴" subtitle="불러오는 중…" />
         </div>
       }
     >

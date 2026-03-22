@@ -87,7 +87,7 @@ export function ExecutionsPage() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="실행 현황"
+        title="실행 모니터링"
         subtitle="최근 제작 아이템과 파이프라인 실행(토픽·씬·에셋)을 한곳에서 들어갑니다. 실행(Execution)은 승인·채택(Approval)과 별개입니다."
       />
 

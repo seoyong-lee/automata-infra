@@ -47,7 +47,7 @@ export function ReviewsPageContent() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="리뷰 큐"
+        title="검수함"
         subtitle="검수 대기·실패 조치가 필요한 제작 아이템을 모읍니다. 행에서 제작 상세(렌더·업로드 탭)로 바로 이동할 수 있습니다."
       />
 

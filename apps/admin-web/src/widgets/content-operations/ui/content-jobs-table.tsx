@@ -26,18 +26,18 @@ type Props = {
 
 function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName {
   switch (columnId) {
-    case 'status':
-      return { header: 'min-w-[140px]' };
+    case 'phase':
+      return { header: 'w-[4.5rem]', cell: 'whitespace-nowrap' };
+    case 'statusLabel':
+      return { header: 'min-w-[7rem]' };
+    case 'actionNeeded':
+      return { header: 'min-w-[6.5rem]' };
     case 'contentId':
       return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
-    case 'contentType':
-      return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
-    case 'targetDurationSec':
-      return { header: 'text-right [&_button]:ml-auto', cell: 'text-right' };
     case 'updatedAt':
       return { header: 'hidden sm:table-cell', cell: 'hidden sm:table-cell' };
-    case 'jobId':
-      return { header: 'hidden xl:table-cell font-mono text-xs', cell: 'hidden xl:table-cell' };
+    case 'openDetail':
+      return { header: 'w-[4rem]', cell: 'w-[4rem]' };
     case 'jobActions':
       return { header: 'w-[140px]', cell: 'w-[140px]' };
     default:
@@ -55,7 +55,10 @@ export function ContentJobsTable({
 }: Props) {
   const router = useRouter();
   const columns = useMemo((): ColumnDef<AdminJob>[] => {
-    const base = createContentJobsColumns({ channelLabelById });
+    const base = createContentJobsColumns({
+      channelLabelById,
+      hideChannelColumn: Boolean(contentId),
+    });
     if (!renderJobAction) {
       return base;
     }
@@ -71,7 +74,7 @@ export function ContentJobsTable({
         ),
       },
     ];
-  }, [renderJobAction, channelLabelById]);
+  }, [renderJobAction, channelLabelById, contentId]);
 
   const newJobHref =
     newJobHrefOverride ??

@@ -20,7 +20,7 @@ function ContentOperationsPageContent() {
     <div className="space-y-8">
       <AdminPageHeader
         title="채널"
-        subtitle="표에서 항목을 선택하면 채널 상세로 이동합니다. 파이프라인 실행 요약은 「실행 현황」, 검수·실패 조치는 「리뷰 큐」를 사용합니다."
+        subtitle="표에서 항목을 선택하면 채널 상세로 이동합니다. 파이프라인 실행 요약은 「실행 모니터링」, 검수·실패 조치는 「검수함」을 사용합니다."
       />
 
       <ContentJobsTable jobs={sortedJobs} isLoading={jobsQuery.isLoading} />

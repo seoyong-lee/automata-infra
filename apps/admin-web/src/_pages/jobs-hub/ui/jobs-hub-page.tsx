@@ -53,8 +53,8 @@ function JobsHubPageBody() {
   return (
     <div className="space-y-8">
       <AdminPageHeader
-        title="제작 아이템"
-        subtitle="미연결·채널에 연결된 제작 아이템을 한 목록에서 봅니다. 연결된 항목은 어떤 채널에 붙어 있는지 표시됩니다. 한 번 연결된 뒤에는 다른 채널로 옮길 수 없습니다(재연결·중복 연결 불가)."
+        title="전체 제작 아이템"
+        subtitle="미연결 항목을 포함한 전역 작업함입니다. 채널에 붙은 작업은 어떤 라인에 속하는지 표시됩니다. 한 번 연결된 뒤에는 다른 채널로 옮길 수 없습니다(재연결·중복 연결 불가)."
         actions={
           <div className="flex flex-wrap gap-2">
             <Link
@@ -176,7 +176,7 @@ export function JobsHubPage() {
     <Suspense
       fallback={
         <div className="space-y-8">
-          <AdminPageHeader title="제작 아이템" subtitle="불러오는 중…" />
+          <AdminPageHeader title="전체 제작 아이템" subtitle="불러오는 중…" />
         </div>
       }
     >

@@ -49,8 +49,14 @@ function ContentJobsPageBody() {
               <span className="text-foreground">{(label ?? contentId) || '—'}</span>
             </div>
           }
-          title="제작 아이템"
-          subtitle="채널별 제작 작업 목록입니다. 자동 발굴 후보·히트 채널은 「발굴·벤치마크」 메뉴를 사용하세요."
+          title={
+            label
+              ? `「${label}」의 제작 아이템`
+              : contentId
+                ? '이 채널의 제작 아이템'
+                : '제작 아이템'
+          }
+          subtitle="이 채널에만 속한 작업함입니다. 미연결·전역 목록은 「전체 제작 아이템」에서 다룹니다. 소재 후보·외부 채널 탐색은 「소재 발굴」을 사용하세요."
         />
       </div>
 

@@ -10,7 +10,7 @@ import { ReviewsPageContent } from './reviews-page-content';
 function ReviewsPageFallback() {
   return (
     <div className="space-y-8">
-      <AdminPageHeader title="리뷰 큐" subtitle="화면을 불러오는 중입니다." />
+      <AdminPageHeader title="검수함" subtitle="화면을 불러오는 중입니다." />
       <Card>
         <CardHeader>
           <CardTitle>검수 대기</CardTitle>
