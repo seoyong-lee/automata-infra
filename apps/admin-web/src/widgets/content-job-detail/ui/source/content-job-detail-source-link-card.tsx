@@ -81,7 +81,7 @@ export function ContentJobDetailSourceLinkCard({
                 href={discoveryHref}
                 className="text-sm font-medium text-primary underline-offset-4 hover:underline"
               >
-                소재 라이브러리 열기
+                소재 탐색 열기
               </Link>
             ) : null}
           </div>

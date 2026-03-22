@@ -483,7 +483,7 @@ flowchart LR
 
 **ChannelContentItem** 단위로 편성, 행·타깃에서 **플랫폼별** 상태·`scheduledAt`·재시도.
 
-### 10.4 소재 라이브러리(선택)
+### 10.4 소재 탐색(선택)
 
 같은 **SourceItem**에서 파생된 채널별 아이템을 한 화면에서 비교.
 

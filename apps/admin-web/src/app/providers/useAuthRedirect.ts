@@ -1,10 +1,10 @@
-"use client";
+'use client';
 
-import { hasStoredSession } from "@packages/auth";
-import { usePathname, useRouter } from "next/navigation";
-import { useEffect } from "react";
+import { hasStoredSession } from '@packages/auth';
+import { usePathname, useRouter } from 'next/navigation';
+import { useEffect } from 'react';
 
-const PUBLIC_PATHS = new Set(["/login", "/auth/callback", "/pending"]);
+const PUBLIC_PATHS = new Set(['/login', '/auth/callback', '/pending']);
 
 export const useAuthRedirect = () => {
   const router = useRouter();
@@ -15,7 +15,7 @@ export const useAuthRedirect = () => {
       return;
     }
     if (!hasStoredSession()) {
-      router.replace("/login");
+      router.replace('/login');
     }
   }, [pathname, router]);
 };

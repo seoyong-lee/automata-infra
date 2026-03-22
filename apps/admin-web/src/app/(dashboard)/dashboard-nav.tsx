@@ -54,6 +54,18 @@ export function DashboardSidebar() {
           <div className="space-y-1">
             <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">제작</p>
             <Link
+              href="/discovery"
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+                isDiscoveryPath(pathname)
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+              )}
+            >
+              <Compass className="size-4 shrink-0" />
+              <span className="truncate">소재 탐색</span>
+            </Link>
+            <Link
               href="/jobs"
               className={cn(
                 'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
@@ -64,18 +76,6 @@ export function DashboardSidebar() {
             >
               <ClipboardList className="size-4 shrink-0" />
               <span className="truncate">아이템</span>
-            </Link>
-            <Link
-              href="/discovery"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isDiscoveryPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
-              <Compass className="size-4 shrink-0" />
-              <span className="truncate">소재 라이브러리</span>
             </Link>
             <Link
               href="/content"
