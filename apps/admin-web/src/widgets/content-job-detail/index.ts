@@ -21,4 +21,5 @@ export * from './ui/publish/content-job-detail-shipping-prep-view';
 export * from './ui/shell/content-job-detail-nested-tabs';
 export * from './ui/shell/content-job-workflow-bar';
 export * from './ui/shell/content-job-readiness-checklist';
+export * from './ui/shell/content-job-detail-stage-panel';
 export * from './ui/shell/content-job-detail-view-content';

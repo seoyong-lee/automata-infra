@@ -1,0 +1,49 @@
+'use client';
+
+import type { ReactNode } from 'react';
+
+import type {
+  ReadinessChip,
+  WorkflowNavItem,
+  WorkflowStageMeta,
+} from '../../lib/content-job-workflow';
+import { ContentJobDetailStagePanelHeader } from './content-job-detail-stage-panel-header';
+import { ContentJobDetailStagePanelSidebar } from './content-job-detail-stage-panel-sidebar';
+
+type ContentJobDetailStagePanelProps = {
+  currentStage: WorkflowNavItem | null;
+  currentStageMeta: WorkflowStageMeta | null;
+  nextStage: WorkflowNavItem | null;
+  nextStageMeta: WorkflowStageMeta | null;
+  readinessChips: ReadinessChip[];
+  children: ReactNode;
+};
+
+export function ContentJobDetailStagePanel({
+  currentStage,
+  currentStageMeta,
+  nextStage,
+  nextStageMeta,
+  readinessChips,
+  children,
+}: ContentJobDetailStagePanelProps) {
+  return (
+    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+      <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
+        <div className="min-w-0 space-y-6">
+          <ContentJobDetailStagePanelHeader
+            currentStage={currentStage}
+            currentStageMeta={currentStageMeta}
+          />
+          <div className="min-w-0">{children}</div>
+        </div>
+        <ContentJobDetailStagePanelSidebar
+          currentStageMeta={currentStageMeta}
+          nextStage={nextStage}
+          nextStageMeta={nextStageMeta}
+          readinessChips={readinessChips}
+        />
+      </div>
+    </section>
+  );
+}

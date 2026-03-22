@@ -19,15 +19,9 @@ export function ContentJobDetailWorkHeader({
   onAction,
 }: ContentJobDetailWorkHeaderProps) {
   return (
-    <div className="rounded-lg border border-border bg-card p-4 shadow-sm">
-      <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-        <ContentJobDetailWorkHeaderMeta detail={detail} resolution={resolution} />
-        <ContentJobDetailWorkHeaderActions
-          jobId={jobId}
-          resolution={resolution}
-          onAction={onAction}
-        />
-      </div>
+    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+      <ContentJobDetailWorkHeaderMeta detail={detail} resolution={resolution} />
+      <ContentJobDetailWorkHeaderActions jobId={jobId} resolution={resolution} onAction={onAction} />
     </div>
   );
 }

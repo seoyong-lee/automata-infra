@@ -6,6 +6,7 @@ import { Suspense, useEffect } from 'react';
 
 import {
   ContentJobDetailBreadcrumb,
+  ContentJobDetailStagePanel,
   ContentJobReadinessChecklist,
   ContentJobDetailViewContent,
   ContentJobDetailWorkHeader,
@@ -57,11 +58,14 @@ function ContentJobDetailPageBody() {
 
   const pageData = useContentJobDetailPageData(jobId);
   const { workActionResolution, dispatchWorkAction } = useJobDetailWorkState(jobId, pageData);
-  const { workflowStages, readinessChips } = useContentJobDetailWorkflowLayout(
-    jobId,
-    activeTab,
-    pageData,
-  );
+  const {
+    workflowStages,
+    readinessChips,
+    currentStage,
+    currentStageMeta,
+    nextStage,
+    nextStageMeta,
+  } = useContentJobDetailWorkflowLayout(jobId, activeTab, pageData);
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -73,34 +77,46 @@ function ContentJobDetailPageBody() {
         />
       </div>
       {!pageData.detailQuery.isLoading ? (
-        <>
+        <section className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
           <ContentJobDetailWorkHeader
             jobId={jobId}
             detail={pageData.detail}
             resolution={workActionResolution}
             onAction={dispatchWorkAction}
           />
-          <div className="sticky top-0 z-20 space-y-3 border-b border-border bg-background/95 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+          <div className="border-t border-border pt-5">
             <ContentJobWorkflowBar stages={workflowStages} />
+          </div>
+          <div className="border-t border-border pt-4">
             <ContentJobReadinessChecklist chips={readinessChips} />
           </div>
-        </>
+        </section>
       ) : null}
       {pageData.detailQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">제작 아이템 초안을 불러오는 중…</p>
       ) : pageData.detailQuery.error ? (
         <p className="text-sm text-destructive">{getErrorMessage(pageData.detailQuery.error)}</p>
       ) : null}
-      <ContentJobDetailViewContent
-        jobId={jobId}
-        activeTab={activeTab}
-        assetStage={assetStage}
-        assetsViewMode={assetsViewMode}
-        pageData={pageData}
-        workActionResolution={workActionResolution}
-        onWorkAction={dispatchWorkAction}
-        sameLineNewJobHref={pageData.detailVm.newJobHref}
-      />
+      {!pageData.detailQuery.isLoading && !pageData.detailQuery.error ? (
+        <ContentJobDetailStagePanel
+          currentStage={currentStage}
+          currentStageMeta={currentStageMeta}
+          nextStage={nextStage}
+          nextStageMeta={nextStageMeta}
+          readinessChips={readinessChips}
+        >
+          <ContentJobDetailViewContent
+            jobId={jobId}
+            activeTab={activeTab}
+            assetStage={assetStage}
+            assetsViewMode={assetsViewMode}
+            pageData={pageData}
+            workActionResolution={workActionResolution}
+            onWorkAction={dispatchWorkAction}
+            sameLineNewJobHref={pageData.detailVm.newJobHref}
+          />
+        </ContentJobDetailStagePanel>
+      ) : null}
     </div>
   );
 }
