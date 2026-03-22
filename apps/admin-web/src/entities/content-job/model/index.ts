@@ -1,9 +1,12 @@
 import {
   useApprovePipelineExecutionMutation,
+  useContentPublishDraftQuery,
   useEnqueueToChannelPublishQueueMutation,
   useJobDraftQuery,
+  usePublishTargetsForJobQuery,
   useRequestUploadMutation,
   useRunAssetGenerationMutation,
+  useRunPublishOrchestrationMutation,
   useRunSceneJsonMutation,
   useRunTopicPlanMutation,
   useUpdateSceneJsonMutation,
@@ -23,3 +26,6 @@ export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;
 export const useUpdateContentJobTopicSeed = useUpdateTopicSeedMutation;
 export const useApproveContentJobPipelineExecution = useApprovePipelineExecutionMutation;
 export const useEnqueueContentJobToChannelQueue = useEnqueueToChannelPublishQueueMutation;
+export const useRunContentJobPublishOrchestration = useRunPublishOrchestrationMutation;
+export const useContentJobPublishTargets = usePublishTargetsForJobQuery;
+export const useContentJobPublishDraft = useContentPublishDraftQuery;

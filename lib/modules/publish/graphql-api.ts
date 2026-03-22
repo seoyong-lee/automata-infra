@@ -36,6 +36,7 @@ type CreatePublishGraphqlApiProps = {
   channelPublishQueueResolver: lambda.IFunction;
   enqueueToChannelPublishQueueResolver: lambda.IFunction;
   platformConnectionsResolver: lambda.IFunction;
+  publishDomainResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -256,6 +257,91 @@ export const createPublishGraphqlApi = (
     "platformConnections",
     "Query",
     props.platformConnectionsResolver,
+  );
+  const publishDomain = props.publishDomainResolver;
+  addLambdaResolver(
+    graphqlApi,
+    "SourceItem",
+    "sourceItem",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SourceItemsForChannel",
+    "sourceItemsForChannel",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PlatformPublishProfileQuery",
+    "platformPublishProfile",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ContentPublishDraftQuery",
+    "contentPublishDraft",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PublishTargetsForJob",
+    "publishTargetsForJob",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CreateSourceItem",
+    "createSourceItem",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateSourceItem",
+    "updateSourceItem",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SetJobSourceItem",
+    "setJobSourceItem",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpsertPlatformConnection",
+    "upsertPlatformConnection",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdatePlatformPublishProfile",
+    "updatePlatformPublishProfile",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateContentPublishDraft",
+    "updateContentPublishDraft",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunPublishOrchestration",
+    "runPublishOrchestration",
+    "Mutation",
+    publishDomain,
   );
 
   return {

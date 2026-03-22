@@ -2,9 +2,12 @@
 
 import { ADMIN_UNASSIGNED_CONTENT_ID } from '@packages/graphql';
 
+import type { PublishTarget } from '@packages/graphql';
+
 import type { JobDraftDetail } from '../model';
 import { ShippingPrepDirectUploadCard } from './content-job-detail-shipping-prep-direct-upload-card';
 import { ShippingPrepEnqueueCard } from './content-job-detail-shipping-prep-enqueue-card';
+import { ShippingPrepOrchestrationCard } from './content-job-detail-shipping-prep-orchestration-card';
 
 type ContentJobDetailShippingPrepViewProps = {
   jobId: string;
@@ -17,6 +20,11 @@ type ContentJobDetailShippingPrepViewProps = {
   isUploading: boolean;
   requestUploadError: unknown;
   onUpload: () => void;
+  publishTargets: PublishTarget[];
+  publishTargetsLoading: boolean;
+  isRunningPublishOrchestration: boolean;
+  runPublishOrchestrationError: unknown;
+  onRunPublishOrchestration: () => void;
 };
 
 export function ContentJobDetailShippingPrepView({
@@ -30,6 +38,11 @@ export function ContentJobDetailShippingPrepView({
   isUploading,
   requestUploadError,
   onUpload,
+  publishTargets,
+  publishTargetsLoading,
+  isRunningPublishOrchestration,
+  runPublishOrchestrationError,
+  onRunPublishOrchestration,
 }: ContentJobDetailShippingPrepViewProps) {
   const channelOk = Boolean(contentId) && contentId !== ADMIN_UNASSIGNED_CONTENT_ID;
   const queueHref = channelOk ? `/content/${encodeURIComponent(contentId!)}/queue` : null;
@@ -51,6 +64,14 @@ export function ContentJobDetailShippingPrepView({
         isUploading={isUploading}
         requestUploadError={requestUploadError}
         onUpload={onUpload}
+      />
+      <ShippingPrepOrchestrationCard
+        channelOk={channelOk}
+        publishTargets={publishTargets}
+        targetsLoading={publishTargetsLoading}
+        isRunningOrchestration={isRunningPublishOrchestration}
+        orchestrationError={runPublishOrchestrationError}
+        onRunPublishOrchestration={onRunPublishOrchestration}
       />
     </div>
   );

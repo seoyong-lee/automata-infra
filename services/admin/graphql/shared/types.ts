@@ -94,6 +94,8 @@ export type AdminJobDto = {
   jobId: string;
   /** 카탈로그 콘텐츠 ID (레거시 잡은 비어 있을 수 있음) */
   contentId?: string;
+  /** 소재(SourceItem) id */
+  sourceItemId?: string;
   topicId: string;
   status: JobStatus;
   contentType?: string;

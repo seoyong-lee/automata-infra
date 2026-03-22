@@ -1,4 +1,7 @@
-import { publishTargetSchema } from "../../../../../lib/modules/publish/contracts/publish-domain";
+import {
+  publishTargetSchema,
+  type PublishTargetRow,
+} from "../../../../../lib/modules/publish/contracts/publish-domain";
 import type { ChannelPublishQueueRow } from "../../../../shared/lib/store/channel-publish-queue";
 import type { ChannelPublishQueueItemDto, PublishTargetDto } from "../types";
 
@@ -23,9 +26,13 @@ const mapPublishTargetRow = (raw: unknown): PublishTargetDto | null => {
 
 export const mapChannelPublishQueueRowToGraphql = (
   row: ChannelPublishQueueRow,
+  targetsOverride?: PublishTargetRow[],
 ): ChannelPublishQueueItemDto => {
   const jobId = row.jobId ?? "";
-  const rawTargets = row.publishTargets;
+  const rawTargets =
+    targetsOverride && targetsOverride.length > 0
+      ? targetsOverride
+      : row.publishTargets;
   const publishTargets: PublishTargetDto[] = Array.isArray(rawTargets)
     ? rawTargets
         .map(mapPublishTargetRow)

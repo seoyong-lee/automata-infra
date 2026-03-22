@@ -1,5 +1,7 @@
 'use client';
 
+import { useContentJobPublishTargets } from '@/entities/content-job';
+
 import type { ContentJobDetailPageData } from '../model/useContentJobDetailPageData';
 import { ContentJobDetailRenderReviewView } from './content-job-detail-render-review-view';
 import { ContentJobDetailShippingPrepView } from './content-job-detail-shipping-prep-view';
@@ -11,6 +13,8 @@ type ContentJobDetailPublishViewProps = {
 
 /** 렌더·검수와 출고 준비(채널 큐)를 한 탭에서 다룬다. */
 export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetailPublishViewProps) {
+  const publishTargetsQuery = useContentJobPublishTargets({ jobId }, { enabled: Boolean(jobId) });
+
   return (
     <div className="space-y-10">
       <section className="space-y-3">
@@ -34,6 +38,11 @@ export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetai
           isUploading={pageData.isUploading}
           requestUploadError={pageData.requestUploadError}
           onUpload={pageData.upload}
+          publishTargets={publishTargetsQuery.data ?? []}
+          publishTargetsLoading={publishTargetsQuery.isLoading}
+          isRunningPublishOrchestration={pageData.isRunningPublishOrchestration}
+          runPublishOrchestrationError={pageData.runPublishOrchestrationError}
+          onRunPublishOrchestration={pageData.runPublishOrchestration}
         />
       </section>
     </div>

@@ -5,6 +5,7 @@ import {
   useEnqueueContentJobToChannelQueue,
   useRequestContentJobUpload,
   useRunContentJobAssetGeneration,
+  useRunContentJobPublishOrchestration,
   useRunContentJobSceneJson,
   useRunContentJobTopicPlan,
   useUpdateContentJobSceneJson,
@@ -16,6 +17,13 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
   const invalidateQueue = async (contentId: string) => {
     await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] });
     await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] });
+  };
+  const invalidatePublishDomain = async () => {
+    await queryClient.invalidateQueries({ queryKey: ['jobDraft', jobId] });
+    await queryClient.invalidateQueries({ queryKey: ['publishTargetsForJob', jobId] });
+    await queryClient.invalidateQueries({ queryKey: ['contentPublishDraft', jobId] });
+    await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue'] });
+    await queryClient.invalidateQueries({ queryKey: ['platformConnections'] });
   };
   const updateTopicSeed = useUpdateContentJobTopicSeed({ onSuccess });
   const runTopicPlan = useRunContentJobTopicPlan({ onSuccess });
@@ -30,6 +38,12 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
       await invalidateQueue(variables.contentId);
     },
   });
+  const runPublishOrchestration = useRunContentJobPublishOrchestration({
+    onSuccess: async () => {
+      await onSuccess();
+      await invalidatePublishDomain();
+    },
+  });
 
   return {
     requestUpload,
@@ -40,5 +54,6 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
     updateTopicSeed,
     approvePipelineExecution,
     enqueueToChannelPublishQueue,
+    runPublishOrchestration,
   };
 };

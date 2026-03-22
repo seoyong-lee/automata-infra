@@ -11,6 +11,7 @@ import { UnauthorizedError } from "./client/errors";
 export type AdminJob = {
   jobId: string;
   contentId?: string | null;
+  sourceItemId?: string | null;
   status:
     | "DRAFT"
     | "PLANNING"
@@ -414,6 +415,7 @@ const jobDraftQuery = `
       job {
         jobId
         contentId
+        sourceItemId
         status
         reviewAction
         topicId
@@ -831,6 +833,80 @@ const enqueueToChannelPublishQueueMutation = `
   }
 `;
 
+const runPublishOrchestrationMutation = `
+  mutation RunPublishOrchestration($input: RunPublishOrchestrationInput!) {
+    runPublishOrchestration(input: $input) {
+      ok
+      jobId
+      message
+    }
+  }
+`;
+
+const contentPublishDraftQuery = `
+  query ContentPublishDraft($jobId: ID!) {
+    contentPublishDraft(jobId: $jobId) {
+      channelContentItemId
+      globalDraft {
+        title
+        caption
+        description
+        hashtags
+        thumbnailAssetId
+      }
+      platformDrafts {
+        platform
+        targetConnectionId
+        enabled
+        metadataJson
+        overrideFields
+        validationStatus
+      }
+    }
+  }
+`;
+
+const publishTargetsForJobQuery = `
+  query PublishTargetsForJob($jobId: ID!) {
+    publishTargetsForJob(jobId: $jobId) {
+      publishTargetId
+      channelContentItemId
+      platformConnectionId
+      platform
+      status
+      scheduledAt
+      externalPostId
+      externalUrl
+      publishError
+    }
+  }
+`;
+
+export type PublishOrchestrationResult = {
+  ok: boolean;
+  jobId: string;
+  message?: string | null;
+};
+
+export type ContentPublishDraftGql = {
+  channelContentItemId: string;
+  globalDraft: {
+    title?: string | null;
+    caption?: string | null;
+    description?: string | null;
+    hashtags: string[];
+    thumbnailAssetId?: string | null;
+  };
+  platformDrafts: Array<{
+    platform: PublishPlatform;
+    targetConnectionId: string;
+    enabled: boolean;
+    metadataJson: string;
+    overrideFields?: string[] | null;
+    validationStatus?: string | null;
+  }>;
+};
+
 const gql = async <T>(query: string, variables?: Record<string, unknown>) => {
   const runtime = getGraphqlRuntime();
   const token = runtime.getToken ? await runtime.getToken() : null;
@@ -1120,6 +1196,75 @@ export const useEnqueueToChannelPublishQueueMutation = (
         { input },
       );
     },
+    ...options,
+  });
+};
+
+export const useRunPublishOrchestrationMutation = (
+  options?: UseMutationOptions<
+    { runPublishOrchestration: PublishOrchestrationResult },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ runPublishOrchestration: PublishOrchestrationResult }>(
+        runPublishOrchestrationMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useContentPublishDraftQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      ContentPublishDraftGql | null,
+      Error,
+      ContentPublishDraftGql | null,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["contentPublishDraft", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{
+        contentPublishDraft: ContentPublishDraftGql | null;
+      }>(contentPublishDraftQuery, vars);
+      return data.contentPublishDraft ?? null;
+    },
+    enabled: Boolean(vars.jobId),
+    ...options,
+  });
+};
+
+export const usePublishTargetsForJobQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      PublishTarget[],
+      Error,
+      PublishTarget[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["publishTargetsForJob", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{ publishTargetsForJob: PublishTarget[] }>(
+        publishTargetsForJobQuery,
+        vars,
+      );
+      return data.publishTargetsForJob ?? [];
+    },
+    enabled: Boolean(vars.jobId),
     ...options,
   });
 };

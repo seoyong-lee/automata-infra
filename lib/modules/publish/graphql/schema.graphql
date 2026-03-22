@@ -36,6 +36,14 @@ type Query {
   채널에 연결된 외부 매체 계정(현재는 Content 메타 기반 synthetic 연결 포함).
   """
   platformConnections(contentId: ID!): [PlatformConnection!]!
+  sourceItem(id: ID!): SourceItem
+  sourceItemsForChannel(channelId: ID!): [SourceItem!]!
+  platformPublishProfile(
+    channelId: ID!
+    platformConnectionId: ID!
+  ): PlatformPublishProfile
+  contentPublishDraft(jobId: ID!): ContentPublishDraft
+  publishTargetsForJob(jobId: ID!): [PublishTarget!]!
 }
 
 type Mutation {
@@ -72,12 +80,28 @@ type Mutation {
   enqueueToChannelPublishQueue(
     input: EnqueueToChannelPublishQueueInput!
   ): ChannelPublishQueueItem!
+  createSourceItem(input: CreateSourceItemInput!): SourceItem!
+  updateSourceItem(input: UpdateSourceItemInput!): SourceItem!
+  setJobSourceItem(input: SetJobSourceItemInput!): AdminJob!
+  upsertPlatformConnection(
+    input: UpsertPlatformConnectionInput!
+  ): PlatformConnection!
+  updatePlatformPublishProfile(
+    input: UpdatePlatformPublishProfileInput!
+  ): PlatformPublishProfile!
+  updateContentPublishDraft(
+    input: UpdateContentPublishDraftInput!
+  ): ContentPublishDraft!
+  runPublishOrchestration(
+    input: RunPublishOrchestrationInput!
+  ): PublishOrchestrationResult!
   deleteJob(jobId: ID!): DeleteJobResult!
 }
 
 type AdminJob {
   jobId: ID!
   contentId: ID
+  sourceItemId: ID
   topicId: String!
   status: JobStatus!
   contentType: String
@@ -477,6 +501,110 @@ type PublishTarget {
   externalPostId: String
   externalUrl: String
   publishError: String
+}
+
+enum SourceItemStatus {
+  IDEATING
+  READY_FOR_DISTRIBUTION
+  ARCHIVED
+}
+
+type SourceItem {
+  id: ID!
+  topic: String!
+  masterHook: String
+  sourceNotes: String
+  status: SourceItemStatus!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+input CreateSourceItemInput {
+  channelId: ID!
+  topic: String!
+  masterHook: String
+  sourceNotes: String
+}
+
+input UpdateSourceItemInput {
+  sourceItemId: ID!
+  topic: String
+  masterHook: String
+  sourceNotes: String
+  status: SourceItemStatus
+}
+
+input SetJobSourceItemInput {
+  jobId: ID!
+  sourceItemId: ID!
+}
+
+input UpsertPlatformConnectionInput {
+  channelId: ID!
+  platformConnectionId: ID
+  platform: PublishPlatform!
+  accountId: String!
+  accountHandle: String
+  oauthAccountId: String!
+  status: PlatformConnectionStatus!
+}
+
+type PlatformPublishProfile {
+  platformConnectionId: ID!
+  channelId: ID!
+  defaultVisibility: String
+  defaultLanguage: String
+  defaultHashtags: [String!]!
+  captionFooterTemplate: String
+  preferredSlots: [String!]!
+  youtubeCategoryId: String
+  youtubePlaylistIds: [String!]!
+  youtubeTags: [String!]!
+  tiktokDisclosureTemplate: String
+  instagramFirstCommentTemplate: String
+}
+
+input UpdatePlatformPublishProfileInput {
+  channelId: ID!
+  platformConnectionId: ID!
+  profile: AWSJSON!
+}
+
+type ContentPublishDraftGlobal {
+  title: String
+  caption: String
+  description: String
+  hashtags: [String!]!
+  thumbnailAssetId: String
+}
+
+type ContentPublishDraftPlatformEntry {
+  platform: PublishPlatform!
+  targetConnectionId: ID!
+  enabled: Boolean!
+  metadataJson: String!
+  overrideFields: [String!]
+  validationStatus: String
+}
+
+type ContentPublishDraft {
+  channelContentItemId: ID!
+  globalDraft: ContentPublishDraftGlobal!
+  platformDrafts: [ContentPublishDraftPlatformEntry!]!
+}
+
+input UpdateContentPublishDraftInput {
+  draft: AWSJSON!
+}
+
+input RunPublishOrchestrationInput {
+  jobId: ID!
+}
+
+type PublishOrchestrationResult {
+  ok: Boolean!
+  jobId: ID!
+  message: String
 }
 
 enum ChannelPublishQueueItemStatus {

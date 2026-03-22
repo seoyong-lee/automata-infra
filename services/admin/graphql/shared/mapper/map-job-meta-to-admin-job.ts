@@ -30,6 +30,7 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
   return {
     jobId: job.jobId,
     contentId: job.contentId,
+    sourceItemId: job.sourceItemId,
     topicId: job.topicId,
     status: toJobStatus(job.status),
     contentType: job.contentType,

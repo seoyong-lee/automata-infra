@@ -3,6 +3,7 @@ import { randomUUID } from "node:crypto";
 import type { PublishTargetRow } from "../../../../lib/modules/publish/contracts/publish-domain";
 import { putItem, queryItems } from "../aws/runtime";
 import { buildDefaultPublishTargetsForJob } from "./platform-connections";
+import { replacePublishTargetsForJob } from "./publish-targets-job";
 import { contentPk } from "./video-jobs";
 
 const publishQueueSkPrefix = "PUBLISH_QUEUE#";
@@ -67,6 +68,11 @@ export const enqueueChannelPublishQueueItem = async (input: {
   if (existing) {
     return existing;
   }
+  const publishTargets = await buildDefaultPublishTargetsForJob({
+    channelId: input.channelId,
+    jobId: input.jobId,
+  });
+  await replacePublishTargetsForJob(input.jobId, publishTargets);
   const queueItemId = randomUUID();
   const createdAt = new Date().toISOString();
   const SK = `${publishQueueSkPrefix}${createdAt}#${queueItemId}`;
@@ -80,6 +86,7 @@ export const enqueueChannelPublishQueueItem = async (input: {
     priority: 0,
     createdAt,
     updatedAt: createdAt,
+    ...(publishTargets.length > 0 ? { publishTargets } : {}),
     ...(input.note ? { note: input.note } : {}),
     ...(input.enqueuedBy ? { enqueuedBy: input.enqueuedBy } : {}),
   };

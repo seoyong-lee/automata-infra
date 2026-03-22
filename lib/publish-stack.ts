@@ -325,6 +325,15 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const publishDomainResolver = createLambda(
+      this,
+      "AdminPublishDomainResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/publish-domain-router/handler.ts",
+      ),
+      environment,
+    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -397,6 +406,14 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(channelPublishQueueResolver);
     props.jobsTable.grantReadWriteData(enqueueToChannelPublishQueueResolver);
     props.jobsTable.grantReadData(platformConnectionsResolver);
+    props.jobsTable.grantReadWriteData(publishDomainResolver);
+    props.assetsBucket.grantRead(publishDomainResolver);
+    publishDomainResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
@@ -513,6 +530,7 @@ export class PublishStack extends Stack {
       channelPublishQueueResolver,
       enqueueToChannelPublishQueueResolver,
       platformConnectionsResolver,
+      publishDomainResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

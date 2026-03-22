@@ -1,4 +1,17 @@
 type AuditOperation =
+  | "publishDomainRouter"
+  | "sourceItem"
+  | "sourceItemsForChannel"
+  | "createSourceItem"
+  | "updateSourceItem"
+  | "setJobSourceItem"
+  | "platformPublishProfile"
+  | "upsertPlatformConnection"
+  | "updatePlatformPublishProfile"
+  | "contentPublishDraft"
+  | "updateContentPublishDraft"
+  | "publishTargetsForJob"
+  | "runPublishOrchestration"
   | "submitReviewDecision"
   | "requestUpload"
   | "approvePipelineExecution"
@@ -27,7 +40,7 @@ type AuditOperation =
   | "adminContents";
 
 type ResolverAuditLogInput = {
-  operation: AuditOperation;
+  operation: AuditOperation | string;
   operationType: "query" | "mutation";
   phase: "started" | "succeeded" | "failed";
   actor: string;

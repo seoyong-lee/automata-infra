@@ -1,5 +1,6 @@
 import { ADMIN_UNASSIGNED_CONTENT_ID } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import { enqueueChannelPublishQueueItem } from "../../../../shared/lib/store/channel-publish-queue";
+import { listPublishTargetsByJob } from "../../../../shared/lib/store/publish-targets-job";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { badUserInput } from "../../shared/errors";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
@@ -29,5 +30,9 @@ export const enqueueToChannelPublishQueueUsecase = async (input: {
     enqueuedBy: input.enqueuedBy,
   });
   await updateJobMeta(input.jobId, {}, "READY_TO_SCHEDULE");
-  return mapChannelPublishQueueRowToGraphql(row);
+  const jobTargets = await listPublishTargetsByJob(input.jobId);
+  return mapChannelPublishQueueRowToGraphql(
+    row,
+    jobTargets.length > 0 ? jobTargets : undefined,
+  );
 };

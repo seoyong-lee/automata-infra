@@ -18,6 +18,7 @@ function buildPendingState(mutations: ContentJobDetailMutations) {
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
     isUploading: mutations.requestUpload.isPending,
     isEnqueueingToChannelQueue: mutations.enqueueToChannelPublishQueue.isPending,
+    isRunningPublishOrchestration: mutations.runPublishOrchestration.isPending,
   };
 }
 
@@ -53,6 +54,8 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
     enqueueToChannelQueue: (contentId: string) =>
       mutations.enqueueToChannelPublishQueue.mutate({ contentId, jobId }),
     enqueueToChannelQueueError: mutations.enqueueToChannelPublishQueue.error,
+    runPublishOrchestration: () => mutations.runPublishOrchestration.mutate({ jobId }),
+    runPublishOrchestrationError: mutations.runPublishOrchestration.error,
   };
 }
 
