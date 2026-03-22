@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetGenerationModality } from '@packages/graphql';
+import type { AssetGenerationModality, ImageGenerationProvider } from '@packages/graphql';
 
 import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailSceneAssetCard } from './content-job-detail-scene-asset-card';
@@ -9,14 +9,28 @@ type ContentJobDetailSceneAssetsListProps = {
   jobId: string;
   cards: SceneAssetCard[];
   isRunning: boolean;
-  onRegenerateScene: (input: { sceneId: number; modality: AssetGenerationModality }) => void;
+  isSubmitting: boolean;
+  onRegenerateScene: (input: {
+    sceneId: number;
+    modality: AssetGenerationModality;
+    imageProvider?: ImageGenerationProvider;
+  }) => void;
+  onSelectImageCandidate: (sceneId: number, candidateId: string) => void;
+  isSelectingImageCandidate: boolean;
+  imageProvider: ImageGenerationProvider;
+  onImageProviderChange: (value: ImageGenerationProvider) => void;
 };
 
 export function ContentJobDetailSceneAssetsList({
   jobId,
   cards,
   isRunning,
+  isSubmitting,
   onRegenerateScene,
+  onSelectImageCandidate,
+  isSelectingImageCandidate,
+  imageProvider,
+  onImageProviderChange,
 }: ContentJobDetailSceneAssetsListProps) {
   if (cards.length === 0) {
     return (
@@ -34,7 +48,12 @@ export function ContentJobDetailSceneAssetsList({
           jobId={jobId}
           card={card}
           isRunning={isRunning}
+          isSubmitting={isSubmitting}
           onRegenerate={onRegenerateScene}
+          onSelectImageCandidate={onSelectImageCandidate}
+          isSelectingImageCandidate={isSelectingImageCandidate}
+          imageProvider={imageProvider}
+          onImageProviderChange={onImageProviderChange}
         />
       ))}
     </div>

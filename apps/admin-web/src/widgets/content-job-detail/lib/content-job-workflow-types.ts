@@ -10,6 +10,7 @@ export type WorkflowNavKey =
   | 'idea'
   | 'script'
   | 'assets'
+  | 'render'
   | 'review'
   | 'publishDraft'
   | 'queue'

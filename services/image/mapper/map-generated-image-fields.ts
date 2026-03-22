@@ -23,6 +23,12 @@ export const mapGeneratedImageFields = (
   if (typeof raw.mocked === "boolean") {
     out.imageMocked = raw.mocked;
   }
+  if (typeof raw.candidateId === "string") {
+    out.imageSelectedCandidateId = raw.candidateId;
+  }
+  if (typeof raw.createdAt === "string") {
+    out.imageSelectedAt = raw.createdAt;
+  }
 
   return out;
 };

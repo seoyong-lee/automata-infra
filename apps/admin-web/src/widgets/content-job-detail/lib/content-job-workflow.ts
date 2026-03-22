@@ -43,7 +43,12 @@ const WORKFLOW_STAGE_META: Record<WorkflowNavKey, WorkflowStageMeta> = {
   assets: {
     title: '에셋',
     description: '이미지, 음성, 영상 재료를 준비합니다.',
-    nextHint: '에셋이 준비되면 검수 단계에서 최종 확인합니다.',
+    nextHint: '에셋이 준비되면 렌더 단계에서 Shotstack 합성을 시작합니다.',
+  },
+  render: {
+    title: '렌더',
+    description: 'Shotstack로 최종 영상을 합성하고 미리보기를 확인합니다.',
+    nextHint: '렌더 결과가 준비되면 검수 단계에서 최종 확인합니다.',
   },
   review: {
     title: '검수',
@@ -114,7 +119,7 @@ export function buildContentJobWorkflowNav(args: {
     d.chOk && contentId ? `/content/${encodeURIComponent(contentId)}/schedule` : '';
   const rows = buildWorkflowNavRows(jobId, d, scheduleHref);
   const publishHashNorm = normalizePublishHash(publishHash);
-  return attachNavCurrent(rows, activeTab, publishHashNorm);
+  return attachNavCurrent(rows, activeTab, publishHashNorm, d.status);
 }
 
 export function buildContentJobReadinessChips(args: {

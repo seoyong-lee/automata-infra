@@ -1,14 +1,8 @@
-"use client";
+'use client';
 
-import {
-  getIdToken,
-  initAuth,
-  initCognito,
-  onAuthEvent,
-  clearSession,
-} from "@packages/auth";
-import { configureGraphqlClient } from "@packages/graphql";
-import { assertClientEnv, clientEnv } from "@/shared/config/env.client";
+import { getIdToken, initAuth, initCognito, onAuthEvent, clearSession } from '@packages/auth';
+import { configureGraphqlClient } from '@packages/graphql';
+import { assertClientEnv, clientEnv } from '@/shared/config/env.client';
 
 let initialized = false;
 
@@ -22,7 +16,7 @@ export const initClientApp = () => {
     userPoolId: clientEnv.USER_POOL_ID,
     userPoolClientId: clientEnv.USER_POOL_CLIENT_ID,
     userPoolDomain: clientEnv.USER_POOL_DOMAIN,
-    logoutClient: "admin",
+    logoutClient: 'admin',
   });
   initCognito();
   configureGraphqlClient({
@@ -32,7 +26,7 @@ export const initClientApp = () => {
   });
 
   onAuthEvent((e) => {
-    if (e.type === "unauthorized") {
+    if (e.type === 'unauthorized') {
       clearSession();
     }
   });

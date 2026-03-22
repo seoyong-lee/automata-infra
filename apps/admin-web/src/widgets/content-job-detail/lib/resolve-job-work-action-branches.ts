@@ -140,6 +140,7 @@ export function resolveAssetsReadyishBranch(
   pipelineStageLabel: string,
   status: string,
   opts: Opts,
+  pending: JobWorkPendingFlags,
 ): JobWorkActionResolution | null {
   if (!['ASSETS_READY', 'VALIDATING', 'RENDER_PLAN_READY', 'RENDERED'].includes(status)) {
     return null;
@@ -148,12 +149,18 @@ export function resolveAssetsReadyishBranch(
     opts.sceneCount > 0 ? `${opts.readyAssetCount}/${opts.sceneCount}` : `${opts.readyAssetCount}`;
   return {
     pipelineStageLabel,
-    primary: { label: '검수·작업 현황', action: 'open_reviews', disabled: false },
-    secondary: { label: '렌더·출고 탭', action: 'go_publish', disabled: false },
+    primary: {
+      label: pending.isRunningFinalComposition ? 'Shotstack 렌더링 중…' : 'Shotstack 렌더 실행',
+      action: 'run_render',
+      disabled:
+        pending.isRunningFinalComposition ||
+        (opts.sceneCount > 0 && opts.readyAssetCount < opts.sceneCount),
+    },
+    secondary: { label: '에셋 탭', action: 'go_assets', disabled: false },
     note:
       opts.sceneCount > 0 && opts.readyAssetCount < opts.sceneCount
         ? `에셋 준비 ${gap} — 렌더 전에 씬을 채워 주세요.`
-        : `에셋 준비 ${gap}`,
+        : `에셋 준비 ${gap} — 렌더를 실행한 뒤 검수 단계로 진행합니다.`,
   };
 }
 

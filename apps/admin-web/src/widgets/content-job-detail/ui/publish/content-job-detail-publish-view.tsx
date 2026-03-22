@@ -10,12 +10,12 @@ type ContentJobDetailPublishViewProps = {
   pageData: ContentJobDetailPageData;
 };
 
-/** 렌더·검수와 출고 준비(채널 큐)를 한 탭에서 다룬다. */
+/** 검수와 출고 준비(채널 큐)를 한 탭에서 다룬다. */
 export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetailPublishViewProps) {
   return (
     <div className="space-y-10">
       <section id="cj-publish-review" className="scroll-mt-28 space-y-3">
-        <h2 className="text-lg font-semibold">렌더·검수</h2>
+        <h2 className="text-lg font-semibold">검수</h2>
         <ContentJobDetailRenderReviewView
           detail={pageData.detail}
           onOpenReviews={pageData.openReviews}

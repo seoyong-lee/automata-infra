@@ -378,6 +378,16 @@ export class PublishStack extends Stack {
       ),
       pipelineTriggerEnv,
     );
+    const selectSceneImageCandidateResolver = createLambda(
+      this,
+      "AdminSelectSceneImageCandidateResolverLambda",
+      `${props.projectPrefix}-admin-select-scene-image-candidate`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/select-scene-image-candidate/handler.ts",
+      ),
+      environment,
+    );
     const runFinalCompositionResolver = createLambda(
       this,
       "AdminRunFinalCompositionResolverLambda",
@@ -542,6 +552,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(runSceneJsonResolver);
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
+    props.jobsTable.grantReadWriteData(selectSceneImageCandidateResolver);
     props.jobsTable.grantReadWriteData(runFinalCompositionResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
@@ -568,6 +579,7 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(runSceneJsonResolver);
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
+    props.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
     props.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     props.assetsBucket.grantReadWrite(deleteJobResolver);
     props.assetsBucket.grantReadWrite(attachJobToContentResolver);
@@ -675,6 +687,7 @@ export class PublishStack extends Stack {
       runSceneJsonResolver,
       updateSceneJsonResolver,
       runAssetGenerationResolver,
+      selectSceneImageCandidateResolver,
       runFinalCompositionResolver,
       deleteJobResolver,
       attachJobToContentResolver,

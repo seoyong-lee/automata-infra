@@ -1,4 +1,8 @@
-import type { AssetGenerationModality, PipelineExecution } from '@packages/graphql';
+import type {
+  AssetGenerationModality,
+  ImageGenerationProvider,
+  PipelineExecution,
+} from '@packages/graphql';
 import { useJobExecutionsQuery } from '@packages/graphql';
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
@@ -44,11 +48,13 @@ function buildPendingState(
   const status = detail?.job.status;
   const assetExecutionRunning = hasActiveStageExecution(executions, 'ASSET_GENERATION');
   return {
+    isSubmittingAssetGeneration: mutations.runAssetGeneration.isPending,
     isRunningAssetGeneration: mutations.runAssetGeneration.isPending || assetExecutionRunning,
     isRunningFinalComposition: mutations.runFinalComposition.isPending,
     isRunningSceneJson: mutations.runSceneJson.isPending || status === 'SCENE_JSON_BUILDING',
     isRunningTopicPlan: mutations.runTopicPlan.isPending || status === 'PLANNING',
     isSavingSceneJson: mutations.updateSceneJson.isPending,
+    isSelectingSceneImageCandidate: mutations.selectSceneImageCandidate.isPending,
     isSavingTopicSeed: mutations.updateTopicSeed.isPending,
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
     isUploading: mutations.requestUpload.isPending,
@@ -63,9 +69,15 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
       window.location.href = '/reviews';
     },
     requestUploadError: mutations.requestUpload.error,
-    runAssetGeneration: (opts?: { targetSceneId?: number; modality?: AssetGenerationModality }) =>
-      mutations.runAssetGeneration.mutate({ jobId, ...opts }),
+    runAssetGeneration: (opts?: {
+      targetSceneId?: number;
+      modality?: AssetGenerationModality;
+      imageProvider?: ImageGenerationProvider;
+    }) => mutations.runAssetGeneration.mutate({ jobId, ...opts }),
+    selectSceneImageCandidate: (sceneId: number, candidateId: string) =>
+      mutations.selectSceneImageCandidate.mutate({ jobId, sceneId, candidateId }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
+    selectSceneImageCandidateError: mutations.selectSceneImageCandidate.error,
     runFinalComposition: () => mutations.runFinalComposition.mutate({ jobId }),
     runFinalCompositionError: mutations.runFinalComposition.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),

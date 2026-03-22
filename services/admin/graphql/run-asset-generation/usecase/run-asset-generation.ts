@@ -1,10 +1,16 @@
-import { getJsonFromS3 } from "../../../../shared/lib/aws/runtime";
+import {
+  getBufferFromS3,
+  getJsonFromS3,
+} from "../../../../shared/lib/aws/runtime";
 import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
 import {
   startJobExecution,
   startQueuedJobExecution,
 } from "../../../../shared/lib/store/job-execution";
-import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
+import {
+  getSceneAsset,
+  updateJobMeta,
+} from "../../../../shared/lib/store/video-jobs";
 import { generateSceneImages } from "../../../../image/usecase/generate-scene-images";
 import { saveImageAssets } from "../../../../image/repo/save-image-assets";
 import { generateSceneVideos } from "../../../../video-generation/usecase/generate-scene-videos";
@@ -33,6 +39,7 @@ const pipelineAsyncEnabled = (): boolean =>
 export type AssetGenerationScope = {
   targetSceneId?: number;
   modality: "all" | "image" | "voice" | "video";
+  imageProvider?: "openai" | "byteplus";
 };
 
 export const toAssetGenerationScope = (
@@ -51,6 +58,11 @@ export const toAssetGenerationScope = (
       ? { targetSceneId: parsed.targetSceneId }
       : {}),
     modality: modalityStr,
+    ...(parsed.imageProvider === "OPENAI"
+      ? { imageProvider: "openai" as const }
+      : parsed.imageProvider === "SEEDREAM"
+        ? { imageProvider: "byteplus" as const }
+        : {}),
   };
 };
 
@@ -61,6 +73,10 @@ type AssetGenerationContext = {
   sceneJson: SceneJson;
   scenes: SceneDefinition[];
   sceneJsonS3Key: string;
+};
+
+const toDataUri = (input: { buffer: Buffer; contentType?: string }): string => {
+  return `data:${input.contentType ?? "image/png"};base64,${input.buffer.toString("base64")}`;
 };
 
 const loadAssetGenerationContext = async (
@@ -100,17 +116,29 @@ const loadAssetGenerationContext = async (
 const runImageModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
+  scope: AssetGenerationScope,
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_IMAGE_SECRET_ID?.trim();
+  const openAiSecretId = process.env.OPENAI_SECRET_ID?.trim();
   const imageScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     imagePrompt: scene.imagePrompt,
   }));
+  const provider =
+    scope.imageProvider ?? (bytePlusSecretId ? "byteplus" : "openai");
+  const secretId = provider === "byteplus" ? bytePlusSecretId : openAiSecretId;
+  if (!secretId) {
+    throw new Error(
+      provider === "byteplus"
+        ? "BYTEPLUS_IMAGE_SECRET_ID is not configured"
+        : "OPENAI_SECRET_ID is not configured",
+    );
+  }
   const imageAssets = await generateSceneImages({
     jobId,
     scenes: imageScenes,
-    secretId: (bytePlusSecretId || process.env.OPENAI_SECRET_ID) ?? "",
-    provider: bytePlusSecretId ? "byteplus" : "openai",
+    secretId,
+    provider,
   });
   await saveImageAssets({
     jobId,
@@ -125,10 +153,27 @@ const runVideoModalityForScenes = async (
   scenes: SceneDefinition[],
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_VIDEO_SECRET_ID?.trim();
-  const videoScenes = scenes.map((scene) => ({
-    sceneId: scene.sceneId,
-    videoPrompt: scene.videoPrompt,
-  }));
+  const videoScenes = await Promise.all(
+    scenes.map(async (scene) => {
+      const sceneAsset = await getSceneAsset(jobId, scene.sceneId);
+      const selectedImageS3Key =
+        typeof sceneAsset?.imageS3Key === "string"
+          ? sceneAsset.imageS3Key
+          : undefined;
+      const selectedImage =
+        selectedImageS3Key !== undefined
+          ? await getBufferFromS3(selectedImageS3Key)
+          : null;
+      return {
+        sceneId: scene.sceneId,
+        videoPrompt: scene.videoPrompt,
+        selectedImageS3Key,
+        selectedImageDataUri: selectedImage
+          ? toDataUri(selectedImage)
+          : undefined,
+      };
+    }),
+  );
   const videoAssets = await generateSceneVideos({
     jobId,
     scenes: videoScenes,
@@ -175,7 +220,7 @@ export const runAssetGenerationCore = async (
   const modality = scope.modality;
 
   if (modality === "all" || modality === "image") {
-    await runImageModalityForScenes(jobId, scenes);
+    await runImageModalityForScenes(jobId, scenes, scope);
   }
   if (modality === "all" || modality === "video") {
     await runVideoModalityForScenes(jobId, scenes);

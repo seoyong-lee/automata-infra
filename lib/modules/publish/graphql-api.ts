@@ -30,6 +30,7 @@ type CreatePublishGraphqlApiProps = {
   runSceneJsonResolver: lambda.IFunction;
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
+  selectSceneImageCandidateResolver: lambda.IFunction;
   runFinalCompositionResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
@@ -48,6 +49,7 @@ const addLambdaResolver = (
   fn: lambda.IFunction,
 ) => {
   const ds = api.addLambdaDataSource(`${id}Ds`, fn);
+  fn.grantInvoke(ds.grantPrincipal);
   ds.createResolver(`${id}Resolver`, {
     typeName,
     fieldName,
@@ -216,6 +218,13 @@ export const createPublishGraphqlApi = (
     "runAssetGeneration",
     "Mutation",
     props.runAssetGenerationResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SelectSceneImageCandidate",
+    "selectSceneImageCandidate",
+    "Mutation",
+    props.selectSceneImageCandidateResolver,
   );
   addLambdaResolver(
     graphqlApi,

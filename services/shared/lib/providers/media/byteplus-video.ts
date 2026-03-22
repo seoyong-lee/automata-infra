@@ -8,6 +8,7 @@ type BytePlusVideoSecret = {
   endpoint?: string;
   queryEndpoint?: string;
   promptField?: string;
+  imageField?: string;
   extraBody?: Record<string, unknown>;
 };
 
@@ -44,6 +45,26 @@ const getTaskId = (payload: Record<string, unknown>): string | null => {
   return null;
 };
 
+const getRequiredEndpoint = (secret: BytePlusVideoSecret): string => {
+  const endpoint = secret.endpoint?.trim();
+  if (!endpoint) {
+    throw new Error(
+      "BytePlus video secret is missing `endpoint`. Set the exact create-task API URL from ModelArk.",
+    );
+  }
+  return endpoint;
+};
+
+const getRequiredQueryEndpoint = (secret: BytePlusVideoSecret): string => {
+  const queryEndpoint = secret.queryEndpoint?.trim();
+  if (!queryEndpoint) {
+    throw new Error(
+      "BytePlus video secret is missing `queryEndpoint`. Set the exact task-status API URL from ModelArk and include `{id}` if needed.",
+    );
+  }
+  return queryEndpoint;
+};
+
 const resolveQueryEndpoint = (
   endpoint: string,
   queryEndpoint: string | undefined,
@@ -58,12 +79,22 @@ const resolveQueryEndpoint = (
   return `${endpoint.replace(/\/$/, "")}/${encodeURIComponent(taskId)}`;
 };
 
+const resolveVideoModel = (secret: BytePlusVideoSecret): string => {
+  return secret.model ?? "seedance-1-0-lite-250528";
+};
+
+const resolvePromptField = (secret: BytePlusVideoSecret): string => {
+  return secret.promptField?.trim() || "prompt";
+};
+
 const submitBytePlusVideoTask = async (input: {
   endpoint: string;
   apiKey: string;
   model: string;
   prompt: string;
   promptField: string;
+  imageField?: string;
+  selectedImageDataUri?: string;
   extraBody?: Record<string, unknown>;
 }): Promise<Record<string, unknown>> => {
   return fetchJsonWithRetry<Record<string, unknown>>(input.endpoint, {
@@ -75,9 +106,77 @@ const submitBytePlusVideoTask = async (input: {
     body: JSON.stringify({
       model: input.model,
       [input.promptField]: input.prompt,
+      ...(input.imageField && input.selectedImageDataUri
+        ? { [input.imageField]: input.selectedImageDataUri }
+        : {}),
       ...(input.extraBody ?? {}),
     }),
   });
+};
+
+const putMockVideo = async (input: {
+  videoKey: string;
+  rawKey: string;
+  prompt: string;
+}): Promise<Record<string, unknown>> => {
+  const mocked = {
+    mocked: true,
+    prompt: input.prompt,
+    clipManifest: true,
+    provider: "byteplus-video",
+  };
+  await putJsonToS3(input.videoKey, mocked);
+  await putJsonToS3(input.rawKey, mocked);
+
+  return {
+    provider: "mock",
+    videoClipS3Key: input.videoKey,
+    providerLogS3Key: input.rawKey,
+    promptHash: hashPrompt(input.prompt),
+    mocked: true,
+  };
+};
+
+const executeBytePlusVideoTask = async (input: {
+  secret: BytePlusVideoSecret & { apiKey: string };
+  endpoint: string;
+  queryEndpointTemplate: string;
+  prompt: string;
+  selectedImageDataUri?: string;
+}): Promise<{
+  submitted: Record<string, unknown>;
+  payload: Record<string, unknown>;
+  resolvedQueryEndpoint?: string;
+}> => {
+  const submitted = await submitBytePlusVideoTask({
+    endpoint: input.endpoint,
+    apiKey: input.secret.apiKey,
+    model: resolveVideoModel(input.secret),
+    prompt: input.prompt,
+    promptField: resolvePromptField(input.secret),
+    imageField: input.secret.imageField?.trim(),
+    selectedImageDataUri: input.selectedImageDataUri,
+    extraBody: input.secret.extraBody,
+  });
+  const taskId = getTaskId(submitted);
+  let payload: Record<string, unknown> = submitted;
+  const initialStatus = getStatus(submitted);
+  const resolvedQueryEndpoint = taskId
+    ? resolveQueryEndpoint(input.endpoint, input.queryEndpointTemplate, taskId)
+    : undefined;
+
+  if (resolvedQueryEndpoint && !DONE_STATUSES.has(initialStatus)) {
+    payload = await pollBytePlusVideoTask({
+      endpoint: resolvedQueryEndpoint,
+      apiKey: input.secret.apiKey,
+    });
+  }
+
+  return {
+    submitted,
+    payload,
+    resolvedQueryEndpoint,
+  };
 };
 
 const pollBytePlusVideoTask = async (input: {
@@ -112,6 +211,8 @@ export const generateSceneBytePlusVideo = async (input: {
   jobId: string;
   sceneId: number;
   prompt: string;
+  selectedImageS3Key?: string;
+  selectedImageDataUri?: string;
   secretId: string;
 }): Promise<Record<string, unknown>> => {
   const secret = await getSecretJson<BytePlusVideoSecret>(input.secretId);
@@ -119,61 +220,64 @@ export const generateSceneBytePlusVideo = async (input: {
   const rawKey = `logs/${input.jobId}/provider/byteplus-video-scene-${input.sceneId}.json`;
 
   if (!secret?.apiKey) {
-    const mocked = {
-      mocked: true,
+    return putMockVideo({
+      videoKey,
+      rawKey,
       prompt: input.prompt,
-      clipManifest: true,
-      provider: "byteplus-video",
-    };
-    await putJsonToS3(videoKey, mocked);
-    await putJsonToS3(rawKey, mocked);
-
-    return {
-      provider: "mock",
-      videoClipS3Key: videoKey,
-      providerLogS3Key: rawKey,
-      promptHash: hashPrompt(input.prompt),
-      mocked: true,
-    };
-  }
-
-  const endpoint =
-    secret.endpoint ??
-    "https://ark.ap-southeast.bytepluses.com/api/v3/video/generations";
-  const submitted = await submitBytePlusVideoTask({
-    endpoint,
-    apiKey: secret.apiKey,
-    model: secret.model ?? "seedance-1-0-lite-250528",
-    prompt: input.prompt,
-    promptField: secret.promptField?.trim() || "prompt",
-    extraBody: secret.extraBody,
-  });
-  const taskId = getTaskId(submitted);
-  let payload: Record<string, unknown> = submitted;
-  const initialStatus = getStatus(submitted);
-
-  if (taskId && !DONE_STATUSES.has(initialStatus)) {
-    payload = await pollBytePlusVideoTask({
-      endpoint: resolveQueryEndpoint(endpoint, secret.queryEndpoint, taskId),
-      apiKey: secret.apiKey,
     });
   }
 
-  await putJsonToS3(rawKey, {
-    submit: submitted,
-    final: payload,
-    endpoint,
-    queryEndpoint: taskId
-      ? resolveQueryEndpoint(endpoint, secret.queryEndpoint, taskId)
-      : undefined,
-  });
-  await putJsonToS3(videoKey, payload);
+  const endpoint = getRequiredEndpoint(secret);
+  const queryEndpointTemplate = getRequiredQueryEndpoint(secret);
+  const model = resolveVideoModel(secret);
+  const promptField = resolvePromptField(secret);
+  const imageField = secret.imageField?.trim();
 
-  return {
-    provider: "byteplus-video",
-    videoClipS3Key: videoKey,
-    providerLogS3Key: rawKey,
-    promptHash: hashPrompt(input.prompt),
-    mocked: false,
-  };
+  try {
+    const { submitted, payload, resolvedQueryEndpoint } =
+      await executeBytePlusVideoTask({
+        secret: { ...secret, apiKey: secret.apiKey },
+        endpoint,
+        queryEndpointTemplate,
+        prompt: input.prompt,
+        selectedImageDataUri: input.selectedImageDataUri,
+      });
+    await putJsonToS3(rawKey, {
+      submit: submitted,
+      final: payload,
+      endpoint,
+      queryEndpoint: resolvedQueryEndpoint,
+      model,
+      promptField,
+      imageField,
+      selectedImageS3Key: input.selectedImageS3Key,
+      selectedImageAttached: Boolean(input.selectedImageDataUri),
+    });
+    await putJsonToS3(videoKey, payload);
+
+    return {
+      provider: "byteplus-video",
+      videoClipS3Key: videoKey,
+      providerLogS3Key: rawKey,
+      promptHash: hashPrompt(input.prompt),
+      mocked: false,
+    };
+  } catch (error) {
+    await putJsonToS3(rawKey, {
+      status: "ERROR",
+      endpoint,
+      queryEndpoint: queryEndpointTemplate,
+      model,
+      promptField,
+      imageField,
+      selectedImageS3Key: input.selectedImageS3Key,
+      selectedImageAttached: Boolean(input.selectedImageDataUri),
+      promptPreview: input.prompt.slice(0, 300),
+      error: error instanceof Error ? error.message : String(error),
+    });
+    const message = error instanceof Error ? error.message : String(error);
+    throw new Error(
+      `BytePlus video generation failed: model=${model}, endpoint=${endpoint}, queryEndpoint=${queryEndpointTemplate}, promptField=${promptField}, imageField=${imageField ?? "none"}, selectedImage=${input.selectedImageS3Key ?? "none"}, logKey=${rawKey}, error=${message}`,
+    );
+  }
 };

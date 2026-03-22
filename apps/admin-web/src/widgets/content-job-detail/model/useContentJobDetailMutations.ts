@@ -9,6 +9,7 @@ import {
   useRunContentJobPublishOrchestration,
   useRunContentJobSceneJson,
   useRunContentJobTopicPlan,
+  useSelectContentJobSceneImageCandidate,
   useUpdateContentJobSceneJson,
   useUpdateContentJobTopicSeed,
 } from '@/entities/content-job';
@@ -38,6 +39,7 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
   const runSceneJson = useRunContentJobSceneJson({ onSuccess });
   const updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
   const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess });
+  const selectSceneImageCandidate = useSelectContentJobSceneImageCandidate({ onSuccess });
   const runFinalComposition = useRunContentJobFinalComposition({ onSuccess });
   const requestUpload = useRequestContentJobUpload({ onSuccess });
   const approvePipelineExecution = useApproveContentJobPipelineExecution({ onSuccess });
@@ -57,6 +59,7 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
   return {
     requestUpload,
     runAssetGeneration,
+    selectSceneImageCandidate,
     runFinalComposition,
     runSceneJson,
     runTopicPlan,

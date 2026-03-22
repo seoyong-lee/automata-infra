@@ -9,6 +9,7 @@ import {
   useRunFinalCompositionMutation,
   useRunPublishOrchestrationMutation,
   useRunSceneJsonMutation,
+  useSelectSceneImageCandidateMutation,
   useRunTopicPlanMutation,
   useUpdateSceneJsonMutation,
   useUpdateTopicSeedMutation,
@@ -23,6 +24,7 @@ export const useRequestContentJobUpload = useRequestUploadMutation;
 export const useRunContentJobAssetGeneration = useRunAssetGenerationMutation;
 export const useRunContentJobFinalComposition = useRunFinalCompositionMutation;
 export const useRunContentJobSceneJson = useRunSceneJsonMutation;
+export const useSelectContentJobSceneImageCandidate = useSelectSceneImageCandidateMutation;
 export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;
 export const useUpdateContentJobTopicSeed = useUpdateTopicSeedMutation;

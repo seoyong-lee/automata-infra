@@ -45,7 +45,12 @@ const GROUP_META: Array<{
     description: '아이디어와 스크립트 정리',
     stages: ['idea', 'script'],
   },
-  { key: 'production', label: '제작', description: '이미지·음성·영상 준비', stages: ['assets'] },
+  {
+    key: 'production',
+    label: '제작',
+    description: '이미지·음성·영상 준비와 최종 렌더',
+    stages: ['assets', 'render'],
+  },
   { key: 'review', label: '검수', description: '품질 확인과 수정 결정', stages: ['review'] },
   {
     key: 'publishPrep',

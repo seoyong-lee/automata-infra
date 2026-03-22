@@ -24,6 +24,9 @@ export function dispatchJobWorkAction(
     case 'run_assets':
       pageData.runAssetGeneration();
       return;
+    case 'run_render':
+      pageData.runFinalComposition();
+      return;
     case 'open_reviews':
       pageData.openReviews();
       return;

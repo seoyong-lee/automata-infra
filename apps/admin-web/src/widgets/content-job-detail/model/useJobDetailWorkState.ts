@@ -24,6 +24,7 @@ export function useJobDetailWorkState(jobId: string, pageData: ContentJobDetailP
           isRunningTopicPlan: pageData.isRunningTopicPlan,
           isRunningSceneJson: pageData.isRunningSceneJson,
           isRunningAssetGeneration: pageData.isRunningAssetGeneration,
+          isRunningFinalComposition: pageData.isRunningFinalComposition,
         },
       ),
     [
@@ -32,6 +33,7 @@ export function useJobDetailWorkState(jobId: string, pageData: ContentJobDetailP
       pageData.detailVm.readyAssetCount,
       pageData.detailVm.sceneCount,
       pageData.isRunningAssetGeneration,
+      pageData.isRunningFinalComposition,
       pageData.isRunningSceneJson,
       pageData.isRunningTopicPlan,
     ],

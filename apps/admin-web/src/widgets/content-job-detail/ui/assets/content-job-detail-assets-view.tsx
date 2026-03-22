@@ -1,5 +1,6 @@
 'use client';
 
+import type { ImageGenerationProvider } from '@packages/graphql';
 import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
@@ -7,6 +8,7 @@ import { getErrorMessage } from '@packages/utils';
 import { JobDraftDetail } from '../../model';
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
 import { ContentJobDetailSceneAssetPreview } from './content-job-detail-scene-asset-preview';
+import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
 
 type AssetStage = 'image' | 'voice' | 'video';
 
@@ -14,7 +16,10 @@ type ContentJobDetailAssetsViewProps = {
   detail?: JobDraftDetail;
   error: unknown;
   isRunning: boolean;
-  onRun: () => void;
+  isSubmitting: boolean;
+  imageProvider: ImageGenerationProvider;
+  onImageProviderChange: (value: ImageGenerationProvider) => void;
+  onRun: (imageProvider?: ImageGenerationProvider) => void;
   stage: AssetStage;
 };
 
@@ -87,6 +92,9 @@ export function ContentJobDetailAssetsView({
   detail,
   error,
   isRunning,
+  isSubmitting,
+  imageProvider,
+  onImageProviderChange,
   onRun,
   stage,
 }: ContentJobDetailAssetsViewProps) {
@@ -104,9 +112,23 @@ export function ContentJobDetailAssetsView({
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="flex flex-wrap gap-2">
-          <Button disabled={isRunning} onClick={onRun}>
-            {isRunning ? '생성 중...' : meta.actionLabel}
-          </Button>
+          {stage === 'image' ? (
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+              <ContentJobDetailImageModelSelect
+                value={imageProvider}
+                disabled={isSubmitting}
+                onChange={onImageProviderChange}
+                className="min-w-[180px]"
+              />
+              <Button disabled={isSubmitting} onClick={() => onRun(imageProvider)}>
+                {isSubmitting ? '요청 중…' : meta.actionLabel}
+              </Button>
+            </div>
+          ) : (
+            <Button disabled={isSubmitting} onClick={() => onRun()}>
+              {isSubmitting ? '요청 중…' : meta.actionLabel}
+            </Button>
+          )}
         </div>
         {assets.length === 0 ? (
           <p className="text-sm text-muted-foreground">
@@ -119,10 +141,7 @@ export function ContentJobDetailAssetsView({
               const s3Key = getStageS3Key(asset, stage);
               const previewUrl = buildAssetPreviewUrlFromS3Key(s3Key);
               return (
-                <li
-                  key={asset.sceneId}
-                  className="rounded-lg border border-border bg-card p-4"
-                >
+                <li key={asset.sceneId} className="rounded-lg border border-border bg-card p-4">
                   <div className="space-y-3">
                     <div className="flex items-center justify-between gap-4 text-sm">
                       <span className="font-medium">Scene {asset.sceneId}</span>

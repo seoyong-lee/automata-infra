@@ -7,17 +7,14 @@ import type { ContentJobDetailViewModel, JobDraftDetail } from './types';
 
 export { buildContentJobDetailContextCards } from '../lib/detail-context';
 export { toSeedForm } from '../lib/seed-form';
-export { parseWorkspaceViewParam, workspaceViewKeys, workspaceViews } from '../lib/workspace-views';
 export {
   detailWorkspaceTabKeys,
   detailWorkspaceTabs,
   getJobDetailLegacyRedirect,
-  jobDetailModeKeys,
   jobDetailRouteTabKeys,
   jobDetailRouteTabs,
   parseAssetStage,
   parseAssetsViewMode,
-  parseJobDetailModeParam,
   parseDetailWorkspaceTabParam,
   parseJobDetailRouteTabParam,
 } from '../lib/detail-workspace-tabs';
@@ -29,12 +26,10 @@ export type {
   JobDraftDetail,
   LogItem,
   SeedForm,
-  WorkspaceView,
 } from './types';
 export type {
   AssetStage,
   DetailWorkspaceTabKey,
-  JobDetailModeKey,
   JobDetailRouteTabKey,
 } from '../lib/detail-workspace-tabs';
 

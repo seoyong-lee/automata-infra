@@ -9,8 +9,6 @@ export const jobDetailRouteTabKeys = [
 ] as const;
 
 export type JobDetailRouteTabKey = (typeof jobDetailRouteTabKeys)[number];
-export const jobDetailModeKeys = ['ideation', 'workflow'] as const;
-export type JobDetailModeKey = (typeof jobDetailModeKeys)[number];
 
 /** 에셋 탭 내부 서브구간 (`?stage=`). */
 export type AssetStage = 'image' | 'voice' | 'video';
@@ -43,13 +41,13 @@ export const jobDetailRouteTabs: Array<{
     key: 'assets',
     label: '에셋',
     description:
-      '씬 단위로 이미지·음성·영상 클립 등을 생성·보완합니다. 상단에 에셋 생성 단계 실행 기록이 표시됩니다.',
+      '씬 단위로 이미지·음성·영상 클립을 생성·보완하고, 준비가 끝나면 Shotstack 렌더를 시작합니다.',
   },
   {
     key: 'publish',
-    label: '렌더·출고 준비',
+    label: '검수·출고 준비',
     description:
-      '프리뷰·최종 렌더·검수와 출고 준비입니다. 실제 업로드·예약은 채널의 출고 큐에서 진행합니다.',
+      '렌더 결과를 검수하고 출고를 준비합니다. 실제 업로드·예약은 채널의 출고 큐에서 진행합니다.',
   },
   {
     key: 'timeline',
@@ -68,10 +66,6 @@ export function parseJobDetailRouteTabParam(
   return jobDetailRouteTabKeys.includes(param as JobDetailRouteTabKey)
     ? (param as JobDetailRouteTabKey)
     : null;
-}
-
-export function parseJobDetailModeParam(param: string | null | undefined): JobDetailModeKey {
-  return param === 'ideation' ? 'ideation' : 'workflow';
 }
 
 /**

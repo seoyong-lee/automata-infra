@@ -3,6 +3,7 @@ import {
   type JobMetaItem,
   type SceneAssetItem,
   getJobMeta,
+  listSceneImageCandidates,
   listSceneAssets,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
@@ -59,6 +60,10 @@ const mapSceneAsset = (asset: SceneAssetItem) => {
     imagePrompt: asset.imagePrompt,
     videoPrompt: asset.videoPrompt,
     validationStatus: asset.validationStatus,
+    imageSelectedCandidateId:
+      typeof asset.imageSelectedCandidateId === "string"
+        ? asset.imageSelectedCandidateId
+        : undefined,
   };
 };
 
@@ -105,7 +110,34 @@ export const getStoredSceneJson = async (
 
 export const listStoredSceneAssets = async (jobId: string) => {
   const assets = await listSceneAssets(jobId);
-  return assets.map(mapSceneAsset);
+  return Promise.all(
+    assets.map(async (asset) => {
+      const imageCandidates = await listSceneImageCandidates(
+        jobId,
+        asset.sceneId,
+      );
+      const selectedCandidateId =
+        typeof asset.imageSelectedCandidateId === "string"
+          ? asset.imageSelectedCandidateId
+          : undefined;
+      return {
+        ...mapSceneAsset(asset),
+        imageCandidates: imageCandidates.map((candidate) => ({
+          candidateId: candidate.candidateId,
+          imageS3Key: candidate.imageS3Key,
+          provider: candidate.provider,
+          providerLogS3Key: candidate.providerLogS3Key,
+          promptHash: candidate.promptHash,
+          mocked: candidate.mocked,
+          createdAt: candidate.createdAt,
+          selected:
+            selectedCandidateId !== undefined
+              ? candidate.candidateId === selectedCandidateId
+              : candidate.imageS3Key === asset.imageS3Key,
+        })),
+      };
+    }),
+  );
 };
 
 export const saveTopicSeed = async (input: {

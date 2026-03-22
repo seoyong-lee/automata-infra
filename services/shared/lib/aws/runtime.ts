@@ -358,6 +358,27 @@ export const getJsonFromS3 = async <T>(key: string): Promise<T | null> => {
   return JSON.parse(body) as T;
 };
 
+export const getBufferFromS3 = async (
+  key: string,
+): Promise<{ buffer: Buffer; contentType?: string } | null> => {
+  const result = await s3Client.send(
+    new GetObjectCommand({
+      Bucket: getAssetsBucketName(),
+      Key: key,
+    }),
+  );
+
+  if (!result.Body) {
+    return null;
+  }
+
+  const bytes = await result.Body.transformToByteArray();
+  return {
+    buffer: Buffer.from(bytes),
+    contentType: result.ContentType,
+  };
+};
+
 export const deleteObjectFromS3 = async (key: string): Promise<void> => {
   try {
     await s3Client.send(

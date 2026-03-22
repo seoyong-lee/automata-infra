@@ -33,7 +33,7 @@ export function resolveJobWorkAction(
     () => branches.resolveSceneJsonBuildingBranch(pipelineStageLabel, status),
     () => branches.resolveSceneJsonReadyBranch(pipelineStageLabel, status, pending),
     () => branches.resolveAssetGeneratingBranch(pipelineStageLabel, status),
-    () => branches.resolveAssetsReadyishBranch(pipelineStageLabel, status, opts),
+    () => branches.resolveAssetsReadyishBranch(pipelineStageLabel, status, opts, pending),
     () => branches.resolveReviewPendingBranch(pipelineStageLabel, status),
     () => branches.resolveApprovedBranch(pipelineStageLabel, status),
     () => branches.resolveRejectedBranch(pipelineStageLabel, status),

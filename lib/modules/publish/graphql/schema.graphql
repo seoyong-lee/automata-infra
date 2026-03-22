@@ -91,6 +91,9 @@ type Mutation {
   에셋 생성(팬아웃·큐 워커). 목표: 단계·씬 단위 부분 재실행.
   """
   runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
+  selectSceneImageCandidate(
+    input: SelectSceneImageCandidateInput!
+  ): JobDraftDetail!
   """
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
   """
@@ -256,6 +259,19 @@ type SceneAsset {
   imagePrompt: String
   videoPrompt: String
   validationStatus: String
+  imageSelectedCandidateId: String
+  imageCandidates: [SceneImageCandidate!]!
+}
+
+type SceneImageCandidate {
+  candidateId: ID!
+  imageS3Key: String!
+  provider: String
+  providerLogS3Key: String
+  promptHash: String
+  mocked: Boolean
+  createdAt: AWSDateTime!
+  selected: Boolean!
 }
 
 type JobDraftDetail {
@@ -486,6 +502,11 @@ enum AssetGenerationModality {
   VIDEO
 }
 
+enum ImageGenerationProvider {
+  OPENAI
+  SEEDREAM
+}
+
 input RunAssetGenerationInput {
   jobId: ID!
   """
@@ -496,6 +517,16 @@ input RunAssetGenerationInput {
   생략 또는 ALL이면 이미지→영상→음성 순 전체. IMAGE/VOICE/VIDEO는 해당 모달리티만.
   """
   modality: AssetGenerationModality
+  """
+  이미지 생성 시 사용할 provider. IMAGE 또는 ALL 실행에서만 반영된다.
+  """
+  imageProvider: ImageGenerationProvider
+}
+
+input SelectSceneImageCandidateInput {
+  jobId: ID!
+  sceneId: Int!
+  candidateId: ID!
 }
 
 input RunFinalCompositionInput {

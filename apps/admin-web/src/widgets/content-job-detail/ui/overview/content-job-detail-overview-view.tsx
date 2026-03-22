@@ -37,17 +37,6 @@ export function ContentJobDetailOverviewView({
         contentId={detail?.job.contentId}
         sourceItemId={detail?.job.sourceItemId}
       />
-
-      {workActionResolution && onWorkAction ? (
-        <ContentJobDetailOverviewNextActionCard
-          stageIdx={stageIdx}
-          readyAssetCount={readyAssetCount}
-          totalScenes={totalScenes}
-          workActionResolution={workActionResolution}
-          onWorkAction={onWorkAction}
-        />
-      ) : null}
-
       <ContentJobDetailOverviewRecentCard jobId={jobId} detail={detail} />
     </div>
   );

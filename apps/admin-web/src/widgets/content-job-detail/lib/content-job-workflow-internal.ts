@@ -59,17 +59,60 @@ const ASSET_DONE_STATUSES: AdminJob['status'][] = [
   'METRICS_COLLECTED',
 ];
 
+const RENDER_DONE_STATUSES = new Set<AdminJob['status']>([
+  'RENDERED',
+  'REVIEW_PENDING',
+  'APPROVED',
+  'REJECTED',
+  'READY_TO_SCHEDULE',
+  'UPLOAD_QUEUED',
+  'UPLOADED',
+  'METRICS_COLLECTED',
+]);
+
+const RENDER_STAGE_ACTIVE_STATUSES = new Set<AdminJob['status']>([
+  'ASSETS_READY',
+  'VALIDATING',
+  'RENDER_PLAN_READY',
+  'RENDERED',
+]);
+
 export type WorkflowDerived = {
   status: string;
   chOk: boolean;
   topicOk: boolean;
   sceneOk: boolean;
   assetsComplete: boolean;
+  renderComplete: boolean;
   reviewComplete: boolean;
   draftComplete: boolean;
   queueComplete: boolean;
   scheduleComplete: boolean;
 };
+
+function deriveAssetsComplete(input: {
+  topicOk: boolean;
+  sceneOk: boolean;
+  sceneCount: number;
+  readyAssetCount: number;
+  status: string;
+}): boolean {
+  return (
+    input.topicOk &&
+    input.sceneOk &&
+    input.sceneCount > 0 &&
+    input.readyAssetCount >= input.sceneCount &&
+    ASSET_DONE_STATUSES.includes(input.status as AdminJob['status'])
+  );
+}
+
+function deriveRenderComplete(status: string): boolean {
+  return RENDER_DONE_STATUSES.has(status as AdminJob['status']);
+}
+
+function deriveScheduleComplete(status: string): boolean {
+  return status === 'UPLOADED' || status === 'METRICS_COLLECTED';
+}
 
 export function deriveWorkflowState(args: {
   job: AdminJob | undefined;
@@ -82,12 +125,14 @@ export function deriveWorkflowState(args: {
   const chOk = channelConnected(job);
   const topicOk = hasTopicPlan(job);
   const sceneOk = hasSceneJson(job, hasScenePayload);
-  const assetsComplete =
-    topicOk &&
-    sceneOk &&
-    sceneCount > 0 &&
-    readyAssetCount >= sceneCount &&
-    ASSET_DONE_STATUSES.includes(status as AdminJob['status']);
+  const assetsComplete = deriveAssetsComplete({
+    topicOk,
+    sceneOk,
+    sceneCount,
+    readyAssetCount,
+    status,
+  });
+  const renderComplete = deriveRenderComplete(status);
 
   return {
     status,
@@ -95,10 +140,11 @@ export function deriveWorkflowState(args: {
     topicOk,
     sceneOk,
     assetsComplete,
+    renderComplete,
     reviewComplete: reviewDoneStatus(status),
     draftComplete: publishDraftDoneStatus(status),
     queueComplete: queueDoneStatus(status),
-    scheduleComplete: status === 'UPLOADED' || status === 'METRICS_COLLECTED',
+    scheduleComplete: deriveScheduleComplete(status),
   };
 }
 
@@ -124,33 +170,48 @@ function isPublishPanelCurrent(
   return publishHashNorm === '' && panel === 'review';
 }
 
+const SIMPLE_CURRENT_TAB_BY_WORKFLOW_KEY: Partial<Record<WorkflowNavKey, JobDetailRouteTabKey>> = {
+  overview: 'overview',
+  result: 'timeline',
+};
+
+const PUBLISH_PANEL_BY_WORKFLOW_KEY: Partial<
+  Record<WorkflowNavKey, keyof typeof publishPanelAnchor>
+> = {
+  review: 'review',
+  publishDraft: 'publishDraft',
+  queue: 'queue',
+};
+
 export function isWorkflowNavCurrent(
   key: WorkflowNavKey,
   activeTab: JobDetailRouteTabKey,
   publishHashNorm: string,
+  status: string,
 ): boolean {
-  switch (key) {
-    case 'overview':
-      return activeTab === 'overview';
-    case 'idea':
-      return activeTab === 'ideation';
-    case 'script':
-      return activeTab === 'scene';
-    case 'assets':
-      return activeTab === 'assets';
-    case 'review':
-      return isPublishPanelCurrent(activeTab, publishHashNorm, 'review');
-    case 'publishDraft':
-      return isPublishPanelCurrent(activeTab, publishHashNorm, 'publishDraft');
-    case 'queue':
-      return isPublishPanelCurrent(activeTab, publishHashNorm, 'queue');
-    case 'schedule':
-      return false;
-    case 'result':
-      return activeTab === 'timeline';
-    default:
-      return false;
+  if (key === 'idea') {
+    return activeTab === 'ideation';
   }
+  if (key === 'script') {
+    return activeTab === 'scene';
+  }
+  const simpleCurrentTab = SIMPLE_CURRENT_TAB_BY_WORKFLOW_KEY[key];
+  if (simpleCurrentTab) {
+    return activeTab === simpleCurrentTab;
+  }
+  const publishPanel = PUBLISH_PANEL_BY_WORKFLOW_KEY[key];
+  if (publishPanel) {
+    return isPublishPanelCurrent(activeTab, publishHashNorm, publishPanel);
+  }
+  const activeAssetsStage = activeTab === 'assets';
+  const renderStageActive = RENDER_STAGE_ACTIVE_STATUSES.has(status as AdminJob['status']);
+  if (key === 'assets') {
+    return activeAssetsStage && !renderStageActive;
+  }
+  if (key === 'render') {
+    return activeAssetsStage && renderStageActive;
+  }
+  return false;
 }
 
 type NavRow = Omit<WorkflowNavItem, 'isCurrent'>;
@@ -163,7 +224,7 @@ function queueRowState(d: WorkflowDerived): WorkflowNavItem['state'] {
 }
 
 function buildNavRowsPipeline(jobId: string, d: WorkflowDerived): NavRow[] {
-  const { topicOk, sceneOk, assetsComplete, reviewComplete, draftComplete } = d;
+  const { topicOk, sceneOk, assetsComplete, renderComplete, reviewComplete, draftComplete } = d;
   return [
     {
       key: 'overview',
@@ -190,10 +251,16 @@ function buildNavRowsPipeline(jobId: string, d: WorkflowDerived): NavRow[] {
       state: !sceneOk ? 'blocked' : assetsComplete ? 'complete' : 'upcoming',
     },
     {
+      key: 'render',
+      label: '렌더',
+      href: `/jobs/${jobId}/assets`,
+      state: !assetsComplete ? 'blocked' : renderComplete ? 'complete' : 'upcoming',
+    },
+    {
       key: 'review',
       label: '검수',
       href: `/jobs/${jobId}/publish#${publishPanelAnchor.review}`,
-      state: !assetsComplete ? 'blocked' : reviewComplete ? 'complete' : 'upcoming',
+      state: !renderComplete ? 'blocked' : reviewComplete ? 'complete' : 'upcoming',
     },
     {
       key: 'publishDraft',
@@ -240,10 +307,11 @@ export function attachNavCurrent(
   rows: NavRow[],
   activeTab: JobDetailRouteTabKey,
   publishHashNorm: string,
+  status: string,
 ): WorkflowNavItem[] {
   return rows.map((row) => ({
     ...row,
-    isCurrent: isWorkflowNavCurrent(row.key, activeTab, publishHashNorm),
+    isCurrent: isWorkflowNavCurrent(row.key, activeTab, publishHashNorm, status),
   }));
 }
 

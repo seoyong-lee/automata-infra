@@ -121,7 +121,6 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 {
   "apiKey": "sk-...",
   "model": "gpt-image-1",
-  "size": "1024x1024",
   "endpoint": "https://api.openai.com/v1/images/generations"
 }
 ```
@@ -132,7 +131,8 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 {
   "apiKey": "rw_...",
   "model": "gen4_turbo",
-  "endpoint": "https://api.dev.runwayml.com/v1/video_generations"
+  "endpoint": "https://api.dev.runwayml.com/v1/video_generations",
+  "imageField": "promptImage"
 }
 ```
 
@@ -142,9 +142,9 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 {
   "apiKey": "ark_...",
   "model": "seedream-4-0-250828",
-  "size": "1024x1024",
   "endpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/images/generations",
-  "responseFormat": "b64_json"
+  "responseFormat": "b64_json",
+  "watermark": false
 }
 ```
 
@@ -154,13 +154,14 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 {
   "apiKey": "ark_...",
   "model": "seedance-1-0-lite-250528",
-  "endpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/video/generations",
-  "queryEndpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/video/generations/{id}",
-  "promptField": "prompt"
+  "endpoint": "https://<exact-create-task-endpoint-from-modelark>",
+  "queryEndpoint": "https://<exact-task-status-endpoint-from-modelark>/{id}",
+  "promptField": "prompt",
+  "imageField": "image"
 }
 ```
 
-`queryEndpoint`는 `{id}` placeholder를 지원한다. BytePlus 콘솔/문서의 실제 task 조회 경로가 다르면 여기를 그 경로로 맞춘다.
+`endpoint`와 `queryEndpoint`는 BytePlus ModelArk 문서 또는 API Explorer의 실제 video task 경로를 그대로 넣어야 한다. `queryEndpoint`는 `{id}` placeholder를 지원한다.
 
 ### 5) ElevenLabs Voice
 
@@ -226,19 +227,19 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 ```bash
 aws secretsmanager create-secret \
   --name "automata-studio/openai" \
-  --secret-string '{"apiKey":"...","model":"gpt-image-1","size":"1024x1024"}'
+  --secret-string '{"apiKey":"...","model":"gpt-image-1"}'
 ```
 
 ```bash
 aws secretsmanager create-secret \
   --name "automata-studio/byteplus-image" \
-  --secret-string '{"apiKey":"ark_...","model":"seedream-4-0-250828","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/images/generations"}'
+  --secret-string '{"apiKey":"ark_...","model":"seedream-4-0-250828","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/images/generations","watermark":false}'
 ```
 
 ```bash
 aws secretsmanager create-secret \
   --name "automata-studio/byteplus-video" \
-  --secret-string '{"apiKey":"ark_...","model":"seedance-1-0-lite-250528","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/video/generations","queryEndpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/video/generations/{id}"}'
+  --secret-string '{"apiKey":"ark_...","model":"seedance-1-0-lite-250528","endpoint":"https://<exact-create-task-endpoint-from-modelark>","queryEndpoint":"https://<exact-task-status-endpoint-from-modelark>/{id}","promptField":"prompt","imageField":"image"}'
 ```
 
 ### 수정
@@ -246,7 +247,7 @@ aws secretsmanager create-secret \
 ```bash
 aws secretsmanager put-secret-value \
   --secret-id "automata-studio/openai" \
-  --secret-string '{"apiKey":"...","model":"gpt-image-1","size":"1024x1024"}'
+  --secret-string '{"apiKey":"...","model":"gpt-image-1"}'
 ```
 
 ### 확인

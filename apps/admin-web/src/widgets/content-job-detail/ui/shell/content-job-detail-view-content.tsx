@@ -8,9 +8,9 @@ import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type { AssetStage, JobDetailRouteTabKey } from '../../model';
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
 import { ContentJobDetailAssetsHubView } from '../assets/content-job-detail-assets-hub-view';
-import { ContentJobDetailIdeationTab } from '../tabs/content-job-detail-ideation-tab';
 import { ContentJobDetailOverviewView } from '../overview/content-job-detail-overview-view';
 import { ContentJobDetailPublishView } from '../publish/content-job-detail-publish-view';
+import { ContentJobDetailIdeationTab } from '../tabs/content-job-detail-ideation-tab';
 import { ContentJobDetailSceneTab } from '../tabs/content-job-detail-scene-tab';
 import { ContentJobDetailTimelineView } from '../timeline/content-job-detail-timeline-view';
 

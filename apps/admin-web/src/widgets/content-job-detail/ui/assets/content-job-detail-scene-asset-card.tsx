@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetGenerationModality } from '@packages/graphql';
+import type { AssetGenerationModality, ImageGenerationProvider } from '@packages/graphql';
 import { Badge } from '@packages/ui/badge';
 import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@packages/ui/card';
 import Link from 'next/link';
@@ -12,7 +12,16 @@ type ContentJobDetailSceneAssetCardProps = {
   jobId: string;
   card: SceneAssetCard;
   isRunning: boolean;
-  onRegenerate: (input: { sceneId: number; modality: AssetGenerationModality }) => void;
+  isSubmitting: boolean;
+  onRegenerate: (input: {
+    sceneId: number;
+    modality: AssetGenerationModality;
+    imageProvider?: ImageGenerationProvider;
+  }) => void;
+  onSelectImageCandidate: (sceneId: number, candidateId: string) => void;
+  isSelectingImageCandidate: boolean;
+  imageProvider: ImageGenerationProvider;
+  onImageProviderChange: (value: ImageGenerationProvider) => void;
 };
 
 function overallBadgeProps(overall: SceneAssetCard['overallStatus']): {
@@ -40,9 +49,14 @@ export function ContentJobDetailSceneAssetCard({
   jobId,
   card,
   isRunning,
+  isSubmitting,
   onRegenerate,
+  onSelectImageCandidate,
+  isSelectingImageCandidate,
+  imageProvider,
+  onImageProviderChange,
 }: ContentJobDetailSceneAssetCardProps) {
-  const disabled = isRunning;
+  const disabled = isSubmitting;
 
   return (
     <Card>
@@ -61,7 +75,16 @@ export function ContentJobDetailSceneAssetCard({
           title="이미지"
           slice={card.image}
           disabled={disabled}
-          onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'IMAGE' })}
+          imageProvider={imageProvider}
+          onImageProviderChange={onImageProviderChange}
+          imageCandidates={card.imageCandidates}
+          isSelectingImageCandidate={isSelectingImageCandidate}
+          onSelectImageCandidate={(candidateId) =>
+            onSelectImageCandidate(card.sceneId, candidateId)
+          }
+          onRegenerate={() =>
+            onRegenerate({ sceneId: card.sceneId, modality: 'IMAGE', imageProvider })
+          }
         />
         <ContentJobDetailSceneAssetCell
           kind="voice"

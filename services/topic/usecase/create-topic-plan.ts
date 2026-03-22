@@ -130,6 +130,9 @@ const generateSeed = async (input: {
   jobId: string;
   contentId: string;
   targetLanguage: string;
+  contentType?: string;
+  variant?: string;
+  creativeBrief?: string;
 }): Promise<TopicPlanSeed> => {
   const generated = await input.generateStructuredData({
     jobId: input.jobId,
@@ -137,6 +140,10 @@ const generateSeed = async (input: {
     variables: {
       contentId: input.contentId,
       targetLanguage: input.targetLanguage,
+      channelLabel: input.contentId,
+      contentType: input.contentType ?? "",
+      variant: input.variant ?? "",
+      creativeBrief: input.creativeBrief ?? "",
     },
     validate: validateTopicPlanSeed,
     buildMockResult: buildMockTopicPlanSeed,
@@ -210,6 +217,9 @@ export const createTopicPlan = async (
         jobId,
         contentId,
         targetLanguage,
+        contentType: deps.topicSeed?.contentType,
+        variant: deps.topicSeed?.variant,
+        creativeBrief: deps.topicSeed?.creativeBrief,
       });
 
   return buildTopicPlanResult({

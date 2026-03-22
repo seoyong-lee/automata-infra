@@ -2,6 +2,7 @@ export type JobWorkPrimaryAction =
   | 'run_topic_plan'
   | 'run_scene_json'
   | 'run_assets'
+  | 'run_render'
   | 'open_reviews'
   | 'go_publish'
   | 'go_ideation'
@@ -29,4 +30,5 @@ export type JobWorkPendingFlags = {
   isRunningTopicPlan: boolean;
   isRunningSceneJson: boolean;
   isRunningAssetGeneration: boolean;
+  isRunningFinalComposition: boolean;
 };

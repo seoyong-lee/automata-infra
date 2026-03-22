@@ -191,6 +191,19 @@ export type SceneAsset = {
   imagePrompt?: string | null;
   videoPrompt?: string | null;
   validationStatus?: string | null;
+  imageSelectedCandidateId?: string | null;
+  imageCandidates: SceneImageCandidate[];
+};
+
+export type SceneImageCandidate = {
+  candidateId: string;
+  imageS3Key: string;
+  provider?: string | null;
+  providerLogS3Key?: string | null;
+  promptHash?: string | null;
+  mocked?: boolean | null;
+  createdAt: string;
+  selected: boolean;
 };
 
 export type JobDraftDetail = {
@@ -515,6 +528,17 @@ const jobDraftQuery = `
         imagePrompt
         videoPrompt
         validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
       }
     }
   }
@@ -761,6 +785,17 @@ const updateSceneJsonMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
       }
     }
   }
@@ -768,6 +803,7 @@ const updateSceneJsonMutation = `
 
 /** GraphQL `AssetGenerationModality` — matches `lib/modules/publish/graphql/schema.graphql`. */
 export type AssetGenerationModality = "ALL" | "IMAGE" | "VOICE" | "VIDEO";
+export type ImageGenerationProvider = "OPENAI" | "SEEDREAM";
 
 const runAssetGenerationMutation = `
   mutation RunAssetGeneration($input: RunAssetGenerationInput!) {
@@ -784,6 +820,79 @@ const runAssetGenerationMutation = `
       videoTitle
       sceneJsonS3Key
       assetManifestS3Key
+    }
+  }
+`;
+
+const selectSceneImageCandidateMutation = `
+  mutation SelectSceneImageCandidate($input: SelectSceneImageCandidateInput!) {
+    selectSceneImageCandidate(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        sceneJsonS3Key
+        contentId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      topicPlan {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
+      }
     }
   }
 `;
@@ -2565,6 +2674,13 @@ export type RunAssetGenerationMutationInput = {
   jobId: string;
   targetSceneId?: number;
   modality?: AssetGenerationModality;
+  imageProvider?: ImageGenerationProvider;
+};
+
+export type SelectSceneImageCandidateMutationInput = {
+  jobId: string;
+  sceneId: number;
+  candidateId: string;
 };
 
 export const useRunAssetGenerationMutation = (
@@ -2584,6 +2700,26 @@ export const useRunAssetGenerationMutation = (
   });
 };
 
+export const useSelectSceneImageCandidateMutation = (
+  options?: UseMutationOptions<
+    { selectSceneImageCandidate: JobDraftDetail },
+    Error,
+    SelectSceneImageCandidateMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ selectSceneImageCandidate: JobDraftDetail }>(
+        selectSceneImageCandidateMutation,
+        {
+          input,
+        },
+      );
+    },
+    ...options,
+  });
+};
+
 export const useRunFinalCompositionMutation = (
   options?: UseMutationOptions<
     { runFinalComposition: AdminJob },
@@ -2593,9 +2729,12 @@ export const useRunFinalCompositionMutation = (
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ runFinalComposition: AdminJob }>(runFinalCompositionMutation, {
-        input,
-      });
+      return gql<{ runFinalComposition: AdminJob }>(
+        runFinalCompositionMutation,
+        {
+          input,
+        },
+      );
     },
     ...options,
   });

@@ -17,6 +17,15 @@ export type SceneAssetModalitySlice = {
   workHint?: string;
 };
 
+export type SceneImageCandidateCard = {
+  candidateId: string;
+  previewUrl?: string;
+  cdnBlocked?: boolean;
+  provider?: string | null;
+  createdAt: string;
+  selected: boolean;
+};
+
 export type SceneAssetCard = {
   sceneId: number;
   durationSec?: number;
@@ -24,6 +33,7 @@ export type SceneAssetCard = {
   overallStatus: SceneOverallStatus;
   statusLabel: string;
   image: SceneAssetModalitySlice;
+  imageCandidates: SceneImageCandidateCard[];
   voice: SceneAssetModalitySlice;
   video: SceneAssetModalitySlice;
 };
@@ -83,6 +93,15 @@ const buildSceneAssetCardFromScene = (
     overallStatus,
     statusLabel,
     image: buildModalitySlice(row?.imageS3Key, image, validationStatus),
+    imageCandidates: (row?.imageCandidates ?? []).map((candidate) => ({
+      candidateId: candidate.candidateId,
+      previewUrl: buildAssetPreviewUrlFromS3Key(candidate.imageS3Key),
+      cdnBlocked:
+        Boolean(candidate.imageS3Key) && !buildAssetPreviewUrlFromS3Key(candidate.imageS3Key),
+      provider: candidate.provider,
+      createdAt: candidate.createdAt,
+      selected: candidate.selected,
+    })),
     voice: buildModalitySlice(row?.voiceS3Key, voice, validationStatus),
     video: buildModalitySlice(row?.videoClipS3Key, video, validationStatus),
   };

@@ -142,6 +142,19 @@ export type SceneAssetItem = {
   [key: string]: unknown;
 };
 
+export type SceneImageCandidateItem = {
+  PK: string;
+  SK: string;
+  sceneId: number;
+  candidateId: string;
+  imageS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  promptHash?: string;
+  mocked?: boolean;
+  createdAt: string;
+};
+
 const encodeNextToken = (key?: Record<string, unknown>): string | null => {
   if (!key) {
     return null;
@@ -322,6 +335,53 @@ export const upsertSceneAsset = async (
   });
 };
 
+export const putSceneImageCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+  item: Omit<SceneImageCandidateItem, "PK" | "SK" | "sceneId" | "candidateId">,
+): Promise<void> => {
+  await putItem({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#IMAGE_CANDIDATE#${candidateId}`,
+    sceneId,
+    candidateId,
+    ...item,
+  });
+};
+
+export const getSceneImageCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+): Promise<SceneImageCandidateItem | null> => {
+  return getItem<SceneImageCandidateItem>({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#IMAGE_CANDIDATE#${candidateId}`,
+  });
+};
+
+export const listSceneImageCandidates = async (
+  jobId: string,
+  sceneId: number,
+): Promise<SceneImageCandidateItem[]> => {
+  const items = await queryItems<SceneImageCandidateItem>({
+    keyConditionExpression: "PK = :pk AND begins_with(SK, :candidatePrefix)",
+    expressionAttributeValues: {
+      ":pk": jobPk(jobId),
+      ":candidatePrefix": `SCENE#${sceneId}#IMAGE_CANDIDATE#`,
+    },
+    scanIndexForward: false,
+    limit: 100,
+  });
+
+  return items.sort((left, right) => {
+    const a = new Date(right.createdAt).getTime();
+    const b = new Date(left.createdAt).getTime();
+    return a - b;
+  });
+};
+
 export const putRenderArtifact = async (
   jobId: string,
   item: Record<string, unknown>,
@@ -403,7 +463,9 @@ export const listSceneAssets = async (
     limit: 100,
   });
 
-  return items.sort((left, right) => left.sceneId - right.sceneId);
+  return items
+    .filter((item) => /^SCENE#\d+$/.test(item.SK))
+    .sort((left, right) => left.sceneId - right.sceneId);
 };
 
 export const listJobMetasByStatus = async (input: {

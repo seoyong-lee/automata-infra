@@ -103,7 +103,7 @@ export function ContentJobDetailStageApprovalWorkbench({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <Badge variant="outline" className="font-normal px-0">
+                <Badge variant="outline" className="font-normal px-2">
                   {row.status}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">

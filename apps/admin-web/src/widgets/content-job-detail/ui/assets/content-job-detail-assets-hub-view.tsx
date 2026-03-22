@@ -1,9 +1,10 @@
 'use client';
 
-import type { AssetGenerationModality } from '@packages/graphql';
+import type { AssetGenerationModality, ImageGenerationProvider } from '@packages/graphql';
+import { useJobExecutionsQuery } from '@packages/graphql';
 import { cn } from '@packages/ui';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useMemo, useState } from 'react';
 
 import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type { AssetStage } from '../../model';
@@ -12,6 +13,7 @@ import { buildSceneAssetCards } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailStageApprovalWorkbench } from '../stage/content-job-detail-stage-approval-workbench';
 import { ContentJobDetailAssetsSummaryBar } from './content-job-detail-assets-summary-bar';
 import { ContentJobDetailAssetsView } from './content-job-detail-assets-view';
+import { ContentJobDetailRenderPreviewView } from './content-job-detail-render-preview-view';
 import { ContentJobDetailSceneAssetsList } from './content-job-detail-scene-assets-list';
 
 const stages: Array<{ stage: AssetStage; label: string }> = [
@@ -25,13 +27,10 @@ type ContentJobDetailAssetsHubViewProps = {
   assetStage: AssetStage;
   assetsViewMode: AssetsViewMode;
   pageData: ContentJobDetailPageData;
-  mode?: 'ideation' | 'workflow';
 };
 
-function buildAssetsHref(jobId: string, mode: 'ideation' | 'workflow', suffix = ''): string {
-  const glue = suffix.includes('?') ? '&' : '?';
-  const modeQuery = mode === 'ideation' ? `${glue}mode=ideation` : '';
-  return `/jobs/${jobId}/assets${suffix}${modeQuery}`;
+function buildAssetsHref(jobId: string, suffix = ''): string {
+  return `/jobs/${jobId}/assets${suffix}`;
 }
 
 export function ContentJobDetailAssetsHubView({
@@ -39,14 +38,28 @@ export function ContentJobDetailAssetsHubView({
   assetStage,
   assetsViewMode,
   pageData,
-  mode = 'workflow',
 }: ContentJobDetailAssetsHubViewProps) {
   const tabClass =
     'inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
 
+  const execQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
+  const [imageProvider, setImageProvider] = useState<ImageGenerationProvider>('OPENAI');
   const sceneCards = useMemo(() => buildSceneAssetCards(pageData.detail), [pageData.detail]);
+  const latestFailedAssetRun = useMemo(() => {
+    const items = execQuery.data ?? [];
+    const failedRuns = items
+      .filter(
+        (execution) => execution.stageType === 'ASSET_GENERATION' && execution.status === 'FAILED',
+      )
+      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
+    return failedRuns[0];
+  }, [execQuery.data]);
 
-  const runScoped = (input: { targetSceneId?: number; modality: AssetGenerationModality }) => {
+  const runScoped = (input: {
+    targetSceneId?: number;
+    modality: AssetGenerationModality;
+    imageProvider?: ImageGenerationProvider;
+  }) => {
     pageData.runAssetGeneration(input);
   };
 
@@ -55,7 +68,7 @@ export function ContentJobDetailAssetsHubView({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
         <div className="flex flex-wrap gap-2">
           <Link
-            href={buildAssetsHref(jobId, mode)}
+            href={buildAssetsHref(jobId)}
             scroll={false}
             className={cn(
               tabClass,
@@ -67,7 +80,7 @@ export function ContentJobDetailAssetsHubView({
             씬별 보기
           </Link>
           <Link
-            href={buildAssetsHref(jobId, mode, `?view=byKind&stage=${assetStage}`)}
+            href={buildAssetsHref(jobId, `?view=byKind&stage=${assetStage}`)}
             scroll={false}
             className={cn(
               tabClass,
@@ -90,6 +103,22 @@ export function ContentJobDetailAssetsHubView({
         approveError={pageData.approvePipelineExecutionError}
       />
 
+      {latestFailedAssetRun?.errorMessage ? (
+        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
+          <div className="space-y-2">
+            <p className="text-sm font-medium text-destructive">최근 에셋 생성이 실패했습니다</p>
+            <p className="text-sm text-destructive/90">{latestFailedAssetRun.errorMessage}</p>
+            <p className="text-xs text-muted-foreground">
+              자세한 실행 이력은{' '}
+              <Link href={`/jobs/${jobId}/timeline`} className="underline underline-offset-4">
+                실행 이력
+              </Link>
+              에서 확인할 수 있습니다.
+            </p>
+          </div>
+        </div>
+      ) : null}
+
       {assetsViewMode === 'scenes' ? (
         <>
           <ContentJobDetailAssetsSummaryBar
@@ -97,16 +126,35 @@ export function ContentJobDetailAssetsHubView({
             detail={pageData.detail}
             cards={sceneCards}
             isRunning={pageData.isRunningAssetGeneration}
+            isSubmitting={pageData.isSubmittingAssetGeneration}
             error={pageData.runAssetGenerationError}
-            onRunModality={(modality) => runScoped({ modality })}
+            imageProvider={imageProvider}
+            onImageProviderChange={setImageProvider}
+            onRunModality={(input) => runScoped(input)}
           />
           <ContentJobDetailSceneAssetsList
             jobId={jobId}
             cards={sceneCards}
             isRunning={pageData.isRunningAssetGeneration}
-            onRegenerateScene={({ sceneId, modality }) =>
-              runScoped({ targetSceneId: sceneId, modality })
+            isSubmitting={pageData.isSubmittingAssetGeneration}
+            isSelectingImageCandidate={pageData.isSelectingSceneImageCandidate}
+            imageProvider={imageProvider}
+            onImageProviderChange={setImageProvider}
+            onRegenerateScene={({ sceneId, modality, imageProvider }) =>
+              runScoped({ targetSceneId: sceneId, modality, imageProvider })
             }
+            onSelectImageCandidate={(sceneId, candidateId) =>
+              pageData.selectSceneImageCandidate(sceneId, candidateId)
+            }
+          />
+          <ContentJobDetailRenderPreviewView
+            detail={pageData.detail}
+            readyAssetCount={pageData.detailVm.readyAssetCount}
+            workflowPublishHref={`/jobs/${jobId}/publish#cj-publish-review`}
+            workflowTimelineHref={`/jobs/${jobId}/timeline`}
+            isRunningFinalComposition={pageData.isRunningFinalComposition}
+            runFinalCompositionError={pageData.runFinalCompositionError}
+            onRunFinalComposition={pageData.runFinalComposition}
           />
         </>
       ) : (
@@ -118,7 +166,7 @@ export function ContentJobDetailAssetsHubView({
             {stages.map(({ stage, label }) => (
               <Link
                 key={stage}
-                href={buildAssetsHref(jobId, mode, `?view=byKind&stage=${stage}`)}
+                href={buildAssetsHref(jobId, `?view=byKind&stage=${stage}`)}
                 scroll={false}
                 className={cn(
                   tabClass,
@@ -153,8 +201,20 @@ export function ContentJobDetailAssetsHubView({
             detail={pageData.detail}
             error={pageData.runAssetGenerationError}
             isRunning={pageData.isRunningAssetGeneration}
-            onRun={() => pageData.runAssetGeneration()}
+            isSubmitting={pageData.isSubmittingAssetGeneration}
+            imageProvider={imageProvider}
+            onImageProviderChange={setImageProvider}
+            onRun={(imageProvider) => pageData.runAssetGeneration({ imageProvider })}
             stage={assetStage}
+          />
+          <ContentJobDetailRenderPreviewView
+            detail={pageData.detail}
+            readyAssetCount={pageData.detailVm.readyAssetCount}
+            workflowPublishHref={`/jobs/${jobId}/publish#cj-publish-review`}
+            workflowTimelineHref={`/jobs/${jobId}/timeline`}
+            isRunningFinalComposition={pageData.isRunningFinalComposition}
+            runFinalCompositionError={pageData.runFinalCompositionError}
+            onRunFinalComposition={pageData.runFinalComposition}
           />
         </>
       )}

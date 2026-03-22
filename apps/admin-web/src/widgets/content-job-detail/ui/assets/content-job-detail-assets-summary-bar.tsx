@@ -1,6 +1,6 @@
 'use client';
 
-import type { AssetGenerationModality } from '@packages/graphql';
+import type { AssetGenerationModality, ImageGenerationProvider } from '@packages/graphql';
 import { useJobExecutionsQuery } from '@packages/graphql';
 import { Badge } from '@packages/ui/badge';
 import { Button } from '@packages/ui/button';
@@ -11,14 +11,21 @@ import { useMemo } from 'react';
 import { formatJobTimestamp } from '../../lib/format-job-timestamp';
 import type { JobDraftDetail } from '../../model/types';
 import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
+import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
 
 type ContentJobDetailAssetsSummaryBarProps = {
   jobId: string;
   detail?: JobDraftDetail;
   cards: SceneAssetCard[];
   isRunning: boolean;
+  isSubmitting: boolean;
   error: unknown;
-  onRunModality: (modality: AssetGenerationModality) => void;
+  imageProvider: ImageGenerationProvider;
+  onImageProviderChange: (value: ImageGenerationProvider) => void;
+  onRunModality: (input: {
+    modality: AssetGenerationModality;
+    imageProvider?: ImageGenerationProvider;
+  }) => void;
 };
 
 function ratioLine(ready: number, total: number, label: string) {
@@ -37,7 +44,10 @@ export function ContentJobDetailAssetsSummaryBar({
   detail,
   cards,
   isRunning,
+  isSubmitting,
   error,
+  imageProvider,
+  onImageProviderChange,
   onRunModality,
 }: ContentJobDetailAssetsSummaryBarProps) {
   const execQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
@@ -71,15 +81,23 @@ export function ContentJobDetailAssetsSummaryBar({
         <div className="grid gap-4 sm:grid-cols-3">
           <div className="space-y-2 rounded-md border border-border p-3">
             {ratioLine(imageReady, total, '이미지')}
-            <Button
-              type="button"
-              size="sm"
-              className="w-full"
-              disabled={isRunning || total === 0}
-              onClick={() => onRunModality('IMAGE')}
-            >
-              이미지 전체 생성
-            </Button>
+            <div className="flex gap-2">
+              <ContentJobDetailImageModelSelect
+                value={imageProvider}
+                disabled={isRunning || total === 0}
+                onChange={onImageProviderChange}
+                className="min-w-0 flex-1"
+              />
+              <Button
+                type="button"
+                size="sm"
+                className="shrink-0"
+                disabled={isSubmitting || total === 0}
+                onClick={() => onRunModality({ modality: 'IMAGE', imageProvider })}
+              >
+                {isSubmitting ? '요청 중…' : '생성'}
+              </Button>
+            </div>
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">
             {ratioLine(voiceReady, total, '음성')}
@@ -87,10 +105,10 @@ export function ContentJobDetailAssetsSummaryBar({
               type="button"
               size="sm"
               className="w-full"
-              disabled={isRunning || total === 0}
-              onClick={() => onRunModality('VOICE')}
+              disabled={isSubmitting || total === 0}
+              onClick={() => onRunModality({ modality: 'VOICE' })}
             >
-              음성 전체 생성
+              {isSubmitting ? '요청 중…' : '음성 전체 생성'}
             </Button>
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">
@@ -99,10 +117,10 @@ export function ContentJobDetailAssetsSummaryBar({
               type="button"
               size="sm"
               className="w-full"
-              disabled={isRunning || total === 0}
-              onClick={() => onRunModality('VIDEO')}
+              disabled={isSubmitting || total === 0}
+              onClick={() => onRunModality({ modality: 'VIDEO' })}
             >
-              영상 전체 생성
+              {isSubmitting ? '요청 중…' : '영상 전체 생성'}
             </Button>
           </div>
         </div>

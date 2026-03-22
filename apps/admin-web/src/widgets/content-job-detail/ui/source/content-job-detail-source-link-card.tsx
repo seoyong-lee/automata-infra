@@ -52,8 +52,8 @@ export function ContentJobDetailSourceLinkCard({
         <CardContent className="space-y-4">
           {!channelOk ? (
             <p className="text-sm text-amber-600 dark:text-amber-500">
-              이 아이템은 아직 채널에 연결되지 않았습니다. 단건 테스트는 계속 진행할 수 있고, 소재는
-              채널을 붙인 뒤 나중에 연결하면 됩니다.
+              이 아이템은 아직 채널에 연결되지 않았습니다. 워크플로 작업은 계속 진행할 수 있고,
+              소재는 채널을 붙인 뒤 나중에 연결하면 됩니다.
             </p>
           ) : null}
 

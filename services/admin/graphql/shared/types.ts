@@ -274,6 +274,19 @@ export type SceneAssetDto = {
   imagePrompt?: string;
   videoPrompt?: string;
   validationStatus?: string;
+  imageSelectedCandidateId?: string;
+  imageCandidates?: SceneImageCandidateDto[];
+};
+
+export type SceneImageCandidateDto = {
+  candidateId: string;
+  imageS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  promptHash?: string;
+  mocked?: boolean;
+  createdAt: string;
+  selected: boolean;
 };
 
 export type JobDraftDetailDto = {

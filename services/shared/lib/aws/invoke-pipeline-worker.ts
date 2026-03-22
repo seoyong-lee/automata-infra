@@ -7,6 +7,7 @@ const client = new LambdaClient({});
 export type PipelineWorkerAssetGenScope = {
   targetSceneId?: number;
   modality: "all" | "image" | "voice" | "video";
+  imageProvider?: "openai" | "byteplus";
 };
 
 export const invokePipelineWorkerAsync = async (input: {
@@ -28,7 +29,9 @@ export const invokePipelineWorkerAsync = async (input: {
           jobId: input.jobId,
           executionSk: input.executionSk,
           stage: input.stage,
-          ...(input.assetGenScope ? { assetGenScope: input.assetGenScope } : {}),
+          ...(input.assetGenScope
+            ? { assetGenScope: input.assetGenScope }
+            : {}),
         }),
       ),
     }),

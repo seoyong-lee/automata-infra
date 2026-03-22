@@ -61,8 +61,7 @@ export function ContentJobDetailRenderPreviewView({
         <CardHeader>
           <CardTitle>렌더·미리보기</CardTitle>
           <CardDescription>
-            단건 영상은 에셋 생성이 끝났다고 바로 자동화로 넘기지 않고, 최종 합성 결과를 보며
-            수정하는 구간이 필요합니다.
+            에셋 준비가 끝나면 Shotstack 최종 합성을 실행하고, 결과 영상을 바로 확인합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -82,10 +81,6 @@ export function ContentJobDetailRenderPreviewView({
               {renderReady ? '렌더 검토 가능' : '렌더 전 보완 필요'}
             </span>
           </div>
-          <p className="text-sm leading-6 text-muted-foreground">
-            에셋 준비가 끝나면 여기서 Shotstack 최종 합성을 실행하고, 결과 영상을 바로 확인할 수
-            있어야 합니다.
-          </p>
           <div className="grid gap-3 md:grid-cols-3">
             <div className="rounded-xl border border-border bg-background p-4">
               <p className="text-xs font-medium text-muted-foreground">이미지</p>
@@ -189,17 +184,16 @@ export function ContentJobDetailRenderPreviewView({
         <CardHeader>
           <CardTitle>최종 검토 루프</CardTitle>
           <CardDescription>
-            단건 제작은 생성 완료보다 수정 반복이 중요합니다. 이 단계를 통과한 포맷만 자동화
-            대상으로 승격합니다.
+            렌더 결과를 확인하고 수정 포인트를 정리한 뒤 검수 단계로 넘깁니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3 text-sm text-muted-foreground">
           <p>1. 씬별 이미지, 음성, 클립 준비 상태를 맞춥니다.</p>
           <p>2. 최종 렌더 결과를 보고 컷 순서, 속도, 전환, 음성 길이를 점검합니다.</p>
-          <p>3. 수정 후 재렌더를 반복해 스크립트 기반 포맷의 재현 가능성을 확인합니다.</p>
+          <p>3. 수정이 필요하면 에셋 단계로 돌아가 보정하고 다시 렌더합니다.</p>
           <div className="flex flex-wrap gap-2 pt-2">
             <Link href={workflowPublishHref} className={linkClassName}>
-              워크플로 검수 화면 보기
+              검수 화면 보기
             </Link>
             <Link href={workflowTimelineHref} className={linkClassName}>
               실행 이력 보기

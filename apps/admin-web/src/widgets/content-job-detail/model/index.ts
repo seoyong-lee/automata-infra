@@ -4,13 +4,11 @@ export type {
   ContextCard,
   ContentJobDetailViewModel,
   DetailWorkspaceTabKey,
-  JobDetailModeKey,
   ExperimentOption,
   JobDetailRouteTabKey,
   JobDraftDetail,
   LogItem,
   SeedForm,
-  WorkspaceView,
 } from './view-model';
 export {
   buildContentJobDetailContextCards,
@@ -18,23 +16,11 @@ export {
   detailWorkspaceTabKeys,
   detailWorkspaceTabs,
   getJobDetailLegacyRedirect,
-  jobDetailModeKeys,
   jobDetailRouteTabKeys,
   jobDetailRouteTabs,
   parseAssetStage,
   parseAssetsViewMode,
-  parseJobDetailModeParam,
   parseDetailWorkspaceTabParam,
   parseJobDetailRouteTabParam,
-  parseWorkspaceViewParam,
   toSeedForm,
-  workspaceViewKeys,
-  workspaceViews,
 } from './view-model';
-export type { ContentPrimarySection } from '../lib/workspace-sections';
-export {
-  getFirstStepInPrimarySection,
-  getPrimarySectionForStep,
-  getPrimarySectionMeta,
-  primaryWorkspaceSections,
-} from '../lib/workspace-sections';
