@@ -370,6 +370,10 @@ input SubmitReviewDecisionInput {
   jobId: ID!
   action: ReviewDecisionAction!
   regenerationScope: String
+  """
+  image / video / voice 재생성 시 필수(한 씬). metadata 재생성은 생략 가능.
+  """
+  targetSceneId: Int
 }
 
 type ReviewDecisionResult {
@@ -377,6 +381,7 @@ type ReviewDecisionResult {
   jobId: ID!
   action: ReviewAction!
   regenerationScope: String
+  targetSceneId: Int
   status: ReviewDecisionStatus!
 }
 

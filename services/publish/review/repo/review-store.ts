@@ -13,10 +13,14 @@ export const persistReviewDecision = async (input: {
   jobId: string;
   action: ReviewAction;
   regenerationScope: string;
+  targetSceneId?: number;
 }): Promise<void> => {
   await putReviewRecord(input.jobId, {
     action: input.action,
     regenerationScope: input.regenerationScope,
+    ...(typeof input.targetSceneId === "number"
+      ? { targetSceneId: input.targetSceneId }
+      : {}),
     decidedAt: new Date().toISOString(),
   });
 

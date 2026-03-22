@@ -1,4 +1,6 @@
 import { Handler } from "aws-lambda";
+import type { SceneJson } from "../../types/render/scene-json";
+import { pickSceneByReviewTarget } from "../shared/lib/workflow/pick-scene-for-review-regeneration";
 import { saveImageAssets } from "./repo/save-image-assets";
 import { generateSceneImages } from "./usecase/generate-scene-images";
 
@@ -10,11 +12,11 @@ type SceneJsonEvent = {
     sceneId: number;
     imagePrompt: string;
   };
-  sceneJson?: {
-    scenes: Array<{
-      sceneId: number;
-      imagePrompt: string;
-    }>;
+  sceneJson?: SceneJson;
+  reviewDecision?: {
+    action?: string;
+    regenerationScope?: string;
+    targetSceneId?: number;
   };
 };
 
@@ -28,6 +30,21 @@ const getScenes = (event: SceneJsonEvent) => {
       {
         sceneId: event.sceneId,
         imagePrompt: event.imagePrompt,
+      },
+    ];
+  }
+
+  if (typeof event.reviewDecision?.targetSceneId === "number") {
+    const picked = pickSceneByReviewTarget(event);
+    if (!picked) {
+      throw new Error(
+        `targetSceneId ${event.reviewDecision.targetSceneId} not found in sceneJson`,
+      );
+    }
+    return [
+      {
+        sceneId: picked.sceneId,
+        imagePrompt: picked.imagePrompt,
       },
     ];
   }

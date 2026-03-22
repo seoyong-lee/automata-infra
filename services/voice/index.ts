@@ -1,4 +1,6 @@
 import { Handler } from "aws-lambda";
+import type { SceneJson } from "../../types/render/scene-json";
+import { pickSceneByReviewTarget } from "../shared/lib/workflow/pick-scene-for-review-regeneration";
 import { saveVoiceAssets } from "./repo/save-voice-assets";
 import { generateSceneVoices } from "./usecase/generate-scene-voices";
 
@@ -12,12 +14,11 @@ type SceneJsonEvent = {
     narration: string;
     durationSec: number;
   };
-  sceneJson?: {
-    scenes: Array<{
-      sceneId: number;
-      narration: string;
-      durationSec: number;
-    }>;
+  sceneJson?: SceneJson;
+  reviewDecision?: {
+    action?: string;
+    regenerationScope?: string;
+    targetSceneId?: number;
   };
 };
 
@@ -36,6 +37,22 @@ const getScenes = (event: SceneJsonEvent) => {
         sceneId: event.sceneId,
         narration: event.narration,
         durationSec: event.durationSec,
+      },
+    ];
+  }
+
+  if (typeof event.reviewDecision?.targetSceneId === "number") {
+    const picked = pickSceneByReviewTarget(event);
+    if (!picked) {
+      throw new Error(
+        `targetSceneId ${event.reviewDecision.targetSceneId} not found in sceneJson`,
+      );
+    }
+    return [
+      {
+        sceneId: picked.sceneId,
+        narration: picked.narration,
+        durationSec: picked.durationSec,
       },
     ];
   }

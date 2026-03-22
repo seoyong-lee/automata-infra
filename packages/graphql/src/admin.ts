@@ -527,6 +527,7 @@ const submitReviewMutation = `
       jobId
       action
       regenerationScope
+      targetSceneId
       status
     }
   }
@@ -2168,21 +2169,31 @@ export const useUpdateContentPublishDraftMutation = (
 
 export const useSubmitReviewDecisionMutation = (
   options?: UseMutationOptions<
-    { submitReviewDecision: { ok: boolean; status: string } },
+    {
+      submitReviewDecision: {
+        ok: boolean;
+        status: string;
+        targetSceneId?: number | null;
+      };
+    },
     Error,
     {
       jobId: string;
       action: "APPROVE" | "REJECT" | "REGENERATE";
       regenerationScope?: string;
+      targetSceneId?: number;
     }
   >,
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ submitReviewDecision: { ok: boolean; status: string } }>(
-        submitReviewMutation,
-        { input },
-      );
+      return gql<{
+        submitReviewDecision: {
+          ok: boolean;
+          status: string;
+          targetSceneId?: number | null;
+        };
+      }>(submitReviewMutation, { input });
     },
     ...options,
   });

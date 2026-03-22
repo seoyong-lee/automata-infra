@@ -1,16 +1,27 @@
 import { processReviewDecision } from "../../../../publish/review/usecase/process-review-decision";
+import type { SubmitReviewDecisionInput } from "../../../../shared/lib/contracts/review-decision-schema";
 import { GraphqlResolverError } from "../../shared/errors";
-import { mapReviewAction } from "../mapper/map-review-action";
 
-export const submitReviewDecision = async (input: {
-  jobId: string;
-  action: string;
-  regenerationScope: string;
-}) => {
+const toGraphqlAction = (
+  action: SubmitReviewDecisionInput["action"],
+): "APPROVE" | "REJECT" | "REGENERATE" => {
+  if (action === "approve") {
+    return "APPROVE";
+  }
+  if (action === "reject") {
+    return "REJECT";
+  }
+  return "REGENERATE";
+};
+
+export const submitReviewDecision = async (
+  input: SubmitReviewDecisionInput,
+) => {
   const result = await processReviewDecision({
     jobId: input.jobId,
-    action: mapReviewAction(input.action),
+    action: input.action,
     regenerationScope: input.regenerationScope,
+    targetSceneId: input.targetSceneId,
   });
 
   if (!result.ok) {
@@ -18,6 +29,12 @@ export const submitReviewDecision = async (input: {
       throw new GraphqlResolverError({
         code: "NOT_FOUND",
         message: result.error ?? "pending review task not found",
+      });
+    }
+    if (result.statusCode === 400) {
+      throw new GraphqlResolverError({
+        code: "BAD_USER_INPUT",
+        message: result.error ?? "invalid review decision",
       });
     }
     throw new GraphqlResolverError({
@@ -29,8 +46,11 @@ export const submitReviewDecision = async (input: {
   return {
     ok: true,
     jobId: input.jobId,
-    action: input.action.toUpperCase(),
+    action: toGraphqlAction(input.action),
     regenerationScope: input.regenerationScope,
-    status: "REVIEW_DECISION_RECORDED",
+    ...(typeof input.targetSceneId === "number"
+      ? { targetSceneId: input.targetSceneId }
+      : {}),
+    status: "REVIEW_DECISION_RECORDED" as const,
   };
 };

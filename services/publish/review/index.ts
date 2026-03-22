@@ -4,7 +4,7 @@ import { parseReviewBody } from "./normalize/parse-review-body";
 import { processReviewDecision } from "./usecase/process-review-decision";
 
 export const run: APIGatewayProxyHandler = async (event) => {
-  const { jobId, action, regenerationScope } = parseReviewBody(
+  const { jobId, action, regenerationScope, targetSceneId } = parseReviewBody(
     event.body ?? null,
   );
 
@@ -16,6 +16,7 @@ export const run: APIGatewayProxyHandler = async (event) => {
     jobId,
     action,
     regenerationScope,
+    targetSceneId,
   });
 
   if (!result.ok) {
