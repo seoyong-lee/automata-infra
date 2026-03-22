@@ -11,13 +11,16 @@ import {
 } from '@/widgets/settings';
 import { useAdminContents } from '@/entities/admin-content';
 import { useLlmSettings } from '@/entities/llm-step';
+import { useVoiceProfiles } from '@/entities/voice-profile';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 export function SettingsPage() {
   const settingsQuery = useLlmSettings();
+  const voiceProfilesQuery = useVoiceProfiles();
   const contentsQuery = useAdminContents({ limit: 100 });
   const [activeSection, setActiveSection] = useState<SettingsSection>('general');
   const items = settingsQuery.data ?? [];
+  const voiceProfiles = voiceProfilesQuery.data ?? [];
   const contents = contentsQuery.data?.items ?? [];
   const channelSummary = getChannelSummary(contents);
 
@@ -37,6 +40,7 @@ export function SettingsPage() {
       <SettingsSectionContent
         activeSection={activeSection}
         items={items}
+        voiceProfiles={voiceProfiles}
         contents={contents}
         channelSummary={channelSummary}
       />

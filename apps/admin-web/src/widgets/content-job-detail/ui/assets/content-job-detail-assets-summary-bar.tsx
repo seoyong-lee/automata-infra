@@ -8,6 +8,7 @@ import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
 import { useMemo } from 'react';
 
+import type { VoiceProfile } from '@/entities/voice-profile';
 import { formatJobTimestamp } from '../../lib/format-job-timestamp';
 import type { JobDraftDetail } from '../../model/types';
 import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
@@ -20,8 +21,12 @@ type ContentJobDetailAssetsSummaryBarProps = {
   isRunning: boolean;
   isSubmitting: boolean;
   error: unknown;
+  voiceProfiles: VoiceProfile[];
+  isSavingVoiceProfileSelection: boolean;
+  voiceSelectionError: unknown;
   imageProvider: ImageGenerationProvider;
   onImageProviderChange: (value: ImageGenerationProvider) => void;
+  onJobVoiceProfileChange: (profileId?: string) => void;
   onRunModality: (input: {
     modality: AssetGenerationModality;
     imageProvider?: ImageGenerationProvider;
@@ -46,8 +51,12 @@ export function ContentJobDetailAssetsSummaryBar({
   isRunning,
   isSubmitting,
   error,
+  voiceProfiles,
+  isSavingVoiceProfileSelection,
+  voiceSelectionError,
   imageProvider,
   onImageProviderChange,
+  onJobVoiceProfileChange,
   onRunModality,
 }: ContentJobDetailAssetsSummaryBarProps) {
   const execQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
@@ -68,6 +77,7 @@ export function ContentJobDetailAssetsSummaryBar({
   }, [execQuery.data]);
 
   const adoptedId = detail?.job.approvedAssetExecutionId?.trim();
+  const defaultVoiceProfileId = detail?.job.defaultVoiceProfileId ?? '';
 
   return (
     <Card>
@@ -101,6 +111,21 @@ export function ContentJobDetailAssetsSummaryBar({
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">
             {ratioLine(voiceReady, total, '음성')}
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+              value={defaultVoiceProfileId}
+              disabled={isSavingVoiceProfileSelection}
+              onChange={(event) =>
+                onJobVoiceProfileChange(event.target.value ? event.target.value : undefined)
+              }
+            >
+              <option value="">기본 보이스 미지정 (시크릿 기본값)</option>
+              {voiceProfiles.map((profile) => (
+                <option key={profile.profileId} value={profile.profileId}>
+                  {profile.label}
+                </option>
+              ))}
+            </select>
             <Button
               type="button"
               size="sm"
@@ -152,6 +177,9 @@ export function ContentJobDetailAssetsSummaryBar({
         </div>
 
         {error ? <p className="text-sm text-destructive">{getErrorMessage(error)}</p> : null}
+        {voiceSelectionError ? (
+          <p className="text-sm text-destructive">{getErrorMessage(voiceSelectionError)}</p>
+        ) : null}
       </CardContent>
     </Card>
   );

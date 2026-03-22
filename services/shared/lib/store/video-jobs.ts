@@ -50,6 +50,7 @@ export type JobMetaItem = {
   approvedSceneExecutionId?: string;
   /** 에셋 생성 단계에서 승인한 실행 ID. */
   approvedAssetExecutionId?: string;
+  defaultVoiceProfileId?: string;
   /** 소재(SourceItem) id. 멀티 채널 배포 모델. */
   sourceItemId?: string;
   createdAt: string;
@@ -139,6 +140,7 @@ export type SceneAssetItem = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceProfileId?: string;
   validationStatus?: string;
   [key: string]: unknown;
 };

@@ -6,6 +6,7 @@ import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { cn } from '@packages/ui';
 import { getErrorMessage } from '@packages/utils';
+import type { PipelineExecution } from '@packages/graphql';
 import Link from 'next/link';
 
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
@@ -19,6 +20,7 @@ type ContentJobDetailRenderPreviewViewProps = {
   isRunningFinalComposition: boolean;
   runFinalCompositionError: Error | null;
   onRunFinalComposition: (opts?: { burnInSubtitles?: boolean }) => void;
+  latestRenderExecution?: PipelineExecution;
 };
 
 const linkClassName =
@@ -35,6 +37,52 @@ function hasAnyMedia(detail: JobDraftDetail | undefined, kind: 'image' | 'voice'
   return assets.some((asset) => Boolean(asset.videoClipS3Key));
 }
 
+function formatExecutionTime(value?: string | null) {
+  if (!value) {
+    return '—';
+  }
+  const date = new Date(value);
+  if (Number.isNaN(date.getTime())) {
+    return value;
+  }
+  return date.toLocaleString('ko-KR');
+}
+
+function formatExecutionDuration(startedAt?: string, completedAt?: string | null) {
+  if (!startedAt || !completedAt) {
+    return '—';
+  }
+  const start = new Date(startedAt).getTime();
+  const end = new Date(completedAt).getTime();
+  if (Number.isNaN(start) || Number.isNaN(end) || end < start) {
+    return '—';
+  }
+  return `${Math.round((end - start) / 1000)}초`;
+}
+
+function getRenderStatusTone(status: PipelineExecution['status']) {
+  if (status === 'SUCCEEDED') {
+    return 'bg-emerald-500/10 text-emerald-700 dark:text-emerald-300';
+  }
+  if (status === 'FAILED') {
+    return 'bg-destructive/10 text-destructive';
+  }
+  return 'bg-amber-500/10 text-amber-800 dark:text-amber-300';
+}
+
+function getRenderStatusLabel(status: PipelineExecution['status']) {
+  if (status === 'QUEUED') {
+    return '대기 중';
+  }
+  if (status === 'RUNNING') {
+    return '렌더링 중';
+  }
+  if (status === 'SUCCEEDED') {
+    return '완료';
+  }
+  return '실패';
+}
+
 export function ContentJobDetailRenderPreviewView({
   detail,
   readyAssetCount,
@@ -43,6 +91,7 @@ export function ContentJobDetailRenderPreviewView({
   isRunningFinalComposition,
   runFinalCompositionError,
   onRunFinalComposition,
+  latestRenderExecution,
 }: ContentJobDetailRenderPreviewViewProps) {
   const [burnInSubtitles, setBurnInSubtitles] = useState(false);
   const totalScenes = detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0;
@@ -112,6 +161,45 @@ export function ContentJobDetailRenderPreviewView({
               </p>
             </div>
           </div>
+          {latestRenderExecution ? (
+            <div className="rounded-xl border border-border bg-muted/20 p-4">
+              <div className="flex flex-wrap items-center gap-2">
+                <p className="text-sm font-medium text-foreground">렌더 실행 현황</p>
+                <span
+                  className={cn(
+                    'rounded-full px-2.5 py-1 text-xs font-medium',
+                    getRenderStatusTone(latestRenderExecution.status),
+                  )}
+                >
+                  {getRenderStatusLabel(latestRenderExecution.status)}
+                </span>
+              </div>
+              <div className="mt-3 grid gap-3 text-xs text-muted-foreground md:grid-cols-3">
+                <div>
+                  <p>시작 시각</p>
+                  <p className="mt-1 text-foreground">{formatExecutionTime(latestRenderExecution.startedAt)}</p>
+                </div>
+                <div>
+                  <p>완료 시각</p>
+                  <p className="mt-1 text-foreground">
+                    {formatExecutionTime(latestRenderExecution.completedAt)}
+                  </p>
+                </div>
+                <div>
+                  <p>소요 시간</p>
+                  <p className="mt-1 text-foreground">
+                    {formatExecutionDuration(
+                      latestRenderExecution.startedAt,
+                      latestRenderExecution.completedAt,
+                    )}
+                  </p>
+                </div>
+              </div>
+              {latestRenderExecution.errorMessage ? (
+                <p className="mt-3 text-sm text-destructive">{latestRenderExecution.errorMessage}</p>
+              ) : null}
+            </div>
+          ) : null}
           <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
             <input
               type="checkbox"

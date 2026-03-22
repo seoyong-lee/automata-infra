@@ -6,6 +6,8 @@ import { cn } from '@packages/ui';
 import Link from 'next/link';
 import { useMemo, useState } from 'react';
 
+import { useVoiceProfiles } from '@/entities/voice-profile';
+
 import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type { AssetStage } from '../../model';
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
@@ -43,6 +45,7 @@ export function ContentJobDetailAssetsHubView({
     'inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
 
   const execQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
+  const voiceProfilesQuery = useVoiceProfiles();
   const [imageProvider, setImageProvider] = useState<ImageGenerationProvider>('OPENAI');
   const sceneCards = useMemo(() => buildSceneAssetCards(pageData.detail), [pageData.detail]);
   const assetRunSummary = useMemo(() => {
@@ -51,7 +54,9 @@ export function ContentJobDetailAssetsHubView({
     const byRecent = (a: (typeof assetRuns)[number], b: (typeof assetRuns)[number]) =>
       new Date(b.completedAt ?? b.startedAt).getTime() -
       new Date(a.completedAt ?? a.startedAt).getTime();
-    const latestFailed = [...assetRuns].filter((execution) => execution.status === 'FAILED').sort(byRecent)[0];
+    const latestFailed = [...assetRuns]
+      .filter((execution) => execution.status === 'FAILED')
+      .sort(byRecent)[0];
     const latestSucceeded = [...assetRuns]
       .filter((execution) => execution.status === 'SUCCEEDED')
       .sort(byRecent)[0];
@@ -64,6 +69,17 @@ export function ContentJobDetailAssetsHubView({
       collapseFailure,
     };
   }, [execQuery.data]);
+  const latestRenderExecution = useMemo(() => {
+    const items = execQuery.data ?? [];
+    return [...items]
+      .filter((execution) => execution.stageType === 'FINAL_COMPOSITION')
+      .sort(
+        (a, b) =>
+          new Date(b.completedAt ?? b.startedAt).getTime() -
+          new Date(a.completedAt ?? a.startedAt).getTime(),
+      )[0];
+  }, [execQuery.data]);
+  const voiceProfiles = voiceProfilesQuery.data ?? [];
 
   const runScoped = (input: {
     targetSceneId?: number;
@@ -127,7 +143,9 @@ export function ContentJobDetailAssetsHubView({
             ) : null}
           </summary>
           <div className="mt-3 space-y-2">
-            <p className="text-sm text-destructive/90">{assetRunSummary.latestFailed.errorMessage}</p>
+            <p className="text-sm text-destructive/90">
+              {assetRunSummary.latestFailed.errorMessage}
+            </p>
             <p className="text-xs text-muted-foreground">
               자세한 실행 이력은{' '}
               <Link href={`/jobs/${jobId}/timeline`} className="underline underline-offset-4">
@@ -148,8 +166,12 @@ export function ContentJobDetailAssetsHubView({
             isRunning={pageData.isRunningAssetGeneration}
             isSubmitting={pageData.isSubmittingAssetGeneration}
             error={pageData.runAssetGenerationError}
+            voiceProfiles={voiceProfiles}
+            isSavingVoiceProfileSelection={pageData.isSavingVoiceProfileSelection}
+            voiceSelectionError={pageData.setVoiceProfileError}
             imageProvider={imageProvider}
             onImageProviderChange={setImageProvider}
+            onJobVoiceProfileChange={pageData.setJobDefaultVoiceProfile}
             onRunModality={(input) => runScoped(input)}
           />
           <ContentJobDetailSceneAssetsList
@@ -160,6 +182,9 @@ export function ContentJobDetailAssetsHubView({
             isSelectingImageCandidate={pageData.isSelectingSceneImageCandidate}
             imageProvider={imageProvider}
             onImageProviderChange={setImageProvider}
+            voiceProfiles={voiceProfiles}
+            isSavingVoiceProfileSelection={pageData.isSavingVoiceProfileSelection}
+            onSceneVoiceProfileChange={pageData.setSceneVoiceProfile}
             onRegenerateScene={({ sceneId, modality, imageProvider }) =>
               runScoped({ targetSceneId: sceneId, modality, imageProvider })
             }
@@ -175,6 +200,7 @@ export function ContentJobDetailAssetsHubView({
             isRunningFinalComposition={pageData.isRunningFinalComposition}
             runFinalCompositionError={pageData.runFinalCompositionError}
             onRunFinalComposition={pageData.runFinalComposition}
+            latestRenderExecution={latestRenderExecution}
           />
         </>
       ) : (
@@ -235,6 +261,7 @@ export function ContentJobDetailAssetsHubView({
             isRunningFinalComposition={pageData.isRunningFinalComposition}
             runFinalCompositionError={pageData.runFinalCompositionError}
             onRunFinalComposition={pageData.runFinalComposition}
+            latestRenderExecution={latestRenderExecution}
           />
         </>
       )}

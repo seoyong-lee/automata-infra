@@ -5,6 +5,7 @@ export * from './ui/models-section';
 export * from './ui/providers-section';
 export * from './ui/publish-policy-section';
 export * from './ui/runtime-section';
+export * from './ui/voices-section';
 export * from './ui/settings-section-content';
 export * from './ui/settings-section-tabs-card';
 export * from './ui/settings-overview-card';

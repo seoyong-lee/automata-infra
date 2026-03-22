@@ -124,6 +124,7 @@ export type AdminJobDto = {
   approvedTopicExecutionId?: string;
   approvedSceneExecutionId?: string;
   approvedAssetExecutionId?: string;
+  defaultVoiceProfileId?: string;
 };
 
 export type ConnectionDto<T> = {
@@ -268,6 +269,7 @@ export type SceneAssetDto = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceProfileId?: string;
   voiceDurationSec?: number;
   durationSec?: number;
   narration?: string;
@@ -277,6 +279,25 @@ export type SceneAssetDto = {
   validationStatus?: string;
   imageSelectedCandidateId?: string;
   imageCandidates?: SceneImageCandidateDto[];
+};
+
+export type VoiceProfileDto = {
+  profileId: string;
+  label: string;
+  provider: string;
+  voiceId: string;
+  modelId?: string;
+  sampleAudioUrl?: string;
+  description?: string;
+  language?: string;
+  speed?: number;
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+  useSpeakerBoost?: boolean;
+  isActive: boolean;
+  updatedAt: string;
+  updatedBy: string;
 };
 
 export type SceneImageCandidateDto = {

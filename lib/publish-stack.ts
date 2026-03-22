@@ -312,6 +312,26 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const listVoiceProfilesResolver = createLambda(
+      this,
+      "AdminListVoiceProfilesResolverLambda",
+      `${props.projectPrefix}-admin-list-voice-profiles`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/list-voice-profiles/handler.ts",
+      ),
+      environment,
+    );
+    const upsertVoiceProfileResolver = createLambda(
+      this,
+      "AdminUpsertVoiceProfileResolverLambda",
+      `${props.projectPrefix}-admin-upsert-voice-profile`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/upsert-voice-profile/handler.ts",
+      ),
+      environment,
+    );
     const getJobDraftResolver = createLambda(
       this,
       "AdminGetJobDraftResolverLambda",
@@ -389,6 +409,26 @@ export class PublishStack extends Stack {
       path.join(
         process.cwd(),
         "services/admin/graphql/select-scene-image-candidate/handler.ts",
+      ),
+      environment,
+    );
+    const setJobDefaultVoiceProfileResolver = createLambda(
+      this,
+      "AdminSetJobDefaultVoiceProfileResolverLambda",
+      `${props.projectPrefix}-admin-set-job-default-voice-profile`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/set-job-default-voice-profile/handler.ts",
+      ),
+      environment,
+    );
+    const setSceneVoiceProfileResolver = createLambda(
+      this,
+      "AdminSetSceneVoiceProfileResolverLambda",
+      `${props.projectPrefix}-admin-set-scene-voice-profile`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/set-scene-voice-profile/handler.ts",
       ),
       environment,
     );
@@ -557,6 +597,8 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
     props.jobsTable.grantReadWriteData(selectSceneImageCandidateResolver);
+    props.jobsTable.grantReadWriteData(setJobDefaultVoiceProfileResolver);
+    props.jobsTable.grantReadWriteData(setSceneVoiceProfileResolver);
     props.jobsTable.grantReadWriteData(runFinalCompositionResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
@@ -584,11 +626,15 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
+    props.assetsBucket.grantReadWrite(setJobDefaultVoiceProfileResolver);
+    props.assetsBucket.grantReadWrite(setSceneVoiceProfileResolver);
     props.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     props.assetsBucket.grantReadWrite(deleteJobResolver);
     props.assetsBucket.grantReadWrite(attachJobToContentResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
+    props.llmConfigTable.grantReadData(listVoiceProfilesResolver);
+    props.llmConfigTable.grantReadWriteData(upsertVoiceProfileResolver);
     /** generateStepStructuredData → getLlmStepSettings(GetItem) */
     props.llmConfigTable.grantReadData(createDraftJobResolver);
     props.llmConfigTable.grantReadData(runTopicPlanResolver);
@@ -682,6 +728,8 @@ export class PublishStack extends Stack {
       requestUploadResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
+      listVoiceProfilesResolver,
+      upsertVoiceProfileResolver,
       getJobDraftResolver,
       createContentResolver,
       updateContentResolver,
@@ -693,6 +741,8 @@ export class PublishStack extends Stack {
       updateSceneJsonResolver,
       runAssetGenerationResolver,
       selectSceneImageCandidateResolver,
+      setJobDefaultVoiceProfileResolver,
+      setSceneVoiceProfileResolver,
       runFinalCompositionResolver,
       deleteJobResolver,
       attachJobToContentResolver,

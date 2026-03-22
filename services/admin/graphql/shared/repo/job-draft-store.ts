@@ -54,6 +54,10 @@ const mapSceneAsset = (asset: SceneAssetItem) => {
     imageS3Key: asset.imageS3Key,
     videoClipS3Key: asset.videoClipS3Key,
     voiceS3Key: asset.voiceS3Key,
+    voiceProfileId:
+      typeof asset.voiceProfileId === "string"
+        ? asset.voiceProfileId
+        : undefined,
     voiceDurationSec:
       typeof asset.voiceDurationSec === "number"
         ? asset.voiceDurationSec

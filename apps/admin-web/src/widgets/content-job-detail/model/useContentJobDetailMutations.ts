@@ -13,6 +13,7 @@ import {
   useUpdateContentJobSceneJson,
   useUpdateContentJobTopicSeed,
 } from '@/entities/content-job';
+import { useSetJobDefaultVoiceProfile, useSetSceneVoiceProfile } from '@/entities/voice-profile';
 
 const createPublishDomainInvalidator = (
   queryClient: ReturnType<typeof useQueryClient>,
@@ -29,10 +30,7 @@ const createPublishDomainInvalidator = (
 
 export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Promise<void>) => {
   const queryClient = useQueryClient();
-  const invalidateQueue = async (contentId: string) => {
-    await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] });
-    await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] });
-  };
+  const invalidateQueue = async (contentId: string) => { await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] }); await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] }); };
   const invalidatePublishDomain = createPublishDomainInvalidator(queryClient, jobId);
   const updateTopicSeed = useUpdateContentJobTopicSeed({ onSuccess });
   const runTopicPlan = useRunContentJobTopicPlan({ onSuccess });
@@ -40,26 +38,20 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
   const updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
   const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess });
   const selectSceneImageCandidate = useSelectContentJobSceneImageCandidate({ onSuccess });
+  const setJobDefaultVoiceProfile = useSetJobDefaultVoiceProfile({ onSuccess });
+  const setSceneVoiceProfile = useSetSceneVoiceProfile({ onSuccess });
   const runFinalComposition = useRunContentJobFinalComposition({ onSuccess });
   const requestUpload = useRequestContentJobUpload({ onSuccess });
   const approvePipelineExecution = useApproveContentJobPipelineExecution({ onSuccess });
-  const enqueueToChannelPublishQueue = useEnqueueContentJobToChannelQueue({
-    onSuccess: async (_data, variables) => {
-      await onSuccess();
-      await invalidateQueue(variables.contentId);
-    },
-  });
-  const runPublishOrchestration = useRunContentJobPublishOrchestration({
-    onSuccess: async () => {
-      await onSuccess();
-      await invalidatePublishDomain();
-    },
-  });
+  const enqueueToChannelPublishQueue = useEnqueueContentJobToChannelQueue({ onSuccess: async (_data, variables) => { await onSuccess(); await invalidateQueue(variables.contentId); } });
+  const runPublishOrchestration = useRunContentJobPublishOrchestration({ onSuccess: async () => { await onSuccess(); await invalidatePublishDomain(); } });
 
   return {
     requestUpload,
     runAssetGeneration,
     selectSceneImageCandidate,
+    setJobDefaultVoiceProfile,
+    setSceneVoiceProfile,
     runFinalComposition,
     runSceneJson,
     runTopicPlan,

@@ -20,6 +20,8 @@ type CreatePublishGraphqlApiProps = {
   requestUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
+  listVoiceProfilesResolver: lambda.IFunction;
+  upsertVoiceProfileResolver: lambda.IFunction;
   getJobDraftResolver: lambda.IFunction;
   createContentResolver: lambda.IFunction;
   updateContentResolver: lambda.IFunction;
@@ -31,6 +33,8 @@ type CreatePublishGraphqlApiProps = {
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
   selectSceneImageCandidateResolver: lambda.IFunction;
+  setJobDefaultVoiceProfileResolver: lambda.IFunction;
+  setSceneVoiceProfileResolver: lambda.IFunction;
   runFinalCompositionResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
@@ -151,10 +155,24 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "ListVoiceProfiles",
+    "voiceProfiles",
+    "Query",
+    props.listVoiceProfilesResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "UpdateLlmStepSettings",
     "updateLlmStepSettings",
     "Mutation",
     props.updateLlmSettingsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpsertVoiceProfile",
+    "upsertVoiceProfile",
+    "Mutation",
+    props.upsertVoiceProfileResolver,
   );
   addLambdaResolver(
     graphqlApi,
@@ -225,6 +243,20 @@ export const createPublishGraphqlApi = (
     "selectSceneImageCandidate",
     "Mutation",
     props.selectSceneImageCandidateResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SetJobDefaultVoiceProfile",
+    "setJobDefaultVoiceProfile",
+    "Mutation",
+    props.setJobDefaultVoiceProfileResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SetSceneVoiceProfile",
+    "setSceneVoiceProfile",
+    "Mutation",
+    props.setSceneVoiceProfileResolver,
   );
   addLambdaResolver(
     graphqlApi,

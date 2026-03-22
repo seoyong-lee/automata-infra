@@ -2,6 +2,7 @@
 
 import type { AssetGenerationModality, ImageGenerationProvider } from '@packages/graphql';
 
+import type { VoiceProfile } from '@/entities/voice-profile';
 import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailSceneAssetCard } from './content-job-detail-scene-asset-card';
 
@@ -19,6 +20,9 @@ type ContentJobDetailSceneAssetsListProps = {
   isSelectingImageCandidate: boolean;
   imageProvider: ImageGenerationProvider;
   onImageProviderChange: (value: ImageGenerationProvider) => void;
+  voiceProfiles: VoiceProfile[];
+  isSavingVoiceProfileSelection: boolean;
+  onSceneVoiceProfileChange: (sceneId: number, profileId?: string) => void;
 };
 
 export function ContentJobDetailSceneAssetsList({
@@ -31,6 +35,9 @@ export function ContentJobDetailSceneAssetsList({
   isSelectingImageCandidate,
   imageProvider,
   onImageProviderChange,
+  voiceProfiles,
+  isSavingVoiceProfileSelection,
+  onSceneVoiceProfileChange,
 }: ContentJobDetailSceneAssetsListProps) {
   if (cards.length === 0) {
     return (
@@ -54,6 +61,9 @@ export function ContentJobDetailSceneAssetsList({
           isSelectingImageCandidate={isSelectingImageCandidate}
           imageProvider={imageProvider}
           onImageProviderChange={onImageProviderChange}
+          voiceProfiles={voiceProfiles}
+          isSavingVoiceProfileSelection={isSavingVoiceProfileSelection}
+          onSceneVoiceProfileChange={onSceneVoiceProfileChange}
         />
       ))}
     </div>

@@ -9,8 +9,10 @@ import {
 } from "../../../../shared/lib/store/job-execution";
 import {
   getSceneAsset,
+  listSceneAssets,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
+import { getVoiceProfile } from "../../../../shared/lib/store/voice-profiles";
 import { generateSceneImages } from "../../../../image/usecase/generate-scene-images";
 import { saveImageAssets } from "../../../../image/repo/save-image-assets";
 import { generateSceneVideos } from "../../../../video-generation/usecase/generate-scene-videos";
@@ -21,6 +23,7 @@ import { resolveSceneJsonS3KeyForAssetGeneration } from "../../shared/lib/resolv
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { persistAssetManifestForJob } from "../repo/persist-asset-manifest";
+import { notFound } from "../../shared/errors";
 import {
   finalizeSceneAssetsReadiness,
   recomputeSceneAssetsReadiness,
@@ -191,11 +194,59 @@ const runVoiceModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
 ) => {
-  const voiceScenes = scenes.map((scene) => ({
-    sceneId: scene.sceneId,
-    narration: scene.narration,
-    durationSec: scene.durationSec,
-  }));
+  const job = await getJobOrThrow(jobId);
+  const sceneAssets = await listSceneAssets(jobId);
+  const sceneAssetMap = new Map(sceneAssets.map((asset) => [asset.sceneId, asset]));
+  const pickProfileId = (sceneId: number): string | undefined => {
+    const sceneAsset = sceneAssetMap.get(sceneId);
+    if (
+      typeof sceneAsset?.voiceProfileId === "string" &&
+      sceneAsset.voiceProfileId.trim().length > 0
+    ) {
+      return sceneAsset.voiceProfileId;
+    }
+    if (
+      typeof job.defaultVoiceProfileId === "string" &&
+      job.defaultVoiceProfileId.trim().length > 0
+    ) {
+      return job.defaultVoiceProfileId;
+    }
+    return undefined;
+  };
+  const buildVoiceSettings = (
+    profile: Awaited<ReturnType<typeof getVoiceProfile>>,
+  ) => ({
+    ...(typeof profile?.speed === "number" ? { speed: profile.speed } : {}),
+    ...(typeof profile?.stability === "number"
+      ? { stability: profile.stability }
+      : {}),
+    ...(typeof profile?.similarityBoost === "number"
+      ? { similarityBoost: profile.similarityBoost }
+      : {}),
+    ...(typeof profile?.style === "number" ? { style: profile.style } : {}),
+    ...(typeof profile?.useSpeakerBoost === "boolean"
+      ? { useSpeakerBoost: profile.useSpeakerBoost }
+      : {}),
+  });
+  const buildVoiceScene = async (scene: SceneDefinition) => {
+    const selectedProfileId = pickProfileId(scene.sceneId);
+    const selectedProfile = selectedProfileId
+      ? await getVoiceProfile(selectedProfileId)
+      : null;
+    if (selectedProfileId && !selectedProfile) {
+      throw notFound(`voice profile not found: ${selectedProfileId}`);
+    }
+    return {
+      sceneId: scene.sceneId,
+      narration: scene.narration,
+      durationSec: scene.durationSec,
+      voiceProfileId: selectedProfile?.profileId,
+      voiceId: selectedProfile?.voiceId,
+      modelId: selectedProfile?.modelId,
+      voiceSettings: buildVoiceSettings(selectedProfile),
+    };
+  };
+  const voiceScenes = await Promise.all(scenes.map(buildVoiceScene));
   const voiceAssets = await generateSceneVoices({
     jobId,
     scenes: voiceScenes,

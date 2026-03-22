@@ -13,6 +13,11 @@ import { createContentJobDetailRefresh } from './useContentJobDetailRefresh';
 import { buildContentJobDetailViewModel } from './view-model';
 
 type ContentJobDetailMutations = ReturnType<typeof useContentJobDetailMutations>;
+type RunAssetGenerationOptions = {
+  targetSceneId?: number;
+  modality?: AssetGenerationModality;
+  imageProvider?: ImageGenerationProvider;
+};
 
 const DETAIL_POLL_ACTIVE_STATUSES = new Set([
   'PLANNING',
@@ -63,6 +68,8 @@ function buildPendingState(
     isRunningTopicPlan: mutations.runTopicPlan.isPending || status === 'PLANNING',
     isSavingSceneJson: mutations.updateSceneJson.isPending,
     isSelectingSceneImageCandidate: mutations.selectSceneImageCandidate.isPending,
+    isSavingVoiceProfileSelection:
+      mutations.setJobDefaultVoiceProfile.isPending || mutations.setSceneVoiceProfile.isPending,
     isSavingTopicSeed: mutations.updateTopicSeed.isPending,
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
     isUploading: mutations.requestUpload.isPending,
@@ -71,20 +78,38 @@ function buildPendingState(
   };
 }
 
+function toTopicSeedMutationInput(jobId: string, seedForm: SeedForm) {
+  return {
+    jobId,
+    contentId: seedForm.contentId,
+    targetLanguage: seedForm.targetLanguage,
+    titleIdea: seedForm.titleIdea,
+    targetDurationSec: Number(seedForm.targetDurationSec),
+    stylePreset: seedForm.stylePreset,
+    creativeBrief: seedForm.creativeBrief.trim() || undefined,
+  };
+}
+
 function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) {
   return {
-    openReviews: () => { window.location.href = '/reviews'; },
+    openReviews: () => {
+      window.location.href = '/reviews';
+    },
     requestUploadError: mutations.requestUpload.error,
-    runAssetGeneration: (opts?: {
-      targetSceneId?: number;
-      modality?: AssetGenerationModality;
-      imageProvider?: ImageGenerationProvider;
-    }) => mutations.runAssetGeneration.mutate({ jobId, ...opts }),
+    runAssetGeneration: (opts?: RunAssetGenerationOptions) =>
+      mutations.runAssetGeneration.mutate({ jobId, ...opts }),
     selectSceneImageCandidate: (sceneId: number, candidateId: string) =>
       mutations.selectSceneImageCandidate.mutate({ jobId, sceneId, candidateId }),
+    setJobDefaultVoiceProfile: (profileId?: string) =>
+      mutations.setJobDefaultVoiceProfile.mutate({ jobId, profileId }),
+    setSceneVoiceProfile: (sceneId: number, profileId?: string) =>
+      mutations.setSceneVoiceProfile.mutate({ jobId, sceneId, profileId }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
     selectSceneImageCandidateError: mutations.selectSceneImageCandidate.error,
-    runFinalComposition: (opts?: { burnInSubtitles?: boolean }) => mutations.runFinalComposition.mutate({ jobId, ...opts }),
+    setVoiceProfileError:
+      mutations.setJobDefaultVoiceProfile.error ?? mutations.setSceneVoiceProfile.error,
+    runFinalComposition: (opts?: { burnInSubtitles?: boolean }) =>
+      mutations.runFinalComposition.mutate({ jobId, ...opts }),
     runFinalCompositionError: mutations.runFinalComposition.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),
     runSceneJsonError: mutations.runSceneJson.error,
@@ -92,15 +117,7 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
     runTopicPlanError: mutations.runTopicPlan.error,
     saveSceneJson: (sceneJson: string) => mutations.updateSceneJson.mutate({ jobId, sceneJson }),
     saveTopicSeed: (seedForm: SeedForm) =>
-      mutations.updateTopicSeed.mutate({
-        jobId,
-        contentId: seedForm.contentId,
-        targetLanguage: seedForm.targetLanguage,
-        titleIdea: seedForm.titleIdea,
-        targetDurationSec: Number(seedForm.targetDurationSec),
-        stylePreset: seedForm.stylePreset,
-        creativeBrief: seedForm.creativeBrief.trim() || undefined,
-      }),
+      mutations.updateTopicSeed.mutate(toTopicSeedMutationInput(jobId, seedForm)),
     updateSceneJsonError: mutations.updateSceneJson.error,
     updateTopicSeedError: mutations.updateTopicSeed.error,
     approvePipelineExecution: (executionId: string) =>

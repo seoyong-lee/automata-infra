@@ -57,6 +57,7 @@ export type AdminJob = {
   approvedTopicExecutionId?: string | null;
   approvedSceneExecutionId?: string | null;
   approvedAssetExecutionId?: string | null;
+  defaultVoiceProfileId?: string | null;
   updatedAt: string;
 };
 
@@ -185,7 +186,9 @@ export type SceneAsset = {
   imageS3Key?: string | null;
   videoClipS3Key?: string | null;
   voiceS3Key?: string | null;
+  voiceProfileId?: string | null;
   durationSec?: number | null;
+  voiceDurationSec?: number | null;
   narration?: string | null;
   subtitle?: string | null;
   imagePrompt?: string | null;
@@ -213,6 +216,25 @@ export type JobDraftDetail = {
   topicPlan?: TopicSeed | null;
   sceneJson?: SceneJsonPayload | null;
   assets: SceneAsset[];
+};
+
+export type VoiceProfile = {
+  profileId: string;
+  label: string;
+  provider: string;
+  voiceId: string;
+  modelId?: string | null;
+  sampleAudioUrl?: string | null;
+  description?: string | null;
+  language?: string | null;
+  speed?: number | null;
+  stability?: number | null;
+  similarityBoost?: number | null;
+  style?: number | null;
+  useSpeakerBoost?: boolean | null;
+  isActive: boolean;
+  updatedAt: string;
+  updatedBy: string;
 };
 
 export type JobTimelineItem = {
@@ -354,6 +376,29 @@ const llmSettingsQuery = `
   }
 `;
 
+const voiceProfilesQuery = `
+  query VoiceProfiles {
+    voiceProfiles {
+      profileId
+      label
+      provider
+      voiceId
+      modelId
+      sampleAudioUrl
+      description
+      language
+      speed
+      stability
+      similarityBoost
+      style
+      useSpeakerBoost
+      isActive
+      updatedAt
+      updatedBy
+    }
+  }
+`;
+
 const jobTimelineQuery = `
   query JobTimeline($jobId: ID!) {
     jobTimeline(jobId: $jobId) {
@@ -462,6 +507,7 @@ const jobDraftQuery = `
         approvedTopicExecutionId
         approvedSceneExecutionId
         approvedAssetExecutionId
+        defaultVoiceProfileId
       }
       contentBrief {
         jobId
@@ -526,6 +572,8 @@ const jobDraftQuery = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceProfileId
+        voiceDurationSec
         durationSec
         narration
         subtitle
@@ -746,6 +794,7 @@ const updateSceneJsonMutation = `
         status
         updatedAt
         sceneJsonS3Key
+        defaultVoiceProfileId
         contentId
         topicId
         language
@@ -879,6 +928,8 @@ const selectSceneImageCandidateMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceProfileId
+        voiceDurationSec
         durationSec
         narration
         subtitle
@@ -897,6 +948,181 @@ const selectSceneImageCandidateMutation = `
           selected
         }
       }
+    }
+  }
+`;
+
+const setJobDefaultVoiceProfileMutation = `
+  mutation SetJobDefaultVoiceProfile($input: SetJobDefaultVoiceProfileInput!) {
+    setJobDefaultVoiceProfile(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        defaultVoiceProfileId
+        sceneJsonS3Key
+        contentId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      topicPlan {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        voiceProfileId
+        voiceDurationSec
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
+      }
+    }
+  }
+`;
+
+const setSceneVoiceProfileMutation = `
+  mutation SetSceneVoiceProfile($input: SetSceneVoiceProfileInput!) {
+    setSceneVoiceProfile(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        defaultVoiceProfileId
+        sceneJsonS3Key
+        contentId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      topicPlan {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        voiceProfileId
+        voiceDurationSec
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
+      }
+    }
+  }
+`;
+
+const upsertVoiceProfileMutation = `
+  mutation UpsertVoiceProfile($input: UpsertVoiceProfileInput!) {
+    upsertVoiceProfile(input: $input) {
+      profileId
+      label
+      provider
+      voiceId
+      modelId
+      sampleAudioUrl
+      description
+      language
+      speed
+      stability
+      similarityBoost
+      style
+      useSpeakerBoost
+      isActive
+      updatedAt
+      updatedBy
     }
   }
 `;
@@ -1630,6 +1856,27 @@ export const useLlmSettingsQuery = (
         llmSettingsQuery,
       );
       return data.llmSettings.items;
+    },
+    ...options,
+  });
+};
+
+export const useVoiceProfilesQuery = (
+  options?: Omit<
+    UseQueryOptions<
+      VoiceProfile[],
+      Error,
+      VoiceProfile[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["voiceProfiles"],
+    queryFn: async () => {
+      const data = await gql<{ voiceProfiles: VoiceProfile[] }>(voiceProfilesQuery);
+      return data.voiceProfiles;
     },
     ...options,
   });
@@ -2687,6 +2934,34 @@ export type SelectSceneImageCandidateMutationInput = {
   candidateId: string;
 };
 
+export type SetJobDefaultVoiceProfileMutationInput = {
+  jobId: string;
+  profileId?: string;
+};
+
+export type SetSceneVoiceProfileMutationInput = {
+  jobId: string;
+  sceneId: number;
+  profileId?: string;
+};
+
+export type UpsertVoiceProfileMutationInput = {
+  profileId?: string;
+  label: string;
+  provider: string;
+  voiceId: string;
+  modelId?: string;
+  sampleAudioUrl?: string;
+  description?: string;
+  language?: string;
+  speed?: number;
+  stability?: number;
+  similarityBoost?: number;
+  style?: number;
+  useSpeakerBoost?: boolean;
+  isActive?: boolean;
+};
+
 export const useRunAssetGenerationMutation = (
   options?: UseMutationOptions<
     { runAssetGeneration: AdminJob },
@@ -2719,6 +2994,59 @@ export const useSelectSceneImageCandidateMutation = (
           input,
         },
       );
+    },
+    ...options,
+  });
+};
+
+export const useSetJobDefaultVoiceProfileMutation = (
+  options?: UseMutationOptions<
+    { setJobDefaultVoiceProfile: JobDraftDetail },
+    Error,
+    SetJobDefaultVoiceProfileMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ setJobDefaultVoiceProfile: JobDraftDetail }>(
+        setJobDefaultVoiceProfileMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useSetSceneVoiceProfileMutation = (
+  options?: UseMutationOptions<
+    { setSceneVoiceProfile: JobDraftDetail },
+    Error,
+    SetSceneVoiceProfileMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ setSceneVoiceProfile: JobDraftDetail }>(
+        setSceneVoiceProfileMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useUpsertVoiceProfileMutation = (
+  options?: UseMutationOptions<
+    { upsertVoiceProfile: VoiceProfile },
+    Error,
+    UpsertVoiceProfileMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ upsertVoiceProfile: VoiceProfile }>(upsertVoiceProfileMutation, {
+        input,
+      });
     },
     ...options,
   });

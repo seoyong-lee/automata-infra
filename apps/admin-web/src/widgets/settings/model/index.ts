@@ -4,6 +4,7 @@ export type SettingsSection =
   | 'general'
   | 'channels'
   | 'models'
+  | 'voices'
   | 'providers'
   | 'publish-policy'
   | 'runtime';
@@ -38,6 +39,11 @@ export const settingsSections: SettingsSectionCard[] = [
     key: 'models',
     label: 'Models & Prompts',
     description: '단계별 모델과 프롬프트 기본값을 관리합니다.',
+  },
+  {
+    key: 'voices',
+    label: 'Voices',
+    description: 'TTS 보이스 라이브러리와 기본 파라미터를 관리합니다.',
   },
   {
     key: 'providers',

@@ -1,4 +1,7 @@
-import { generateSceneVoice } from "../../shared/lib/providers/media/elevenlabs-voice";
+import {
+  generateSceneVoice,
+  type ElevenLabsVoiceSettings,
+} from "../../shared/lib/providers/media/elevenlabs-voice";
 
 type VoiceAsset = Record<string, unknown>;
 
@@ -11,6 +14,10 @@ export const generateSceneVoices = async (
       sceneId: number;
       narration: string;
       durationSec: number;
+      voiceProfileId?: string;
+      voiceId?: string;
+      modelId?: string;
+      voiceSettings?: ElevenLabsVoiceSettings;
     }>;
     secretId: string;
   },
@@ -27,6 +34,10 @@ export const generateSceneVoices = async (
       sceneId: scene.sceneId,
       text: scene.narration,
       secretId: input.secretId,
+      voiceProfileId: scene.voiceProfileId,
+      voiceId: scene.voiceId,
+      modelId: scene.modelId,
+      voiceSettings: scene.voiceSettings,
     });
 
     voiceAssets.push({

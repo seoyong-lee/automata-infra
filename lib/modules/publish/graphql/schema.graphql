@@ -27,6 +27,7 @@ type Query {
   jobExecutions(jobId: ID!): [PipelineExecution!]!
   jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
+  voiceProfiles: [VoiceProfile!]!
   """
   채널(콘텐츠)별 출고 대기 큐. 제작 완료 후 편성·예약 발행 전 단계.
   필드는 null 허용(리졸버 미배포·일시 실패 시) — 클라이언트는 빈 배열로 처리.
@@ -71,6 +72,7 @@ type Mutation {
   submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
+  upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
   updateContent(input: UpdateContentInput!): Content!
   deleteContent(contentId: ID!): DeleteContentResult!
@@ -94,6 +96,10 @@ type Mutation {
   selectSceneImageCandidate(
     input: SelectSceneImageCandidateInput!
   ): JobDraftDetail!
+  setJobDefaultVoiceProfile(
+    input: SetJobDefaultVoiceProfileInput!
+  ): JobDraftDetail!
+  setSceneVoiceProfile(input: SetSceneVoiceProfileInput!): JobDraftDetail!
   """
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
   """
@@ -184,6 +190,7 @@ type AdminJob {
   approvedTopicExecutionId: String
   approvedSceneExecutionId: String
   approvedAssetExecutionId: String
+  defaultVoiceProfileId: String
 }
 
 type ContentBriefSeed {
@@ -253,6 +260,8 @@ type SceneAsset {
   imageS3Key: String
   videoClipS3Key: String
   voiceS3Key: String
+  voiceProfileId: String
+  voiceDurationSec: Float
   durationSec: Int
   narration: String
   subtitle: String
@@ -281,6 +290,25 @@ type JobDraftDetail {
   topicPlan: TopicSeed
   sceneJson: SceneJsonPayload
   assets: [SceneAsset!]!
+}
+
+type VoiceProfile {
+  profileId: ID!
+  label: String!
+  provider: String!
+  voiceId: String!
+  modelId: String
+  sampleAudioUrl: String
+  description: String
+  language: String
+  speed: Float
+  stability: Float
+  similarityBoost: Float
+  style: Float
+  useSpeakerBoost: Boolean
+  isActive: Boolean!
+  updatedAt: AWSDateTime!
+  updatedBy: String!
 }
 
 type AdminReviewTask {
@@ -522,6 +550,34 @@ input RunAssetGenerationInput {
   이미지 생성 시 사용할 provider. IMAGE 또는 ALL 실행에서만 반영된다.
   """
   imageProvider: ImageGenerationProvider
+}
+
+input UpsertVoiceProfileInput {
+  profileId: ID
+  label: String!
+  provider: String!
+  voiceId: String!
+  modelId: String
+  sampleAudioUrl: String
+  description: String
+  language: String
+  speed: Float
+  stability: Float
+  similarityBoost: Float
+  style: Float
+  useSpeakerBoost: Boolean
+  isActive: Boolean
+}
+
+input SetJobDefaultVoiceProfileInput {
+  jobId: ID!
+  profileId: ID
+}
+
+input SetSceneVoiceProfileInput {
+  jobId: ID!
+  sceneId: Int!
+  profileId: ID
 }
 
 input SelectSceneImageCandidateInput {

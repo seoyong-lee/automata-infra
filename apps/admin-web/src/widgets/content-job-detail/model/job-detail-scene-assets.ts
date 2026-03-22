@@ -30,6 +30,7 @@ export type SceneAssetCard = {
   sceneId: number;
   durationSec?: number;
   narration?: string;
+  voiceProfileId?: string | null;
   overallStatus: SceneOverallStatus;
   statusLabel: string;
   image: SceneAssetModalitySlice;
@@ -90,6 +91,7 @@ const buildSceneAssetCardFromScene = (
     sceneId: scene.sceneId,
     durationSec: scene.durationSec,
     narration: scene.narration,
+    voiceProfileId: row?.voiceProfileId,
     overallStatus,
     statusLabel,
     image: buildModalitySlice(row?.imageS3Key, image, validationStatus),

@@ -1,4 +1,7 @@
-import { getJsonFromS3 } from "../../../../shared/lib/aws/runtime";
+import {
+  getJsonFromS3,
+  putBufferToS3,
+} from "../../../../shared/lib/aws/runtime";
 import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
 import {
   startJobExecution,
@@ -26,15 +29,73 @@ export type FinalCompositionScope = {
 };
 
 type RenderPlanResult = {
-  renderPlan?: Record<string, unknown> & { totalDurationSec?: number };
+  renderPlan?: Record<string, unknown> & {
+    totalDurationSec?: number;
+    scenes?: Array<{
+      startSec?: number;
+      endSec?: number;
+      subtitle?: string;
+    }>;
+  };
 };
 
 const noopCallback = (() => undefined) as never;
 const noopContext = {} as never;
+const SUBTITLE_SRT_CONTENT_TYPE = "application/x-subrip";
 const pipelineAsyncEnabled = (): boolean =>
   (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
     process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
   Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
+
+const formatSrtTimestamp = (seconds: number): string => {
+  const safeMs = Math.max(0, Math.round(seconds * 1000));
+  const hours = Math.floor(safeMs / 3_600_000);
+  const minutes = Math.floor((safeMs % 3_600_000) / 60_000);
+  const secs = Math.floor((safeMs % 60_000) / 1000);
+  const millis = safeMs % 1000;
+  return [hours, minutes, secs].map((value) => String(value).padStart(2, "0")).join(":") +
+    `,${String(millis).padStart(3, "0")}`;
+};
+
+const buildSubtitleSrt = (
+  scenes: Array<{ startSec?: number; endSec?: number; subtitle?: string }>,
+): string => {
+  const entries = scenes
+    .map((scene) => ({
+      startSec: typeof scene.startSec === "number" ? scene.startSec : 0,
+      endSec: typeof scene.endSec === "number" ? scene.endSec : 0,
+      subtitle:
+        typeof scene.subtitle === "string" ? scene.subtitle.trim() : "",
+    }))
+    .filter(
+      (scene) =>
+        scene.subtitle.length > 0 && scene.endSec > scene.startSec,
+    );
+
+  return entries
+    .map(
+      (scene, index) =>
+        `${index + 1}\n${formatSrtTimestamp(scene.startSec)} --> ${formatSrtTimestamp(scene.endSec)}\n${scene.subtitle}`,
+    )
+    .join("\n\n");
+};
+
+const maybePersistSubtitleSrt = async (
+  jobId: string,
+  renderPlan: RenderPlanResult["renderPlan"],
+  burnInSubtitles: boolean | undefined,
+): Promise<string | undefined> => {
+  if (!burnInSubtitles || !renderPlan?.scenes) {
+    return undefined;
+  }
+  const srt = buildSubtitleSrt(renderPlan.scenes);
+  if (!srt.trim()) {
+    return undefined;
+  }
+  const key = `rendered/${jobId}/subtitles/latest.srt`;
+  await putBufferToS3(key, srt, SUBTITLE_SRT_CONTENT_TYPE);
+  return key;
+};
 
 const loadRenderPipelineContext = async (
   jobId: string,
@@ -109,6 +170,11 @@ export const runFinalCompositionCore = async (
   if (!renderPlan || typeof renderPlan !== "object") {
     throw new Error("render plan not created");
   }
+  const subtitleSrtS3Key = await maybePersistSubtitleSrt(
+    jobId,
+    renderPlan,
+    scope?.burnInSubtitles,
+  );
 
   await runFinalCompositionStage(
     {
@@ -120,6 +186,7 @@ export const runFinalCompositionCore = async (
         ...(scope?.burnInSubtitles !== undefined
           ? { burnInSubtitles: scope.burnInSubtitles }
           : {}),
+        ...(subtitleSrtS3Key ? { subtitleSrtS3Key } : {}),
       },
     },
     noopContext,

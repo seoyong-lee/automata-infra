@@ -59,5 +59,6 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     approvedTopicExecutionId: job.approvedTopicExecutionId,
     approvedSceneExecutionId: job.approvedSceneExecutionId,
     approvedAssetExecutionId: job.approvedAssetExecutionId,
+    defaultVoiceProfileId: job.defaultVoiceProfileId,
   };
 };

@@ -22,6 +22,9 @@ export const mapGeneratedVoiceFields = (
   if (typeof raw.durationSec === "number" && Number.isFinite(raw.durationSec)) {
     out.voiceDurationSec = raw.durationSec;
   }
+  if (typeof raw.voiceProfileId === "string" && raw.voiceProfileId.length > 0) {
+    out.voiceProfileId = raw.voiceProfileId;
+  }
 
   return out;
 };
