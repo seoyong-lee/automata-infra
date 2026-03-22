@@ -57,20 +57,23 @@ export function ContentJobDetailSceneAssetCard({
       </CardHeader>
       <CardContent className="grid gap-3 md:grid-cols-3">
         <ContentJobDetailSceneAssetCell
+          kind="image"
           title="이미지"
-          status={card.image.status}
+          slice={card.image}
           disabled={disabled}
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'IMAGE' })}
         />
         <ContentJobDetailSceneAssetCell
+          kind="voice"
           title="음성"
-          status={card.voice.status}
+          slice={card.voice}
           disabled={disabled}
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VOICE' })}
         />
         <ContentJobDetailSceneAssetCell
+          kind="video"
           title="영상"
-          status={card.video.status}
+          slice={card.video}
           disabled={disabled}
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VIDEO' })}
         />
@@ -92,7 +95,7 @@ export function ContentJobDetailSceneAssetCard({
           href={`/jobs/${jobId}/assets?view=byKind&stage=image`}
           className="text-muted-foreground underline-offset-4 hover:underline"
         >
-          종류별 보기
+          종류별 보기 (고급)
         </Link>
       </CardFooter>
     </Card>

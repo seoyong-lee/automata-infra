@@ -26,7 +26,7 @@ export function DiscoveryTrendSection({
       <h2 className="text-base font-semibold tracking-tight">트렌드</h2>
       <p className="mt-2 text-muted-foreground">
         트렌드 스카우트는 외부 API 쿼터를 쓰므로 스케줄 없이 버튼으로 큐에 1건씩 넣어 실행합니다.
-        라인 필터를 쓰면 해당 라인 스코프로 전달됩니다.
+        후보 탭에서 라인을 고르면 URL의 채널이 설정되고, 그 스코프가 여기로 전달됩니다.
       </p>
       <div className="mt-4 flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-center">
         <button

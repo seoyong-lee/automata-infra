@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 
-import { ContentChannelSubnav } from '@/widgets/content-channel';
+import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
-import { AdminPageBack } from '@/shared/ui/admin-page-back';
+import { ContentChannelSubnav } from '@/widgets/content-channel';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 function titleForJob(
@@ -20,6 +20,11 @@ function titleForJob(
 export function ChannelShippingQueuePage() {
   const params = useParams();
   const contentId = typeof params.contentId === 'string' ? params.contentId : '';
+  const contentsQuery = useAdminContents({ limit: 200 });
+  const label = useMemo(() => {
+    return contentsQuery.data?.items.find((c) => c.contentId === contentId)?.label;
+  }, [contentsQuery.data?.items, contentId]);
+
   const queueQuery = useChannelPublishQueueQuery({ contentId }, { enabled: Boolean(contentId) });
   const jobsQuery = useAdminJobs({ contentId, limit: 200 });
   const jobs = jobsQuery.data?.items;
@@ -33,12 +38,24 @@ export function ChannelShippingQueuePage() {
 
   return (
     <div className="space-y-8">
-      <AdminPageBack href={`/content/${encodeURIComponent(contentId)}/jobs`} label="채널로" />
+      <div className="space-y-3">
+        <AdminPageHeader
+          backHref="/content"
+          eyebrow={
+            <div className="flex flex-wrap items-center gap-2">
+              <Link href="/content" className="hover:text-foreground">
+                채널
+              </Link>
+              <span className="text-muted-foreground/70">/</span>
+              <span className="text-foreground">{(label ?? contentId) || '—'}</span>
+            </div>
+          }
+          title={label ? `「${label}」의 출고 큐` : contentId ? '이 채널의 출고 큐' : '출고 큐'}
+          subtitle="이 채널에서 다음에 내보낼 제작 아이템을 모아 둡니다. 예약·즉시 발행은 추후 이 화면에서 다룹니다."
+        />
+      </div>
+
       <ContentChannelSubnav contentId={contentId} />
-      <AdminPageHeader
-        title="출고 큐"
-        subtitle="이 채널에서 다음에 내보낼 제작 아이템을 모아 둡니다. 예약·즉시 발행은 추후 이 화면에서 다룹니다."
-      />
 
       <div className="rounded-lg border">
         <table className="w-full text-left text-sm">

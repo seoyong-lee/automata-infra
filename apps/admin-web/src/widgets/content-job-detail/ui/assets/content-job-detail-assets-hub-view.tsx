@@ -68,7 +68,7 @@ export function ContentJobDetailAssetsHubView({
                 : 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
             )}
           >
-            종류별 보기
+            종류별 보기 (고급)
           </Link>
         </div>
       </div>
@@ -103,6 +103,9 @@ export function ContentJobDetailAssetsHubView({
         </>
       ) : (
         <>
+          <p className="text-xs text-muted-foreground">
+            모달리티만 나눠 보는 고급 모드입니다. 일상 작업은 씬별 보기를 권장합니다.
+          </p>
           <div className="flex flex-wrap gap-2 border-b pb-3">
             {stages.map(({ stage, label }) => (
               <Link

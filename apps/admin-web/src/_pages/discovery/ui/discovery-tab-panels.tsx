@@ -20,6 +20,8 @@ type Props = {
   tab: DiscoveryTabId;
   channelId: string;
   items: AdminContent[];
+  contentsLoading: boolean;
+  onChannelChange: (nextId: string) => void;
   createSourceOpen: boolean;
   setCreateOpenManual: (v: boolean) => void;
   closeCreateSource: () => void;
@@ -35,6 +37,8 @@ export function DiscoveryTabPanels({
   tab,
   channelId,
   items,
+  contentsLoading,
+  onChannelChange,
   createSourceOpen,
   setCreateOpenManual,
   closeCreateSource,
@@ -60,7 +64,14 @@ export function DiscoveryTabPanels({
           />
         ) : null}
 
-        {tab === 'shortlist' ? <DiscoveryShortlistTab channelId={channelId} /> : null}
+        {tab === 'shortlist' ? (
+          <DiscoveryShortlistTab
+            channelId={channelId}
+            items={items}
+            contentsLoading={contentsLoading}
+            onChannelChange={onChannelChange}
+          />
+        ) : null}
 
         {tab === 'saved' ? (
           <SavedSourcesPanel
