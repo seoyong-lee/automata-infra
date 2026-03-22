@@ -285,18 +285,11 @@ export function buildReadinessChipsInternal(args: {
   const status = job?.status ?? 'DRAFT';
   const chOk = channelConnected(job);
   const sourceOk = Boolean(job?.sourceItemId?.trim());
-
-  return [
+  const chips: ReadinessChip[] = [
     {
       key: 'channel',
       label: '채널 연결',
       state: chOk ? 'done' : 'needed',
-      href: `/jobs/${jobId}/overview`,
-    },
-    {
-      key: 'source',
-      label: '매체 연결',
-      state: sourceOk ? 'done' : 'needed',
       href: `/jobs/${jobId}/overview`,
     },
     {
@@ -318,4 +311,15 @@ export function buildReadinessChipsInternal(args: {
       href: `/jobs/${jobId}/publish#${publishPanelAnchor.queue}`,
     },
   ];
+
+  if (chOk || sourceOk) {
+    chips.splice(1, 0, {
+      key: 'source',
+      label: '소재 연결',
+      state: sourceOk ? 'done' : 'needed',
+      href: `/jobs/${jobId}/overview`,
+    });
+  }
+
+  return chips;
 }

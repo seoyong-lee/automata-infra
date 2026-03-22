@@ -12,7 +12,6 @@ import { DashboardActionQueueSection } from './dashboard-action-queue-section';
 import { DashboardBottlenecksSection } from './dashboard-bottlenecks-section';
 import { DashboardChannelSummarySection } from './dashboard-channel-summary-section';
 import type { DashboardChannelRow } from './dashboard-channel-summary-section';
-import { DashboardResumeSection } from './dashboard-resume-section';
 
 export function DashboardPage() {
   const jobsQuery = useAdminJobs({ limit: DASHBOARD_JOBS_QUERY_LIMIT });
@@ -79,7 +78,6 @@ export function DashboardPage() {
 
       <DashboardActionQueueSection actionQueue={actionQueue} />
       <DashboardBottlenecksSection bottlenecks={bottlenecks} />
-      <DashboardResumeSection resume={resume} loading={loading} />
       <DashboardChannelSummarySection channelRows={channelRows} />
     </div>
   );

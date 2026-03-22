@@ -28,10 +28,12 @@ export type PublishStackProps = StackProps &
 const createLambda = (
   scope: Construct,
   id: string,
+  functionName: string,
   entry: string,
   environment: Record<string, string>,
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
+    functionName,
     entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
@@ -77,6 +79,7 @@ export class PublishStack extends Stack {
       this,
       "AdminPipelineWorkerLambda",
       {
+        functionName: `${props.projectPrefix}-admin-pipeline-worker`,
         entry: path.join(
           process.cwd(),
           "services/admin/pipeline-worker/handler.ts",
@@ -119,6 +122,7 @@ export class PublishStack extends Stack {
     const reviewHandler = createLambda(
       this,
       "ReviewDecisionLambda",
+      `${props.projectPrefix}-publish-review-decision`,
       path.join(process.cwd(), "services/publish/review/handler.ts"),
       environment,
     );
@@ -126,6 +130,7 @@ export class PublishStack extends Stack {
     const uploadHandler = createLambda(
       this,
       "UploadLambda",
+      `${props.projectPrefix}-publish-upload`,
       path.join(process.cwd(), "services/publish/upload/handler.ts"),
       environment,
     );
@@ -133,6 +138,7 @@ export class PublishStack extends Stack {
     const metricsCollector = createLambda(
       this,
       "MetricsCollectorLambda",
+      `${props.projectPrefix}-publish-metrics-collector`,
       path.join(process.cwd(), "services/publish/metrics/handler.ts"),
       environment,
     );
@@ -155,6 +161,7 @@ export class PublishStack extends Stack {
       this,
       "TrendScoutAgentLambda",
       {
+        functionName: `${props.projectPrefix}-agent-trend-scout`,
         entry: path.join(
           process.cwd(),
           "services/agents/trend-scout/handler.ts",
@@ -193,6 +200,7 @@ export class PublishStack extends Stack {
       this,
       "ChannelEvaluatorAgentLambda",
       {
+        functionName: `${props.projectPrefix}-agent-channel-evaluator`,
         entry: path.join(
           process.cwd(),
           "services/agents/channel-evaluator/handler.ts",
@@ -217,18 +225,21 @@ export class PublishStack extends Stack {
     const listJobsResolver = createLambda(
       this,
       "AdminListJobsResolverLambda",
+      `${props.projectPrefix}-admin-list-jobs`,
       path.join(process.cwd(), "services/admin/graphql/list-jobs/handler.ts"),
       environment,
     );
     const getJobResolver = createLambda(
       this,
       "AdminGetJobResolverLambda",
+      `${props.projectPrefix}-admin-get-job`,
       path.join(process.cwd(), "services/admin/graphql/get-job/handler.ts"),
       environment,
     );
     const pendingReviewsResolver = createLambda(
       this,
       "AdminPendingReviewsResolverLambda",
+      `${props.projectPrefix}-admin-pending-reviews`,
       path.join(
         process.cwd(),
         "services/admin/graphql/pending-reviews/handler.ts",
@@ -238,6 +249,7 @@ export class PublishStack extends Stack {
     const jobTimelineResolver = createLambda(
       this,
       "AdminJobTimelineResolverLambda",
+      `${props.projectPrefix}-admin-job-timeline`,
       path.join(
         process.cwd(),
         "services/admin/graphql/job-timeline/handler.ts",
@@ -247,6 +259,7 @@ export class PublishStack extends Stack {
     const jobExecutionsResolver = createLambda(
       this,
       "AdminJobExecutionsResolverLambda",
+      `${props.projectPrefix}-admin-job-executions`,
       path.join(
         process.cwd(),
         "services/admin/graphql/job-executions/handler.ts",
@@ -256,6 +269,7 @@ export class PublishStack extends Stack {
     const submitReviewDecisionResolver = createLambda(
       this,
       "AdminSubmitReviewDecisionResolverLambda",
+      `${props.projectPrefix}-admin-submit-review-decision`,
       path.join(
         process.cwd(),
         "services/admin/graphql/submit-review-decision/handler.ts",
@@ -265,6 +279,7 @@ export class PublishStack extends Stack {
     const requestUploadResolver = createLambda(
       this,
       "AdminRequestUploadResolverLambda",
+      `${props.projectPrefix}-admin-request-upload`,
       path.join(
         process.cwd(),
         "services/admin/graphql/request-upload/handler.ts",
@@ -274,6 +289,7 @@ export class PublishStack extends Stack {
     const getLlmSettingsResolver = createLambda(
       this,
       "AdminGetLlmSettingsResolverLambda",
+      `${props.projectPrefix}-admin-get-llm-settings`,
       path.join(
         process.cwd(),
         "services/admin/graphql/get-llm-settings/handler.ts",
@@ -283,6 +299,7 @@ export class PublishStack extends Stack {
     const updateLlmSettingsResolver = createLambda(
       this,
       "AdminUpdateLlmSettingsResolverLambda",
+      `${props.projectPrefix}-admin-update-llm-settings`,
       path.join(
         process.cwd(),
         "services/admin/graphql/update-llm-settings/handler.ts",
@@ -292,6 +309,7 @@ export class PublishStack extends Stack {
     const getJobDraftResolver = createLambda(
       this,
       "AdminGetJobDraftResolverLambda",
+      `${props.projectPrefix}-admin-get-job-draft`,
       path.join(
         process.cwd(),
         "services/admin/graphql/get-job-draft/handler.ts",
@@ -301,6 +319,7 @@ export class PublishStack extends Stack {
     const createDraftJobResolver = createLambda(
       this,
       "AdminCreateDraftJobResolverLambda",
+      `${props.projectPrefix}-admin-create-draft-job`,
       path.join(
         process.cwd(),
         "services/admin/graphql/create-draft-job/handler.ts",
@@ -310,6 +329,7 @@ export class PublishStack extends Stack {
     const updateTopicSeedResolver = createLambda(
       this,
       "AdminUpdateTopicSeedResolverLambda",
+      `${props.projectPrefix}-admin-update-topic-seed`,
       path.join(
         process.cwd(),
         "services/admin/graphql/update-topic-seed/handler.ts",
@@ -319,6 +339,7 @@ export class PublishStack extends Stack {
     const runTopicPlanResolver = createLambda(
       this,
       "AdminRunTopicPlanResolverLambda",
+      `${props.projectPrefix}-admin-run-topic-plan`,
       path.join(
         process.cwd(),
         "services/admin/graphql/run-topic-plan/handler.ts",
@@ -328,6 +349,7 @@ export class PublishStack extends Stack {
     const runSceneJsonResolver = createLambda(
       this,
       "AdminRunSceneJsonResolverLambda",
+      `${props.projectPrefix}-admin-run-scene-json`,
       path.join(
         process.cwd(),
         "services/admin/graphql/run-scene-json/handler.ts",
@@ -337,6 +359,7 @@ export class PublishStack extends Stack {
     const updateSceneJsonResolver = createLambda(
       this,
       "AdminUpdateSceneJsonResolverLambda",
+      `${props.projectPrefix}-admin-update-scene-json`,
       path.join(
         process.cwd(),
         "services/admin/graphql/update-scene-json/handler.ts",
@@ -346,6 +369,7 @@ export class PublishStack extends Stack {
     const runAssetGenerationResolver = createLambda(
       this,
       "AdminRunAssetGenerationResolverLambda",
+      `${props.projectPrefix}-admin-run-asset-generation`,
       path.join(
         process.cwd(),
         "services/admin/graphql/run-asset-generation/handler.ts",
@@ -355,6 +379,7 @@ export class PublishStack extends Stack {
     const runFinalCompositionResolver = createLambda(
       this,
       "AdminRunFinalCompositionResolverLambda",
+      `${props.projectPrefix}-admin-run-final-composition`,
       path.join(
         process.cwd(),
         "services/admin/graphql/run-final-composition/handler.ts",
@@ -367,12 +392,14 @@ export class PublishStack extends Stack {
     const deleteJobResolver = createLambda(
       this,
       "AdminDeleteJobResolverLambda",
+      `${props.projectPrefix}-admin-delete-job`,
       path.join(process.cwd(), "services/admin/graphql/delete-job/handler.ts"),
       environment,
     );
     const attachJobToContentResolver = createLambda(
       this,
       "AdminAttachJobToContentResolverLambda",
+      `${props.projectPrefix}-admin-attach-job-to-content`,
       path.join(
         process.cwd(),
         "services/admin/graphql/attach-job-to-content/handler.ts",
@@ -382,6 +409,7 @@ export class PublishStack extends Stack {
     const approvePipelineExecutionResolver = createLambda(
       this,
       "AdminApprovePipelineExecutionResolverLambda",
+      `${props.projectPrefix}-admin-approve-pipeline-execution`,
       path.join(
         process.cwd(),
         "services/admin/graphql/approve-pipeline-execution/handler.ts",
@@ -391,6 +419,7 @@ export class PublishStack extends Stack {
     const channelPublishQueueResolver = createLambda(
       this,
       "AdminChannelPublishQueueResolverLambda",
+      `${props.projectPrefix}-admin-channel-publish-queue`,
       path.join(
         process.cwd(),
         "services/admin/graphql/list-channel-publish-queue/handler.ts",
@@ -400,6 +429,7 @@ export class PublishStack extends Stack {
     const enqueueToChannelPublishQueueResolver = createLambda(
       this,
       "AdminEnqueueToChannelPublishQueueResolverLambda",
+      `${props.projectPrefix}-admin-enqueue-channel-publish-queue`,
       path.join(
         process.cwd(),
         "services/admin/graphql/enqueue-to-channel-publish-queue/handler.ts",
@@ -409,6 +439,7 @@ export class PublishStack extends Stack {
     const platformConnectionsResolver = createLambda(
       this,
       "AdminPlatformConnectionsResolverLambda",
+      `${props.projectPrefix}-admin-platform-connections`,
       path.join(
         process.cwd(),
         "services/admin/graphql/list-platform-connections/handler.ts",
@@ -420,6 +451,7 @@ export class PublishStack extends Stack {
       this,
       "AdminPublishDomainResolverLambda",
       {
+        functionName: `${props.projectPrefix}-admin-publish-domain-router`,
         entry: path.join(
           process.cwd(),
           "services/admin/graphql/publish-domain-router/handler.ts",
@@ -441,6 +473,7 @@ export class PublishStack extends Stack {
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
+      `${props.projectPrefix}-admin-list-contents`,
       path.join(
         process.cwd(),
         "services/admin/graphql/list-contents/handler.ts",
@@ -450,6 +483,7 @@ export class PublishStack extends Stack {
     const createContentResolver = createLambda(
       this,
       "AdminCreateContentResolverLambda",
+      `${props.projectPrefix}-admin-create-content`,
       path.join(
         process.cwd(),
         "services/admin/graphql/create-content/handler.ts",
@@ -459,6 +493,7 @@ export class PublishStack extends Stack {
     const deleteContentResolver = createLambda(
       this,
       "AdminDeleteContentResolverLambda",
+      `${props.projectPrefix}-admin-delete-content`,
       path.join(
         process.cwd(),
         "services/admin/graphql/delete-content/handler.ts",
@@ -468,6 +503,7 @@ export class PublishStack extends Stack {
     const updateContentResolver = createLambda(
       this,
       "AdminUpdateContentResolverLambda",
+      `${props.projectPrefix}-admin-update-content`,
       path.join(
         process.cwd(),
         "services/admin/graphql/update-content/handler.ts",

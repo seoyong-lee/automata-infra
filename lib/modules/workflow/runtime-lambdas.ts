@@ -37,10 +37,12 @@ type CreateWorkflowLambdasProps = {
 const createLambda = (
   scope: Construct,
   id: string,
+  functionName: string,
   entry: string,
   environment: Record<string, string>,
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
+    functionName,
     entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
@@ -78,36 +80,42 @@ export const createWorkflowLambdas = (
     topicPlanner: createLambda(
       scope,
       "TopicPlannerLambda",
+      `${props.projectPrefix}-workflow-topic-planner`,
       path.join(process.cwd(), "services/topic/handler.ts"),
       environment,
     ),
     sceneJsonBuilder: createLambda(
       scope,
       "SceneJsonBuilderLambda",
+      `${props.projectPrefix}-workflow-scene-json-builder`,
       path.join(process.cwd(), "services/script/handler.ts"),
       environment,
     ),
     imageGenerator: createLambda(
       scope,
       "ImageGeneratorLambda",
+      `${props.projectPrefix}-workflow-image-generator`,
       path.join(process.cwd(), "services/image/handler.ts"),
       environment,
     ),
     videoGenerator: createLambda(
       scope,
       "VideoGeneratorLambda",
+      `${props.projectPrefix}-workflow-video-generator`,
       path.join(process.cwd(), "services/video-generation/handler.ts"),
       environment,
     ),
     ttsGenerator: createLambda(
       scope,
       "TtsGeneratorLambda",
+      `${props.projectPrefix}-workflow-tts-generator`,
       path.join(process.cwd(), "services/voice/handler.ts"),
       environment,
     ),
     assetValidator: createLambda(
       scope,
       "AssetValidatorLambda",
+      `${props.projectPrefix}-workflow-asset-validator`,
       path.join(
         process.cwd(),
         "services/composition/validate-assets/handler.ts",
@@ -117,12 +125,14 @@ export const createWorkflowLambdas = (
     renderPlanBuilder: createLambda(
       scope,
       "RenderPlanBuilderLambda",
+      `${props.projectPrefix}-workflow-render-plan-builder`,
       path.join(process.cwd(), "services/composition/render-plan/handler.ts"),
       environment,
     ),
     finalComposition: createLambda(
       scope,
       "FinalCompositionLambda",
+      `${props.projectPrefix}-workflow-final-composition`,
       path.join(
         process.cwd(),
         "services/composition/final-composition/handler.ts",
@@ -132,18 +142,21 @@ export const createWorkflowLambdas = (
     reviewRequest: createLambda(
       scope,
       "ReviewRequestLambda",
+      `${props.projectPrefix}-workflow-review-request`,
       path.join(process.cwd(), "services/publish/review-request/handler.ts"),
       environment,
     ),
     uploadWorker: createLambda(
       scope,
       "UploadWorkerLambda",
+      `${props.projectPrefix}-workflow-upload-worker`,
       path.join(process.cwd(), "services/publish/upload-worker/handler.ts"),
       environment,
     ),
     metricsCollector: createLambda(
       scope,
       "WorkflowMetricsCollectorLambda",
+      `${props.projectPrefix}-workflow-metrics-collector`,
       path.join(process.cwd(), "services/publish/metrics/handler.ts"),
       environment,
     ),

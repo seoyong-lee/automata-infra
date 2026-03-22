@@ -5,6 +5,8 @@ import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
 
 import { JobDraftDetail } from '../../model';
+import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
+import { ContentJobDetailSceneAssetPreview } from './content-job-detail-scene-asset-preview';
 
 type AssetStage = 'image' | 'voice' | 'video';
 
@@ -60,6 +62,27 @@ const hasStageAsset = (
   return Boolean(detailAsset.videoClipS3Key);
 };
 
+const getStageS3Key = (
+  detailAsset: NonNullable<JobDraftDetail['assets']>[number],
+  stage: AssetStage,
+) => {
+  if (stage === 'image') {
+    return detailAsset.imageS3Key;
+  }
+
+  if (stage === 'voice') {
+    return detailAsset.voiceS3Key;
+  }
+
+  return detailAsset.videoClipS3Key;
+};
+
+const previewKindByStage = {
+  image: 'image',
+  voice: 'voice',
+  video: 'video',
+} as const;
+
 export function ContentJobDetailAssetsView({
   detail,
   error,
@@ -90,18 +113,31 @@ export function ContentJobDetailAssetsView({
             아직 scene이 없습니다. 먼저 스크립트 및 JSON 단계를 완료해 주세요.
           </p>
         ) : (
-          <ul className="divide-y divide-border rounded-md border border-border">
+          <ul className="grid gap-4 md:grid-cols-2 xl:grid-cols-3">
             {assets.map((asset) => {
               const ready = hasStageAsset(asset, stage);
+              const s3Key = getStageS3Key(asset, stage);
+              const previewUrl = buildAssetPreviewUrlFromS3Key(s3Key);
               return (
                 <li
                   key={asset.sceneId}
-                  className="flex items-center justify-between gap-4 px-4 py-3 text-sm"
+                  className="rounded-lg border border-border bg-card p-4"
                 >
-                  <span className="font-medium">Scene {asset.sceneId}</span>
-                  <span className={ready ? 'text-foreground' : 'text-muted-foreground'}>
-                    {ready ? meta.readyVerb : '대기'}
-                  </span>
+                  <div className="space-y-3">
+                    <div className="flex items-center justify-between gap-4 text-sm">
+                      <span className="font-medium">Scene {asset.sceneId}</span>
+                      <span className={ready ? 'text-foreground' : 'text-muted-foreground'}>
+                        {ready ? meta.readyVerb : '대기'}
+                      </span>
+                    </div>
+                    <ContentJobDetailSceneAssetPreview
+                      kind={previewKindByStage[stage]}
+                      previewUrl={previewUrl}
+                      cdnBlocked={Boolean(s3Key) && !previewUrl}
+                      status={ready ? 'READY' : 'PENDING'}
+                      size="large"
+                    />
+                  </div>
                 </li>
               );
             })}

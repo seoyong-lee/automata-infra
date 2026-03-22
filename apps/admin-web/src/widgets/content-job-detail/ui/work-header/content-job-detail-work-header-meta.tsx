@@ -59,6 +59,8 @@ export function ContentJobDetailWorkHeaderMeta({ detail, resolution }: Props) {
             <Link href={discoveryHref} className="font-medium text-primary hover:underline">
               연결됨
             </Link>
+          ) : !channelOk ? (
+            <span className="text-muted-foreground">채널 연결 후</span>
           ) : (
             <span className="text-amber-700 dark:text-amber-400">미연결</span>
           )}

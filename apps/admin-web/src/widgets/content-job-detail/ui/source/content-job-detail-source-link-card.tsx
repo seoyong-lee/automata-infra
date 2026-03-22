@@ -52,7 +52,8 @@ export function ContentJobDetailSourceLinkCard({
         <CardContent className="space-y-4">
           {!channelOk ? (
             <p className="text-sm text-amber-600 dark:text-amber-500">
-              채널이 연결되지 않았습니다. 제작 아이템 허브에서 채널을 먼저 연결하세요.
+              이 아이템은 아직 채널에 연결되지 않았습니다. 단건 테스트는 계속 진행할 수 있고, 소재는
+              채널을 붙인 뒤 나중에 연결하면 됩니다.
             </p>
           ) : null}
 
@@ -62,20 +63,32 @@ export function ContentJobDetailSourceLinkCard({
             <p className="text-sm text-muted-foreground">소재 정보를 불러오는 중…</p>
           ) : null}
 
-          {!sourceItemId && channelOk ? (
-            <p className="text-sm text-muted-foreground">아직 연결된 소재가 없습니다.</p>
+          {!sourceItemId ? (
+            <p className="text-sm text-muted-foreground">
+              {channelOk
+                ? '아직 연결된 소재가 없습니다.'
+                : '채널 연결 전에는 소재 연결이 선택 사항입니다.'}
+            </p>
           ) : null}
 
           <div className="flex flex-wrap items-center gap-2">
-            <Button
-              type="button"
-              variant="secondary"
-              size="sm"
-              disabled={!channelOk}
-              onClick={() => setPickerOpen(true)}
-            >
-              {sourceItemId ? '소재 변경' : '소재 연결'}
-            </Button>
+            {channelOk ? (
+              <Button
+                type="button"
+                variant="secondary"
+                size="sm"
+                onClick={() => setPickerOpen(true)}
+              >
+                {sourceItemId ? '소재 변경' : '소재 연결'}
+              </Button>
+            ) : (
+              <Link
+                href="/jobs"
+                className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-3 text-sm font-medium transition-colors hover:bg-accent hover:text-accent-foreground"
+              >
+                나중에 채널 연결
+              </Link>
+            )}
             {channelOk ? (
               <Link
                 href={discoveryHref}
@@ -83,7 +96,14 @@ export function ContentJobDetailSourceLinkCard({
               >
                 소재 탐색 열기
               </Link>
-            ) : null}
+            ) : (
+              <Link
+                href="/discovery?tab=saved"
+                className="text-sm font-medium text-primary underline-offset-4 hover:underline"
+              >
+                전역 소재 보기
+              </Link>
+            )}
           </div>
 
           {err ? <p className="text-sm text-destructive">{getErrorMessage(err)}</p> : null}

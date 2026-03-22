@@ -117,18 +117,6 @@ export function DashboardSidebar() {
               <Activity className="size-4 shrink-0" />
               <span className="truncate">실행 현황</span>
             </Link>
-            <Link
-              href="/"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                pathname === '/'
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
-              <LayoutDashboard className="size-4 shrink-0" />
-              <span>대시보드</span>
-            </Link>
           </div>
 
           <div className="space-y-1">
