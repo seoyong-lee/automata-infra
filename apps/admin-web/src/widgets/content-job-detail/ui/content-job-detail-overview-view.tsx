@@ -7,6 +7,7 @@ import Link from 'next/link';
 
 import { ExperimentOption, JobDraftDetail } from '../model';
 import { getPipelineStageIndex, PIPELINE_STAGE_LABELS } from '../lib/pipeline-stage';
+import { ContentJobDetailSourceLinkCard } from './content-job-detail-source-link-card';
 
 type ContentJobDetailOverviewViewProps = {
   jobId: string;
@@ -30,6 +31,12 @@ export function ContentJobDetailOverviewView({
 
   return (
     <div className="space-y-6">
+      <ContentJobDetailSourceLinkCard
+        jobId={jobId}
+        contentId={detail?.job.contentId}
+        sourceItemId={detail?.job.sourceItemId}
+      />
+
       <Card>
         <CardHeader>
           <CardTitle>제작 아이템 요약</CardTitle>

@@ -14,6 +14,7 @@ export function ContentChannelSubnav({ contentId }: ContentChannelSubnavProps) {
     { href: `${base}/jobs`, label: '제작 아이템', prefix: `${base}/jobs` },
     { href: `${base}/queue`, label: '출고 큐', prefix: `${base}/queue` },
     { href: `${base}/schedule`, label: '예약·발행', prefix: `${base}/schedule` },
+    { href: `${base}/connections`, label: '매체 연결', prefix: `${base}/connections` },
   ];
 
   return (

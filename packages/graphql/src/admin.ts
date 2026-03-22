@@ -882,6 +882,155 @@ const publishTargetsForJobQuery = `
   }
 `;
 
+const sourceItemQuery = `
+  query SourceItem($id: ID!) {
+    sourceItem(id: $id) {
+      id
+      topic
+      masterHook
+      sourceNotes
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const sourceItemsForChannelQuery = `
+  query SourceItemsForChannel($channelId: ID!) {
+    sourceItemsForChannel(channelId: $channelId) {
+      id
+      topic
+      masterHook
+      sourceNotes
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const platformPublishProfileQuery = `
+  query PlatformPublishProfile($channelId: ID!, $platformConnectionId: ID!) {
+    platformPublishProfile(channelId: $channelId, platformConnectionId: $platformConnectionId) {
+      platformConnectionId
+      channelId
+      defaultVisibility
+      defaultLanguage
+      defaultHashtags
+      captionFooterTemplate
+      preferredSlots
+      youtubeCategoryId
+      youtubePlaylistIds
+      youtubeTags
+      tiktokDisclosureTemplate
+      instagramFirstCommentTemplate
+    }
+  }
+`;
+
+const createSourceItemMutation = `
+  mutation CreateSourceItem($input: CreateSourceItemInput!) {
+    createSourceItem(input: $input) {
+      id
+      topic
+      masterHook
+      sourceNotes
+      status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const setJobSourceItemMutation = `
+  mutation SetJobSourceItem($input: SetJobSourceItemInput!) {
+    setJobSourceItem(input: $input) {
+      jobId
+      contentId
+      sourceItemId
+      status
+      updatedAt
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      videoTitle
+      topicS3Key
+      sceneJsonS3Key
+      topicSeedS3Key
+      approvedTopicExecutionId
+      approvedSceneExecutionId
+      approvedAssetExecutionId
+    }
+  }
+`;
+
+const upsertPlatformConnectionMutation = `
+  mutation UpsertPlatformConnection($input: UpsertPlatformConnectionInput!) {
+    upsertPlatformConnection(input: $input) {
+      platformConnectionId
+      channelId
+      platform
+      accountId
+      accountHandle
+      oauthAccountId
+      status
+      connectedAt
+      lastSyncedAt
+    }
+  }
+`;
+
+const updateContentPublishDraftMutation = `
+  mutation UpdateContentPublishDraft($input: UpdateContentPublishDraftInput!) {
+    updateContentPublishDraft(input: $input) {
+      channelContentItemId
+      globalDraft {
+        title
+        caption
+        description
+        hashtags
+        thumbnailAssetId
+      }
+      platformDrafts {
+        platform
+        targetConnectionId
+        enabled
+        metadataJson
+        overrideFields
+        validationStatus
+      }
+    }
+  }
+`;
+
+export type SourceItemGql = {
+  id: string;
+  topic: string;
+  masterHook?: string | null;
+  sourceNotes?: string | null;
+  status: "IDEATING" | "READY_FOR_DISTRIBUTION" | "ARCHIVED";
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PlatformPublishProfileGql = {
+  platformConnectionId: string;
+  channelId: string;
+  defaultVisibility?: string | null;
+  defaultLanguage?: string | null;
+  defaultHashtags: string[];
+  captionFooterTemplate?: string | null;
+  preferredSlots: string[];
+  youtubeCategoryId?: string | null;
+  youtubePlaylistIds: string[];
+  youtubeTags: string[];
+  tiktokDisclosureTemplate?: string | null;
+  instagramFirstCommentTemplate?: string | null;
+};
+
 export type PublishOrchestrationResult = {
   ok: boolean;
   jobId: string;
@@ -1265,6 +1414,171 @@ export const usePublishTargetsForJobQuery = (
       return data.publishTargetsForJob ?? [];
     },
     enabled: Boolean(vars.jobId),
+    ...options,
+  });
+};
+
+export const useSourceItemQuery = (
+  vars: { id: string },
+  options?: Omit<
+    UseQueryOptions<
+      SourceItemGql | null,
+      Error,
+      SourceItemGql | null,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["sourceItem", vars.id],
+    queryFn: async () => {
+      const data = await gql<{ sourceItem: SourceItemGql | null }>(
+        sourceItemQuery,
+        vars,
+      );
+      return data.sourceItem ?? null;
+    },
+    enabled: Boolean(vars.id),
+    ...options,
+  });
+};
+
+export const useSourceItemsForChannelQuery = (
+  vars: { channelId: string },
+  options?: Omit<
+    UseQueryOptions<
+      SourceItemGql[],
+      Error,
+      SourceItemGql[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["sourceItemsForChannel", vars.channelId],
+    queryFn: async () => {
+      const data = await gql<{ sourceItemsForChannel: SourceItemGql[] }>(
+        sourceItemsForChannelQuery,
+        vars,
+      );
+      return data.sourceItemsForChannel ?? [];
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const usePlatformPublishProfileQuery = (
+  vars: { channelId: string; platformConnectionId: string },
+  options?: Omit<
+    UseQueryOptions<
+      PlatformPublishProfileGql | null,
+      Error,
+      PlatformPublishProfileGql | null,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: [
+      "platformPublishProfile",
+      vars.channelId,
+      vars.platformConnectionId,
+    ],
+    queryFn: async () => {
+      const data = await gql<{
+        platformPublishProfile: PlatformPublishProfileGql | null;
+      }>(platformPublishProfileQuery, vars);
+      return data.platformPublishProfile ?? null;
+    },
+    enabled: Boolean(vars.channelId) && Boolean(vars.platformConnectionId),
+    ...options,
+  });
+};
+
+export const useCreateSourceItemMutation = (
+  options?: UseMutationOptions<
+    { createSourceItem: SourceItemGql },
+    Error,
+    {
+      channelId: string;
+      topic: string;
+      masterHook?: string;
+      sourceNotes?: string;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ createSourceItem: SourceItemGql }>(
+        createSourceItemMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useSetJobSourceItemMutation = (
+  options?: UseMutationOptions<
+    { setJobSourceItem: AdminJob },
+    Error,
+    { jobId: string; sourceItemId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ setJobSourceItem: AdminJob }>(setJobSourceItemMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useUpsertPlatformConnectionMutation = (
+  options?: UseMutationOptions<
+    { upsertPlatformConnection: PlatformConnection },
+    Error,
+    {
+      channelId: string;
+      platformConnectionId?: string;
+      platform: PublishPlatform;
+      accountId: string;
+      accountHandle?: string;
+      oauthAccountId: string;
+      status: PlatformConnectionStatus;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ upsertPlatformConnection: PlatformConnection }>(
+        upsertPlatformConnectionMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useUpdateContentPublishDraftMutation = (
+  options?: UseMutationOptions<
+    { updateContentPublishDraft: ContentPublishDraftGql },
+    Error,
+    { draft: Record<string, unknown> }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (variables) => {
+      return gql<{ updateContentPublishDraft: ContentPublishDraftGql }>(
+        updateContentPublishDraftMutation,
+        { input: { draft: variables.draft } },
+      );
+    },
     ...options,
   });
 };

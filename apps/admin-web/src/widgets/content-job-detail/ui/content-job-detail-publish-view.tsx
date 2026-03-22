@@ -5,6 +5,7 @@ import { useContentJobPublishTargets } from '@/entities/content-job';
 import type { ContentJobDetailPageData } from '../model/useContentJobDetailPageData';
 import { ContentJobDetailRenderReviewView } from './content-job-detail-render-review-view';
 import { ContentJobDetailShippingPrepView } from './content-job-detail-shipping-prep-view';
+import { ContentPublishDraftSection } from './content-publish-draft-section';
 
 type ContentJobDetailPublishViewProps = {
   jobId: string;
@@ -25,8 +26,13 @@ export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetai
           readyAssetCount={pageData.detailVm.readyAssetCount}
         />
       </section>
-      <section className="space-y-3">
+      <section className="space-y-6">
         <h2 className="text-lg font-semibold">출고 준비</h2>
+        <ContentPublishDraftSection
+          jobId={jobId}
+          contentId={pageData.detail?.job.contentId}
+          fallbackTitle={pageData.detail?.job.videoTitle?.trim() ?? ''}
+        />
         <ContentJobDetailShippingPrepView
           jobId={jobId}
           detail={pageData.detail}

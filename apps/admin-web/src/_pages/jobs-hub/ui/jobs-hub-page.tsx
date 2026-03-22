@@ -10,6 +10,7 @@ import { Suspense, useMemo, useState } from 'react';
 
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs, useAttachJobToContent } from '@/entities/admin-job';
+import { CreateSourceItemDialog } from '@/widgets/create-source-item';
 import { ContentJobsTable } from '@/widgets/content-operations';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
@@ -22,6 +23,7 @@ function JobsHubPageBody() {
 
   const [linkJobId, setLinkJobId] = useState<string | null>(null);
   const [pickContentId, setPickContentId] = useState('');
+  const [createSourceOpen, setCreateSourceOpen] = useState(false);
 
   const attach = useAttachJobToContent({
     onSuccess: async () => {
@@ -53,6 +55,30 @@ function JobsHubPageBody() {
       <AdminPageHeader
         title="제작 아이템"
         subtitle="미연결·채널에 연결된 제작 아이템을 한 목록에서 봅니다. 연결된 항목은 어떤 채널에 붙어 있는지 표시됩니다. 한 번 연결된 뒤에는 다른 채널로 옮길 수 없습니다(재연결·중복 연결 불가)."
+        actions={
+          <div className="flex flex-wrap gap-2">
+            <Link
+              href="/jobs/new"
+              className="inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
+            >
+              새 제작 아이템
+            </Link>
+            <Button
+              type="button"
+              variant="outline"
+              size="sm"
+              onClick={() => setCreateSourceOpen(true)}
+            >
+              새 소재 만들기
+            </Button>
+          </div>
+        }
+      />
+
+      <CreateSourceItemDialog
+        open={createSourceOpen}
+        onClose={() => setCreateSourceOpen(false)}
+        channels={contentOptions}
       />
 
       {linkJobId ? (

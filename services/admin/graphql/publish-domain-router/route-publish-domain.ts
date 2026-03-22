@@ -236,12 +236,23 @@ async function handleContentPublishDraft(rawArgs: Record<string, unknown>) {
   return mapContentPublishDraftToGql(d);
 }
 
+function parseContentPublishDraftInput(raw: unknown): Record<string, unknown> {
+  if (typeof raw === "string") {
+    try {
+      return JSON.parse(raw) as Record<string, unknown>;
+    } catch {
+      throw badUserInput("draft must be valid JSON");
+    }
+  }
+  return raw as Record<string, unknown>;
+}
+
 async function handleUpdateContentPublishDraft(
   rawArgs: Record<string, unknown>,
 ) {
   const { input } = updateContentPublishDraftInput.parse(rawArgs);
   const draft = contentPublishDraftSchema.parse(
-    input.draft as Record<string, unknown>,
+    parseContentPublishDraftInput(input.draft),
   );
   const saved = await putContentPublishDraft(draft);
   return mapContentPublishDraftToGql(saved);
