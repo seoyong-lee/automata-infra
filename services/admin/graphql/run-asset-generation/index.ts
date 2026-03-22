@@ -6,8 +6,14 @@ import {
 import { logResolverAudit } from "../shared/audit-log";
 import { toGraphqlResolverError } from "../shared/errors";
 import { GraphqlResolverEvent } from "../shared/types";
-import { parseRunAssetGenerationArgs } from "./normalize/parse-run-asset-generation-args";
-import { runAdminAssetGeneration } from "./usecase/run-asset-generation";
+import {
+  parseRunAssetGenerationArgs,
+  type ParsedRunAssetGenerationArgs,
+} from "./normalize/parse-run-asset-generation-args";
+import {
+  runAdminAssetGeneration,
+  toAssetGenerationScope,
+} from "./usecase/run-asset-generation";
 
 export const run: Handler<
   GraphqlResolverEvent<Record<string, unknown>>,
@@ -17,7 +23,7 @@ export const run: Handler<
   let jobId: string | undefined;
   try {
     assertAdminGroup(event.identity);
-    const parsed = parseRunAssetGenerationArgs(
+    const parsed: ParsedRunAssetGenerationArgs = parseRunAssetGenerationArgs(
       (event.arguments ?? {}) as Record<string, unknown>,
     );
     jobId = parsed.jobId;
@@ -28,7 +34,8 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const result = await runAdminAssetGeneration(parsed.jobId, actor);
+    const scope = toAssetGenerationScope(parsed);
+    const result = await runAdminAssetGeneration(parsed.jobId, actor, scope);
     logResolverAudit({
       operation: "runAssetGeneration",
       operationType: "mutation",

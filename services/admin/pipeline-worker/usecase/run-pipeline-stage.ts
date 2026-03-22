@@ -4,7 +4,10 @@ import {
   type JobExecutionStageType,
 } from "../../../shared/lib/store/job-execution";
 import { getJobOrThrow } from "../../graphql/shared/repo/job-draft-store";
-import { runAssetGenerationCore } from "../../graphql/run-asset-generation/usecase/run-asset-generation";
+import {
+  runAssetGenerationCore,
+  type AssetGenerationScope,
+} from "../../graphql/run-asset-generation/usecase/run-asset-generation";
 import { runSceneJsonCore } from "../../graphql/run-scene-json/usecase/run-scene-json";
 import { runTopicPlanCore } from "../../graphql/run-topic-plan/usecase/run-topic-plan";
 
@@ -12,6 +15,7 @@ export const runPipelineStage = async (input: {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
+  assetGenScope?: AssetGenerationScope;
 }): Promise<void> => {
   await markJobExecutionRunning(input.jobId, input.executionSk);
   try {
@@ -20,7 +24,10 @@ export const runPipelineStage = async (input: {
     } else if (input.stage === "SCENE_JSON") {
       await runSceneJsonCore(input.jobId);
     } else {
-      await runAssetGenerationCore(input.jobId);
+      const scope: AssetGenerationScope = input.assetGenScope ?? {
+        modality: "all",
+      };
+      await runAssetGenerationCore(input.jobId, scope);
     }
     const job = await getJobOrThrow(input.jobId);
     const outputArtifactS3Key =

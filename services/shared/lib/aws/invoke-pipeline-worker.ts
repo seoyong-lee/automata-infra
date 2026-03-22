@@ -4,10 +4,16 @@ import type { JobExecutionStageType } from "../store/job-execution";
 
 const client = new LambdaClient({});
 
+export type PipelineWorkerAssetGenScope = {
+  targetSceneId?: number;
+  modality: "all" | "image" | "voice" | "video";
+};
+
 export const invokePipelineWorkerAsync = async (input: {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
+  assetGenScope?: PipelineWorkerAssetGenScope;
 }): Promise<void> => {
   const fn = process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim();
   if (!fn) {
@@ -22,6 +28,7 @@ export const invokePipelineWorkerAsync = async (input: {
           jobId: input.jobId,
           executionSk: input.executionSk,
           stage: input.stage,
+          ...(input.assetGenScope ? { assetGenScope: input.assetGenScope } : {}),
         }),
       ),
     }),

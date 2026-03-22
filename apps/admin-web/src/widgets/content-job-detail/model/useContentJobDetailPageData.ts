@@ -1,3 +1,4 @@
+import type { AssetGenerationModality } from '@packages/graphql';
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useContentJobDraft } from '@/entities/content-job';
@@ -28,7 +29,8 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
       window.location.href = '/reviews';
     },
     requestUploadError: mutations.requestUpload.error,
-    runAssetGeneration: () => mutations.runAssetGeneration.mutate({ jobId }),
+    runAssetGeneration: (opts?: { targetSceneId?: number; modality?: AssetGenerationModality }) =>
+      mutations.runAssetGeneration.mutate({ jobId, ...opts }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),
     runSceneJsonError: mutations.runSceneJson.error,

@@ -13,6 +13,8 @@ export type JobDetailRouteTabKey = (typeof jobDetailRouteTabKeys)[number];
 /** 에셋 탭 내부 서브구간 (`?stage=`). */
 export type AssetStage = 'image' | 'voice' | 'video';
 
+export type AssetsViewMode = 'scenes' | 'byKind';
+
 export const jobDetailRouteTabs: Array<{
   key: JobDetailRouteTabKey;
   label: string;
@@ -99,6 +101,21 @@ export function parseAssetStage(raw: string | null): AssetStage {
     return raw;
   }
   return 'image';
+}
+
+/** 기본은 씬별 보기. `view=byKind` 또는 레거시 `stage=` 가 있으면 종류별 보기. */
+export function parseAssetsViewMode(searchParams: URLSearchParams | null): AssetsViewMode {
+  if (!searchParams) {
+    return 'scenes';
+  }
+  if (searchParams.get('view') === 'byKind') {
+    return 'byKind';
+  }
+  const stage = searchParams.get('stage');
+  if (stage === 'image' || stage === 'voice' || stage === 'video') {
+    return 'byKind';
+  }
+  return 'scenes';
 }
 
 /** @deprecated JobDetailRouteTabKey 를 사용한다. */

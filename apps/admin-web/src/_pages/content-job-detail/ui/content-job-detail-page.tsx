@@ -12,6 +12,7 @@ import {
   getJobDetailLegacyRedirect,
   jobDetailRouteTabs,
   parseAssetStage,
+  parseAssetsViewMode,
   parseJobDetailRouteTabParam,
   type JobDetailRouteTabKey,
   useContentJobDetailPageData,
@@ -32,6 +33,7 @@ function ContentJobDetailPageBody() {
   const rawStep = params?.step;
   const stepParam = Array.isArray(rawStep) ? rawStep[0] : rawStep;
   const assetStage = parseAssetStage(searchParams.get('stage'));
+  const assetsViewMode = parseAssetsViewMode(searchParams);
   const parsedTab = parseJobDetailRouteTabParam(stepParam);
   const activeTab: JobDetailRouteTabKey = parsedTab ?? 'overview';
 
@@ -94,6 +96,7 @@ function ContentJobDetailPageBody() {
         jobId={jobId}
         activeTab={activeTab}
         assetStage={assetStage}
+        assetsViewMode={assetsViewMode}
         pageData={pageData}
         workActionResolution={workActionResolution}
         onWorkAction={dispatchWorkAction}

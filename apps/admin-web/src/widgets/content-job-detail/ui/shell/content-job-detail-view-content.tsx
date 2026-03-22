@@ -1,6 +1,10 @@
 'use client';
 
-import type { JobWorkActionResolution, JobWorkPrimaryAction } from '../../lib/resolve-job-work-action';
+import type {
+  JobWorkActionResolution,
+  JobWorkPrimaryAction,
+} from '../../lib/resolve-job-work-action';
+import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type { AssetStage, JobDetailRouteTabKey } from '../../model';
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
 import { ContentJobDetailAssetsHubView } from '../assets/content-job-detail-assets-hub-view';
@@ -14,6 +18,7 @@ type ContentJobDetailViewContentProps = {
   jobId: string;
   activeTab: JobDetailRouteTabKey;
   assetStage: AssetStage;
+  assetsViewMode: AssetsViewMode;
   pageData: ContentJobDetailPageData;
   workActionResolution: JobWorkActionResolution;
   onWorkAction: (action: JobWorkPrimaryAction) => void;
@@ -24,6 +29,7 @@ export function ContentJobDetailViewContent({
   jobId,
   activeTab,
   assetStage,
+  assetsViewMode,
   pageData,
   workActionResolution,
   onWorkAction,
@@ -54,7 +60,12 @@ export function ContentJobDetailViewContent({
 
   if (activeTab === 'assets') {
     return (
-      <ContentJobDetailAssetsHubView jobId={jobId} assetStage={assetStage} pageData={pageData} />
+      <ContentJobDetailAssetsHubView
+        jobId={jobId}
+        assetStage={assetStage}
+        assetsViewMode={assetsViewMode}
+        pageData={pageData}
+      />
     );
   }
 

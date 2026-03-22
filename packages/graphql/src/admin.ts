@@ -766,6 +766,9 @@ const updateSceneJsonMutation = `
   }
 `;
 
+/** GraphQL `AssetGenerationModality` — matches `lib/modules/publish/graphql/schema.graphql`. */
+export type AssetGenerationModality = "ALL" | "IMAGE" | "VOICE" | "VIDEO";
+
 const runAssetGenerationMutation = `
   mutation RunAssetGeneration($input: RunAssetGenerationInput!) {
     runAssetGeneration(input: $input) {
@@ -2497,11 +2500,17 @@ export const useUpdateSceneJsonMutation = (
   });
 };
 
+export type RunAssetGenerationMutationInput = {
+  jobId: string;
+  targetSceneId?: number;
+  modality?: AssetGenerationModality;
+};
+
 export const useRunAssetGenerationMutation = (
   options?: UseMutationOptions<
     { runAssetGeneration: AdminJob },
     Error,
-    { jobId: string }
+    RunAssetGenerationMutationInput
   >,
 ) => {
   return useMutation({

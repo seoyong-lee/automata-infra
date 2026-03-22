@@ -15,6 +15,7 @@ export {
   jobDetailRouteTabKeys,
   jobDetailRouteTabs,
   parseAssetStage,
+  parseAssetsViewMode,
   parseDetailWorkspaceTabParam,
   parseJobDetailRouteTabParam,
 } from '../lib/detail-workspace-tabs';

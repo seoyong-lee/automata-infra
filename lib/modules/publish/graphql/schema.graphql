@@ -469,8 +469,23 @@ input UpdateSceneJsonInput {
   sceneJson: AWSJSON!
 }
 
+enum AssetGenerationModality {
+  ALL
+  IMAGE
+  VOICE
+  VIDEO
+}
+
 input RunAssetGenerationInput {
   jobId: ID!
+  """
+  지정 시 해당 씬만 생성·재생성합니다. 생략 시 전체 씬.
+  """
+  targetSceneId: Int
+  """
+  생략 또는 ALL이면 이미지→영상→음성 순 전체. IMAGE/VOICE/VIDEO는 해당 모달리티만.
+  """
+  modality: AssetGenerationModality
 }
 
 type UploadRequestResult {

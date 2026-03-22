@@ -45,3 +45,42 @@ export const finalizeSceneAssetsReadiness = async (input: {
 
   await updateJobMeta(input.jobId, { lastError: null }, "ASSETS_READY");
 };
+
+/**
+ * 부분 재생성 후: 전체 씬 기준으로 아직 비었으면 ASSET_GENERATING + lastError, 모두 채워지면 ASSETS_READY.
+ * (throw 없음 — 부분 실행 파이프라인용)
+ */
+export const recomputeSceneAssetsReadiness = async (input: {
+  jobId: string;
+  sceneJson: SceneJson;
+}): Promise<void> => {
+  const rows = await listSceneAssets(input.jobId);
+  const bySceneId = new Map(rows.map((r) => [r.sceneId, r]));
+  const reasons: string[] = [];
+
+  for (const scene of input.sceneJson.scenes) {
+    const row = bySceneId.get(scene.sceneId);
+    if (!row) {
+      reasons.push(`scene ${scene.sceneId}: missing scene asset row`);
+      continue;
+    }
+    if (!isNonEmptyS3Key(row.imageS3Key)) {
+      reasons.push(`scene ${scene.sceneId}: image missing`);
+    }
+    if (!isNonEmptyS3Key(row.voiceS3Key)) {
+      reasons.push(`scene ${scene.sceneId}: voice missing`);
+    }
+    const needsVideo = Boolean(scene.videoPrompt?.trim());
+    if (needsVideo && !isNonEmptyS3Key(row.videoClipS3Key)) {
+      reasons.push(`scene ${scene.sceneId}: video missing`);
+    }
+  }
+
+  if (reasons.length > 0) {
+    const msg = reasons.join("; ");
+    await updateJobMeta(input.jobId, { lastError: msg }, "ASSET_GENERATING");
+    return;
+  }
+
+  await updateJobMeta(input.jobId, { lastError: null }, "ASSETS_READY");
+};

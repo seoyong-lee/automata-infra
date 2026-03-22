@@ -20,6 +20,7 @@ export {
   jobDetailRouteTabKeys,
   jobDetailRouteTabs,
   parseAssetStage,
+  parseAssetsViewMode,
   parseDetailWorkspaceTabParam,
   parseJobDetailRouteTabParam,
   parseWorkspaceViewParam,

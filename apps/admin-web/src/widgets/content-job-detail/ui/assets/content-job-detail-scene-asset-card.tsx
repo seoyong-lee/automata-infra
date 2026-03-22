@@ -1,0 +1,100 @@
+'use client';
+
+import type { AssetGenerationModality } from '@packages/graphql';
+import { Badge } from '@packages/ui/badge';
+import { Card, CardContent, CardFooter, CardHeader, CardTitle } from '@packages/ui/card';
+import Link from 'next/link';
+
+import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
+import { ContentJobDetailSceneAssetCell } from './content-job-detail-scene-asset-cell';
+
+type ContentJobDetailSceneAssetCardProps = {
+  jobId: string;
+  card: SceneAssetCard;
+  isRunning: boolean;
+  onRegenerate: (input: { sceneId: number; modality: AssetGenerationModality }) => void;
+};
+
+function overallBadgeProps(overall: SceneAssetCard['overallStatus']): {
+  variant: 'default' | 'secondary' | 'outline';
+  className?: string;
+} {
+  switch (overall) {
+    case 'READY':
+      return { variant: 'default' };
+    case 'PARTIAL':
+      return { variant: 'secondary' };
+    case 'FAILED':
+      return {
+        variant: 'outline',
+        className: 'border-destructive text-destructive',
+      };
+    case 'PENDING':
+      return { variant: 'outline' };
+    default:
+      return { variant: 'secondary' };
+  }
+}
+
+export function ContentJobDetailSceneAssetCard({
+  jobId,
+  card,
+  isRunning,
+  onRegenerate,
+}: ContentJobDetailSceneAssetCardProps) {
+  const disabled = isRunning;
+
+  return (
+    <Card>
+      <CardHeader className="flex flex-row flex-wrap items-start justify-between gap-2 space-y-0">
+        <div>
+          <CardTitle className="text-base">Scene {card.sceneId}</CardTitle>
+          {card.durationSec != null ? (
+            <p className="text-xs text-muted-foreground">{card.durationSec}s</p>
+          ) : null}
+        </div>
+        <Badge {...overallBadgeProps(card.overallStatus)}>{card.statusLabel}</Badge>
+      </CardHeader>
+      <CardContent className="grid gap-3 md:grid-cols-3">
+        <ContentJobDetailSceneAssetCell
+          title="이미지"
+          status={card.image.status}
+          disabled={disabled}
+          onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'IMAGE' })}
+        />
+        <ContentJobDetailSceneAssetCell
+          title="음성"
+          status={card.voice.status}
+          disabled={disabled}
+          onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VOICE' })}
+        />
+        <ContentJobDetailSceneAssetCell
+          title="영상"
+          status={card.video.status}
+          disabled={disabled}
+          onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VIDEO' })}
+        />
+      </CardContent>
+      <CardFooter className="flex flex-wrap gap-3 border-t pt-4 text-sm">
+        <Link
+          href={`/jobs/${jobId}/scene`}
+          className="text-primary underline-offset-4 hover:underline"
+        >
+          씬 검수
+        </Link>
+        <Link
+          href={`/jobs/${jobId}/scene`}
+          className="text-muted-foreground underline-offset-4 hover:underline"
+        >
+          프롬프트
+        </Link>
+        <Link
+          href={`/jobs/${jobId}/assets?view=byKind&stage=image`}
+          className="text-muted-foreground underline-offset-4 hover:underline"
+        >
+          종류별 보기
+        </Link>
+      </CardFooter>
+    </Card>
+  );
+}

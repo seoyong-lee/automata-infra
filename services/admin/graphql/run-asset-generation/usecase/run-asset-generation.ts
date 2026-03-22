@@ -15,15 +15,58 @@ import { resolveSceneJsonS3KeyForAssetGeneration } from "../../shared/lib/resolv
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { persistAssetManifestForJob } from "../repo/persist-asset-manifest";
-import { finalizeSceneAssetsReadiness } from "./finalize-scene-assets-readiness";
-import type { SceneJson } from "../../../../../types/render/scene-json";
+import {
+  finalizeSceneAssetsReadiness,
+  recomputeSceneAssetsReadiness,
+} from "./finalize-scene-assets-readiness";
+import type {
+  SceneDefinition,
+  SceneJson,
+} from "../../../../../types/render/scene-json";
+import type { ParsedRunAssetGenerationArgs } from "../normalize/parse-run-asset-generation-args";
 
 const pipelineAsyncEnabled = (): boolean =>
   (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
     process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
   Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
-export const runAssetGenerationCore = async (jobId: string) => {
+export type AssetGenerationScope = {
+  targetSceneId?: number;
+  modality: "all" | "image" | "voice" | "video";
+};
+
+export const toAssetGenerationScope = (
+  parsed: ParsedRunAssetGenerationArgs,
+): AssetGenerationScope => {
+  const modalityStr =
+    parsed.modality === "IMAGE"
+      ? "image"
+      : parsed.modality === "VOICE"
+        ? "voice"
+        : parsed.modality === "VIDEO"
+          ? "video"
+          : "all";
+  return {
+    ...(parsed.targetSceneId !== undefined
+      ? { targetSceneId: parsed.targetSceneId }
+      : {}),
+    modality: modalityStr,
+  };
+};
+
+const isFullStrictFinalize = (scope: AssetGenerationScope): boolean =>
+  scope.targetSceneId === undefined && scope.modality === "all";
+
+type AssetGenerationContext = {
+  sceneJson: SceneJson;
+  scenes: SceneDefinition[];
+  sceneJsonS3Key: string;
+};
+
+const loadAssetGenerationContext = async (
+  jobId: string,
+  scope: AssetGenerationScope,
+): Promise<AssetGenerationContext> => {
   const job = await getJobOrThrow(jobId);
   const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
     jobId,
@@ -39,8 +82,26 @@ export const runAssetGenerationCore = async (jobId: string) => {
     throw new Error("scene json payload not found");
   }
 
-  await updateJobMeta(jobId, {}, "ASSET_GENERATING");
-  const imageScenes = sceneJson.scenes.map((scene) => ({
+  let scenes = sceneJson.scenes;
+  if (scope.targetSceneId !== undefined) {
+    scenes = scenes.filter((s) => s.sceneId === scope.targetSceneId);
+    if (scenes.length === 0) {
+      throw new Error(`scene ${scope.targetSceneId} not found in sceneJson`);
+    }
+  }
+
+  return {
+    sceneJson,
+    scenes,
+    sceneJsonS3Key: sceneResolved.sceneJsonS3Key,
+  };
+};
+
+const runImageModalityForScenes = async (
+  jobId: string,
+  scenes: SceneDefinition[],
+) => {
+  const imageScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     imagePrompt: scene.imagePrompt,
   }));
@@ -55,8 +116,13 @@ export const runAssetGenerationCore = async (jobId: string) => {
     imageAssets,
     markStatus: false,
   });
+};
 
-  const videoScenes = sceneJson.scenes.map((scene) => ({
+const runVideoModalityForScenes = async (
+  jobId: string,
+  scenes: SceneDefinition[],
+) => {
+  const videoScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     videoPrompt: scene.videoPrompt,
   }));
@@ -70,8 +136,13 @@ export const runAssetGenerationCore = async (jobId: string) => {
     scenes: videoScenes,
     videoAssets,
   });
+};
 
-  const voiceScenes = sceneJson.scenes.map((scene) => ({
+const runVoiceModalityForScenes = async (
+  jobId: string,
+  scenes: SceneDefinition[],
+) => {
+  const voiceScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     narration: scene.narration,
     durationSec: scene.durationSec,
@@ -87,13 +158,38 @@ export const runAssetGenerationCore = async (jobId: string) => {
     voiceAssets,
     markStatus: false,
   });
+};
+
+export const runAssetGenerationCore = async (
+  jobId: string,
+  scope: AssetGenerationScope = { modality: "all" },
+) => {
+  const { sceneJson, scenes, sceneJsonS3Key } =
+    await loadAssetGenerationContext(jobId, scope);
+
+  await updateJobMeta(jobId, {}, "ASSET_GENERATING");
+  const modality = scope.modality;
+
+  if (modality === "all" || modality === "image") {
+    await runImageModalityForScenes(jobId, scenes);
+  }
+  if (modality === "all" || modality === "video") {
+    await runVideoModalityForScenes(jobId, scenes);
+  }
+  if (modality === "all" || modality === "voice") {
+    await runVoiceModalityForScenes(jobId, scenes);
+  }
 
   await persistAssetManifestForJob({
     jobId,
-    sceneJsonS3Key: sceneResolved.sceneJsonS3Key,
+    sceneJsonS3Key,
   });
 
-  await finalizeSceneAssetsReadiness({ jobId, sceneJson });
+  if (isFullStrictFinalize(scope)) {
+    await finalizeSceneAssetsReadiness({ jobId, sceneJson });
+  } else {
+    await recomputeSceneAssetsReadiness({ jobId, sceneJson });
+  }
 
   const updated = await getJobOrThrow(jobId);
   return mapJobMetaToAdminJob(updated);
@@ -102,6 +198,7 @@ export const runAssetGenerationCore = async (jobId: string) => {
 export const runAdminAssetGeneration = async (
   jobId: string,
   triggeredBy?: string,
+  scope: AssetGenerationScope = { modality: "all" },
 ) => {
   const job = await getJobOrThrow(jobId);
   const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
@@ -125,6 +222,7 @@ export const runAdminAssetGeneration = async (
         jobId,
         executionSk: sk,
         stage: "ASSET_GENERATION",
+        assetGenScope: scope,
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
@@ -142,7 +240,7 @@ export const runAdminAssetGeneration = async (
     inputSnapshotId,
   });
   try {
-    const result = await runAssetGenerationCore(jobId);
+    const result = await runAssetGenerationCore(jobId, scope);
     await finish(
       "SUCCEEDED",
       undefined,
