@@ -15,6 +15,7 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
   const queryClient = useQueryClient();
   const invalidateQueue = async (contentId: string) => {
     await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] });
+    await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] });
   };
   const updateTopicSeed = useUpdateContentJobTopicSeed({ onSuccess });
   const runTopicPlan = useRunContentJobTopicPlan({ onSuccess });

@@ -32,6 +32,10 @@ type Query {
   필드는 null 허용(리졸버 미배포·일시 실패 시) — 클라이언트는 빈 배열로 처리.
   """
   channelPublishQueue(contentId: ID!): [ChannelPublishQueueItem!]
+  """
+  채널에 연결된 외부 매체 계정(현재는 Content 메타 기반 synthetic 연결 포함).
+  """
+  platformConnections(contentId: ID!): [PlatformConnection!]!
 }
 
 type Mutation {
@@ -429,6 +433,52 @@ enum JobStatus {
   METRICS_COLLECTED
 }
 
+enum PublishPlatform {
+  YOUTUBE
+  TIKTOK
+  INSTAGRAM
+}
+
+enum PlatformConnectionStatus {
+  CONNECTED
+  EXPIRED
+  ERROR
+  DISCONNECTED
+}
+
+enum PublishTargetStatus {
+  QUEUED
+  SCHEDULED
+  PUBLISHING
+  PUBLISHED
+  FAILED
+  SKIPPED
+}
+
+type PlatformConnection {
+  platformConnectionId: ID!
+  channelId: ID!
+  platform: PublishPlatform!
+  accountId: String!
+  accountHandle: String
+  oauthAccountId: String!
+  status: PlatformConnectionStatus!
+  connectedAt: AWSDateTime!
+  lastSyncedAt: AWSDateTime
+}
+
+type PublishTarget {
+  publishTargetId: ID!
+  channelContentItemId: ID!
+  platformConnectionId: ID!
+  platform: PublishPlatform!
+  status: PublishTargetStatus!
+  scheduledAt: AWSDateTime
+  externalPostId: String
+  externalUrl: String
+  publishError: String
+}
+
 enum ChannelPublishQueueItemStatus {
   QUEUED
   SCHEDULED
@@ -440,6 +490,10 @@ type ChannelPublishQueueItem {
   queueItemId: ID!
   channelId: ID!
   jobId: ID!
+  """
+  채널별 제작·배포 아이템 id. 현재는 jobId와 동일(점진적 마이그레이션).
+  """
+  channelContentItemId: ID!
   status: ChannelPublishQueueItemStatus!
   priority: Int!
   createdAt: AWSDateTime!
@@ -448,6 +502,10 @@ type ChannelPublishQueueItem {
   publishedAt: AWSDateTime
   note: String
   enqueuedBy: String
+  """
+  큐 적재 시 생성된 플랫폼별 발행 타깃(레거시 행은 빈 배열).
+  """
+  publishTargets: [PublishTarget!]!
 }
 
 input EnqueueToChannelPublishQueueInput {

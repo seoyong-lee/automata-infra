@@ -85,7 +85,7 @@ export function ContentJobDetailStageApprovalWorkbench({
             {stageLabel} 단계 기록입니다. 성공한 실행만 채택할 수 있습니다.
           </CardDescription>
         </CardHeader>
-        <CardContent className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto pr-1">
+        <CardContent className="max-h-[min(420px,50vh)] space-y-1 overflow-y-auto">
           {q.isLoading ? <p className="text-sm text-muted-foreground">불러오는 중…</p> : null}
           {q.error ? <p className="text-sm text-destructive">{getErrorMessage(q.error)}</p> : null}
           {!q.isLoading && rows.length === 0 ? (
@@ -103,7 +103,7 @@ export function ContentJobDetailStageApprovalWorkbench({
               }`}
             >
               <div className="flex items-center justify-between gap-2">
-                <Badge variant="outline" className="font-normal">
+                <Badge variant="outline" className="font-normal px-0">
                   {row.status}
                 </Badge>
                 <span className="text-[10px] text-muted-foreground">

@@ -58,10 +58,51 @@ export type AdminJob = {
   updatedAt: string;
 };
 
+export type PublishPlatform = "YOUTUBE" | "TIKTOK" | "INSTAGRAM";
+
+export type PlatformConnectionStatus =
+  | "CONNECTED"
+  | "EXPIRED"
+  | "ERROR"
+  | "DISCONNECTED";
+
+export type PublishTargetStatus =
+  | "QUEUED"
+  | "SCHEDULED"
+  | "PUBLISHING"
+  | "PUBLISHED"
+  | "FAILED"
+  | "SKIPPED";
+
+export type PlatformConnection = {
+  platformConnectionId: string;
+  channelId: string;
+  platform: PublishPlatform;
+  accountId: string;
+  accountHandle?: string | null;
+  oauthAccountId: string;
+  status: PlatformConnectionStatus;
+  connectedAt: string;
+  lastSyncedAt?: string | null;
+};
+
+export type PublishTarget = {
+  publishTargetId: string;
+  channelContentItemId: string;
+  platformConnectionId: string;
+  platform: PublishPlatform;
+  status: PublishTargetStatus;
+  scheduledAt?: string | null;
+  externalPostId?: string | null;
+  externalUrl?: string | null;
+  publishError?: string | null;
+};
+
 export type ChannelPublishQueueItem = {
   queueItemId: string;
   channelId: string;
   jobId: string;
+  channelContentItemId: string;
   status: "QUEUED" | "SCHEDULED" | "PUBLISHED" | "REMOVED";
   priority: number;
   createdAt: string;
@@ -70,6 +111,7 @@ export type ChannelPublishQueueItem = {
   publishedAt?: string | null;
   note?: string | null;
   enqueuedBy?: string | null;
+  publishTargets: PublishTarget[];
 };
 
 export type PendingReview = {
@@ -326,6 +368,7 @@ const channelPublishQueueQuery = `
       queueItemId
       channelId
       jobId
+      channelContentItemId
       status
       priority
       createdAt
@@ -334,6 +377,33 @@ const channelPublishQueueQuery = `
       publishedAt
       note
       enqueuedBy
+      publishTargets {
+        publishTargetId
+        channelContentItemId
+        platformConnectionId
+        platform
+        status
+        scheduledAt
+        externalPostId
+        externalUrl
+        publishError
+      }
+    }
+  }
+`;
+
+const platformConnectionsQuery = `
+  query PlatformConnections($contentId: ID!) {
+    platformConnections(contentId: $contentId) {
+      platformConnectionId
+      channelId
+      platform
+      accountId
+      accountHandle
+      oauthAccountId
+      status
+      connectedAt
+      lastSyncedAt
     }
   }
 `;
@@ -737,6 +807,7 @@ const enqueueToChannelPublishQueueMutation = `
       queueItemId
       channelId
       jobId
+      channelContentItemId
       status
       priority
       createdAt
@@ -745,6 +816,17 @@ const enqueueToChannelPublishQueueMutation = `
       publishedAt
       note
       enqueuedBy
+      publishTargets {
+        publishTargetId
+        channelContentItemId
+        platformConnectionId
+        platform
+        status
+        scheduledAt
+        externalPostId
+        externalUrl
+        publishError
+      }
     }
   }
 `;
@@ -992,6 +1074,32 @@ export const useChannelPublishQueueQuery = (
         }
         throw e;
       }
+    },
+    enabled: Boolean(vars.contentId),
+    ...options,
+  });
+};
+
+export const usePlatformConnectionsQuery = (
+  vars: { contentId: string },
+  options?: Omit<
+    UseQueryOptions<
+      PlatformConnection[],
+      Error,
+      PlatformConnection[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["platformConnections", vars.contentId],
+    queryFn: async () => {
+      const data = await gql<{ platformConnections: PlatformConnection[] }>(
+        platformConnectionsQuery,
+        vars,
+      );
+      return data.platformConnections ?? [];
     },
     enabled: Boolean(vars.contentId),
     ...options,

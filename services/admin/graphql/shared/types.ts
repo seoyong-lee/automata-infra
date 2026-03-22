@@ -29,10 +29,52 @@ export type ChannelPublishQueueItemStatus =
   | "PUBLISHED"
   | "REMOVED";
 
+export type PublishPlatform = "YOUTUBE" | "TIKTOK" | "INSTAGRAM";
+
+export type PlatformConnectionStatus =
+  | "CONNECTED"
+  | "EXPIRED"
+  | "ERROR"
+  | "DISCONNECTED";
+
+export type PublishTargetStatus =
+  | "QUEUED"
+  | "SCHEDULED"
+  | "PUBLISHING"
+  | "PUBLISHED"
+  | "FAILED"
+  | "SKIPPED";
+
+export type PlatformConnectionDto = {
+  platformConnectionId: string;
+  channelId: string;
+  platform: PublishPlatform;
+  accountId: string;
+  accountHandle?: string;
+  oauthAccountId: string;
+  status: PlatformConnectionStatus;
+  connectedAt: string;
+  lastSyncedAt?: string;
+};
+
+export type PublishTargetDto = {
+  publishTargetId: string;
+  channelContentItemId: string;
+  platformConnectionId: string;
+  platform: PublishPlatform;
+  status: PublishTargetStatus;
+  scheduledAt?: string;
+  externalPostId?: string;
+  externalUrl?: string;
+  publishError?: string;
+};
+
 export type ChannelPublishQueueItemDto = {
   queueItemId: string;
   channelId: string;
   jobId: string;
+  /** 문서상 ChannelContentItem id; 현재는 jobId와 동일. */
+  channelContentItemId: string;
   status: ChannelPublishQueueItemStatus;
   priority: number;
   createdAt: string;
@@ -41,6 +83,7 @@ export type ChannelPublishQueueItemDto = {
   publishedAt?: string;
   note?: string;
   enqueuedBy?: string;
+  publishTargets: PublishTargetDto[];
 };
 
 export type ReviewAction = "PENDING" | "APPROVE" | "REJECT" | "REGENERATE";

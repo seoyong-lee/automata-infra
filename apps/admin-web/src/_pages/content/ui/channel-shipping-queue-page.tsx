@@ -46,6 +46,7 @@ export function ChannelShippingQueuePage() {
             <tr>
               <th className="px-4 py-2 font-medium">우선순위</th>
               <th className="px-4 py-2 font-medium">제작 아이템</th>
+              <th className="px-4 py-2 font-medium">발행 타깃</th>
               <th className="px-4 py-2 font-medium">상태</th>
               <th className="px-4 py-2 font-medium">추가일</th>
               <th className="px-4 py-2 font-medium">메모</th>
@@ -54,13 +55,13 @@ export function ChannelShippingQueuePage() {
           <tbody>
             {queueQuery.isLoading ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-muted-foreground">
                   불러오는 중…
                 </td>
               </tr>
             ) : rows.length === 0 ? (
               <tr>
-                <td colSpan={5} className="px-4 py-6 text-muted-foreground">
+                <td colSpan={6} className="px-4 py-6 text-muted-foreground">
                   출고 큐가 비어 있습니다. 제작 아이템 상세의「렌더·출고 준비」에서 추가하세요.
                 </td>
               </tr>
@@ -75,6 +76,11 @@ export function ChannelShippingQueuePage() {
                     >
                       {titleForJob(row.jobId, jobs)}
                     </Link>
+                  </td>
+                  <td className="px-4 py-2 text-muted-foreground">
+                    {row.publishTargets.length > 0
+                      ? row.publishTargets.map((t) => t.platform).join(', ')
+                      : '—'}
                   </td>
                   <td className="px-4 py-2">{row.status}</td>
                   <td className="px-4 py-2 text-muted-foreground tabular-nums">

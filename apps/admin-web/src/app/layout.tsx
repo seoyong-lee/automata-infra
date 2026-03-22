@@ -1,11 +1,11 @@
-import type { Metadata } from "next";
-import type { ReactNode } from "react";
-import { Providers } from "./providers/providers";
-import "./globals.css";
+import type { Metadata } from 'next';
+import type { ReactNode } from 'react';
+import { Providers } from './providers/providers';
+import './globals.css';
 
 export const metadata: Metadata = {
-  title: "Pipeline Admin",
-  description: "AI Pipeline Admin",
+  title: 'Automata Studio',
+  description: 'Content Pipeline Admin',
 };
 
 export default function RootLayout({ children }: { children: ReactNode }) {

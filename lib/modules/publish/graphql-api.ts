@@ -35,6 +35,7 @@ type CreatePublishGraphqlApiProps = {
   approvePipelineExecutionResolver: lambda.IFunction;
   channelPublishQueueResolver: lambda.IFunction;
   enqueueToChannelPublishQueueResolver: lambda.IFunction;
+  platformConnectionsResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -234,6 +235,27 @@ export const createPublishGraphqlApi = (
     "approvePipelineExecution",
     "Mutation",
     props.approvePipelineExecutionResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ChannelPublishQueue",
+    "channelPublishQueue",
+    "Query",
+    props.channelPublishQueueResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "EnqueueToChannelPublishQueue",
+    "enqueueToChannelPublishQueue",
+    "Mutation",
+    props.enqueueToChannelPublishQueueResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PlatformConnections",
+    "platformConnections",
+    "Query",
+    props.platformConnectionsResolver,
   );
 
   return {

@@ -316,6 +316,15 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const platformConnectionsResolver = createLambda(
+      this,
+      "AdminPlatformConnectionsResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/list-platform-connections/handler.ts",
+      ),
+      environment,
+    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -387,6 +396,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(approvePipelineExecutionResolver);
     props.jobsTable.grantReadData(channelPublishQueueResolver);
     props.jobsTable.grantReadWriteData(enqueueToChannelPublishQueueResolver);
+    props.jobsTable.grantReadData(platformConnectionsResolver);
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
@@ -502,6 +512,7 @@ export class PublishStack extends Stack {
       approvePipelineExecutionResolver,
       channelPublishQueueResolver,
       enqueueToChannelPublishQueueResolver,
+      platformConnectionsResolver,
     });
 
     const publishApi = createPublishApi(this, reviewHandler, uploadHandler);

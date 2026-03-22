@@ -4,6 +4,7 @@ type AuditOperation =
   | "approvePipelineExecution"
   | "enqueueToChannelPublishQueue"
   | "channelPublishQueue"
+  | "platformConnections"
   | "attachJobToContent"
   | "adminJobs"
   | "adminJob"

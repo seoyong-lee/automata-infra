@@ -1,6 +1,8 @@
 import { randomUUID } from "node:crypto";
 
+import type { PublishTargetRow } from "../../../../lib/modules/publish/contracts/publish-domain";
 import { putItem, queryItems } from "../aws/runtime";
+import { buildDefaultPublishTargetsForJob } from "./platform-connections";
 import { contentPk } from "./video-jobs";
 
 const publishQueueSkPrefix = "PUBLISH_QUEUE#";
@@ -25,6 +27,8 @@ export type ChannelPublishQueueRow = {
   publishedAt?: string;
   note?: string;
   enqueuedBy?: string;
+  /** 멀티 플랫폼 발행: 플랫폼 연결당 1건. 레거시 행은 생략될 수 있음. */
+  publishTargets?: PublishTargetRow[];
 };
 
 export const listChannelPublishQueueRows = async (
