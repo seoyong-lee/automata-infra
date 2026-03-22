@@ -4,6 +4,7 @@ import type { ImageGenerationProvider } from '@packages/graphql';
 import { Button } from '@packages/ui/button';
 import { cn } from '@packages/ui';
 
+import type { VoiceProfile } from '@/entities/voice-profile';
 import { modalityStatusLabel } from '../../lib/resolve-scene-asset-status';
 import type {
   SceneAssetModalitySlice,
@@ -11,6 +12,7 @@ import type {
 } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailSceneAssetPreview } from './content-job-detail-scene-asset-preview';
 import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
+import { ContentJobDetailVoiceProfileSelect } from './content-job-detail-voice-profile-select';
 
 type SceneAssetCellKind = 'image' | 'voice' | 'video';
 
@@ -25,6 +27,11 @@ type ContentJobDetailSceneAssetCellProps = {
   isSelectingImageCandidate?: boolean;
   imageProvider?: ImageGenerationProvider;
   onImageProviderChange?: (value: ImageGenerationProvider) => void;
+  voiceProfiles?: VoiceProfile[];
+  selectedVoiceProfileId?: string | null;
+  isSavingVoiceProfileSelection?: boolean;
+  onVoiceProfileChange?: (profileId?: string) => void;
+  voiceProfileEmptyLabel?: string;
 };
 
 export function ContentJobDetailSceneAssetCell({
@@ -38,6 +45,11 @@ export function ContentJobDetailSceneAssetCell({
   isSelectingImageCandidate = false,
   imageProvider,
   onImageProviderChange,
+  voiceProfiles = [],
+  selectedVoiceProfileId,
+  isSavingVoiceProfileSelection = false,
+  onVoiceProfileChange,
+  voiceProfileEmptyLabel = '잡 기본 보이스 사용',
 }: ContentJobDetailSceneAssetCellProps) {
   const { status, previewUrl, cdnBlocked, workHint } = slice;
 
@@ -137,6 +149,26 @@ export function ContentJobDetailSceneAssetCell({
             className="shrink-0"
             disabled={disabled || isSelectingImageCandidate}
             onClick={onRegenerate}
+          >
+            재생성
+          </Button>
+        </div>
+      ) : kind === 'voice' ? (
+        <div className="space-y-2">
+          <ContentJobDetailVoiceProfileSelect
+            voiceProfiles={voiceProfiles}
+            value={selectedVoiceProfileId}
+            disabled={disabled || isSavingVoiceProfileSelection}
+            emptyLabel={voiceProfileEmptyLabel}
+            onChange={onVoiceProfileChange ?? (() => undefined)}
+          />
+          <Button
+            type="button"
+            size="sm"
+            variant="secondary"
+            className="w-full"
+            disabled={disabled || isSelectingImageCandidate || isSavingVoiceProfileSelection}
+            onClick={() => onRegenerate()}
           >
             재생성
           </Button>

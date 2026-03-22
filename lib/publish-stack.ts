@@ -71,6 +71,7 @@ export class PublishStack extends Stack {
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
+      SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
       YOUTUBE_SECRETS_JSON: JSON.stringify(
         props.envConfig.youtubeSecrets ?? {},
       ),
@@ -292,6 +293,16 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const requestAssetUploadResolver = createLambda(
+      this,
+      "AdminRequestAssetUploadResolverLambda",
+      `${props.projectPrefix}-admin-request-asset-upload`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/request-asset-upload/handler.ts",
+      ),
+      environment,
+    );
     const getLlmSettingsResolver = createLambda(
       this,
       "AdminGetLlmSettingsResolverLambda",
@@ -419,6 +430,16 @@ export class PublishStack extends Stack {
       path.join(
         process.cwd(),
         "services/admin/graphql/set-job-default-voice-profile/handler.ts",
+      ),
+      environment,
+    );
+    const setJobBackgroundMusicResolver = createLambda(
+      this,
+      "AdminSetJobBackgroundMusicResolverLambda",
+      `${props.projectPrefix}-admin-set-job-background-music`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/set-job-background-music/handler.ts",
       ),
       environment,
     );
@@ -589,6 +610,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(jobExecutionsResolver);
     props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
     props.jobsTable.grantReadWriteData(requestUploadResolver);
+    props.jobsTable.grantReadWriteData(requestAssetUploadResolver);
     props.jobsTable.grantReadWriteData(getJobDraftResolver);
     props.jobsTable.grantReadWriteData(createDraftJobResolver);
     props.jobsTable.grantReadWriteData(updateTopicSeedResolver);
@@ -598,6 +620,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
     props.jobsTable.grantReadWriteData(selectSceneImageCandidateResolver);
     props.jobsTable.grantReadWriteData(setJobDefaultVoiceProfileResolver);
+    props.jobsTable.grantReadWriteData(setJobBackgroundMusicResolver);
     props.jobsTable.grantReadWriteData(setSceneVoiceProfileResolver);
     props.jobsTable.grantReadWriteData(runFinalCompositionResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
@@ -624,9 +647,11 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(runTopicPlanResolver);
     props.assetsBucket.grantReadWrite(runSceneJsonResolver);
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
+    props.assetsBucket.grantReadWrite(requestAssetUploadResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
     props.assetsBucket.grantReadWrite(setJobDefaultVoiceProfileResolver);
+    props.assetsBucket.grantReadWrite(setJobBackgroundMusicResolver);
     props.assetsBucket.grantReadWrite(setSceneVoiceProfileResolver);
     props.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     props.assetsBucket.grantReadWrite(deleteJobResolver);
@@ -635,6 +660,9 @@ export class PublishStack extends Stack {
     props.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
     props.llmConfigTable.grantReadData(listVoiceProfilesResolver);
     props.llmConfigTable.grantReadWriteData(upsertVoiceProfileResolver);
+    props.llmConfigTable.grantReadData(runAssetGenerationResolver);
+    props.llmConfigTable.grantReadData(setJobDefaultVoiceProfileResolver);
+    props.llmConfigTable.grantReadData(setSceneVoiceProfileResolver);
     /** generateStepStructuredData → getLlmStepSettings(GetItem) */
     props.llmConfigTable.grantReadData(createDraftJobResolver);
     props.llmConfigTable.grantReadData(runTopicPlanResolver);
@@ -726,6 +754,7 @@ export class PublishStack extends Stack {
       jobExecutionsResolver,
       submitReviewDecisionResolver,
       requestUploadResolver,
+      requestAssetUploadResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
       listVoiceProfilesResolver,
@@ -742,6 +771,7 @@ export class PublishStack extends Stack {
       runAssetGenerationResolver,
       selectSceneImageCandidateResolver,
       setJobDefaultVoiceProfileResolver,
+      setJobBackgroundMusicResolver,
       setSceneVoiceProfileResolver,
       runFinalCompositionResolver,
       deleteJobResolver,

@@ -7,10 +7,12 @@ import {
   DeleteObjectCommand,
   GetObjectCommand,
   HeadObjectCommand,
+  ListObjectsV2Command,
   PutObjectCommand,
   S3Client,
   type PutObjectCommandInput,
 } from "@aws-sdk/client-s3";
+import { getSignedUrl } from "@aws-sdk/s3-request-presigner";
 import {
   SendTaskSuccessCommand,
   SendTaskFailureCommand,
@@ -402,6 +404,51 @@ export const deleteObjectFromS3 = async (key: string): Promise<void> => {
     }
     throw error;
   }
+};
+
+export type S3ListItem = {
+  key: string;
+  size?: number;
+  lastModified?: string;
+};
+
+export const listObjectsFromS3 = async (
+  prefix: string,
+): Promise<S3ListItem[]> => {
+  const result = await s3Client.send(
+    new ListObjectsV2Command({
+      Bucket: getAssetsBucketName(),
+      Prefix: prefix,
+    }),
+  );
+
+  return (result.Contents ?? [])
+    .filter((item) => typeof item?.Key === "string" && item.Key.length > 0)
+    .map((item) => ({
+      key: item.Key as string,
+      ...(typeof item.Size === "number" ? { size: item.Size } : {}),
+      ...(item.LastModified
+        ? { lastModified: item.LastModified.toISOString() }
+        : {}),
+    }));
+};
+
+export const createSignedUploadUrlForS3 = async (input: {
+  key: string;
+  contentType: string;
+  expiresInSec?: number;
+}): Promise<string> => {
+  return getSignedUrl(
+    s3Client,
+    new PutObjectCommand({
+      Bucket: getAssetsBucketName(),
+      Key: input.key,
+      ContentType: input.contentType,
+    }),
+    {
+      expiresIn: input.expiresInSec ?? 900,
+    },
+  );
 };
 
 export const headObjectFromS3 = async (

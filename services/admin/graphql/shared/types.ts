@@ -125,6 +125,7 @@ export type AdminJobDto = {
   approvedSceneExecutionId?: string;
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
+  backgroundMusicS3Key?: string;
 };
 
 export type ConnectionDto<T> = {
@@ -300,6 +301,13 @@ export type VoiceProfileDto = {
   updatedBy: string;
 };
 
+export type BackgroundMusicAssetDto = {
+  s3Key: string;
+  fileName: string;
+  uploadedAt?: string;
+  sizeBytes?: number;
+};
+
 export type SceneImageCandidateDto = {
   candidateId: string;
   imageS3Key: string;
@@ -318,4 +326,5 @@ export type JobDraftDetailDto = {
   topicPlan?: TopicSeedDto;
   sceneJson?: SceneJsonDto;
   assets: SceneAssetDto[];
+  backgroundMusicOptions: BackgroundMusicAssetDto[];
 };

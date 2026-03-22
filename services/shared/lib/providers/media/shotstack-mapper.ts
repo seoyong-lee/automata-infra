@@ -146,7 +146,9 @@ const resolveSoundtrackSrc = (renderPlan: RenderPlan): string | undefined => {
     typeof renderPlan.soundtrackSrc === "string" &&
     renderPlan.soundtrackSrc.trim().length > 0
   ) {
-    return renderPlan.soundtrackSrc;
+    return /^https?:\/\//i.test(renderPlan.soundtrackSrc)
+      ? renderPlan.soundtrackSrc
+      : buildAssetUrl(renderPlan.soundtrackSrc);
   }
   const envDefault = process.env.DEFAULT_SHOTSTACK_SOUNDTRACK_URL?.trim();
   if (envDefault) {

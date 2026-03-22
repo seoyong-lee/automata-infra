@@ -22,6 +22,7 @@ type RenderPipelineContext = {
   imageAssets: Array<{ sceneId: number; imageS3Key?: string }>;
   videoAssets: Array<{ sceneId: number; videoClipS3Key?: string }>;
   voiceAssets: Array<{ sceneId: number; voiceS3Key?: string }>;
+  backgroundMusicS3Key?: string;
 };
 
 export type FinalCompositionScope = {
@@ -133,6 +134,10 @@ const loadRenderPipelineContext = async (
       voiceS3Key:
         typeof asset.voiceS3Key === "string" ? asset.voiceS3Key : undefined,
     })),
+    backgroundMusicS3Key:
+      typeof job.backgroundMusicS3Key === "string"
+        ? job.backgroundMusicS3Key
+        : undefined,
   };
 };
 
@@ -187,6 +192,9 @@ export const runFinalCompositionCore = async (
           ? { burnInSubtitles: scope.burnInSubtitles }
           : {}),
         ...(subtitleSrtS3Key ? { subtitleSrtS3Key } : {}),
+        ...(context.backgroundMusicS3Key
+          ? { soundtrackSrc: context.backgroundMusicS3Key }
+          : {}),
       },
     },
     noopContext,

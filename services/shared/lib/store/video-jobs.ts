@@ -51,6 +51,7 @@ export type JobMetaItem = {
   /** 에셋 생성 단계에서 승인한 실행 ID. */
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
+  backgroundMusicS3Key?: string;
   /** 소재(SourceItem) id. 멀티 채널 배포 모델. */
   sourceItemId?: string;
   createdAt: string;

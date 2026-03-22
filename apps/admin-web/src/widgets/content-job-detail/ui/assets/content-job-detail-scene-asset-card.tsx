@@ -98,6 +98,10 @@ export function ContentJobDetailSceneAssetCard({
           title="음성"
           slice={card.voice}
           disabled={disabled}
+          voiceProfiles={voiceProfiles}
+          selectedVoiceProfileId={card.voiceProfileId}
+          isSavingVoiceProfileSelection={isSavingVoiceProfileSelection}
+          onVoiceProfileChange={(profileId) => onSceneVoiceProfileChange(card.sceneId, profileId)}
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VOICE' })}
         />
         <ContentJobDetailSceneAssetCell
@@ -108,29 +112,6 @@ export function ContentJobDetailSceneAssetCard({
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VIDEO' })}
         />
       </CardContent>
-      <div className="px-6 pb-2">
-        <label className="space-y-2 text-xs text-muted-foreground">
-          <span className="block">씬 보이스 오버라이드</span>
-          <select
-            className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-            value={card.voiceProfileId ?? ''}
-            disabled={isSavingVoiceProfileSelection}
-            onChange={(event) =>
-              onSceneVoiceProfileChange(
-                card.sceneId,
-                event.target.value ? event.target.value : undefined,
-              )
-            }
-          >
-            <option value="">잡 기본 보이스 사용</option>
-            {voiceProfiles.map((profile) => (
-              <option key={profile.profileId} value={profile.profileId}>
-                {profile.label}
-              </option>
-            ))}
-          </select>
-        </label>
-      </div>
       <CardFooter className="flex flex-wrap gap-3 border-t pt-4 text-sm">
         <Link
           href={`/jobs/${jobId}/scene`}

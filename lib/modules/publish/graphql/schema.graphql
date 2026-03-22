@@ -71,6 +71,7 @@ type Query {
 type Mutation {
   submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
+  requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
   upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
@@ -99,6 +100,7 @@ type Mutation {
   setJobDefaultVoiceProfile(
     input: SetJobDefaultVoiceProfileInput!
   ): JobDraftDetail!
+  setJobBackgroundMusic(input: SetJobBackgroundMusicInput!): JobDraftDetail!
   setSceneVoiceProfile(input: SetSceneVoiceProfileInput!): JobDraftDetail!
   """
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
@@ -191,6 +193,7 @@ type AdminJob {
   approvedSceneExecutionId: String
   approvedAssetExecutionId: String
   defaultVoiceProfileId: String
+  backgroundMusicS3Key: String
 }
 
 type ContentBriefSeed {
@@ -290,6 +293,14 @@ type JobDraftDetail {
   topicPlan: TopicSeed
   sceneJson: SceneJsonPayload
   assets: [SceneAsset!]!
+  backgroundMusicOptions: [BackgroundMusicAsset!]!
+}
+
+type BackgroundMusicAsset {
+  s3Key: String!
+  fileName: String!
+  uploadedAt: AWSDateTime
+  sizeBytes: Int
 }
 
 type VoiceProfile {
@@ -444,6 +455,22 @@ input RequestUploadInput {
   jobId: ID!
 }
 
+enum AssetUploadCategory {
+  BACKGROUND_MUSIC
+  REFERENCE_IMAGE
+  SCENE_IMAGE
+  SCENE_VOICE
+  SCENE_VIDEO
+}
+
+input RequestAssetUploadInput {
+  jobId: ID!
+  fileName: String!
+  contentType: String!
+  category: AssetUploadCategory!
+  targetSceneId: Int
+}
+
 input UpdateLlmStepSettingsInput {
   stepKey: String!
   provider: LlmProvider!
@@ -574,6 +601,11 @@ input SetJobDefaultVoiceProfileInput {
   profileId: ID
 }
 
+input SetJobBackgroundMusicInput {
+  jobId: ID!
+  s3Key: String
+}
+
 input SetSceneVoiceProfileInput {
   jobId: ID!
   sceneId: Int!
@@ -596,6 +628,14 @@ type UploadRequestResult {
   jobId: ID!
   status: JobStatus!
   platform: UploadPlatform!
+}
+
+type AssetUploadRequest {
+  uploadUrl: String!
+  s3Key: String!
+  fileName: String!
+  contentType: String!
+  category: AssetUploadCategory!
 }
 
 enum JobStatus {

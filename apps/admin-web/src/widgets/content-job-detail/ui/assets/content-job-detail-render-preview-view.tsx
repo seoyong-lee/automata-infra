@@ -6,9 +6,10 @@ import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { cn } from '@packages/ui';
 import { getErrorMessage } from '@packages/utils';
-import type { PipelineExecution } from '@packages/graphql';
+import type { AssetUploadCategory, PipelineExecution } from '@packages/graphql';
 import Link from 'next/link';
 
+import { uploadFileToPresignedUrl } from '@/shared/lib/upload-file-to-presigned-url';
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
 import type { JobDraftDetail } from '../../model';
 
@@ -18,7 +19,24 @@ type ContentJobDetailRenderPreviewViewProps = {
   workflowPublishHref: string;
   workflowTimelineHref: string;
   isRunningFinalComposition: boolean;
+  isUploadingAsset: boolean;
+  isSavingBackgroundMusicSelection: boolean;
   runFinalCompositionError: Error | null;
+  requestAssetUploadError: Error | null;
+  setJobBackgroundMusicError: Error | null;
+  onRequestAssetUpload: (input: {
+    fileName: string;
+    contentType: string;
+    category: AssetUploadCategory;
+    targetSceneId?: number;
+  }) => Promise<{
+    uploadUrl: string;
+    s3Key: string;
+    fileName: string;
+    contentType: string;
+    category: AssetUploadCategory;
+  }>;
+  onSetJobBackgroundMusic: (s3Key?: string) => Promise<unknown>;
   onRunFinalComposition: (opts?: { burnInSubtitles?: boolean }) => void;
   latestRenderExecution?: PipelineExecution;
 };
@@ -89,11 +107,19 @@ export function ContentJobDetailRenderPreviewView({
   workflowPublishHref,
   workflowTimelineHref,
   isRunningFinalComposition,
+  isUploadingAsset,
+  isSavingBackgroundMusicSelection,
   runFinalCompositionError,
+  requestAssetUploadError,
+  setJobBackgroundMusicError,
+  onRequestAssetUpload,
+  onSetJobBackgroundMusic,
   onRunFinalComposition,
   latestRenderExecution,
 }: ContentJobDetailRenderPreviewViewProps) {
   const [burnInSubtitles, setBurnInSubtitles] = useState(false);
+  const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
+  const [uploadError, setUploadError] = useState<string | null>(null);
   const totalScenes = detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0;
   const renderReady = totalScenes > 0 && readyAssetCount === totalScenes;
   const imageReady = hasAnyMedia(detail, 'image');
@@ -105,6 +131,32 @@ export function ContentJobDetailRenderPreviewView({
     buildAssetPreviewUrlFromS3Key(detail?.job.finalVideoS3Key);
   const thumbnailUrl = buildAssetPreviewUrlFromS3Key(detail?.job.thumbnailS3Key);
   const hasRenderedVideo = Boolean(detail?.job.previewS3Key || detail?.job.finalVideoS3Key);
+  const backgroundMusicOptions = detail?.backgroundMusicOptions ?? [];
+  const selectedBackgroundMusicS3Key = detail?.job.backgroundMusicS3Key;
+  const selectedBackgroundMusicUrl = buildAssetPreviewUrlFromS3Key(selectedBackgroundMusicS3Key);
+
+  const uploadBackgroundMusic = async () => {
+    if (!selectedUploadFile) {
+      return;
+    }
+    setUploadError(null);
+    try {
+      const uploaded = await onRequestAssetUpload({
+        fileName: selectedUploadFile.name,
+        contentType: selectedUploadFile.type || 'audio/mpeg',
+        category: 'BACKGROUND_MUSIC',
+      });
+      await uploadFileToPresignedUrl({
+        file: selectedUploadFile,
+        uploadUrl: uploaded.uploadUrl,
+        contentType: uploaded.contentType,
+      });
+      await onSetJobBackgroundMusic(uploaded.s3Key);
+      setSelectedUploadFile(null);
+    } catch (error) {
+      setUploadError(getErrorMessage(error));
+    }
+  };
 
   return (
     <div className="space-y-6">
@@ -177,7 +229,9 @@ export function ContentJobDetailRenderPreviewView({
               <div className="mt-3 grid gap-3 text-xs text-muted-foreground md:grid-cols-3">
                 <div>
                   <p>시작 시각</p>
-                  <p className="mt-1 text-foreground">{formatExecutionTime(latestRenderExecution.startedAt)}</p>
+                  <p className="mt-1 text-foreground">
+                    {formatExecutionTime(latestRenderExecution.startedAt)}
+                  </p>
                 </div>
                 <div>
                   <p>완료 시각</p>
@@ -196,10 +250,72 @@ export function ContentJobDetailRenderPreviewView({
                 </div>
               </div>
               {latestRenderExecution.errorMessage ? (
-                <p className="mt-3 text-sm text-destructive">{latestRenderExecution.errorMessage}</p>
+                <p className="mt-3 text-sm text-destructive">
+                  {latestRenderExecution.errorMessage}
+                </p>
               ) : null}
             </div>
           ) : null}
+          <div className="space-y-3 rounded-xl border border-border bg-muted/20 p-4">
+            <div>
+              <p className="text-sm font-medium text-foreground">배경음악</p>
+              <p className="mt-1 text-xs leading-5 text-muted-foreground">
+                이 잡에 업로드한 배경음악 중 하나를 골라 최종 렌더 전체 구간에 통으로 깔 수
+                있습니다.
+              </p>
+            </div>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              value={selectedBackgroundMusicS3Key ?? ''}
+              disabled={isSavingBackgroundMusicSelection || isUploadingAsset}
+              onChange={(event) =>
+                void onSetJobBackgroundMusic(
+                  event.target.value ? event.target.value : undefined,
+                ).catch((error) => setUploadError(getErrorMessage(error)))
+              }
+            >
+              <option value="">배경음악 없음</option>
+              {backgroundMusicOptions.map((option) => (
+                <option key={option.s3Key} value={option.s3Key}>
+                  {option.fileName}
+                </option>
+              ))}
+            </select>
+            <div className="flex flex-wrap items-center gap-2">
+              <input
+                type="file"
+                accept=".mp3,.wav,.m4a,.aac,.ogg,audio/*"
+                onChange={(event) => setSelectedUploadFile(event.target.files?.[0] ?? null)}
+                disabled={isUploadingAsset}
+                className="block w-full text-sm text-muted-foreground file:mr-3 file:rounded-md file:border file:border-border file:bg-background file:px-3 file:py-2 file:text-sm file:text-foreground"
+              />
+              <Button
+                type="button"
+                variant="outline"
+                disabled={!selectedUploadFile || isUploadingAsset}
+                onClick={() => void uploadBackgroundMusic()}
+              >
+                {isUploadingAsset ? '업로드 중…' : 'S3에 업로드 후 선택'}
+              </Button>
+            </div>
+            {selectedBackgroundMusicUrl ? (
+              <audio
+                key={selectedBackgroundMusicUrl}
+                src={selectedBackgroundMusicUrl}
+                controls
+                className="w-full"
+              />
+            ) : null}
+            {uploadError ? <p className="text-sm text-destructive">{uploadError}</p> : null}
+            {requestAssetUploadError ? (
+              <p className="text-sm text-destructive">{getErrorMessage(requestAssetUploadError)}</p>
+            ) : null}
+            {setJobBackgroundMusicError ? (
+              <p className="text-sm text-destructive">
+                {getErrorMessage(setJobBackgroundMusicError)}
+              </p>
+            ) : null}
+          </div>
           <label className="flex items-start gap-3 rounded-xl border border-border bg-muted/30 p-3">
             <input
               type="checkbox"

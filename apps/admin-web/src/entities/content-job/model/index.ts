@@ -4,11 +4,13 @@ import {
   useEnqueueToChannelPublishQueueMutation,
   useJobDraftQuery,
   usePublishTargetsForJobQuery,
+  useRequestAssetUploadMutation,
   useRequestUploadMutation,
   useRunAssetGenerationMutation,
   useRunFinalCompositionMutation,
   useRunPublishOrchestrationMutation,
   useRunSceneJsonMutation,
+  useSetJobBackgroundMusicMutation,
   useSelectSceneImageCandidateMutation,
   useRunTopicPlanMutation,
   useUpdateSceneJsonMutation,
@@ -21,9 +23,11 @@ export type ContentJobDraftDetail = NonNullable<ReturnType<typeof useJobDraftQue
 
 export const useContentJobDraft = useJobDraftQuery;
 export const useRequestContentJobUpload = useRequestUploadMutation;
+export const useRequestContentJobAssetUpload = useRequestAssetUploadMutation;
 export const useRunContentJobAssetGeneration = useRunAssetGenerationMutation;
 export const useRunContentJobFinalComposition = useRunFinalCompositionMutation;
 export const useRunContentJobSceneJson = useRunSceneJsonMutation;
+export const useSetContentJobBackgroundMusic = useSetJobBackgroundMusicMutation;
 export const useSelectContentJobSceneImageCandidate = useSelectSceneImageCandidateMutation;
 export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;

@@ -58,6 +58,7 @@ export type AdminJob = {
   approvedSceneExecutionId?: string | null;
   approvedAssetExecutionId?: string | null;
   defaultVoiceProfileId?: string | null;
+  backgroundMusicS3Key?: string | null;
   updatedAt: string;
 };
 
@@ -216,6 +217,7 @@ export type JobDraftDetail = {
   topicPlan?: TopicSeed | null;
   sceneJson?: SceneJsonPayload | null;
   assets: SceneAsset[];
+  backgroundMusicOptions: BackgroundMusicAsset[];
 };
 
 export type VoiceProfile = {
@@ -235,6 +237,28 @@ export type VoiceProfile = {
   isActive: boolean;
   updatedAt: string;
   updatedBy: string;
+};
+
+export type BackgroundMusicAsset = {
+  s3Key: string;
+  fileName: string;
+  uploadedAt?: string | null;
+  sizeBytes?: number | null;
+};
+
+export type AssetUploadCategory =
+  | "BACKGROUND_MUSIC"
+  | "REFERENCE_IMAGE"
+  | "SCENE_IMAGE"
+  | "SCENE_VOICE"
+  | "SCENE_VIDEO";
+
+export type AssetUploadRequest = {
+  uploadUrl: string;
+  s3Key: string;
+  fileName: string;
+  contentType: string;
+  category: AssetUploadCategory;
 };
 
 export type JobTimelineItem = {
@@ -508,6 +532,7 @@ const jobDraftQuery = `
         approvedSceneExecutionId
         approvedAssetExecutionId
         defaultVoiceProfileId
+        backgroundMusicS3Key
       }
       contentBrief {
         jobId
@@ -592,6 +617,12 @@ const jobDraftQuery = `
           selected
         }
       }
+      backgroundMusicOptions {
+        s3Key
+        fileName
+        uploadedAt
+        sizeBytes
+      }
     }
   }
 `;
@@ -616,6 +647,18 @@ const requestUploadMutation = `
       jobId
       status
       platform
+    }
+  }
+`;
+
+const requestAssetUploadMutation = `
+  mutation RequestAssetUpload($input: RequestAssetUploadInput!) {
+    requestAssetUpload(input: $input) {
+      uploadUrl
+      s3Key
+      fileName
+      contentType
+      category
     }
   }
 `;
@@ -1023,6 +1066,89 @@ const setJobDefaultVoiceProfileMutation = `
           createdAt
           selected
         }
+      }
+    }
+  }
+`;
+
+const setJobBackgroundMusicMutation = `
+  mutation SetJobBackgroundMusic($input: SetJobBackgroundMusicInput!) {
+    setJobBackgroundMusic(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        defaultVoiceProfileId
+        backgroundMusicS3Key
+        sceneJsonS3Key
+        contentId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      topicPlan {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        voiceProfileId
+        voiceDurationSec
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
+      }
+      backgroundMusicOptions {
+        s3Key
+        fileName
+        uploadedAt
+        sizeBytes
       }
     }
   }
@@ -2652,6 +2778,24 @@ export const useRequestUploadMutation = (
   });
 };
 
+export const useRequestAssetUploadMutation = (
+  options?: UseMutationOptions<
+    { requestAssetUpload: AssetUploadRequest },
+    Error,
+    RequestAssetUploadMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ requestAssetUpload: AssetUploadRequest }>(
+        requestAssetUploadMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
 export const useUpdateLlmStepSettingsMutation = (
   options?: UseMutationOptions<
     { updateLlmStepSettings: LlmStepSettings },
@@ -2939,6 +3083,19 @@ export type SetJobDefaultVoiceProfileMutationInput = {
   profileId?: string;
 };
 
+export type RequestAssetUploadMutationInput = {
+  jobId: string;
+  fileName: string;
+  contentType: string;
+  category: AssetUploadCategory;
+  targetSceneId?: number;
+};
+
+export type SetJobBackgroundMusicMutationInput = {
+  jobId: string;
+  s3Key?: string;
+};
+
 export type SetSceneVoiceProfileMutationInput = {
   jobId: string;
   sceneId: number;
@@ -3010,6 +3167,24 @@ export const useSetJobDefaultVoiceProfileMutation = (
     mutationFn: async (input) => {
       return gql<{ setJobDefaultVoiceProfile: JobDraftDetail }>(
         setJobDefaultVoiceProfileMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useSetJobBackgroundMusicMutation = (
+  options?: UseMutationOptions<
+    { setJobBackgroundMusic: JobDraftDetail },
+    Error,
+    SetJobBackgroundMusicMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ setJobBackgroundMusic: JobDraftDetail }>(
+        setJobBackgroundMusicMutation,
         { input },
       );
     },

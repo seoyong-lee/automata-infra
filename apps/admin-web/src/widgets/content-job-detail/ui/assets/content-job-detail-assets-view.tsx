@@ -5,10 +5,12 @@ import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
 
+import type { VoiceProfile } from '@/entities/voice-profile';
 import { JobDraftDetail } from '../../model';
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
 import { ContentJobDetailSceneAssetPreview } from './content-job-detail-scene-asset-preview';
 import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
+import { ContentJobDetailVoiceProfileSelect } from './content-job-detail-voice-profile-select';
 
 type AssetStage = 'image' | 'voice' | 'video';
 
@@ -19,6 +21,11 @@ type ContentJobDetailAssetsViewProps = {
   isSubmitting: boolean;
   imageProvider: ImageGenerationProvider;
   onImageProviderChange: (value: ImageGenerationProvider) => void;
+  voiceProfiles: VoiceProfile[];
+  defaultVoiceProfileId?: string | null;
+  isSavingVoiceProfileSelection: boolean;
+  onJobVoiceProfileChange: (profileId?: string) => void;
+  voiceSelectionError?: unknown;
   onRun: (imageProvider?: ImageGenerationProvider) => void;
   stage: AssetStage;
 };
@@ -95,6 +102,11 @@ export function ContentJobDetailAssetsView({
   isSubmitting,
   imageProvider,
   onImageProviderChange,
+  voiceProfiles,
+  defaultVoiceProfileId,
+  isSavingVoiceProfileSelection,
+  onJobVoiceProfileChange,
+  voiceSelectionError,
   onRun,
   stage,
 }: ContentJobDetailAssetsViewProps) {
@@ -121,6 +133,20 @@ export function ContentJobDetailAssetsView({
                 className="min-w-[180px]"
               />
               <Button disabled={isSubmitting} onClick={() => onRun(imageProvider)}>
+                {isSubmitting ? '요청 중…' : meta.actionLabel}
+              </Button>
+            </div>
+          ) : stage === 'voice' ? (
+            <div className="flex w-full flex-wrap gap-2 sm:w-auto">
+              <ContentJobDetailVoiceProfileSelect
+                voiceProfiles={voiceProfiles}
+                value={defaultVoiceProfileId}
+                disabled={isSubmitting || isSavingVoiceProfileSelection}
+                emptyLabel="기본 보이스 미지정 (시크릿 기본값)"
+                onChange={onJobVoiceProfileChange}
+                className="min-w-[220px]"
+              />
+              <Button disabled={isSubmitting} onClick={() => onRun()}>
                 {isSubmitting ? '요청 중…' : meta.actionLabel}
               </Button>
             </div>
@@ -163,6 +189,9 @@ export function ContentJobDetailAssetsView({
           </ul>
         )}
         {error ? <p className="text-sm text-destructive">{getErrorMessage(error)}</p> : null}
+        {voiceSelectionError ? (
+          <p className="text-sm text-destructive">{getErrorMessage(voiceSelectionError)}</p>
+        ) : null}
       </CardContent>
     </Card>
   );

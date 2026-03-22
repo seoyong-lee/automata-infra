@@ -19,6 +19,9 @@ export type ParsedUpsertVoiceProfileArgs = {
   isActive: boolean;
 };
 
+const MIN_ELEVENLABS_SPEED = 0.7;
+const MAX_ELEVENLABS_SPEED = 1.2;
+
 const parseOptionalString = (value: unknown): string | undefined => {
   if (typeof value !== "string") {
     return undefined;
@@ -37,6 +40,19 @@ const parseOptionalNumber = (
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
     throw badUserInput(`${field} must be a number`);
+  }
+  return parsed;
+};
+
+const parseOptionalSpeed = (value: unknown): number | undefined => {
+  const parsed = parseOptionalNumber(value, "speed");
+  if (parsed === undefined) {
+    return undefined;
+  }
+  if (parsed < MIN_ELEVENLABS_SPEED || parsed > MAX_ELEVENLABS_SPEED) {
+    throw badUserInput(
+      `speed must be between ${MIN_ELEVENLABS_SPEED} and ${MAX_ELEVENLABS_SPEED}`,
+    );
   }
   return parsed;
 };
@@ -70,7 +86,7 @@ export const parseUpsertVoiceProfileArgs = (
     sampleAudioUrl: parseOptionalString(input.sampleAudioUrl),
     description: parseOptionalString(input.description),
     language: parseOptionalString(input.language),
-    speed: parseOptionalNumber(input.speed, "speed"),
+    speed: parseOptionalSpeed(input.speed),
     stability: parseOptionalNumber(input.stability, "stability"),
     similarityBoost: parseOptionalNumber(
       input.similarityBoost,

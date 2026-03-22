@@ -13,7 +13,7 @@
   "adminUserPoolDomainPrefix": "automata-studio-admin-auth-v2",
   "enableAdminSignup": false,
   "workflowScheduleExpression": "rate(6 hours)",
-  "workflowScheduleEnabled": true,
+  "workflowScheduleEnabled": false,
   "defaultContentId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,

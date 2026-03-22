@@ -34,6 +34,7 @@ export const generateSceneVoices = async (
       sceneId: scene.sceneId,
       text: scene.narration,
       secretId: input.secretId,
+      targetDurationSec: scene.durationSec,
       voiceProfileId: scene.voiceProfileId,
       voiceId: scene.voiceId,
       modelId: scene.modelId,

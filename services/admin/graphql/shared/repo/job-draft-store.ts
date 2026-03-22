@@ -1,4 +1,8 @@
-import { getJsonFromS3, putJsonToS3 } from "../../../../shared/lib/aws/runtime";
+import {
+  getJsonFromS3,
+  listObjectsFromS3,
+  putJsonToS3,
+} from "../../../../shared/lib/aws/runtime";
 import {
   type JobMetaItem,
   type SceneAssetItem,
@@ -8,6 +12,7 @@ import {
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
 import type {
+  BackgroundMusicAssetDto,
   ContentBriefDto,
   SceneJsonDto,
   SceneJsonSceneDto,
@@ -146,6 +151,29 @@ export const listStoredSceneAssets = async (jobId: string) => {
       };
     }),
   );
+};
+
+const BACKGROUND_MUSIC_PREFIX = (jobId: string) => `assets/${jobId}/bgm/`;
+const AUDIO_EXTENSION_RE = /\.(mp3|wav|m4a|aac|ogg)$/i;
+
+export const listStoredBackgroundMusicAssets = async (
+  jobId: string,
+): Promise<BackgroundMusicAssetDto[]> => {
+  const items = await listObjectsFromS3(BACKGROUND_MUSIC_PREFIX(jobId));
+
+  return items
+    .filter((item) => AUDIO_EXTENSION_RE.test(item.key))
+    .sort((left, right) => {
+      const l = new Date(left.lastModified ?? 0).getTime();
+      const r = new Date(right.lastModified ?? 0).getTime();
+      return r - l;
+    })
+    .map((item) => ({
+      s3Key: item.key,
+      fileName: item.key.split("/").pop() ?? item.key,
+      uploadedAt: item.lastModified,
+      sizeBytes: item.size,
+    }));
 };
 
 export const saveTopicSeed = async (input: {

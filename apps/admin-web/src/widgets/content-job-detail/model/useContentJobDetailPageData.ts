@@ -1,4 +1,6 @@
+/* eslint-disable max-lines */
 import type {
+  AssetUploadCategory,
   AssetGenerationModality,
   ImageGenerationProvider,
   PipelineExecution,
@@ -25,7 +27,6 @@ const DETAIL_POLL_ACTIVE_STATUSES = new Set([
   'ASSET_GENERATING',
   'VALIDATING',
 ]);
-
 const ACTIVE_EXECUTION_STATUSES = new Set(['QUEUED', 'RUNNING']);
 
 function shouldPollDetail(detail: JobDraftDetail | null | undefined) {
@@ -70,6 +71,8 @@ function buildPendingState(
     isSelectingSceneImageCandidate: mutations.selectSceneImageCandidate.isPending,
     isSavingVoiceProfileSelection:
       mutations.setJobDefaultVoiceProfile.isPending || mutations.setSceneVoiceProfile.isPending,
+    isUploadingAsset: mutations.requestAssetUpload.isPending,
+    isSavingBackgroundMusicSelection: mutations.setJobBackgroundMusic.isPending,
     isSavingTopicSeed: mutations.updateTopicSeed.isPending,
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
     isUploading: mutations.requestUpload.isPending,
@@ -87,6 +90,21 @@ function toTopicSeedMutationInput(jobId: string, seedForm: SeedForm) {
     targetDurationSec: Number(seedForm.targetDurationSec),
     stylePreset: seedForm.stylePreset,
     creativeBrief: seedForm.creativeBrief.trim() || undefined,
+  };
+}
+
+function buildBackgroundMusicHandlers(jobId: string, mutations: ContentJobDetailMutations) {
+  return {
+    requestAssetUpload: async (input: {
+      fileName: string;
+      contentType: string;
+      category: AssetUploadCategory;
+      targetSceneId?: number;
+    }) => (await mutations.requestAssetUpload.mutateAsync({ jobId, ...input })).requestAssetUpload,
+    setJobBackgroundMusic: async (s3Key?: string) =>
+      (await mutations.setJobBackgroundMusic.mutateAsync({ jobId, s3Key })).setJobBackgroundMusic,
+    requestAssetUploadError: mutations.requestAssetUpload.error,
+    setJobBackgroundMusicError: mutations.setJobBackgroundMusic.error,
   };
 }
 
@@ -108,6 +126,7 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
     selectSceneImageCandidateError: mutations.selectSceneImageCandidate.error,
     setVoiceProfileError:
       mutations.setJobDefaultVoiceProfile.error ?? mutations.setSceneVoiceProfile.error,
+    ...buildBackgroundMusicHandlers(jobId, mutations),
     runFinalComposition: (opts?: { burnInSubtitles?: boolean }) =>
       mutations.runFinalComposition.mutate({ jobId, ...opts }),
     runFinalCompositionError: mutations.runFinalComposition.error,
@@ -192,5 +211,4 @@ export const useContentJobDetailPageData = (jobId: string) => {
     executions,
   );
 };
-
 export type ContentJobDetailPageData = ReturnType<typeof useContentJobDetailPageData>;

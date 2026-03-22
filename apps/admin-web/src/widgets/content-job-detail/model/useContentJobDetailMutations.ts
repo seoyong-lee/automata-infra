@@ -1,3 +1,4 @@
+import { useRequestAssetUploadMutation, useSetJobBackgroundMusicMutation } from '@packages/graphql';
 import { useQueryClient } from '@tanstack/react-query';
 
 import {
@@ -28,24 +29,55 @@ const createPublishDomainInvalidator = (
   };
 };
 
+const createQueueInvalidator = (queryClient: ReturnType<typeof useQueryClient>) => {
+  return async (contentId: string) => {
+    await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] });
+    await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] });
+  };
+};
+
+const useUploadAndReviewMutations = (onSuccess: () => Promise<void>) => {
+  return {
+    runFinalComposition: useRunContentJobFinalComposition({ onSuccess }),
+    requestAssetUpload: useRequestAssetUploadMutation(),
+    setJobBackgroundMusic: useSetJobBackgroundMusicMutation({ onSuccess }),
+    requestUpload: useRequestContentJobUpload({ onSuccess }),
+    approvePipelineExecution: useApproveContentJobPipelineExecution({ onSuccess }),
+  };
+};
+
+// eslint-disable-next-line max-lines-per-function
 export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Promise<void>) => {
   const queryClient = useQueryClient();
-  const invalidateQueue = async (contentId: string) => { await queryClient.invalidateQueries({ queryKey: ['channelPublishQueue', contentId] }); await queryClient.invalidateQueries({ queryKey: ['platformConnections', contentId] }); };
+  const invalidateQueue = createQueueInvalidator(queryClient);
   const invalidatePublishDomain = createPublishDomainInvalidator(queryClient, jobId);
-  const updateTopicSeed = useUpdateContentJobTopicSeed({ onSuccess });
-  const runTopicPlan = useRunContentJobTopicPlan({ onSuccess });
-  const runSceneJson = useRunContentJobSceneJson({ onSuccess });
-  const updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
-  const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess });
-  const selectSceneImageCandidate = useSelectContentJobSceneImageCandidate({ onSuccess });
-  const setJobDefaultVoiceProfile = useSetJobDefaultVoiceProfile({ onSuccess });
-  const setSceneVoiceProfile = useSetSceneVoiceProfile({ onSuccess });
-  const runFinalComposition = useRunContentJobFinalComposition({ onSuccess });
-  const requestUpload = useRequestContentJobUpload({ onSuccess });
-  const approvePipelineExecution = useApproveContentJobPipelineExecution({ onSuccess });
-  const enqueueToChannelPublishQueue = useEnqueueContentJobToChannelQueue({ onSuccess: async (_data, variables) => { await onSuccess(); await invalidateQueue(variables.contentId); } });
-  const runPublishOrchestration = useRunContentJobPublishOrchestration({ onSuccess: async () => { await onSuccess(); await invalidatePublishDomain(); } });
-
+  const updateTopicSeed = useUpdateContentJobTopicSeed({ onSuccess }),
+    runTopicPlan = useRunContentJobTopicPlan({ onSuccess }),
+    runSceneJson = useRunContentJobSceneJson({ onSuccess }),
+    updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
+  const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess }),
+    selectSceneImageCandidate = useSelectContentJobSceneImageCandidate({ onSuccess }),
+    setJobDefaultVoiceProfile = useSetJobDefaultVoiceProfile({ onSuccess }),
+    setSceneVoiceProfile = useSetSceneVoiceProfile({ onSuccess });
+  const {
+    runFinalComposition,
+    requestAssetUpload,
+    setJobBackgroundMusic,
+    requestUpload,
+    approvePipelineExecution,
+  } = useUploadAndReviewMutations(onSuccess);
+  const enqueueToChannelPublishQueue = useEnqueueContentJobToChannelQueue({
+    onSuccess: async (_data, variables) => {
+      await onSuccess();
+      await invalidateQueue(variables.contentId);
+    },
+  });
+  const runPublishOrchestration = useRunContentJobPublishOrchestration({
+    onSuccess: async () => {
+      await onSuccess();
+      await invalidatePublishDomain();
+    },
+  });
   return {
     requestUpload,
     runAssetGeneration,
@@ -53,6 +85,8 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
     setJobDefaultVoiceProfile,
     setSceneVoiceProfile,
     runFinalComposition,
+    requestAssetUpload,
+    setJobBackgroundMusic,
     runSceneJson,
     runTopicPlan,
     updateSceneJson,

@@ -21,6 +21,7 @@ type GenerateSceneVoiceInput = {
   sceneId: number;
   text: string;
   secretId: string;
+  targetDurationSec?: number;
   voiceId?: string;
   modelId?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
@@ -28,6 +29,62 @@ type GenerateSceneVoiceInput = {
 };
 
 const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
+const DEFAULT_SPEED = 1;
+const MIN_AUTO_SPEED = 0.7;
+const MAX_AUTO_SPEED = 1.2;
+const ESTIMATED_SPOKEN_CHARS_PER_SEC = 4.5;
+
+const clamp = (value: number, min: number, max: number): number =>
+  Math.min(max, Math.max(min, value));
+
+const estimateSpeechDurationSec = (text: string): number => {
+  const compact = text.replace(/\s+/g, " ").trim();
+  if (!compact) {
+    return 0;
+  }
+  return compact.length / ESTIMATED_SPOKEN_CHARS_PER_SEC;
+};
+
+const resolveVoiceSettings = (
+  input: GenerateSceneVoiceInput,
+): ElevenLabsVoiceSettings | undefined => {
+  const baseSettings = input.voiceSettings ?? {};
+  const hasBaseSettings = Object.values(baseSettings).some(
+    (value) => value !== undefined,
+  );
+  const baseSpeed =
+    typeof baseSettings.speed === "number" &&
+    Number.isFinite(baseSettings.speed)
+      ? baseSettings.speed
+      : DEFAULT_SPEED;
+  const estimatedDurationSec = estimateSpeechDurationSec(input.text);
+  const targetDurationSec =
+    typeof input.targetDurationSec === "number" && input.targetDurationSec > 0
+      ? input.targetDurationSec
+      : undefined;
+  const autoSpeed =
+    targetDurationSec && estimatedDurationSec > targetDurationSec
+      ? estimatedDurationSec / targetDurationSec
+      : baseSpeed;
+  const requiresSpeedAdjustment =
+    targetDurationSec !== undefined && estimatedDurationSec > targetDurationSec;
+  if (!hasBaseSettings && !requiresSpeedAdjustment) {
+    return undefined;
+  }
+  const resolvedSpeed = clamp(
+    Math.max(baseSpeed, autoSpeed),
+    MIN_AUTO_SPEED,
+    MAX_AUTO_SPEED,
+  );
+  const resolved = {
+    ...baseSettings,
+    speed: resolvedSpeed,
+  };
+
+  return Object.values(resolved).some((value) => value !== undefined)
+    ? resolved
+    : undefined;
+};
 
 const resolveVoiceConfig = (
   input: GenerateSceneVoiceInput,
@@ -46,11 +103,15 @@ const resolveVoiceConfig = (
   };
 };
 
-const buildRequestBody = (input: GenerateSceneVoiceInput, modelId: string) => {
+const buildRequestBody = (
+  input: GenerateSceneVoiceInput,
+  modelId: string,
+  voiceSettings?: ElevenLabsVoiceSettings,
+) => {
   return JSON.stringify({
     text: input.text,
     model_id: modelId,
-    ...(input.voiceSettings ? { voice_settings: input.voiceSettings } : {}),
+    ...(voiceSettings ? { voice_settings: voiceSettings } : {}),
   });
 };
 
@@ -103,6 +164,7 @@ export const generateSceneVoice = async (
     input,
     secret,
   );
+  const resolvedVoiceSettings = resolveVoiceSettings(input);
 
   if (!secret?.apiKey || !resolvedVoiceId) {
     return buildMockResponse(input, audioKey, rawKey);
@@ -118,7 +180,7 @@ export const generateSceneVoice = async (
           "Content-Type": "application/json",
           Accept: "audio/mpeg",
         },
-        body: buildRequestBody(input, resolvedModelId),
+        body: buildRequestBody(input, resolvedModelId, resolvedVoiceSettings),
       },
       {
         maxAttempts: 4,
@@ -133,7 +195,7 @@ export const generateSceneVoice = async (
       resolvedVoiceId,
       resolvedModelId,
       voiceProfileId: input.voiceProfileId,
-      voiceSettings: input.voiceSettings,
+      voiceSettings: resolvedVoiceSettings,
     });
 
     return {
@@ -151,7 +213,7 @@ export const generateSceneVoice = async (
       resolvedVoiceId,
       resolvedModelId,
       voiceProfileId: input.voiceProfileId,
-      voiceSettings: input.voiceSettings,
+      voiceSettings: resolvedVoiceSettings,
       error: error instanceof Error ? error.message : String(error),
     });
     throw error;

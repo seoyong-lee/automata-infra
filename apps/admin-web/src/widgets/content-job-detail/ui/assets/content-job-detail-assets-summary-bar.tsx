@@ -13,6 +13,7 @@ import { formatJobTimestamp } from '../../lib/format-job-timestamp';
 import type { JobDraftDetail } from '../../model/types';
 import type { SceneAssetCard } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
+import { ContentJobDetailVoiceProfileSelect } from './content-job-detail-voice-profile-select';
 
 type ContentJobDetailAssetsSummaryBarProps = {
   jobId: string;
@@ -111,21 +112,13 @@ export function ContentJobDetailAssetsSummaryBar({
           </div>
           <div className="space-y-2 rounded-md border border-border p-3">
             {ratioLine(voiceReady, total, '음성')}
-            <select
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+            <ContentJobDetailVoiceProfileSelect
+              voiceProfiles={voiceProfiles}
               value={defaultVoiceProfileId}
               disabled={isSavingVoiceProfileSelection}
-              onChange={(event) =>
-                onJobVoiceProfileChange(event.target.value ? event.target.value : undefined)
-              }
-            >
-              <option value="">기본 보이스 미지정 (시크릿 기본값)</option>
-              {voiceProfiles.map((profile) => (
-                <option key={profile.profileId} value={profile.profileId}>
-                  {profile.label}
-                </option>
-              ))}
-            </select>
+              emptyLabel="기본 보이스 미지정 (시크릿 기본값)"
+              onChange={onJobVoiceProfileChange}
+            />
             <Button
               type="button"
               size="sm"

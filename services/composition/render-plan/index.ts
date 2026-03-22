@@ -35,16 +35,7 @@ type RenderPlanEvent = {
   }>;
 };
 
-const MIN_SCENE_PADDING_SEC = 0.6;
-const ESTIMATED_NARRATION_CHARS_PER_SEC = 4.5;
-
-const estimateNarrationDurationSec = (narration: string): number => {
-  const compact = narration.replace(/\s+/g, " ").trim();
-  if (!compact) {
-    return 0;
-  }
-  return compact.length / ESTIMATED_NARRATION_CHARS_PER_SEC + MIN_SCENE_PADDING_SEC;
-};
+const SCENE_GAP_SEC = 0.5;
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
@@ -54,7 +45,7 @@ export const buildRenderPlanScenes = (
   const videoAssets = event.videoAssets ?? [];
   const voiceAssets = event.voiceAssets ?? [];
 
-  const scenes = event.sceneJson.scenes.map((scene) => {
+  const scenes = event.sceneJson.scenes.map((scene, index) => {
     const imageAsset = imageAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
@@ -64,19 +55,18 @@ export const buildRenderPlanScenes = (
     const videoAsset = videoAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
-    const estimatedNarrationSec = estimateNarrationDurationSec(scene.narration);
-    const sceneDurationSec = Math.max(
-      scene.durationSec,
-      estimatedNarrationSec,
-      voiceAsset?.voiceDurationSec ?? 0,
-    );
+    const sceneDurationSec = Math.max(0.1, scene.durationSec);
     const startSec = cursorSec;
-    cursorSec += sceneDurationSec;
+    const endSec = startSec + sceneDurationSec;
+    const gapAfterSec =
+      index < event.sceneJson.scenes.length - 1 ? SCENE_GAP_SEC : 0;
+    cursorSec = endSec + gapAfterSec;
 
     return {
       sceneId: scene.sceneId,
       startSec,
-      endSec: cursorSec,
+      endSec,
+      gapAfterSec,
       imageS3Key: imageAsset?.imageS3Key,
       videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
@@ -150,8 +140,10 @@ export const run: Handler<
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
     soundtrackMood:
-      event.sceneJson.scenes.find((scene) => typeof scene.bgmMood === "string" && scene.bgmMood.trim().length > 0)
-        ?.bgmMood ?? undefined,
+      event.sceneJson.scenes.find(
+        (scene) =>
+          typeof scene.bgmMood === "string" && scene.bgmMood.trim().length > 0,
+      )?.bgmMood ?? undefined,
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };
 

@@ -198,7 +198,13 @@ export function ContentJobDetailAssetsHubView({
             workflowPublishHref={`/jobs/${jobId}/publish#cj-publish-review`}
             workflowTimelineHref={`/jobs/${jobId}/timeline`}
             isRunningFinalComposition={pageData.isRunningFinalComposition}
+            isUploadingAsset={pageData.isUploadingAsset}
+            isSavingBackgroundMusicSelection={pageData.isSavingBackgroundMusicSelection}
             runFinalCompositionError={pageData.runFinalCompositionError}
+            requestAssetUploadError={pageData.requestAssetUploadError}
+            setJobBackgroundMusicError={pageData.setJobBackgroundMusicError}
+            onRequestAssetUpload={pageData.requestAssetUpload}
+            onSetJobBackgroundMusic={pageData.setJobBackgroundMusic}
             onRunFinalComposition={pageData.runFinalComposition}
             latestRenderExecution={latestRenderExecution}
           />
@@ -250,6 +256,11 @@ export function ContentJobDetailAssetsHubView({
             isSubmitting={pageData.isSubmittingAssetGeneration}
             imageProvider={imageProvider}
             onImageProviderChange={setImageProvider}
+            voiceProfiles={voiceProfiles}
+            defaultVoiceProfileId={pageData.detail?.job.defaultVoiceProfileId}
+            isSavingVoiceProfileSelection={pageData.isSavingVoiceProfileSelection}
+            onJobVoiceProfileChange={pageData.setJobDefaultVoiceProfile}
+            voiceSelectionError={pageData.setVoiceProfileError}
             onRun={(imageProvider) => pageData.runAssetGeneration({ imageProvider })}
             stage={assetStage}
           />
@@ -259,7 +270,13 @@ export function ContentJobDetailAssetsHubView({
             workflowPublishHref={`/jobs/${jobId}/publish#cj-publish-review`}
             workflowTimelineHref={`/jobs/${jobId}/timeline`}
             isRunningFinalComposition={pageData.isRunningFinalComposition}
+            isUploadingAsset={pageData.isUploadingAsset}
+            isSavingBackgroundMusicSelection={pageData.isSavingBackgroundMusicSelection}
             runFinalCompositionError={pageData.runFinalCompositionError}
+            requestAssetUploadError={pageData.requestAssetUploadError}
+            setJobBackgroundMusicError={pageData.setJobBackgroundMusicError}
+            onRequestAssetUpload={pageData.requestAssetUpload}
+            onSetJobBackgroundMusic={pageData.setJobBackgroundMusic}
             onRunFinalComposition={pageData.runFinalComposition}
             latestRenderExecution={latestRenderExecution}
           />
