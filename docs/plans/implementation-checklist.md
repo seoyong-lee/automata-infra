@@ -303,8 +303,41 @@
 - `[~]` 테스트 및 runbook 확장
 - `[~]` 생성 테스트 환경과 프롬프트 회귀 검증 체계 확장
 
-## 10. 현재 단계 요약
+## 10. 에이전트 ↔ 발행 파이프라인 확장 (계획 문서: `cursor-handoff-agent-publish-integration.md`)
 
-- 현재 상태는 대체로 `Phase 2 완료 + Phase 3/4 일부 구현`으로 볼 수 있다.
+> 코드 기준 스냅샷. 세부는 해당 핸드오프 문서 §5–§10 참고.
+
+### 10.1 계약·저장소
+
+- `[x]` `lib/modules/agents/contracts/agent-domain.ts` — `TrendSignal`, `IdeaCandidate`, `AgentRun`, `PerformanceInsight`, `ScoutPolicy`, 채널 자동화 플래그, `ChannelSignal` / `ChannelScoreSnapshot` / `ChannelWatchlist`, `AgentKind`에 `CHANNEL_EVALUATOR`
+- `[x]` Dynamo store: `idea-candidates`, `trend-signals`, `agent-runs`, `performance-insights`, `channel-agent-config`, `channel-watchlist`, `channel-signals`, `channel-score-snapshots`
+- `[~]` 목록 조회는 링크 + **`BatchGetItem`** 조합(리졸버 타임아웃 완화); GSI 추가는 선택 과제
+- `[ ]` Gate A/B/C를 코드·상태머신으로 끝까지 고정
+
+### 10.2 GraphQL·클라이언트·Admin UI
+
+- `[x]` 스키마 + `publish-domain-router` + `graphql-api.ts` — 아이디어 후보·트렌드·에이전트 런·성과 인사이트·채널 에이전트 설정, 워치리스트·채널 스냅샷 조회/갱신, `promote`/`reject` 등
+- `[x]` `packages/graphql/src/admin.ts` 대응 훅
+- `[x]` `/discovery` — 탭·운영 라인 렌즈(`channel`); 후보·워치리스트 패널 (사이드바 전역; IA 원칙은 `cursor-handoff` §7.1)
+- `[ ]` `/jobs/[jobId]/overview` · `/publish` 에이전트 카드·초안 diff 등 (문서 §7)
+
+### 10.3 인프라·에이전트 런타임
+
+- `[~]` **SQS**: `trend-scout-jobs`, `channel-evaluation-jobs` + 공유 DLQ (`PublishStack`). 문서에 나온 나머지 큐(idea-planning, draft-generation, publish-scheduling, optimization)는 **미생성**
+- `[~]` **Lambda**: `services/agents/trend-scout` (플레이스홀더 `AgentRun`만), `services/agents/channel-evaluator` (가짜 `ChannelSignal` + 규칙 기반 스냅샷 + `AgentRun`)
+- `[ ]` EventBridge로 위 큐들에 주기 적재
+- `[x]` `AdminPublishDomainResolverLambda` — 번들 대비 메모리 상향, Dynamo `batchGetItems` 경로
+
+### 10.4 비즈니스 (마일스톤 대비)
+
+- `[~]` **Scout(M2)**: 트렌드 수집·LLM·`IdeaCandidate`·`createSourceItem` 자동 연결 — **미완**(스케줄·수집·승격 로직 없음)
+- `[~]` **Hit channel(M2.5)**: 스키마·스토어·GraphQL·UI·SQS·평가 Lambda·규칙 점수 — **부분**; YouTube API·Scout/Planner 입력 연동·STALE/TTL·Optimizer 보정 — **미완**
+- `[ ]` **Planner(M3)** · **Shipping(M4)** · **Optimizer(M5)** 전용 워커·usecase 연결
+
+---
+
+## 11. 현재 단계 요약
+
+- 현재 상태는 대체로 `Phase 2 완료 + Phase 3/4 일부 구현`에 더해, **에이전트 계층은 M1 수준 + M2/M2.5 스켈레톤**이 코드에 반영된 상태다.
 - 골격, 스택, 주요 Lambda 경로, admin GraphQL/API와 LLM settings 관리 경로는 갖춰져 있다.
-- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 다중 LLM provider 실연결과 regenerate 재합류를 마무리하는 것이다.
+- 다음 핵심 작업은 "실제 생성/렌더/업로드를 운영 가능한 수준으로 완성"하고, 다중 LLM provider 실연결과 regenerate 재합류를 마무리하는 것이다. **에이전트 쪽**은 Scout 본 로직·스케줄·게이트·Planner/Shipping/Optimizer 워커가 남아 있다.

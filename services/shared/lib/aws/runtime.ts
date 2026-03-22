@@ -17,6 +17,7 @@ import {
   SFNClient,
 } from "@aws-sdk/client-sfn";
 import {
+  BatchGetCommand,
   DynamoDBDocumentClient,
   DeleteCommand,
   GetCommand,
@@ -119,6 +120,89 @@ export const getItemFromTable = async <T>(
   );
 
   return (result.Item as T | undefined) ?? null;
+};
+
+const compositePkSk = (pk: unknown, sk: unknown): string =>
+  `${String(pk)}|${String(sk)}`;
+
+const delayMs = (ms: number): Promise<void> =>
+  new Promise((r) => setTimeout(r, ms));
+
+type BatchGetPending = { key: Record<string, unknown>; index: number };
+
+const unprocessedMatchesPending = (
+  unprocessed: Record<string, unknown>[],
+  p: BatchGetPending,
+): boolean =>
+  unprocessed.some(
+    (u) =>
+      String(u.PK) === String(p.key.PK) && String(u.SK) === String(p.key.SK),
+  );
+
+/**
+ * 한 슬라이스(최대 100키)에 대해 BatchGet + UnprocessedKeys 재시도.
+ */
+const batchGetSliceUntilDone = async <T>(
+  tableName: string,
+  initialPending: BatchGetPending[],
+  result: (T | null)[],
+): Promise<void> => {
+  let pending = initialPending;
+  while (pending.length > 0) {
+    const resp = await ddbClient.send(
+      new BatchGetCommand({
+        RequestItems: {
+          [tableName]: {
+            Keys: pending.map((p) => p.key),
+          },
+        },
+      }),
+    );
+    const items = resp.Responses?.[tableName] ?? [];
+    const map = new Map<string, T>();
+    for (const item of items) {
+      const rec = item as Record<string, unknown>;
+      map.set(compositePkSk(rec.PK, rec.SK), item as T);
+    }
+    for (const p of pending) {
+      const hit = map.get(compositePkSk(p.key.PK, p.key.SK));
+      if (hit) {
+        result[p.index] = hit;
+      }
+    }
+    const unprocessedRaw = resp.UnprocessedKeys?.[tableName]?.Keys ?? [];
+    const unprocessed = unprocessedRaw as Record<string, unknown>[];
+    if (unprocessed.length === 0) {
+      return;
+    }
+    pending = pending.filter((p) => unprocessedMatchesPending(unprocessed, p));
+    await delayMs(25);
+  }
+};
+
+/**
+ * 동일 테이블에서 여러 키를 한 번에 조회합니다. 순서는 `keys`와 대응합니다.
+ * DynamoDB BatchGet 제한(100키/요청)과 UnprocessedKeys 재시도를 처리합니다.
+ */
+export const batchGetItems = async <T>(
+  keys: Record<string, unknown>[],
+): Promise<(T | null)[]> => {
+  const tableName = getJobsTableName();
+  const n = keys.length;
+  if (n === 0) {
+    return [];
+  }
+  const result: (T | null)[] = new Array(n).fill(null);
+  for (let start = 0; start < n; start += 100) {
+    const slice = keys.slice(start, start + 100);
+    const indices = slice.map((_, i) => start + i);
+    const pending: BatchGetPending[] = slice.map((k, i) => ({
+      key: k,
+      index: indices[i]!,
+    }));
+    await batchGetSliceUntilDone<T>(tableName, pending, result);
+  }
+  return result;
 };
 
 export const queryItems = async <T>(input: {
@@ -338,15 +422,22 @@ export const headObjectFromS3 = async (
   }
 };
 
-export const sendReviewMessage = async (
+export const sendSqsMessage = async (
+  queueUrl: string,
   messageBody: Record<string, unknown>,
 ): Promise<void> => {
   await sqsClient.send(
     new SendMessageCommand({
-      QueueUrl: getReviewQueueUrl(),
+      QueueUrl: queueUrl,
       MessageBody: JSON.stringify(messageBody),
     }),
   );
+};
+
+export const sendReviewMessage = async (
+  messageBody: Record<string, unknown>,
+): Promise<void> => {
+  await sendSqsMessage(getReviewQueueUrl(), messageBody);
 };
 
 export const sendTaskSuccess = async (

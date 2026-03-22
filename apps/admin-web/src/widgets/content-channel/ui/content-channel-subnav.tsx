@@ -17,27 +17,34 @@ export function ContentChannelSubnav({ contentId }: ContentChannelSubnavProps) {
     { href: `${base}/connections`, label: '매체 연결', prefix: `${base}/connections` },
   ];
 
+  const discoveryHref = `/discovery?channel=${encodeURIComponent(contentId)}`;
+
   return (
-    <nav
-      className="flex flex-wrap gap-1 border-b border-border pb-3 text-sm"
-      aria-label="채널 하위 메뉴"
-    >
-      {links.map(({ href, label, prefix }) => {
-        const active = pathname === prefix || pathname.startsWith(`${prefix}/`);
-        return (
-          <Link
-            key={href}
-            href={href}
-            className={
-              active
-                ? 'rounded-md bg-accent px-3 py-1.5 font-medium text-foreground'
-                : 'rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground'
-            }
-          >
-            {label}
-          </Link>
-        );
-      })}
-    </nav>
+    <div className="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
+      <nav className="flex flex-wrap gap-1 text-sm" aria-label="채널 하위 메뉴">
+        {links.map(({ href, label, prefix }) => {
+          const active = pathname === prefix || pathname.startsWith(`${prefix}/`);
+          return (
+            <Link
+              key={href}
+              href={href}
+              className={
+                active
+                  ? 'rounded-md bg-accent px-3 py-1.5 font-medium text-foreground'
+                  : 'rounded-md px-3 py-1.5 text-muted-foreground hover:bg-accent/50 hover:text-foreground'
+              }
+            >
+              {label}
+            </Link>
+          );
+        })}
+      </nav>
+      <Link
+        href={discoveryHref}
+        className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground"
+      >
+        발굴·벤치마크 →
+      </Link>
+    </div>
   );
 }

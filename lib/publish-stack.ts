@@ -8,6 +8,7 @@ import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sfn from "aws-cdk-lib/aws-stepfunctions";
+import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { BaseStackProps } from "./config";
@@ -135,6 +136,83 @@ export class PublishStack extends Stack {
       path.join(process.cwd(), "services/publish/metrics/handler.ts"),
       environment,
     );
+
+    const agentJobsDlq = new sqs.Queue(this, "AgentJobsDlq", {
+      queueName: `${props.projectPrefix}-agent-jobs-dlq`,
+      retentionPeriod: Duration.days(14),
+    });
+
+    const trendScoutJobsQueue = new sqs.Queue(this, "TrendScoutJobsQueue", {
+      queueName: `${props.projectPrefix}-trend-scout-jobs`,
+      visibilityTimeout: Duration.minutes(5),
+      deadLetterQueue: {
+        queue: agentJobsDlq,
+        maxReceiveCount: 3,
+      },
+    });
+
+    const trendScoutAgentLambda = new nodejs.NodejsFunction(
+      this,
+      "TrendScoutAgentLambda",
+      {
+        entry: path.join(
+          process.cwd(),
+          "services/agents/trend-scout/handler.ts",
+        ),
+        handler: "handler",
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: Duration.minutes(2),
+        bundling: {
+          target: "node20",
+          format: nodejs.OutputFormat.CJS,
+        },
+        environment,
+      },
+    );
+    trendScoutAgentLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(trendScoutJobsQueue, {
+        batchSize: 1,
+      }),
+    );
+    props.jobsTable.grantReadWriteData(trendScoutAgentLambda);
+
+    const channelEvaluationJobsQueue = new sqs.Queue(
+      this,
+      "ChannelEvaluationJobsQueue",
+      {
+        queueName: `${props.projectPrefix}-channel-evaluation-jobs`,
+        visibilityTimeout: Duration.minutes(5),
+        deadLetterQueue: {
+          queue: agentJobsDlq,
+          maxReceiveCount: 3,
+        },
+      },
+    );
+
+    const channelEvaluatorAgentLambda = new nodejs.NodejsFunction(
+      this,
+      "ChannelEvaluatorAgentLambda",
+      {
+        entry: path.join(
+          process.cwd(),
+          "services/agents/channel-evaluator/handler.ts",
+        ),
+        handler: "handler",
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: Duration.minutes(2),
+        bundling: {
+          target: "node20",
+          format: nodejs.OutputFormat.CJS,
+        },
+        environment,
+      },
+    );
+    channelEvaluatorAgentLambda.addEventSource(
+      new lambdaEventSources.SqsEventSource(channelEvaluationJobsQueue, {
+        batchSize: 1,
+      }),
+    );
+    props.jobsTable.grantReadWriteData(channelEvaluatorAgentLambda);
 
     const listJobsResolver = createLambda(
       this,
@@ -325,14 +403,28 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
-    const publishDomainResolver = createLambda(
+    /** Large bundle → slow cold start; extra memory speeds init. Dynamo list paths use BatchGet. */
+    const publishDomainResolver = new nodejs.NodejsFunction(
       this,
       "AdminPublishDomainResolverLambda",
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/publish-domain-router/handler.ts",
-      ),
-      environment,
+      {
+        entry: path.join(
+          process.cwd(),
+          "services/admin/graphql/publish-domain-router/handler.ts",
+        ),
+        handler: "handler",
+        runtime: lambda.Runtime.NODEJS_20_X,
+        timeout: Duration.seconds(30),
+        memorySize: 1536,
+        bundling: {
+          target: "node20",
+          format: nodejs.OutputFormat.CJS,
+        },
+        environment: {
+          ...environment,
+          TREND_SCOUT_QUEUE_URL: trendScoutJobsQueue.queueUrl,
+        },
+      },
     );
     const listContentsResolver = createLambda(
       this,
@@ -408,6 +500,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(platformConnectionsResolver);
     props.jobsTable.grantReadWriteData(publishDomainResolver);
     props.assetsBucket.grantRead(publishDomainResolver);
+    trendScoutJobsQueue.grantSendMessages(publishDomainResolver);
     publishDomainResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],

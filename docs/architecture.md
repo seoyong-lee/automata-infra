@@ -53,3 +53,5 @@ B --> I[DynamoDB Job State]
 초기 MVP는 단일 채널, 단일 언어, scene JSON 기반 생성, 이미지/TTS 생성, 선택적 scene video 생성, review UI, YouTube private 업로드까지를 대상으로 한다.
 
 상세 구현 계획은 `docs/plan.md` 에서 관리한다.
+
+**현재 코드 기준 개요**(Admin GraphQL, 발행·발굴·에이전트 축 포함)는 `docs/plan.md` 의 “현재 레포와의 관계”와 [`implementation-overview-external-review.md`](./implementation-overview-external-review.md)를 함께 본다.

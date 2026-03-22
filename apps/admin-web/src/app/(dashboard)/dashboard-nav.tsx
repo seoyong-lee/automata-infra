@@ -6,6 +6,7 @@ import { logout } from '@packages/auth';
 import {
   Activity,
   Cog,
+  Compass,
   ImagePlay,
   LayoutDashboard,
   ListChecks,
@@ -25,6 +26,10 @@ function isUnderJobsPath(pathname: string) {
 
 function isUnderExecutionsPath(pathname: string) {
   return pathname === '/executions' || pathname.startsWith('/executions/');
+}
+
+function isDiscoveryPath(pathname: string) {
+  return pathname === '/discovery' || pathname.startsWith('/discovery/');
 }
 
 export function DashboardSidebar() {
@@ -57,6 +62,19 @@ export function DashboardSidebar() {
           >
             <LayoutDashboard className="size-4 shrink-0" />
             <span>대시보드</span>
+          </Link>
+
+          <Link
+            href="/discovery"
+            className={cn(
+              'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+              isDiscoveryPath(pathname)
+                ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+            )}
+          >
+            <Compass className="size-4 shrink-0" />
+            <span className="truncate">벤치마크</span>
           </Link>
 
           <Link
@@ -152,6 +170,9 @@ export function DashboardMobileBar() {
         </Link>
         <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
           채널
+        </Link>
+        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
+          발굴
         </Link>
         <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
           제작 아이템

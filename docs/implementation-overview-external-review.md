@@ -9,6 +9,19 @@
 
 **Admin 전면 개선 방향(도메인·후보/채택·상세 IA·백엔드 우선순위) — Cursor 전달용:** [`plans/admin-improvement-direction-cursor-handoff.md`](./plans/admin-improvement-direction-cursor-handoff.md)
 
+### 이 문서가 커버하는 범위 (직독 시 참고)
+
+이 파일 **하나만**으로 **전체 코드베이스의 모든 모듈·모든 화면·모든 엣지 케이스**를 대체할 수는 없다. 역할은 다음으로 고정한다.
+
+| 역할 | 내용 |
+| --- | --- |
+| **본 문서** | 외부 검토용 **아키텍처·도메인 요약**, **실행 목표·경계(§10~)**, 제품·스택 한 장 요약 |
+| **최근 변경 스냅샷** | [`recent-work-summary.md`](./recent-work-summary.md) — 파이프라인 실행 이력·비동기 워커·허브 UI 등 시계열 변경 |
+| **세부 설계·로드맵** | `docs/plans/` (예: 콘텐츠·잡·토픽, Admin IA, 에이전트/발행 통합) |
+| **계약의 정본** | `lib/modules/publish/graphql/schema.graphql`, 공유 `zod`·`lib/modules/*/contracts` |
+
+**발행·발굴·에이전트**처럼 제작 파이프라인 옆에 붙은 축은 아래 §3.1에서 요약하고, 필드·뮤테이션 목록은 스키마를 우선한다.
+
 ---
 
 ## 1. 제품 목적 (한 줄)
@@ -53,6 +66,15 @@
 
 후반부(§10 이후)는 **목표 실행 모델**로, Step Functions·SQS·워커 경계를 더 분명히 한다.
 
+### 3.1 발행·발굴·에이전트 (현재 구현 축, 요약)
+
+제작 파이프라인(Job·토픽·씬·에셋)과 **느슨하게** 연결된 운영 축이 코드에 존재한다. 세부는 GraphQL·CDK·`services/agents/*`를 본다.
+
+- **Publish 도메인 (AppSync):** 단일 `publish-domain` Lambda 라우터가 소재(SourceItem), 출고 드래프트/타깃, 플랫폼 연결·프로필, 아이디어 후보·트렌드 신호·에이전트 실행 이력·워치리스트·채널 에이전트 설정 등을 다룬다 (`services/admin/graphql/publish-domain-router/`).
+- **에이전트 워커:** `PublishStack`에서 SQS + Lambda(예: 트렌드 스카우트·채널 평가)로 연결. 초기 일부는 Dynamo에 `AgentRun` 등을 남기는 **플레이스홀더**이며, YouTube Data API 등 외부 수집은 단계적으로 연결한다.
+- **Admin UI:** 전역 **`/discovery`(발굴·벤치마크)** — 운영 라인(채널) 필터, 워치리스트·후보·트렌드 탭. 외부 API 쿼터·비용을 고려해 **트렌드 스카우트는 스케줄 없이** `enqueueTrendScoutJob` 뮤테이션으로 **수동 큐 적재**하는 경로를 둔다.
+- **메트릭 등:** 스택에 따라 주기 수집 Lambda 등이 있을 수 있으나, 본 개요의 핵심은 **제작 + 발행·발굴**의 분리다.
+
 ---
 
 ## 4. 도메인 모델 (요약)
@@ -91,8 +113,10 @@
 
 ## 6. API 표면 (Admin GraphQL)
 
-- **Query**: `adminContents`, `adminJobs`, `adminJob`, `jobDraft`, `pendingReviews`, `jobTimeline`, `llmSettings` 등.
-- **Mutation**: `createDraftJob`, `attachJobToContent`, `updateTopicSeed`, `runTopicPlan`, `runSceneJson`, `updateSceneJson`, `runAssetGeneration`, `createContent` / `updateContent` / `deleteContent`, `deleteJob`, 리뷰·업로드 등.
+- **Query (코어 파이프라인·운영):** `adminContents`, `adminJobs`, `adminJob`, `jobDraft`, `pendingReviews`, `jobTimeline`, `jobExecutions`, `llmSettings`, `channelPublishQueue`, `platformConnections` 등.
+- **Query (발행·발굴 도메인):** `ideaCandidatesForChannel`, `trendSignalsForChannel`, `agentRunsForChannel`, `channelAgentConfig`, `channelWatchlist`, `latestChannelScoreSnapshotsForChannel`, `sourceItem` / `sourceItemsForChannel`, `platformPublishProfile`, `contentPublishDraft`, `publishTargetsForJob`, `performanceInsightsForJob` 등.
+- **Mutation (코어):** `createDraftJob`, `attachJobToContent`, `updateTopicSeed`, `runTopicPlan`, `runSceneJson`, `updateSceneJson`, `runAssetGeneration`, `approvePipelineExecution`, `createContent` / `updateContent` / `deleteContent`, `deleteJob`, 리뷰·업로드 등.
+- **Mutation (발행·연결·발굴):** `enqueueToChannelPublishQueue`, `runPublishOrchestration`, 소재·연결·드래프트 갱신, 아이디어 후보 승격/거절, 워치리스트·에이전트 설정, **`enqueueTrendScoutJob`**(트렌드 스카우트 SQS 수동 1건) 등.
 
 스키마 단일 소스: `lib/modules/publish/graphql/schema.graphql`. 클라이언트는 `packages/graphql`에서 쿼리/뮤테이션 문자열을 유지한다.
 
@@ -417,6 +441,9 @@ DynamoDB는 아래 역할에 집중한다.
 
 | 문서                                                                 | 내용                                           |
 | -------------------------------------------------------------------- | ---------------------------------------------- |
+| [`plan.md`](./plan.md) | **최초 실행 설계안**(의도·스택·리포 구조); 현재 레포와의 관계·교차 참조는 해당 문서 §0 보강 참고 |
+| [`architecture.md`](./architecture.md) | 짧은 아키텍처 개요·다이어그램 |
+| [`recent-work-summary.md`](./recent-work-summary.md) | 최근 코드 변경 스냅샷 |
 | [`content-job-topic-domain.md`](./plans/content-job-topic-domain.md) | 콘텐츠·잡·토픽 관계, 미연결 잡, 용어           |
 | [`admin-job-authoring.md`](./plans/admin-job-authoring.md)           | Admin IA·콘텐츠 운영 방향(일부 목표/현재 혼재) |
 
@@ -424,4 +451,4 @@ DynamoDB는 아래 역할에 집중한다.
 
 ---
 
-_마지막 갱신: 저장소 현재 브랜치 기준 구현(상반부) 및 외부 피드백 기준 실행 목표(하반부). 버전 태그·배포 환경별 차이는 별도 확인이 필요하다._
+_마지막 갱신: 저장소 현재 브랜치 기준 구현(상반부) 및 외부 피드백 기준 실행 목표(하반부). **전체 구현 현황**은 본 문서 + `recent-work-summary.md` + GraphQL 스키마·`docs/plans/`를 함께 본다. 버전 태그·배포 환경별 차이는 별도 확인이 필요하다._

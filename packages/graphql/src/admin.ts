@@ -843,6 +843,15 @@ const runPublishOrchestrationMutation = `
   }
 `;
 
+const enqueueTrendScoutJobMutation = `
+  mutation EnqueueTrendScoutJob($input: EnqueueTrendScoutJobInput!) {
+    enqueueTrendScoutJob(input: $input) {
+      ok
+      message
+    }
+  }
+`;
+
 const contentPublishDraftQuery = `
   query ContentPublishDraft($jobId: ID!) {
     contentPublishDraft(jobId: $jobId) {
@@ -904,6 +913,187 @@ const sourceItemsForChannelQuery = `
       masterHook
       sourceNotes
       status
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const ideaCandidatesForChannelQuery = `
+  query IdeaCandidatesForChannel($channelId: ID!) {
+    ideaCandidatesForChannel(channelId: $channelId) {
+      id
+      contentId
+      trendSignalIds
+      title
+      hook
+      rationale
+      score
+      status
+      promotedSourceItemId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const channelAgentConfigQuery = `
+  query ChannelAgentConfig($channelId: ID!) {
+    channelAgentConfig(channelId: $channelId) {
+      channelId
+      scoutPolicyJson
+      automationJson
+      updatedAt
+    }
+  }
+`;
+
+const channelWatchlistQuery = `
+  query ChannelWatchlist($channelId: ID!) {
+    channelWatchlist(channelId: $channelId) {
+      id
+      contentId
+      platform
+      externalChannelId
+      status
+      source
+      priority
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const latestChannelScoreSnapshotsForChannelQuery = `
+  query LatestChannelScoreSnapshotsForChannel($channelId: ID!) {
+    latestChannelScoreSnapshotsForChannel(channelId: $channelId) {
+      id
+      platform
+      externalChannelId
+      contentId
+      status
+      scores {
+        momentumScore
+        consistencyScore
+        reproducibilityScore
+        nicheFitScore
+        monetizationScore
+        overallScore
+      }
+      labels
+      rationale
+      riskFlags
+      topFormats {
+        formatLabel
+        sampleVideoIds
+        confidence
+      }
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const agentRunsForChannelQuery = `
+  query AgentRunsForChannel($channelId: ID!, $limit: Int) {
+    agentRunsForChannel(channelId: $channelId, limit: $limit) {
+      id
+      contentId
+      agentKind
+      trigger
+      inputRefJson
+      outputRefJson
+      modelId
+      status
+      error
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const performanceInsightsForJobQuery = `
+  query PerformanceInsightsForJob($jobId: ID!) {
+    performanceInsightsForJob(jobId: $jobId) {
+      id
+      jobId
+      publishTargetId
+      snapshotKind
+      metricsJson
+      diagnosis
+      suggestedActions
+      relatedSourceItemId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const promoteIdeaCandidateToSourceMutation = `
+  mutation PromoteIdeaCandidateToSource($input: PromoteIdeaCandidateInput!) {
+    promoteIdeaCandidateToSource(input: $input) {
+      id
+      contentId
+      trendSignalIds
+      title
+      hook
+      rationale
+      score
+      status
+      promotedSourceItemId
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const rejectIdeaCandidateMutation = `
+  mutation RejectIdeaCandidate($input: RejectIdeaCandidateInput!) {
+    rejectIdeaCandidate(input: $input) {
+      id
+      status
+      updatedAt
+    }
+  }
+`;
+
+const updateChannelAgentConfigMutation = `
+  mutation UpdateChannelAgentConfig($input: UpdateChannelAgentConfigInput!) {
+    updateChannelAgentConfig(input: $input) {
+      channelId
+      scoutPolicyJson
+      automationJson
+      updatedAt
+    }
+  }
+`;
+
+const createChannelWatchlistEntryMutation = `
+  mutation CreateChannelWatchlistEntry($input: CreateChannelWatchlistEntryInput!) {
+    createChannelWatchlistEntry(input: $input) {
+      id
+      contentId
+      platform
+      externalChannelId
+      status
+      source
+      priority
+      createdAt
+      updatedAt
+    }
+  }
+`;
+
+const updateChannelWatchlistEntryMutation = `
+  mutation UpdateChannelWatchlistEntry($input: UpdateChannelWatchlistEntryInput!) {
+    updateChannelWatchlistEntry(input: $input) {
+      id
+      contentId
+      platform
+      externalChannelId
+      status
+      source
+      priority
       createdAt
       updatedAt
     }
@@ -1016,6 +1206,101 @@ export type SourceItemGql = {
   updatedAt: string;
 };
 
+export type IdeaCandidateGql = {
+  id: string;
+  contentId: string;
+  trendSignalIds: string[];
+  title: string;
+  hook?: string | null;
+  rationale?: string | null;
+  score: number;
+  status: "PENDING" | "PROMOTED_TO_SOURCE" | "REJECTED";
+  promotedSourceItemId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChannelAgentConfigGql = {
+  channelId: string;
+  scoutPolicyJson: string;
+  automationJson: string;
+  updatedAt: string;
+};
+
+export type ChannelScoresGql = {
+  momentumScore: number;
+  consistencyScore: number;
+  reproducibilityScore: number;
+  nicheFitScore: number;
+  monetizationScore: number;
+  overallScore: number;
+};
+
+export type ChannelTopFormatGql = {
+  formatLabel: string;
+  sampleVideoIds: string[];
+  confidence: number;
+};
+
+export type ChannelScoreSnapshotGql = {
+  id: string;
+  platform: "YOUTUBE";
+  externalChannelId: string;
+  contentId?: string | null;
+  status: "ACTIVE" | "STALE" | "REJECTED";
+  scores: ChannelScoresGql;
+  labels: string[];
+  rationale: string[];
+  riskFlags: string[];
+  topFormats: ChannelTopFormatGql[];
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type ChannelWatchlistEntryGql = {
+  id: string;
+  contentId: string;
+  platform: "YOUTUBE";
+  externalChannelId: string;
+  status: "WATCHING" | "PAUSED" | "ARCHIVED";
+  source: "AUTO_DISCOVERED" | "MANUAL";
+  priority: number;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type AgentRunGql = {
+  id: string;
+  contentId?: string | null;
+  agentKind:
+    | "CHANNEL_EVALUATOR"
+    | "SCOUT"
+    | "PLANNER"
+    | "SHIPPING"
+    | "OPTIMIZER";
+  trigger: "SCHEDULE" | "SQS" | "SFN" | "GRAPHQL" | "MANUAL";
+  inputRefJson: string;
+  outputRefJson?: string | null;
+  modelId?: string | null;
+  status: "STARTED" | "SUCCEEDED" | "FAILED" | "SKIPPED";
+  error?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
+export type PerformanceInsightGql = {
+  id: string;
+  jobId: string;
+  publishTargetId?: string | null;
+  snapshotKind: "T1H" | "T24H" | "T72H";
+  metricsJson: string;
+  diagnosis?: string | null;
+  suggestedActions: string[];
+  relatedSourceItemId?: string | null;
+  createdAt: string;
+  updatedAt: string;
+};
+
 export type PlatformPublishProfileGql = {
   platformConnectionId: string;
   channelId: string;
@@ -1035,6 +1320,11 @@ export type PublishOrchestrationResult = {
   ok: boolean;
   jobId: string;
   message?: string | null;
+};
+
+export type EnqueueTrendScoutJobResult = {
+  ok: boolean;
+  message: string;
 };
 
 export type ContentPublishDraftGql = {
@@ -1367,6 +1657,31 @@ export const useRunPublishOrchestrationMutation = (
   });
 };
 
+export const useEnqueueTrendScoutJobMutation = (
+  options?: UseMutationOptions<
+    { enqueueTrendScoutJob: EnqueueTrendScoutJobResult },
+    Error,
+    { channelId?: string; dryRun?: boolean }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      const payload: { channelId?: string; dryRun?: boolean } = {};
+      if (input.channelId?.trim()) {
+        payload.channelId = input.channelId.trim();
+      }
+      if (input.dryRun === true) {
+        payload.dryRun = true;
+      }
+      return gql<{ enqueueTrendScoutJob: EnqueueTrendScoutJobResult }>(
+        enqueueTrendScoutJobMutation,
+        { input: payload },
+      );
+    },
+    ...options,
+  });
+};
+
 export const useContentPublishDraftQuery = (
   vars: { jobId: string },
   options?: Omit<
@@ -1466,6 +1781,268 @@ export const useSourceItemsForChannelQuery = (
       return data.sourceItemsForChannel ?? [];
     },
     enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const useIdeaCandidatesForChannelQuery = (
+  vars: { channelId: string },
+  options?: Omit<
+    UseQueryOptions<
+      IdeaCandidateGql[],
+      Error,
+      IdeaCandidateGql[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["ideaCandidatesForChannel", vars.channelId],
+    queryFn: async () => {
+      const data = await gql<{
+        ideaCandidatesForChannel: IdeaCandidateGql[];
+      }>(ideaCandidatesForChannelQuery, vars);
+      return data.ideaCandidatesForChannel ?? [];
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const useChannelAgentConfigQuery = (
+  vars: { channelId: string },
+  options?: Omit<
+    UseQueryOptions<
+      ChannelAgentConfigGql,
+      Error,
+      ChannelAgentConfigGql,
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["channelAgentConfig", vars.channelId],
+    queryFn: async () => {
+      const data = await gql<{ channelAgentConfig: ChannelAgentConfigGql }>(
+        channelAgentConfigQuery,
+        vars,
+      );
+      return data.channelAgentConfig;
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const useChannelWatchlistQuery = (
+  vars: { channelId: string },
+  options?: Omit<
+    UseQueryOptions<
+      ChannelWatchlistEntryGql[],
+      Error,
+      ChannelWatchlistEntryGql[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["channelWatchlist", vars.channelId],
+    queryFn: async () => {
+      const data = await gql<{ channelWatchlist: ChannelWatchlistEntryGql[] }>(
+        channelWatchlistQuery,
+        vars,
+      );
+      return data.channelWatchlist ?? [];
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const useLatestChannelScoreSnapshotsForChannelQuery = (
+  vars: { channelId: string },
+  options?: Omit<
+    UseQueryOptions<
+      ChannelScoreSnapshotGql[],
+      Error,
+      ChannelScoreSnapshotGql[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["latestChannelScoreSnapshotsForChannel", vars.channelId],
+    queryFn: async () => {
+      const data = await gql<{
+        latestChannelScoreSnapshotsForChannel: ChannelScoreSnapshotGql[];
+      }>(latestChannelScoreSnapshotsForChannelQuery, vars);
+      return data.latestChannelScoreSnapshotsForChannel ?? [];
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const useAgentRunsForChannelQuery = (
+  vars: { channelId: string; limit?: number },
+  options?: Omit<
+    UseQueryOptions<AgentRunGql[], Error, AgentRunGql[], readonly unknown[]>,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["agentRunsForChannel", vars.channelId, vars.limit],
+    queryFn: async () => {
+      const data = await gql<{ agentRunsForChannel: AgentRunGql[] }>(
+        agentRunsForChannelQuery,
+        vars,
+      );
+      return data.agentRunsForChannel ?? [];
+    },
+    enabled: Boolean(vars.channelId),
+    ...options,
+  });
+};
+
+export const usePerformanceInsightsForJobQuery = (
+  vars: { jobId: string },
+  options?: Omit<
+    UseQueryOptions<
+      PerformanceInsightGql[],
+      Error,
+      PerformanceInsightGql[],
+      readonly unknown[]
+    >,
+    "queryKey" | "queryFn"
+  >,
+) => {
+  return useQuery({
+    queryKey: ["performanceInsightsForJob", vars.jobId],
+    queryFn: async () => {
+      const data = await gql<{
+        performanceInsightsForJob: PerformanceInsightGql[];
+      }>(performanceInsightsForJobQuery, vars);
+      return data.performanceInsightsForJob ?? [];
+    },
+    enabled: Boolean(vars.jobId),
+    ...options,
+  });
+};
+
+export const usePromoteIdeaCandidateToSourceMutation = (
+  options?: UseMutationOptions<
+    { promoteIdeaCandidateToSource: IdeaCandidateGql },
+    Error,
+    { ideaCandidateId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ promoteIdeaCandidateToSource: IdeaCandidateGql }>(
+        promoteIdeaCandidateToSourceMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useRejectIdeaCandidateMutation = (
+  options?: UseMutationOptions<
+    {
+      rejectIdeaCandidate: Pick<
+        IdeaCandidateGql,
+        "id" | "status" | "updatedAt"
+      >;
+    },
+    Error,
+    { ideaCandidateId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{
+        rejectIdeaCandidate: Pick<
+          IdeaCandidateGql,
+          "id" | "status" | "updatedAt"
+        >;
+      }>(rejectIdeaCandidateMutation, { input });
+    },
+    ...options,
+  });
+};
+
+export const useUpdateChannelAgentConfigMutation = (
+  options?: UseMutationOptions<
+    { updateChannelAgentConfig: ChannelAgentConfigGql },
+    Error,
+    {
+      channelId: string;
+      scoutPolicyJson?: unknown;
+      automationJson?: unknown;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      const { channelId, scoutPolicyJson, automationJson } = input;
+      return gql<{ updateChannelAgentConfig: ChannelAgentConfigGql }>(
+        updateChannelAgentConfigMutation,
+        {
+          input: { channelId, scoutPolicyJson, automationJson },
+        },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useCreateChannelWatchlistEntryMutation = (
+  options?: UseMutationOptions<
+    { createChannelWatchlistEntry: ChannelWatchlistEntryGql },
+    Error,
+    {
+      channelId: string;
+      platform: "YOUTUBE";
+      externalChannelId: string;
+      source?: "AUTO_DISCOVERED" | "MANUAL";
+      priority?: number;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ createChannelWatchlistEntry: ChannelWatchlistEntryGql }>(
+        createChannelWatchlistEntryMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useUpdateChannelWatchlistEntryMutation = (
+  options?: UseMutationOptions<
+    { updateChannelWatchlistEntry: ChannelWatchlistEntryGql },
+    Error,
+    {
+      watchlistId: string;
+      status?: "WATCHING" | "PAUSED" | "ARCHIVED";
+      priority?: number;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ updateChannelWatchlistEntry: ChannelWatchlistEntryGql }>(
+        updateChannelWatchlistEntryMutation,
+        { input },
+      );
+    },
     ...options,
   });
 };

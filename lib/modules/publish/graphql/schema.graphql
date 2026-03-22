@@ -44,6 +44,27 @@ type Query {
   ): PlatformPublishProfile
   contentPublishDraft(jobId: ID!): ContentPublishDraft
   publishTargetsForJob(jobId: ID!): [PublishTarget!]!
+  """
+  에이전트 발굴 후보(채널별). 스카우트 파이프라인이 채운다.
+  """
+  ideaCandidatesForChannel(channelId: ID!): [IdeaCandidate!]!
+  trendSignalsForChannel(channelId: ID!): [TrendSignal!]!
+  agentRunsForChannel(channelId: ID!, limit: Int): [AgentRun!]!
+  performanceInsightsForJob(jobId: ID!): [PerformanceInsight!]!
+  """
+  채널별 스카우트 정책 + 자동화 플래그. 미저장 시 기본값을 반환한다.
+  """
+  channelAgentConfig(channelId: ID!): ChannelAgentConfig!
+  """
+  우리 채널이 추적 중인 외부 채널(워치리스트).
+  """
+  channelWatchlist(channelId: ID!): [ChannelWatchlistEntry!]!
+  """
+  워치리스트에 있는 외부 채널 각각에 대한 최신 점수 스냅샷(없으면 해당 항목 생략 가능 — 클라이언트는 빈 배열 허용).
+  """
+  latestChannelScoreSnapshotsForChannel(
+    channelId: ID!
+  ): [ChannelScoreSnapshot!]!
 }
 
 type Mutation {
@@ -96,6 +117,26 @@ type Mutation {
     input: RunPublishOrchestrationInput!
   ): PublishOrchestrationResult!
   deleteJob(jobId: ID!): DeleteJobResult!
+  promoteIdeaCandidateToSource(
+    input: PromoteIdeaCandidateInput!
+  ): IdeaCandidate!
+  rejectIdeaCandidate(input: RejectIdeaCandidateInput!): IdeaCandidate!
+  updateChannelAgentConfig(
+    input: UpdateChannelAgentConfigInput!
+  ): ChannelAgentConfig!
+  createChannelWatchlistEntry(
+    input: CreateChannelWatchlistEntryInput!
+  ): ChannelWatchlistEntry!
+  updateChannelWatchlistEntry(
+    input: UpdateChannelWatchlistEntryInput!
+  ): ChannelWatchlistEntry!
+  """
+  트렌드 스카우트 에이전트 1회 실행을 위해 SQS(`trend-scout-jobs`)에 메시지 1건을 넣는다.
+  비용·쿼터 절약을 위해 스케줄 없이 관리자가 명시적으로 호출할 때만 사용한다.
+  """
+  enqueueTrendScoutJob(
+    input: EnqueueTrendScoutJobInput!
+  ): EnqueueTrendScoutJobResult!
 }
 
 type AdminJob {
@@ -519,6 +560,191 @@ type SourceItem {
   updatedAt: AWSDateTime!
 }
 
+enum IdeaCandidateStatus {
+  PENDING
+  PROMOTED_TO_SOURCE
+  REJECTED
+}
+
+type IdeaCandidate {
+  id: ID!
+  contentId: ID!
+  trendSignalIds: [ID!]!
+  title: String!
+  hook: String
+  rationale: String
+  score: Float!
+  status: IdeaCandidateStatus!
+  promotedSourceItemId: ID
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type TrendSignal {
+  id: ID!
+  contentId: ID
+  sourceKind: String!
+  rawPayloadJson: AWSJSON!
+  fetchedAt: AWSDateTime!
+  dedupeKey: String!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum AgentKind {
+  CHANNEL_EVALUATOR
+  SCOUT
+  PLANNER
+  SHIPPING
+  OPTIMIZER
+}
+
+enum AgentRunTrigger {
+  SCHEDULE
+  SQS
+  SFN
+  GRAPHQL
+  MANUAL
+}
+
+enum AgentRunStatus {
+  STARTED
+  SUCCEEDED
+  FAILED
+  SKIPPED
+}
+
+type AgentRun {
+  id: ID!
+  contentId: ID
+  agentKind: AgentKind!
+  trigger: AgentRunTrigger!
+  inputRefJson: AWSJSON!
+  outputRefJson: AWSJSON
+  modelId: String
+  status: AgentRunStatus!
+  error: String
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+enum PerformanceSnapshotKind {
+  T1H
+  T24H
+  T72H
+}
+
+type PerformanceInsight {
+  id: ID!
+  jobId: ID!
+  publishTargetId: ID
+  snapshotKind: PerformanceSnapshotKind!
+  metricsJson: AWSJSON!
+  diagnosis: String
+  suggestedActions: [String!]!
+  relatedSourceItemId: ID
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ChannelAgentConfig {
+  channelId: ID!
+  scoutPolicyJson: AWSJSON!
+  automationJson: AWSJSON!
+  updatedAt: AWSDateTime!
+}
+
+enum ExternalPlatform {
+  YOUTUBE
+}
+
+enum ChannelWatchlistStatus {
+  WATCHING
+  PAUSED
+  ARCHIVED
+}
+
+enum ChannelWatchlistSource {
+  AUTO_DISCOVERED
+  MANUAL
+}
+
+enum ChannelScoreSnapshotStatus {
+  ACTIVE
+  STALE
+  REJECTED
+}
+
+type ChannelScores {
+  momentumScore: Float!
+  consistencyScore: Float!
+  reproducibilityScore: Float!
+  nicheFitScore: Float!
+  monetizationScore: Float!
+  overallScore: Float!
+}
+
+type ChannelTopFormat {
+  formatLabel: String!
+  sampleVideoIds: [ID!]!
+  confidence: Float!
+}
+
+type ChannelScoreSnapshot {
+  id: ID!
+  platform: ExternalPlatform!
+  externalChannelId: ID!
+  contentId: ID
+  status: ChannelScoreSnapshotStatus!
+  scores: ChannelScores!
+  labels: [String!]!
+  rationale: [String!]!
+  riskFlags: [String!]!
+  topFormats: [ChannelTopFormat!]!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type ChannelWatchlistEntry {
+  id: ID!
+  contentId: ID!
+  platform: ExternalPlatform!
+  externalChannelId: ID!
+  status: ChannelWatchlistStatus!
+  source: ChannelWatchlistSource!
+  priority: Int!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+input CreateChannelWatchlistEntryInput {
+  channelId: ID!
+  platform: ExternalPlatform!
+  externalChannelId: ID!
+  source: ChannelWatchlistSource
+  priority: Int
+}
+
+input UpdateChannelWatchlistEntryInput {
+  watchlistId: ID!
+  status: ChannelWatchlistStatus
+  priority: Int
+}
+
+input PromoteIdeaCandidateInput {
+  ideaCandidateId: ID!
+}
+
+input RejectIdeaCandidateInput {
+  ideaCandidateId: ID!
+}
+
+input UpdateChannelAgentConfigInput {
+  channelId: ID!
+  scoutPolicyJson: AWSJSON
+  automationJson: AWSJSON
+}
+
 input CreateSourceItemInput {
   channelId: ID!
   topic: String!
@@ -605,6 +831,19 @@ type PublishOrchestrationResult {
   ok: Boolean!
   jobId: ID!
   message: String
+}
+
+input EnqueueTrendScoutJobInput {
+  """
+  운영 라인(contentId) 스코프. 생략 시 본문에 contentId를 넣지 않는다(에이전트 기본 동작에 따름).
+  """
+  channelId: ID
+  dryRun: Boolean
+}
+
+type EnqueueTrendScoutJobResult {
+  ok: Boolean!
+  message: String!
 }
 
 enum ChannelPublishQueueItemStatus {

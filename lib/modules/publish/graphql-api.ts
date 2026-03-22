@@ -296,6 +296,55 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "IdeaCandidatesForChannel",
+    "ideaCandidatesForChannel",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "TrendSignalsForChannel",
+    "trendSignalsForChannel",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "AgentRunsForChannel",
+    "agentRunsForChannel",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PerformanceInsightsForJob",
+    "performanceInsightsForJob",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ChannelAgentConfig",
+    "channelAgentConfig",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ChannelWatchlist",
+    "channelWatchlist",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "LatestChannelScoreSnapshotsForChannel",
+    "latestChannelScoreSnapshotsForChannel",
+    "Query",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "CreateSourceItem",
     "createSourceItem",
     "Mutation",
@@ -340,6 +389,48 @@ export const createPublishGraphqlApi = (
     graphqlApi,
     "RunPublishOrchestration",
     "runPublishOrchestration",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PromoteIdeaCandidateToSource",
+    "promoteIdeaCandidateToSource",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RejectIdeaCandidate",
+    "rejectIdeaCandidate",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateChannelAgentConfig",
+    "updateChannelAgentConfig",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CreateChannelWatchlistEntry",
+    "createChannelWatchlistEntry",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "UpdateChannelWatchlistEntry",
+    "updateChannelWatchlistEntry",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "EnqueueTrendScoutJob",
+    "enqueueTrendScoutJob",
     "Mutation",
     publishDomain,
   );

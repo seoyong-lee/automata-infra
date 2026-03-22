@@ -49,8 +49,8 @@ function ContentJobsPageBody() {
               <span className="text-foreground">{(label ?? contentId) || '—'}</span>
             </div>
           }
-          title="채널 상세"
-          subtitle="제작 아이템·출고 큐·예약 발행을 채널 단위로 다룹니다."
+          title="제작 아이템"
+          subtitle="채널별 제작 작업 목록입니다. 자동 발굴 후보·히트 채널은 「발굴·벤치마크」 메뉴를 사용하세요."
         />
       </div>
 
