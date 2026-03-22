@@ -5,6 +5,7 @@ import {
   replacePublishTargetsForJob,
   updatePublishTargetJobItem,
 } from "../../../../shared/lib/store/publish-targets-job";
+import { syncChannelPublishQueueRowForJob } from "../../../../shared/lib/store/channel-publish-queue";
 import { getJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { badUserInput } from "../../shared/errors";
 
@@ -29,8 +30,15 @@ export const runPublishOrchestrationUsecase = async (input: {
     targets = built;
   }
 
+  const now = Date.now();
+  const isRunnableNow = (scheduledAt?: string) =>
+    !scheduledAt || new Date(scheduledAt).getTime() <= now;
+
   const youtubeQueued = targets.filter(
-    (t) => t.platform === "YOUTUBE" && t.status === "QUEUED",
+    (t) =>
+      t.platform === "YOUTUBE" &&
+      (t.status === "QUEUED" ||
+        (t.status === "SCHEDULED" && isRunnableNow(t.scheduledAt))),
   );
   if (youtubeQueued.length > 0) {
     for (const t of youtubeQueued) {
@@ -67,13 +75,32 @@ export const runPublishOrchestrationUsecase = async (input: {
   }
 
   const restQueued = (await listPublishTargetsByJob(input.jobId)).filter(
-    (t) => t.status === "QUEUED" && t.platform !== "YOUTUBE",
+    (t) =>
+      t.platform !== "YOUTUBE" &&
+      (t.status === "QUEUED" ||
+        (t.status === "SCHEDULED" && isRunnableNow(t.scheduledAt))),
   );
   for (const t of restQueued) {
     await updatePublishTargetJobItem(input.jobId, t.publishTargetId, {
       status: "SKIPPED",
       publishError: "Platform adapter not implemented for this target",
     });
+  }
+
+  const nextTargets = await listPublishTargetsByJob(input.jobId);
+  await syncChannelPublishQueueRowForJob({
+    channelId: contentId,
+    jobId: input.jobId,
+    targets: nextTargets,
+  });
+
+  const processedCount = youtubeQueued.length + restQueued.length;
+  if (processedCount === 0) {
+    return {
+      ok: true,
+      jobId: input.jobId,
+      message: "No publish targets are ready to run yet",
+    };
   }
 
   return {

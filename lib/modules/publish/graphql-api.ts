@@ -387,6 +387,13 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "UpdatePublishTargetSchedule",
+    "updatePublishTargetSchedule",
+    "Mutation",
+    publishDomain,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "RunPublishOrchestration",
     "runPublishOrchestration",
     "Mutation",

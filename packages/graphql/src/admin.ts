@@ -852,6 +852,22 @@ const runPublishOrchestrationMutation = `
   }
 `;
 
+const updatePublishTargetScheduleMutation = `
+  mutation UpdatePublishTargetSchedule($input: UpdatePublishTargetScheduleInput!) {
+    updatePublishTargetSchedule(input: $input) {
+      publishTargetId
+      channelContentItemId
+      platformConnectionId
+      platform
+      status
+      scheduledAt
+      externalPostId
+      externalUrl
+      publishError
+    }
+  }
+`;
+
 const enqueueTrendScoutJobMutation = `
   mutation EnqueueTrendScoutJob($input: EnqueueTrendScoutJobInput!) {
     enqueueTrendScoutJob(input: $input) {
@@ -1660,6 +1676,28 @@ export const useRunPublishOrchestrationMutation = (
     mutationFn: async (input) => {
       return gql<{ runPublishOrchestration: PublishOrchestrationResult }>(
         runPublishOrchestrationMutation,
+        { input },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useUpdatePublishTargetScheduleMutation = (
+  options?: UseMutationOptions<
+    { updatePublishTargetSchedule: PublishTarget },
+    Error,
+    {
+      jobId: string;
+      publishTargetId: string;
+      scheduledAt?: string | null;
+    }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ updatePublishTargetSchedule: PublishTarget }>(
+        updatePublishTargetScheduleMutation,
         { input },
       );
     },

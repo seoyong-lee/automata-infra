@@ -5,9 +5,9 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 
+import { ContentChannelSubnav } from '@/widgets/content-channel';
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
-import { ContentChannelSubnav } from '@/widgets/content-channel';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 function titleForJob(
@@ -15,6 +15,16 @@ function titleForJob(
   jobs: { jobId: string; videoTitle: string }[] | undefined,
 ): string {
   return jobs?.find((j) => j.jobId === jobId)?.videoTitle ?? jobId;
+}
+
+function queueStatusLabel(row: ChannelPublishQueueItem): string {
+  if (row.status === 'SCHEDULED' && row.scheduledAt) {
+    return `예약됨 · ${new Date(row.scheduledAt).toLocaleString()}`;
+  }
+  if (row.status === 'PUBLISHED') {
+    return '처리 완료';
+  }
+  return '즉시 발행 대기';
 }
 
 export function ChannelShippingQueuePage() {
@@ -32,7 +42,7 @@ export function ChannelShippingQueuePage() {
   const rows = useMemo(() => {
     const items = queueQuery.data ?? [];
     return [...items].sort(
-      (a, b) => new Date(b.createdAt).getTime() - new Date(a.createdAt).getTime(),
+      (a, b) => new Date(a.createdAt).getTime() - new Date(b.createdAt).getTime(),
     );
   }, [queueQuery.data]);
 
@@ -51,7 +61,7 @@ export function ChannelShippingQueuePage() {
             </div>
           }
           title={label ? `「${label}」의 출고 큐` : contentId ? '이 채널의 출고 큐' : '출고 큐'}
-          subtitle="이 채널에서 다음에 내보낼 제작 아이템을 모아 둡니다. 예약·즉시 발행은 추후 이 화면에서 다룹니다."
+          subtitle="이 채널에서 다음에 처리할 제작 아이템을 오래된 순서대로 모아 둡니다. 예약 시각 조정과 실제 발행 실행은 예약·발행 화면에서 진행합니다."
         />
       </div>
 
@@ -61,12 +71,12 @@ export function ChannelShippingQueuePage() {
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
             <tr>
-              <th className="px-4 py-2 font-medium">우선순위</th>
+              <th className="px-4 py-2 font-medium">대기 순서</th>
               <th className="px-4 py-2 font-medium">제작 아이템</th>
-              <th className="px-4 py-2 font-medium">발행 타깃</th>
+              <th className="px-4 py-2 font-medium">출고 대상</th>
               <th className="px-4 py-2 font-medium">상태</th>
               <th className="px-4 py-2 font-medium">추가일</th>
-              <th className="px-4 py-2 font-medium">메모</th>
+              <th className="px-4 py-2 font-medium">다음 단계</th>
             </tr>
           </thead>
           <tbody>
@@ -99,12 +109,17 @@ export function ChannelShippingQueuePage() {
                       ? row.publishTargets.map((t) => t.platform).join(', ')
                       : '—'}
                   </td>
-                  <td className="px-4 py-2">{row.status}</td>
+                  <td className="px-4 py-2">{queueStatusLabel(row)}</td>
                   <td className="px-4 py-2 text-muted-foreground tabular-nums">
                     {new Date(row.createdAt).toLocaleString()}
                   </td>
-                  <td className="max-w-[200px] truncate px-4 py-2 text-muted-foreground">
-                    {row.note ?? '—'}
+                  <td className="px-4 py-2">
+                    <Link
+                      href={`/content/${encodeURIComponent(contentId)}/schedule?job=${encodeURIComponent(row.jobId)}`}
+                      className="text-primary hover:underline"
+                    >
+                      예약·발행으로 이동
+                    </Link>
                   </td>
                 </tr>
               ))

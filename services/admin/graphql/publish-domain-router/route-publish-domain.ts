@@ -57,6 +57,7 @@ import {
 } from "../../../shared/lib/store/video-jobs";
 import { mapJobMetaToAdminJob } from "../shared/mapper/map-job-meta-to-admin-job";
 import { runPublishOrchestrationUsecase } from "./usecase/run-publish-orchestration";
+import { updatePublishTargetScheduleUsecase } from "./usecase/update-publish-target-schedule";
 import { badUserInput } from "../shared/errors";
 import {
   getOptionalEnv,
@@ -129,6 +130,14 @@ const updateContentPublishDraftInput = z.object({
 const runPublishOrchestrationInput = z.object({
   input: z.object({
     jobId: z.string().trim().min(1),
+  }),
+});
+
+const updatePublishTargetScheduleInput = z.object({
+  input: z.object({
+    jobId: z.string().trim().min(1),
+    publishTargetId: z.string().trim().min(1),
+    scheduledAt: z.string().trim().min(1).optional().nullable(),
   }),
 });
 
@@ -344,22 +353,31 @@ async function handleUpdateContentPublishDraft(
 async function handlePublishTargetsForJob(rawArgs: Record<string, unknown>) {
   const { jobId } = jobArg.parse(rawArgs);
   const rows = await listPublishTargetsByJob(jobId);
-  return rows.map((t) => ({
-    publishTargetId: t.publishTargetId,
-    channelContentItemId: t.channelContentItemId,
-    platformConnectionId: t.platformConnectionId,
-    platform: t.platform,
-    status: t.status,
-    scheduledAt: t.scheduledAt ?? null,
-    externalPostId: t.externalPostId ?? null,
-    externalUrl: t.externalUrl ?? null,
-    publishError: t.publishError ?? null,
-  }));
+  return rows.map((t) => mapPublishTargetToGql(t));
 }
 
 async function handleRunPublishOrchestration(rawArgs: Record<string, unknown>) {
   const { input } = runPublishOrchestrationInput.parse(rawArgs);
   return runPublishOrchestrationUsecase(input);
+}
+
+const mapPublishTargetToGql = (
+  t: Awaited<ReturnType<typeof listPublishTargetsByJob>>[number],
+) => ({
+  publishTargetId: t.publishTargetId,
+  channelContentItemId: t.channelContentItemId,
+  platformConnectionId: t.platformConnectionId,
+  platform: t.platform,
+  status: t.status,
+  scheduledAt: t.scheduledAt ?? null,
+  externalPostId: t.externalPostId ?? null,
+  externalUrl: t.externalUrl ?? null,
+  publishError: t.publishError ?? null,
+});
+
+async function handleUpdatePublishTargetSchedule(rawArgs: Record<string, unknown>) {
+  const { input } = updatePublishTargetScheduleInput.parse(rawArgs);
+  return mapPublishTargetToGql(await updatePublishTargetScheduleUsecase(input));
 }
 
 function mapIdeaCandidateToGql(row: IdeaCandidateRow) {
@@ -654,6 +672,7 @@ const publishDomainHandlers: Record<
   updateContentPublishDraft: handleUpdateContentPublishDraft,
   publishTargetsForJob: handlePublishTargetsForJob,
   runPublishOrchestration: handleRunPublishOrchestration,
+  updatePublishTargetSchedule: handleUpdatePublishTargetSchedule,
   ideaCandidatesForChannel: handleIdeaCandidatesForChannel,
   trendSignalsForChannel: handleTrendSignalsForChannel,
   agentRunsForChannel: handleAgentRunsForChannel,

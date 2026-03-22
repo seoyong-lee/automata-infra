@@ -16,6 +16,7 @@ export function ShippingPrepEnqueueCard({
   detail,
   channelOk,
   queueHref,
+  scheduleHref,
   contentId,
   isEnqueueing,
   enqueueError,
@@ -25,6 +26,7 @@ export function ShippingPrepEnqueueCard({
   detail?: JobDraftDetail;
   channelOk: boolean;
   queueHref: string | null;
+  scheduleHref: string | null;
   contentId?: string | null;
   isEnqueueing: boolean;
   enqueueError: unknown;
@@ -37,7 +39,7 @@ export function ShippingPrepEnqueueCard({
         <CardTitle>출고 준비</CardTitle>
         <p className="text-sm text-muted-foreground">
           제작·검수가 끝나면 이 채널의 <strong>출고 대기 큐</strong>에 올립니다. 실제 업로드·예약은
-          채널 화면에서 편성합니다.
+          채널의 <strong>예약·발행</strong> 화면에서 진행합니다.
         </p>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -58,6 +60,14 @@ export function ShippingPrepEnqueueCard({
               className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent"
             >
               이 채널 출고 큐 열기
+            </Link>
+          ) : null}
+          {scheduleHref ? (
+            <Link
+              href={scheduleHref}
+              className="inline-flex h-9 items-center justify-center rounded-md border border-border bg-background px-4 text-sm font-medium hover:bg-accent"
+            >
+              예약·발행 열기
             </Link>
           ) : null}
           <Button variant="outline" onClick={onOpenReviews}>

@@ -113,6 +113,12 @@ type Mutation {
   updateContentPublishDraft(
     input: UpdateContentPublishDraftInput!
   ): ContentPublishDraft!
+  """
+  채널 예약·발행 화면에서 대상별 예약 시각을 저장하거나 즉시 실행 대기 상태로 되돌린다.
+  """
+  updatePublishTargetSchedule(
+    input: UpdatePublishTargetScheduleInput!
+  ): PublishTarget!
   runPublishOrchestration(
     input: RunPublishOrchestrationInput!
   ): PublishOrchestrationResult!
@@ -846,6 +852,12 @@ input UpdateContentPublishDraftInput {
 
 input RunPublishOrchestrationInput {
   jobId: ID!
+}
+
+input UpdatePublishTargetScheduleInput {
+  jobId: ID!
+  publishTargetId: ID!
+  scheduledAt: AWSDateTime
 }
 
 type PublishOrchestrationResult {
