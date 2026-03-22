@@ -22,6 +22,7 @@ const META_S3_FIELDS: (keyof JobMetaItem)[] = [
   "contentBriefS3Key",
   "topicS3Key",
   "sceneJsonS3Key",
+  "assetManifestS3Key",
   "renderPlanS3Key",
   "finalVideoS3Key",
   "thumbnailS3Key",

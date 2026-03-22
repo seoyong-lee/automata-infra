@@ -2,6 +2,7 @@ import {
   upsertSceneAsset,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
+import { mapGeneratedVoiceFields } from "../mapper/map-generated-voice-fields";
 
 export const saveVoiceAssets = async (input: {
   jobId: string;
@@ -19,7 +20,8 @@ export const saveVoiceAssets = async (input: {
         ? typedAsset.sceneId
         : input.scenes[index]?.sceneId;
     if (typeof sceneId === "number") {
-      await upsertSceneAsset(input.jobId, sceneId, typedAsset);
+      const patch = mapGeneratedVoiceFields(typedAsset, sceneId);
+      await upsertSceneAsset(input.jobId, sceneId, patch);
     }
   }
 

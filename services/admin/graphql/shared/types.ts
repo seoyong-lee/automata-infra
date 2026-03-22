@@ -109,6 +109,7 @@ export type AdminJobDto = {
   createdAt: string;
   updatedAt: string;
   sceneJsonS3Key?: string;
+  assetManifestS3Key?: string;
   renderPlanS3Key?: string;
   finalVideoS3Key?: string;
   thumbnailS3Key?: string;

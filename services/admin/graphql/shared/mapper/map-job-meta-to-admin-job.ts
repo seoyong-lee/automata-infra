@@ -44,6 +44,7 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     createdAt: job.createdAt,
     updatedAt: job.updatedAt,
     sceneJsonS3Key: job.sceneJsonS3Key,
+    assetManifestS3Key: job.assetManifestS3Key,
     renderPlanS3Key: job.renderPlanS3Key,
     finalVideoS3Key: job.finalVideoS3Key,
     thumbnailS3Key: job.thumbnailS3Key,

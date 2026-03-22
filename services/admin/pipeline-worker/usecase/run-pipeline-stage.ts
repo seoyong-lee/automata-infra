@@ -28,7 +28,7 @@ export const runPipelineStage = async (input: {
         ? job.topicS3Key
         : input.stage === "SCENE_JSON"
           ? job.sceneJsonS3Key
-          : job.sceneJsonS3Key;
+          : (job.assetManifestS3Key ?? job.sceneJsonS3Key);
     await finishJobExecution({
       jobId: input.jobId,
       sk: input.executionSk,

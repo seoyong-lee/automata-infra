@@ -31,6 +31,8 @@ export type JobMetaItem = {
   topicSeedS3Key?: string;
   topicS3Key?: string;
   sceneJsonS3Key?: string;
+  /** Admin 에셋 생성 완료 시 `listSceneAssets` 스냅샷 JSON S3 키. */
+  assetManifestS3Key?: string;
   renderPlanS3Key?: string;
   finalVideoS3Key?: string;
   thumbnailS3Key?: string;

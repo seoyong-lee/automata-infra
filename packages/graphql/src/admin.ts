@@ -43,6 +43,7 @@ export type AdminJob = {
   createdAt: string;
   videoTitle: string;
   sceneJsonS3Key?: string | null;
+  assetManifestS3Key?: string | null;
   renderPlanS3Key?: string | null;
   finalVideoS3Key?: string | null;
   thumbnailS3Key?: string | null;
@@ -430,6 +431,7 @@ const jobDraftQuery = `
         updatedAt
         videoTitle
         sceneJsonS3Key
+        assetManifestS3Key
         renderPlanS3Key
         finalVideoS3Key
         thumbnailS3Key
@@ -776,6 +778,8 @@ const runAssetGenerationMutation = `
       retryCount
       createdAt
       videoTitle
+      sceneJsonS3Key
+      assetManifestS3Key
     }
   }
 `;
@@ -795,6 +799,7 @@ const approvePipelineExecutionMutation = `
       videoTitle
       topicS3Key
       sceneJsonS3Key
+      assetManifestS3Key
       topicSeedS3Key
       approvedTopicExecutionId
       approvedSceneExecutionId
@@ -1149,6 +1154,7 @@ const setJobSourceItemMutation = `
       videoTitle
       topicS3Key
       sceneJsonS3Key
+      assetManifestS3Key
       topicSeedS3Key
       approvedTopicExecutionId
       approvedSceneExecutionId

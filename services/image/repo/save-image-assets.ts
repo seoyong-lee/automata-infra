@@ -2,6 +2,7 @@ import {
   upsertSceneAsset,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
+import { mapGeneratedImageFields } from "../mapper/map-generated-image-fields";
 
 export const saveImageAssets = async (input: {
   jobId: string;
@@ -19,7 +20,8 @@ export const saveImageAssets = async (input: {
         ? typedAsset.sceneId
         : input.scenes[index]?.sceneId;
     if (typeof sceneId === "number") {
-      await upsertSceneAsset(input.jobId, sceneId, typedAsset);
+      const patch = mapGeneratedImageFields(typedAsset, sceneId);
+      await upsertSceneAsset(input.jobId, sceneId, patch);
     }
   }
 

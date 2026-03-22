@@ -156,6 +156,7 @@ type AdminJob {
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
   sceneJsonS3Key: String
+  assetManifestS3Key: String
   renderPlanS3Key: String
   finalVideoS3Key: String
   thumbnailS3Key: String

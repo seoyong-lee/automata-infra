@@ -14,6 +14,8 @@ import { saveVoiceAssets } from "../../../../voice/repo/save-voice-assets";
 import { resolveSceneJsonS3KeyForAssetGeneration } from "../../shared/lib/resolve-approved-pipeline-input";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
+import { persistAssetManifestForJob } from "../repo/persist-asset-manifest";
+import { finalizeSceneAssetsReadiness } from "./finalize-scene-assets-readiness";
 import type { SceneJson } from "../../../../../types/render/scene-json";
 
 const pipelineAsyncEnabled = (): boolean =>
@@ -83,8 +85,15 @@ export const runAssetGenerationCore = async (jobId: string) => {
     jobId,
     scenes: voiceScenes,
     voiceAssets,
-    markStatus: true,
+    markStatus: false,
   });
+
+  await persistAssetManifestForJob({
+    jobId,
+    sceneJsonS3Key: sceneResolved.sceneJsonS3Key,
+  });
+
+  await finalizeSceneAssetsReadiness({ jobId, sceneJson });
 
   const updated = await getJobOrThrow(jobId);
   return mapJobMetaToAdminJob(updated);
@@ -134,7 +143,11 @@ export const runAdminAssetGeneration = async (
   });
   try {
     const result = await runAssetGenerationCore(jobId);
-    await finish("SUCCEEDED", undefined, result.sceneJsonS3Key);
+    await finish(
+      "SUCCEEDED",
+      undefined,
+      result.assetManifestS3Key ?? result.sceneJsonS3Key,
+    );
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
