@@ -24,6 +24,7 @@ export function CreateSourceItemDialog({ open, onClose, channels }: CreateSource
 
   const createSource = useCreateSourceItemMutation({
     onSuccess: async (_data, vars) => {
+      await queryClient.invalidateQueries({ queryKey: ['sourceItemsForChannel'] });
       await queryClient.invalidateQueries({ queryKey: ['sourceItemsForChannel', vars.channelId] });
       onClose();
       setTopic('');

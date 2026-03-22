@@ -10,7 +10,6 @@ import { Suspense, useMemo, useState } from 'react';
 
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs, useAttachJobToContent } from '@/entities/admin-job';
-import { CreateSourceItemDialog } from '@/widgets/create-source-item';
 import { ContentJobsTable } from '@/widgets/content-operations';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
@@ -23,7 +22,6 @@ function JobsHubPageBody() {
 
   const [linkJobId, setLinkJobId] = useState<string | null>(null);
   const [pickContentId, setPickContentId] = useState('');
-  const [createSourceOpen, setCreateSourceOpen] = useState(false);
 
   const attach = useAttachJobToContent({
     onSuccess: async () => {
@@ -63,22 +61,14 @@ function JobsHubPageBody() {
             >
               새 제작 아이템
             </Link>
-            <Button
-              type="button"
-              variant="outline"
-              size="sm"
-              onClick={() => setCreateSourceOpen(true)}
+            <Link
+              href="/discovery?tab=sources&create=1"
+              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
             >
               새 소재 만들기
-            </Button>
+            </Link>
           </div>
         }
-      />
-
-      <CreateSourceItemDialog
-        open={createSourceOpen}
-        onClose={() => setCreateSourceOpen(false)}
-        channels={contentOptions}
       />
 
       {linkJobId ? (

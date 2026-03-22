@@ -1792,6 +1792,17 @@ export const useSourceItemsForChannelQuery = (
   });
 };
 
+/** 채널별 소재 목록 — `useQueries` 등에서 병렬 호출용. */
+export async function fetchSourceItemsForChannel(
+  channelId: string,
+): Promise<SourceItemGql[]> {
+  const data = await gql<{ sourceItemsForChannel: SourceItemGql[] }>(
+    sourceItemsForChannelQuery,
+    { channelId },
+  );
+  return data.sourceItemsForChannel ?? [];
+}
+
 export const useIdeaCandidatesForChannelQuery = (
   vars: { channelId: string },
   options?: Omit<

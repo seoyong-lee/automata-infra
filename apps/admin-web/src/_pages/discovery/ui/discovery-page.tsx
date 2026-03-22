@@ -1,15 +1,17 @@
 'use client';
 
-import { HitChannelsPanel } from '@/widgets/hit-channels';
-import { IdeaCandidatesPanel } from '@/widgets/idea-candidates';
-import { useAdminContents } from '@/entities/admin-content';
-import { AdminPageHeader } from '@/shared/ui/admin-page-header';
-import { cn } from '@packages/ui';
 import { useEnqueueTrendScoutJobMutation } from '@packages/graphql';
+import { cn } from '@packages/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useState } from 'react';
+import { CreateSourceItemDialog } from '@/widgets/create-source-item';
+import { HitChannelsPanel } from '@/widgets/hit-channels';
+import { IdeaCandidatesPanel } from '@/widgets/idea-candidates';
+import { SavedSourcesPanel } from '@/widgets/saved-sources';
+import { useAdminContents } from '@/entities/admin-content';
+import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 const TAB_IDS = ['explore', 'watchlist', 'candidates', 'trends', 'sources'] as const;
 type TabId = (typeof TAB_IDS)[number];
@@ -28,7 +30,18 @@ function DiscoveryPageBody() {
   const contentsQuery = useAdminContents({ limit: 100 });
   const items = contentsQuery.data?.items ?? [];
   const queryClient = useQueryClient();
+  const createFromUrl = searchParams.get('create') === '1';
+  const [createOpenManual, setCreateOpenManual] = useState(false);
+  const createSourceOpen = createFromUrl || createOpenManual;
   const [trendDryRun, setTrendDryRun] = useState(false);
+
+  const closeCreateSource = () => {
+    setCreateOpenManual(false);
+    const params = new URLSearchParams(searchParams.toString());
+    params.delete('create');
+    const q = params.toString();
+    router.replace(q ? `/discovery?${q}` : '/discovery');
+  };
   const enqueueTrendScout = useEnqueueTrendScoutJobMutation({
     onSuccess: () => {
       if (channelId) {
@@ -221,18 +234,18 @@ function DiscoveryPageBody() {
         ) : null}
 
         {tab === 'sources' ? (
-          <section className="rounded-lg border border-border/80 bg-card p-4 text-sm shadow-sm">
-            <h2 className="text-sm font-semibold tracking-tight">저장한 소재 (SourceItem)</h2>
-            <p className="mt-2 text-muted-foreground">
-              소재는 제작 허브·Job 개요에서 생성·연결합니다. 전역 목록은{' '}
-              <Link href="/jobs" className="text-primary underline underline-offset-4">
-                제작 아이템
-              </Link>
-              과 채널별 Job에서 다룹니다.
-            </p>
-          </section>
+          <SavedSourcesPanel
+            channelFilter={channelId}
+            onCreateClick={() => setCreateOpenManual(true)}
+          />
         ) : null}
       </div>
+
+      <CreateSourceItemDialog
+        open={createSourceOpen}
+        onClose={closeCreateSource}
+        channels={items}
+      />
     </div>
   );
 }
