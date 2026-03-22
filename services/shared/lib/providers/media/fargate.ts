@@ -18,6 +18,8 @@ type FargateCompositionResult = Record<string, unknown> & {
   provider: string;
   providerRenderId?: string | null;
   artifactsStored?: boolean;
+  failed?: boolean;
+  message?: string;
 };
 
 const RESULT_KEY = (jobId: string) => `logs/${jobId}/composition/fargate-result.json`;
@@ -34,7 +36,7 @@ const requireEnv = (name: string): string => {
 const getTaskConfig = () => {
   return {
     clusterArn: requireEnv("FARGATE_RENDER_CLUSTER_ARN"),
-    taskDefinitionArn: requireEnv("FARGATE_RENDER_TASK_DEFINITION_ARN"),
+    taskDefinitionFamily: requireEnv("FARGATE_RENDER_TASK_DEFINITION_FAMILY"),
     containerName: requireEnv("FARGATE_RENDER_CONTAINER_NAME"),
     securityGroupId: requireEnv("FARGATE_RENDER_SECURITY_GROUP_ID"),
     subnetIds: requireEnv("FARGATE_RENDER_SUBNET_IDS")
@@ -104,18 +106,18 @@ const getTaskStopError = (
   return getContainerExitError(payload) ?? getTaskStartError(payload);
 };
 
-const waitForTask = async (clusterArn: string, taskArn: string, timeoutMs: number) => {
-  const payload = await pollUntil({
+const waitForTask = async (
+  clusterArn: string,
+  taskArn: string,
+  timeoutMs: number,
+) => {
+  return pollUntil({
     fetcher: () => describeTask(clusterArn, taskArn),
     isDone: (current) => current.tasks?.[0]?.lastStatus === "STOPPED",
     getStatus: (current) => current.tasks?.[0]?.lastStatus ?? "unknown",
     timeoutMs,
     intervalMs: 5000,
   });
-  const errorMessage = getTaskStopError(payload);
-  if (errorMessage) {
-    throw new Error(`Fargate renderer failed: ${errorMessage}`);
-  }
 };
 
 export const composeWithFargate = async (input: {
@@ -134,7 +136,7 @@ export const composeWithFargate = async (input: {
   const launched = await ecsClient.send(
     new RunTaskCommand({
       cluster: config.clusterArn,
-      taskDefinition: config.taskDefinitionArn,
+      taskDefinition: config.taskDefinitionFamily,
       launchType: "FARGATE",
       networkConfiguration: {
         awsvpcConfiguration: {
@@ -162,10 +164,23 @@ export const composeWithFargate = async (input: {
     throw new Error(`Failed to run Fargate render task${reason ? `: ${reason}` : ""}`);
   }
   const taskArn = getTaskArn(launched);
-  await waitForTask(config.clusterArn, taskArn, config.timeoutMs);
+  const taskState = await waitForTask(config.clusterArn, taskArn, config.timeoutMs);
   const result = await getJsonFromS3<FargateCompositionResult>(resultS3Key);
+  const taskError = getTaskStopError(taskState);
+  if (taskError) {
+    const detail =
+      result?.message && result.message.trim().length > 0
+        ? result.message.trim()
+        : taskError;
+    throw new Error(`Fargate renderer failed: ${detail}`);
+  }
   if (!result) {
     throw new Error("Fargate renderer completed without a result payload");
+  }
+  if (result.failed) {
+    throw new Error(
+      `Fargate renderer failed: ${result.message?.trim() || "unknown renderer error"}`,
+    );
   }
   return {
     ...result,

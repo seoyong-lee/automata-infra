@@ -4,6 +4,7 @@ import {
 } from "../../shared/lib/llm";
 import {
   expectArray,
+  expectNullableString,
   expectNumberCoerced,
   expectOptionalString,
   expectRecord,
@@ -80,7 +81,7 @@ const validateSceneJson = (payload: unknown): SceneJson => {
           record.durationSec,
           `sceneJson.scenes[${index}].durationSec`,
         ),
-        narration: expectString(
+        narration: expectNullableString(
           record.narration,
           `sceneJson.scenes[${index}].narration`,
         ),

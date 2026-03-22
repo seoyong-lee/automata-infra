@@ -4,6 +4,7 @@ import { ContentJobDetailSeedFormPanel } from '@/features/content-job-detail';
 
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
 import { ContentJobDetailStageApprovalWorkbench } from '../stage/content-job-detail-stage-approval-workbench';
+import { ContentJobDetailScriptWorkspaceTabs } from './content-job-detail-script-workspace-tabs';
 
 type Props = {
   jobId: string;
@@ -14,6 +15,7 @@ export function ContentJobDetailIdeationTab({ jobId, pageData }: Props) {
   const { detailVm } = pageData;
   return (
     <div className="space-y-6">
+      <ContentJobDetailScriptWorkspaceTabs jobId={jobId} activeTab="ideation" />
       <ContentJobDetailSeedFormPanel
         key={detailVm.seedFormKey}
         initialValue={detailVm.seedFormInitialValue}

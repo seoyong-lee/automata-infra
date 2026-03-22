@@ -8,6 +8,13 @@ const expectString = (value: unknown, field: string): string => {
   return value;
 };
 
+const expectNullableString = (value: unknown, field: string): string => {
+  if (typeof value !== "string") {
+    throw badUserInput(`${field} is invalid`);
+  }
+  return value;
+};
+
 const expectNumber = (value: unknown, field: string): number => {
   if (typeof value !== "number" || Number.isNaN(value)) {
     throw badUserInput(`${field} is invalid`);
@@ -50,7 +57,7 @@ const parseSceneJson = (value: unknown): SceneJson => {
           scene.durationSec,
           `sceneJson.scenes[${index}].durationSec`,
         ),
-        narration: expectString(
+        narration: expectNullableString(
           scene.narration,
           `sceneJson.scenes[${index}].narration`,
         ),

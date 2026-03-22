@@ -21,6 +21,14 @@ export const expectString = (value: unknown, label: string): string => {
   return value.trim();
 };
 
+export const expectNullableString = (value: unknown, label: string): string => {
+  if (typeof value !== "string") {
+    return fail(`${label} must be a string`);
+  }
+
+  return value.trim();
+};
+
 export const expectOptionalString = (
   value: unknown,
   label: string,

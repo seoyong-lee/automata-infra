@@ -26,7 +26,7 @@ export class WorkflowStack extends Stack {
   public readonly reviewQueue: sqs.Queue;
   public readonly stateMachine: sfn.StateMachine;
   public readonly renderClusterArn: string;
-  public readonly renderTaskDefinitionArn: string;
+  public readonly renderTaskDefinitionFamily: string;
   public readonly renderSecurityGroupId: string;
   public readonly renderSubnetIds: string[];
   public readonly renderContainerName: string;
@@ -52,7 +52,7 @@ export class WorkflowStack extends Stack {
       assetsBucket: props.assetsBucket,
     });
     this.renderClusterArn = renderInfra.cluster.clusterArn;
-    this.renderTaskDefinitionArn = renderInfra.taskDefinition.taskDefinitionArn;
+    this.renderTaskDefinitionFamily = renderInfra.taskDefinitionFamily;
     this.renderSecurityGroupId = renderInfra.securityGroup.securityGroupId;
     this.renderSubnetIds = renderInfra.vpc.publicSubnets.map((subnet) => subnet.subnetId);
     this.renderContainerName = renderInfra.containerName;

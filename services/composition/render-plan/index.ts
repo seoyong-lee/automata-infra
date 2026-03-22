@@ -1,5 +1,7 @@
+/* eslint-disable max-lines */
 import { Handler } from "aws-lambda";
-import { putJsonToS3 } from "../../shared/lib/aws/runtime";
+import { parseBuffer } from "music-metadata";
+import { getBufferFromS3, putJsonToS3 } from "../../shared/lib/aws/runtime";
 import { estimateMinimumVoiceDurationSec } from "../../shared/lib/providers/media/elevenlabs-voice";
 import {
   listSceneAssets,
@@ -143,7 +145,30 @@ const persistRenderPlan = async (
   );
 };
 
-const resolveRenderPlanAssets = (
+const resolveStoredVoiceDurationSec = async (
+  voiceS3Key?: string,
+): Promise<number | undefined> => {
+  if (!voiceS3Key) {
+    return undefined;
+  }
+  const object = await getBufferFromS3(voiceS3Key);
+  if (!object) {
+    return undefined;
+  }
+  try {
+    const metadata = await parseBuffer(object.buffer, {
+      mimeType: object.contentType ?? "audio/mpeg",
+    });
+    const durationSec = metadata.format.duration;
+    return typeof durationSec === "number" && Number.isFinite(durationSec)
+      ? durationSec
+      : undefined;
+  } catch {
+    return undefined;
+  }
+};
+
+const resolveRenderPlanAssets = async (
   event: RenderPlanEvent,
   sceneAssets: Awaited<ReturnType<typeof listSceneAssets>>,
 ) => {
@@ -154,17 +179,30 @@ const resolveRenderPlanAssets = (
       imageS3Key:
         typeof scene.imageS3Key === "string" ? scene.imageS3Key : undefined,
     }));
-  const voiceAssets =
-    event.voiceAssets ??
-    sceneAssets.map((scene) => ({
-      sceneId: scene.sceneId,
-      voiceS3Key:
-        typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined,
-      voiceDurationSec:
-        typeof scene.voiceDurationSec === "number"
-          ? scene.voiceDurationSec
-          : undefined,
-    }));
+  const voiceAssets = event.voiceAssets
+    ? await Promise.all(
+        event.voiceAssets.map(async (scene) => ({
+          ...scene,
+          voiceDurationSec:
+            (await resolveStoredVoiceDurationSec(scene.voiceS3Key)) ??
+            scene.voiceDurationSec,
+        })),
+      )
+    : await Promise.all(
+        sceneAssets.map(async (scene) => {
+          const voiceS3Key =
+            typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined;
+          return {
+            sceneId: scene.sceneId,
+            voiceS3Key,
+            voiceDurationSec:
+              (await resolveStoredVoiceDurationSec(voiceS3Key)) ??
+              (typeof scene.voiceDurationSec === "number"
+                ? scene.voiceDurationSec
+                : undefined),
+          };
+        }),
+      );
   const videoAssets =
     event.videoAssets ??
     sceneAssets.map((scene) => ({
@@ -213,10 +251,8 @@ export const run: Handler<
   RenderPlanEvent & { renderPlan: unknown; status: string }
 > = async (event) => {
   const sceneAssets = await listSceneAssets(event.jobId);
-  const { imageAssets, voiceAssets, videoAssets } = resolveRenderPlanAssets(
-    event,
-    sceneAssets,
-  );
+  const { imageAssets, voiceAssets, videoAssets } =
+    await resolveRenderPlanAssets(event, sceneAssets);
   const builtScenes = buildRenderPlanScenes({
     ...event,
     imageAssets,

@@ -3287,6 +3287,14 @@ export type RunFinalCompositionMutationInput = {
   renderProvider?: FinalCompositionProvider;
 };
 
+const isLegacyRunFinalCompositionInputError = (error: unknown): boolean => {
+  const message = error instanceof Error ? error.message : String(error);
+  return (
+    /RunFinalCompositionInput/i.test(message) &&
+    /field that is not defined|not defined for input object type/i.test(message)
+  );
+};
+
 export type UpsertVoiceProfileMutationInput = {
   profileId?: string;
   label: string;
@@ -3444,12 +3452,28 @@ export const useRunFinalCompositionMutation = (
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ runFinalComposition: AdminJob }>(
-        runFinalCompositionMutation,
-        {
-          input,
-        },
-      );
+      try {
+        return await gql<{ runFinalComposition: AdminJob }>(
+          runFinalCompositionMutation,
+          {
+            input,
+          },
+        );
+      } catch (error) {
+        if (
+          !input.renderProvider ||
+          !isLegacyRunFinalCompositionInputError(error)
+        ) {
+          throw error;
+        }
+        const { renderProvider: _renderProvider, ...legacyInput } = input;
+        return gql<{ runFinalComposition: AdminJob }>(
+          runFinalCompositionMutation,
+          {
+            input: legacyInput,
+          },
+        );
+      }
     },
     ...options,
   });

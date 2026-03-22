@@ -26,7 +26,7 @@ export type PublishStackProps = StackProps &
     stateMachine: sfn.StateMachine;
     previewDistribution: cloudfront.Distribution;
     renderClusterArn: string;
-    renderTaskDefinitionArn: string;
+    renderTaskDefinitionFamily: string;
     renderSecurityGroupId: string;
     renderSubnetIds: string[];
     renderContainerName: string;
@@ -81,7 +81,7 @@ export class PublishStack extends Stack {
         ? "true"
         : "false",
       FARGATE_RENDER_CLUSTER_ARN: props.renderClusterArn,
-      FARGATE_RENDER_TASK_DEFINITION_ARN: props.renderTaskDefinitionArn,
+      FARGATE_RENDER_TASK_DEFINITION_FAMILY: props.renderTaskDefinitionFamily,
       FARGATE_RENDER_CONTAINER_NAME: props.renderContainerName,
       FARGATE_RENDER_SECURITY_GROUP_ID: props.renderSecurityGroupId,
       FARGATE_RENDER_SUBNET_IDS: props.renderSubnetIds.join(","),
@@ -136,7 +136,7 @@ export class PublishStack extends Stack {
       fn.addToRolePolicy(
         new iam.PolicyStatement({
           actions: ["ecs:RunTask"],
-          resources: [props.renderTaskDefinitionArn],
+          resources: ["*"],
         }),
       );
       fn.addToRolePolicy(

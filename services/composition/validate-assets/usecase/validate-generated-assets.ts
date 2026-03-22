@@ -24,6 +24,10 @@ const isAudioMime = (value: string | undefined): boolean => {
   return Boolean(value && value.startsWith("audio/"));
 };
 
+const hasNarration = (value: string | undefined): boolean => {
+  return Boolean(value && value.trim().length > 0);
+};
+
 const isVideoOrJsonMime = (value: string | undefined): boolean => {
   return Boolean(
     value && (value.startsWith("video/") || value === "application/json"),
@@ -85,6 +89,9 @@ const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
 };
 
 const validateVoiceAsset = async (scene: SceneRef, errors: string[]) => {
+  if (!hasNarration(scene.narration)) {
+    return;
+  }
   if (!scene.voiceS3Key) {
     errors.push(`scene ${scene.sceneId}: voiceS3Key is missing`);
     return;

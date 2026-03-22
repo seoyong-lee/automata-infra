@@ -100,7 +100,7 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   reviewQueue: workflowStack.reviewQueue,
   stateMachine: workflowStack.stateMachine,
   renderClusterArn: workflowStack.renderClusterArn,
-  renderTaskDefinitionArn: workflowStack.renderTaskDefinitionArn,
+  renderTaskDefinitionFamily: workflowStack.renderTaskDefinitionFamily,
   renderSecurityGroupId: workflowStack.renderSecurityGroupId,
   renderSubnetIds: workflowStack.renderSubnetIds,
   renderContainerName: workflowStack.renderContainerName,

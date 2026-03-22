@@ -7,6 +7,7 @@ import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
@@ -37,6 +38,7 @@ type CreateWorkflowLambdasProps = {
   renderInfra: {
     cluster: ecs.ICluster;
     taskDefinition: ecs.FargateTaskDefinition;
+    taskDefinitionFamily: string;
     securityGroup: ec2.ISecurityGroup;
     vpc: ec2.IVpc;
     containerName: string;
@@ -69,6 +71,14 @@ export const createWorkflowLambdas = (
   scope: Construct,
   props: CreateWorkflowLambdasProps,
 ): WorkflowLambdas => {
+  const configuredSecretIds = [
+    props.envConfig.openAiSecretId,
+    props.envConfig.byteplusImageSecretId,
+    props.envConfig.byteplusVideoSecretId,
+    props.envConfig.runwaySecretId,
+    props.envConfig.elevenLabsSecretId,
+    props.envConfig.shotstackSecretId,
+  ].filter((value): value is string => typeof value === "string" && value.length > 0);
   const environment = {
     ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
     JOBS_TABLE_NAME: props.jobsTable.tableName,
@@ -86,8 +96,8 @@ export const createWorkflowLambdas = (
       ? "true"
       : "false",
     FARGATE_RENDER_CLUSTER_ARN: props.renderInfra.cluster.clusterArn,
-    FARGATE_RENDER_TASK_DEFINITION_ARN:
-      props.renderInfra.taskDefinition.taskDefinitionArn,
+    FARGATE_RENDER_TASK_DEFINITION_FAMILY:
+      props.renderInfra.taskDefinitionFamily,
     FARGATE_RENDER_CONTAINER_NAME: props.renderInfra.containerName,
     FARGATE_RENDER_SECURITY_GROUP_ID:
       props.renderInfra.securityGroup.securityGroupId,
@@ -191,6 +201,13 @@ export const createWorkflowLambdas = (
     props.assetsBucket.grantReadWrite(lambdaFn);
     props.jobsTable.grantReadWriteData(lambdaFn);
     props.llmConfigTable.grantReadWriteData(lambdaFn);
+    for (const secretId of configuredSecretIds) {
+      secretsmanager.Secret.fromSecretNameV2(
+        scope,
+        `${lambdaFn.node.id}${secretId.replace(/[^A-Za-z0-9]/g, "")}Secret`,
+        secretId,
+      ).grantRead(lambdaFn);
+    }
     lambdaFn.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
@@ -213,7 +230,7 @@ export const createWorkflowLambdas = (
   fargateRunner.addToRolePolicy(
     new iam.PolicyStatement({
       actions: ["ecs:RunTask"],
-      resources: [props.renderInfra.taskDefinition.taskDefinitionArn],
+      resources: ["*"],
     }),
   );
   fargateRunner.addToRolePolicy(

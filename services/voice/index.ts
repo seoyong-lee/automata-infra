@@ -29,7 +29,7 @@ const getScenes = (event: SceneJsonEvent) => {
 
   if (
     typeof event.sceneId === "number" &&
-    event.narration &&
+    typeof event.narration === "string" &&
     typeof event.durationSec === "number"
   ) {
     return [

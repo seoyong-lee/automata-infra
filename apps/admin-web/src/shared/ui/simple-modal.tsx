@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@packages/ui';
 import type { ReactNode } from 'react';
 
 export type SimpleModalProps = {
@@ -7,10 +8,11 @@ export type SimpleModalProps = {
   title: string;
   onClose: () => void;
   children: ReactNode;
+  panelClassName?: string;
 };
 
 /** Lightweight modal without Radix — backdrop click closes. */
-export function SimpleModal({ open, title, onClose, children }: SimpleModalProps) {
+export function SimpleModal({ open, title, onClose, children, panelClassName }: SimpleModalProps) {
   if (!open) {
     return null;
   }
@@ -27,7 +29,10 @@ export function SimpleModal({ open, title, onClose, children }: SimpleModalProps
         role="dialog"
         aria-modal="true"
         aria-labelledby="simple-modal-title"
-        className="max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-background p-6 shadow-lg"
+        className={cn(
+          'max-h-[90vh] w-full max-w-lg overflow-y-auto rounded-lg border border-border bg-background p-6 shadow-lg',
+          panelClassName,
+        )}
         onClick={(e) => e.stopPropagation()}
       >
         <h2 id="simple-modal-title" className="text-lg font-semibold">

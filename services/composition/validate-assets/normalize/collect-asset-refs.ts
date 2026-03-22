@@ -1,6 +1,7 @@
 type SceneInput = {
   sceneId: number;
   durationSec?: number;
+  narration?: string;
   subtitle?: string;
 };
 
@@ -26,6 +27,7 @@ export const collectAssetRefs = (input: {
     return {
       sceneId: scene.sceneId,
       durationSec: scene.durationSec ?? 0,
+      narration: scene.narration ?? "",
       subtitle: scene.subtitle ?? "",
       imageS3Key: pickKey(imageAssets[index], "imageS3Key"),
       voiceS3Key: pickKey(voiceAssets[index], "voiceS3Key"),

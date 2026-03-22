@@ -27,8 +27,11 @@ export const generateSceneVoices = async (
 ): Promise<VoiceAsset[]> => {
   const voiceAssets: VoiceAsset[] = [];
   const requestSceneVoice = deps.generateSceneVoice ?? generateSceneVoice;
+  const scenesWithNarration = input.scenes.filter(
+    (scene) => scene.narration.trim().length > 0,
+  );
 
-  for (const scene of input.scenes) {
+  for (const scene of scenesWithNarration) {
     const asset = await requestSceneVoice({
       jobId: input.jobId,
       sceneId: scene.sceneId,
@@ -43,7 +46,6 @@ export const generateSceneVoices = async (
 
     voiceAssets.push({
       ...asset,
-      durationSec: scene.durationSec,
     });
   }
 

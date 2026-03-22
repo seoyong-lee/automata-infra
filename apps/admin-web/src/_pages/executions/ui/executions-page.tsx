@@ -2,11 +2,12 @@
 
 import { fetchJobExecutions, useAdminJobsQuery, type PipelineExecution } from '@packages/graphql';
 import { Badge } from '@packages/ui/badge';
+import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { getErrorMessage } from '@packages/utils';
 import { useQueries } from '@tanstack/react-query';
 import Link from 'next/link';
-import { useMemo } from 'react';
+import { useEffect, useMemo, useState } from 'react';
 
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
@@ -28,6 +29,7 @@ function formatDuration(startedAt: string, completedAt?: string | null): string 
 /** 전역 실행 전용 API가 없을 때, 최근 제작 아이템 N개의 jobExecutions를 병렬로 모읍니다. */
 const MAX_JOBS_FOR_EXECUTION_FEED = 25;
 const MAX_EXECUTION_ROWS = 80;
+const EXECUTION_PAGE_SIZE = 10;
 
 type ExecutionFeedRow = PipelineExecution & {
   videoTitle: string;
@@ -35,6 +37,7 @@ type ExecutionFeedRow = PipelineExecution & {
 
 export function ExecutionsPage() {
   const q = useAdminJobsQuery({ limit: 200 });
+  const [executionPage, setExecutionPage] = useState(1);
 
   const items = useMemo(() => {
     const list = q.data?.items ?? [];
@@ -83,6 +86,19 @@ export function ExecutionsPage() {
   const executionsLoading =
     topJobIds.length > 0 && execQueries.some((r) => r.isLoading || r.isPending);
   const executionsError = execQueries.find((r) => r.error)?.error;
+  const executionPageCount = Math.max(1, Math.ceil(executionFeed.length / EXECUTION_PAGE_SIZE));
+  const safeExecutionPage = Math.min(executionPage, executionPageCount);
+  const pagedExecutionFeed = useMemo(() => {
+    const start = (safeExecutionPage - 1) * EXECUTION_PAGE_SIZE;
+    return executionFeed.slice(start, start + EXECUTION_PAGE_SIZE);
+  }, [executionFeed, safeExecutionPage]);
+  const executionRangeStart =
+    executionFeed.length === 0 ? 0 : (safeExecutionPage - 1) * EXECUTION_PAGE_SIZE + 1;
+  const executionRangeEnd = Math.min(safeExecutionPage * EXECUTION_PAGE_SIZE, executionFeed.length);
+
+  useEffect(() => {
+    setExecutionPage((current) => Math.min(current, executionPageCount));
+  }, [executionPageCount]);
 
   return (
     <div className="space-y-8">
@@ -97,7 +113,7 @@ export function ExecutionsPage() {
           <CardDescription>
             최근 갱신 순 제작 아이템 <strong>{topJobIds.length}</strong>개에 대해{' '}
             <code className="text-xs">jobExecutions</code>를 합친 뷰입니다(최대 {MAX_EXECUTION_ROWS}
-            행). 전역 단일 조회·필터는 추후 API로 보강합니다.
+            행, 페이지당 {EXECUTION_PAGE_SIZE}개). 전역 단일 조회·필터는 추후 API로 보강합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
@@ -118,47 +134,94 @@ export function ExecutionsPage() {
             </p>
           ) : null}
           {executionFeed.length > 0 ? (
-            <div className="overflow-x-auto rounded-md border">
-              <table className="w-full min-w-[720px] border-collapse text-left text-sm">
-                <thead>
-                  <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
-                    <th className="px-3 py-2 font-medium">제작 아이템</th>
-                    <th className="px-3 py-2 font-medium">단계</th>
-                    <th className="px-3 py-2 font-medium">상태</th>
-                    <th className="px-3 py-2 font-medium">입력 스냅샷</th>
-                    <th className="px-3 py-2 font-medium">시작</th>
-                    <th className="px-3 py-2 font-medium">완료</th>
-                    <th className="px-3 py-2 font-medium">실행자</th>
-                  </tr>
-                </thead>
-                <tbody>
-                  {executionFeed.map((row) => (
-                    <tr key={row.executionId} className="border-b border-border/60">
-                      <td className="px-3 py-2">
-                        <Link
-                          href={`/jobs/${row.jobId}/timeline`}
-                          className="font-medium text-foreground underline-offset-4 hover:underline"
+            <div className="space-y-3">
+              <div className="flex flex-wrap items-center justify-between gap-2 text-xs text-muted-foreground">
+                <span>
+                  총 {executionFeed.length}건 중 {executionRangeStart}-{executionRangeEnd}
+                </span>
+                <div className="flex items-center gap-2">
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() => setExecutionPage((page) => Math.max(1, page - 1))}
+                    disabled={safeExecutionPage <= 1}
+                  >
+                    이전
+                  </Button>
+                  <div className="flex flex-wrap items-center gap-1">
+                    {Array.from({ length: executionPageCount }, (_, index) => {
+                      const page = index + 1;
+                      const isActive = page === safeExecutionPage;
+                      return (
+                        <Button
+                          key={page}
+                          type="button"
+                          variant={isActive ? 'default' : 'outline'}
+                          size="sm"
+                          className="min-w-8 px-2"
+                          onClick={() => setExecutionPage(page)}
                         >
-                          {row.videoTitle}
-                        </Link>
-                        <p className="font-mono text-[11px] text-muted-foreground">{row.jobId}</p>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-xs">{row.stageType}</td>
-                      <td className="px-3 py-2">
-                        <Badge variant="outline">{row.status}</Badge>
-                      </td>
-                      <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
-                        {row.inputSnapshotId ?? '—'}
-                      </td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">{row.startedAt}</td>
-                      <td className="px-3 py-2 text-xs text-muted-foreground">
-                        {row.completedAt ?? '—'}
-                      </td>
-                      <td className="px-3 py-2 text-xs">{row.triggeredBy ?? '—'}</td>
+                          {page}
+                        </Button>
+                      );
+                    })}
+                  </div>
+                  <Button
+                    type="button"
+                    variant="outline"
+                    size="sm"
+                    onClick={() =>
+                      setExecutionPage((page) => Math.min(executionPageCount, page + 1))
+                    }
+                    disabled={safeExecutionPage >= executionPageCount}
+                  >
+                    다음
+                  </Button>
+                </div>
+              </div>
+              <div className="overflow-x-auto rounded-md border">
+                <table className="w-full min-w-[720px] border-collapse text-left text-sm">
+                  <thead>
+                    <tr className="border-b bg-muted/40 text-xs text-muted-foreground">
+                      <th className="px-3 py-2 font-medium">제작 아이템</th>
+                      <th className="px-3 py-2 font-medium">단계</th>
+                      <th className="px-3 py-2 font-medium">상태</th>
+                      <th className="px-3 py-2 font-medium">입력 스냅샷</th>
+                      <th className="px-3 py-2 font-medium">시작</th>
+                      <th className="px-3 py-2 font-medium">완료</th>
+                      <th className="px-3 py-2 font-medium">실행자</th>
                     </tr>
-                  ))}
-                </tbody>
-              </table>
+                  </thead>
+                  <tbody>
+                    {pagedExecutionFeed.map((row) => (
+                      <tr key={row.executionId} className="border-b border-border/60">
+                        <td className="px-3 py-2">
+                          <Link
+                            href={`/jobs/${row.jobId}/timeline`}
+                            className="font-medium text-foreground underline-offset-4 hover:underline"
+                          >
+                            {row.videoTitle}
+                          </Link>
+                          <p className="font-mono text-[11px] text-muted-foreground">{row.jobId}</p>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-xs">{row.stageType}</td>
+                        <td className="px-3 py-2">
+                          <Badge variant="outline">{row.status}</Badge>
+                        </td>
+                        <td className="px-3 py-2 font-mono text-[11px] text-muted-foreground">
+                          {row.inputSnapshotId ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">{row.startedAt}</td>
+                        <td className="px-3 py-2 text-xs text-muted-foreground">
+                          {row.completedAt ?? '—'}
+                        </td>
+                        <td className="px-3 py-2 text-xs">{row.triggeredBy ?? '—'}</td>
+                      </tr>
+                    ))}
+                  </tbody>
+                </table>
+              </div>
             </div>
           ) : null}
         </CardContent>
