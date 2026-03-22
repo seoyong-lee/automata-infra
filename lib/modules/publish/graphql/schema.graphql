@@ -97,6 +97,9 @@ type Mutation {
   selectSceneImageCandidate(
     input: SelectSceneImageCandidateInput!
   ): JobDraftDetail!
+  selectSceneVoiceCandidate(
+    input: SelectSceneVoiceCandidateInput!
+  ): JobDraftDetail!
   setJobDefaultVoiceProfile(
     input: SetJobDefaultVoiceProfileInput!
   ): JobDraftDetail!
@@ -263,6 +266,7 @@ type SceneAsset {
   imageS3Key: String
   videoClipS3Key: String
   voiceS3Key: String
+  voiceSelectedCandidateId: String
   voiceProfileId: String
   voiceDurationSec: Float
   durationSec: Int
@@ -273,6 +277,7 @@ type SceneAsset {
   validationStatus: String
   imageSelectedCandidateId: String
   imageCandidates: [SceneImageCandidate!]!
+  voiceCandidates: [SceneVoiceCandidate!]!
 }
 
 type SceneImageCandidate {
@@ -282,6 +287,18 @@ type SceneImageCandidate {
   providerLogS3Key: String
   promptHash: String
   mocked: Boolean
+  createdAt: AWSDateTime!
+  selected: Boolean!
+}
+
+type SceneVoiceCandidate {
+  candidateId: ID!
+  voiceS3Key: String!
+  provider: String
+  providerLogS3Key: String
+  mocked: Boolean
+  voiceDurationSec: Float
+  voiceProfileId: String
   createdAt: AWSDateTime!
   selected: Boolean!
 }
@@ -558,6 +575,11 @@ enum AssetGenerationModality {
   VIDEO
 }
 
+enum FinalCompositionProvider {
+  SHOTSTACK
+  FARGATE
+}
+
 enum ImageGenerationProvider {
   OPENAI
   SEEDREAM
@@ -618,9 +640,16 @@ input SelectSceneImageCandidateInput {
   candidateId: ID!
 }
 
+input SelectSceneVoiceCandidateInput {
+  jobId: ID!
+  sceneId: Int!
+  candidateId: ID!
+}
+
 input RunFinalCompositionInput {
   jobId: ID!
   burnInSubtitles: Boolean
+  renderProvider: FinalCompositionProvider
 }
 
 type UploadRequestResult {

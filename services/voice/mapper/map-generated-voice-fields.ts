@@ -1,3 +1,4 @@
+/* eslint-disable complexity */
 /**
  * 음성 생성기 응답을 scene row에 merge할 필드로만 정제한다.
  */
@@ -24,6 +25,12 @@ export const mapGeneratedVoiceFields = (
   }
   if (typeof raw.voiceProfileId === "string" && raw.voiceProfileId.length > 0) {
     out.voiceProfileId = raw.voiceProfileId;
+  }
+  if (typeof raw.candidateId === "string" && raw.candidateId.length > 0) {
+    out.voiceSelectedCandidateId = raw.candidateId;
+  }
+  if (typeof raw.createdAt === "string" && raw.createdAt.length > 0) {
+    out.voiceSelectedAt = raw.createdAt;
   }
 
   return out;

@@ -2,6 +2,7 @@
 import type {
   AssetUploadCategory,
   AssetGenerationModality,
+  FinalCompositionProvider,
   ImageGenerationProvider,
   PipelineExecution,
 } from '@packages/graphql';
@@ -68,7 +69,8 @@ function buildPendingState(
     isRunningSceneJson: mutations.runSceneJson.isPending || status === 'SCENE_JSON_BUILDING',
     isRunningTopicPlan: mutations.runTopicPlan.isPending || status === 'PLANNING',
     isSavingSceneJson: mutations.updateSceneJson.isPending,
-    isSelectingSceneImageCandidate: mutations.selectSceneImageCandidate.isPending,
+    isSelectingSceneImageCandidate:
+      mutations.selectSceneImageCandidate.isPending || mutations.selectSceneVoiceCandidate.isPending,
     isSavingVoiceProfileSelection:
       mutations.setJobDefaultVoiceProfile.isPending || mutations.setSceneVoiceProfile.isPending,
     isUploadingAsset: mutations.requestAssetUpload.isPending,
@@ -118,16 +120,22 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
       mutations.runAssetGeneration.mutate({ jobId, ...opts }),
     selectSceneImageCandidate: (sceneId: number, candidateId: string) =>
       mutations.selectSceneImageCandidate.mutate({ jobId, sceneId, candidateId }),
+    selectSceneVoiceCandidate: (sceneId: number, candidateId: string) =>
+      mutations.selectSceneVoiceCandidate.mutate({ jobId, sceneId, candidateId }),
     setJobDefaultVoiceProfile: (profileId?: string) =>
       mutations.setJobDefaultVoiceProfile.mutate({ jobId, profileId }),
     setSceneVoiceProfile: (sceneId: number, profileId?: string) =>
       mutations.setSceneVoiceProfile.mutate({ jobId, sceneId, profileId }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
-    selectSceneImageCandidateError: mutations.selectSceneImageCandidate.error,
+    selectSceneImageCandidateError:
+      mutations.selectSceneImageCandidate.error ?? mutations.selectSceneVoiceCandidate.error,
     setVoiceProfileError:
       mutations.setJobDefaultVoiceProfile.error ?? mutations.setSceneVoiceProfile.error,
     ...buildBackgroundMusicHandlers(jobId, mutations),
-    runFinalComposition: (opts?: { burnInSubtitles?: boolean }) =>
+    runFinalComposition: (opts?: {
+      burnInSubtitles?: boolean;
+      renderProvider?: FinalCompositionProvider;
+    }) =>
       mutations.runFinalComposition.mutate({ jobId, ...opts }),
     runFinalCompositionError: mutations.runFinalComposition.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),

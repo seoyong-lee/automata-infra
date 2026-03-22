@@ -26,6 +26,16 @@ export type SceneImageCandidateCard = {
   selected: boolean;
 };
 
+export type SceneVoiceCandidateCard = {
+  candidateId: string;
+  fileName: string;
+  previewUrl?: string;
+  cdnBlocked?: boolean;
+  provider?: string | null;
+  createdAt: string;
+  selected: boolean;
+};
+
 export type SceneAssetCard = {
   sceneId: number;
   durationSec?: number;
@@ -35,6 +45,7 @@ export type SceneAssetCard = {
   statusLabel: string;
   image: SceneAssetModalitySlice;
   imageCandidates: SceneImageCandidateCard[];
+  voiceCandidates: SceneVoiceCandidateCard[];
   voice: SceneAssetModalitySlice;
   video: SceneAssetModalitySlice;
 };
@@ -100,6 +111,16 @@ const buildSceneAssetCardFromScene = (
       previewUrl: buildAssetPreviewUrlFromS3Key(candidate.imageS3Key),
       cdnBlocked:
         Boolean(candidate.imageS3Key) && !buildAssetPreviewUrlFromS3Key(candidate.imageS3Key),
+      provider: candidate.provider,
+      createdAt: candidate.createdAt,
+      selected: candidate.selected,
+    })),
+    voiceCandidates: (row?.voiceCandidates ?? []).map((candidate) => ({
+      candidateId: candidate.candidateId,
+      fileName: candidate.voiceS3Key.split('/').pop() ?? candidate.candidateId,
+      previewUrl: buildAssetPreviewUrlFromS3Key(candidate.voiceS3Key),
+      cdnBlocked:
+        Boolean(candidate.voiceS3Key) && !buildAssetPreviewUrlFromS3Key(candidate.voiceS3Key),
       provider: candidate.provider,
       createdAt: candidate.createdAt,
       selected: candidate.selected,

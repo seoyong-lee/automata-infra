@@ -34,6 +34,7 @@ type CreatePublishGraphqlApiProps = {
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
   selectSceneImageCandidateResolver: lambda.IFunction;
+  selectSceneVoiceCandidateResolver: lambda.IFunction;
   setJobDefaultVoiceProfileResolver: lambda.IFunction;
   setJobBackgroundMusicResolver: lambda.IFunction;
   setSceneVoiceProfileResolver: lambda.IFunction;
@@ -252,6 +253,13 @@ export const createPublishGraphqlApi = (
     "selectSceneImageCandidate",
     "Mutation",
     props.selectSceneImageCandidateResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SelectSceneVoiceCandidate",
+    "selectSceneVoiceCandidate",
+    "Mutation",
+    props.selectSceneVoiceCandidateResolver,
   );
   addLambdaResolver(
     graphqlApi,

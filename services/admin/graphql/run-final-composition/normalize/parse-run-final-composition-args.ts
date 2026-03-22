@@ -1,8 +1,16 @@
+import { z } from "zod";
 import { badUserInput } from "../../shared/errors";
+
+const runFinalCompositionInputSchema = z.object({
+  jobId: z.string().trim().min(1, "jobId is required"),
+  burnInSubtitles: z.boolean().optional(),
+  renderProvider: z.enum(["SHOTSTACK", "FARGATE"]).optional(),
+});
 
 export type ParsedRunFinalCompositionArgs = {
   jobId: string;
   burnInSubtitles?: boolean;
+  renderProvider?: "SHOTSTACK" | "FARGATE";
 };
 
 export const parseRunFinalCompositionArgs = (
@@ -15,17 +23,9 @@ export const parseRunFinalCompositionArgs = (
   if (!input) {
     throw badUserInput("input is required");
   }
-
-  const jobId = typeof input.jobId === "string" ? input.jobId.trim() : "";
-  if (!jobId) {
-    throw badUserInput("jobId is required");
+  const parsed = runFinalCompositionInputSchema.safeParse(input);
+  if (!parsed.success) {
+    throw badUserInput(parsed.error.issues[0]?.message ?? "invalid input");
   }
-
-  const burnInSubtitles =
-    typeof input.burnInSubtitles === "boolean" ? input.burnInSubtitles : undefined;
-
-  return {
-    jobId,
-    ...(burnInSubtitles !== undefined ? { burnInSubtitles } : {}),
-  };
+  return parsed.data;
 };

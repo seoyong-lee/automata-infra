@@ -9,6 +9,7 @@ import { modalityStatusLabel } from '../../lib/resolve-scene-asset-status';
 import type {
   SceneAssetModalitySlice,
   SceneImageCandidateCard,
+  SceneVoiceCandidateCard,
 } from '../../model/job-detail-scene-assets';
 import { ContentJobDetailSceneAssetPreview } from './content-job-detail-scene-asset-preview';
 import { ContentJobDetailImageModelSelect } from './content-job-detail-image-model-select';
@@ -24,6 +25,8 @@ type ContentJobDetailSceneAssetCellProps = {
   disabled: boolean;
   imageCandidates?: SceneImageCandidateCard[];
   onSelectImageCandidate?: (candidateId: string) => void;
+  voiceCandidates?: SceneVoiceCandidateCard[];
+  onSelectVoiceCandidate?: (candidateId: string) => void;
   isSelectingImageCandidate?: boolean;
   imageProvider?: ImageGenerationProvider;
   onImageProviderChange?: (value: ImageGenerationProvider) => void;
@@ -42,6 +45,8 @@ export function ContentJobDetailSceneAssetCell({
   disabled,
   imageCandidates,
   onSelectImageCandidate,
+  voiceCandidates,
+  onSelectVoiceCandidate,
   isSelectingImageCandidate = false,
   imageProvider,
   onImageProviderChange,
@@ -128,6 +133,65 @@ export function ContentJobDetailSceneAssetCell({
                   onClick={() => onSelectImageCandidate?.(candidate.candidateId)}
                 >
                   {candidate.selected ? '현재 선택본' : '이 이미지 사용'}
+                </Button>
+              </div>
+            ))}
+          </div>
+        </div>
+      ) : null}
+      {kind === 'voice' && voiceCandidates && voiceCandidates.length > 0 ? (
+        <div className="space-y-2 rounded-md border border-border/60 bg-background/70 p-2">
+          <div className="flex items-center justify-between gap-2">
+            <span className="text-xs font-medium text-foreground">
+              생성 이력 {voiceCandidates.length}개
+            </span>
+            <span className="text-[11px] text-muted-foreground">마지막 생성본이 기본 선택됨</span>
+          </div>
+          <div className="grid gap-2">
+            {voiceCandidates.map((candidate, index) => (
+              <div
+                key={candidate.candidateId}
+                className={cn(
+                  'space-y-2 rounded-md border p-2',
+                  candidate.selected
+                    ? 'border-primary bg-primary/5'
+                    : 'border-border bg-background',
+                )}
+              >
+                <ContentJobDetailSceneAssetPreview
+                  kind="voice"
+                  previewUrl={candidate.previewUrl}
+                  cdnBlocked={candidate.cdnBlocked}
+                  status={candidate.selected ? 'READY' : 'PENDING'}
+                />
+                <div className="space-y-1">
+                  <div className="flex items-center justify-between gap-2">
+                    <span className="text-xs font-medium text-foreground">
+                      버전 {voiceCandidates.length - index}
+                    </span>
+                    {candidate.selected ? (
+                      <span className="text-[11px] font-medium text-primary">선택됨</span>
+                    ) : null}
+                  </div>
+                  <p className="text-[11px] text-muted-foreground">
+                    {new Date(candidate.createdAt).toLocaleString()}
+                  </p>
+                  <p className="break-all text-[11px] text-muted-foreground">
+                    {candidate.fileName}
+                  </p>
+                  {candidate.provider ? (
+                    <p className="text-[11px] text-muted-foreground">{candidate.provider}</p>
+                  ) : null}
+                </div>
+                <Button
+                  type="button"
+                  size="sm"
+                  variant={candidate.selected ? 'default' : 'outline'}
+                  className="w-full"
+                  disabled={disabled || isSelectingImageCandidate || candidate.selected}
+                  onClick={() => onSelectVoiceCandidate?.(candidate.candidateId)}
+                >
+                  {candidate.selected ? '현재 선택본' : '이 음성 사용'}
                 </Button>
               </div>
             ))}

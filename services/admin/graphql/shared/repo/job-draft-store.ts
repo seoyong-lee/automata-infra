@@ -9,6 +9,7 @@ import {
   getJobMeta,
   listSceneImageCandidates,
   listSceneAssets,
+  listSceneVoiceCandidates,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
 import type {
@@ -59,6 +60,10 @@ const mapSceneAsset = (asset: SceneAssetItem) => {
     imageS3Key: asset.imageS3Key,
     videoClipS3Key: asset.videoClipS3Key,
     voiceS3Key: asset.voiceS3Key,
+    voiceSelectedCandidateId:
+      typeof asset.voiceSelectedCandidateId === "string"
+        ? asset.voiceSelectedCandidateId
+        : undefined,
     voiceProfileId:
       typeof asset.voiceProfileId === "string"
         ? asset.voiceProfileId
@@ -129,9 +134,17 @@ export const listStoredSceneAssets = async (jobId: string) => {
         jobId,
         asset.sceneId,
       );
+      const voiceCandidates = await listSceneVoiceCandidates(
+        jobId,
+        asset.sceneId,
+      );
       const selectedCandidateId =
         typeof asset.imageSelectedCandidateId === "string"
           ? asset.imageSelectedCandidateId
+          : undefined;
+      const selectedVoiceCandidateId =
+        typeof asset.voiceSelectedCandidateId === "string"
+          ? asset.voiceSelectedCandidateId
           : undefined;
       return {
         ...mapSceneAsset(asset),
@@ -147,6 +160,20 @@ export const listStoredSceneAssets = async (jobId: string) => {
             selectedCandidateId !== undefined
               ? candidate.candidateId === selectedCandidateId
               : candidate.imageS3Key === asset.imageS3Key,
+        })),
+        voiceCandidates: voiceCandidates.map((candidate) => ({
+          candidateId: candidate.candidateId,
+          voiceS3Key: candidate.voiceS3Key,
+          provider: candidate.provider,
+          providerLogS3Key: candidate.providerLogS3Key,
+          mocked: candidate.mocked,
+          voiceDurationSec: candidate.voiceDurationSec,
+          voiceProfileId: candidate.voiceProfileId,
+          createdAt: candidate.createdAt,
+          selected:
+            selectedVoiceCandidateId !== undefined
+              ? candidate.candidateId === selectedVoiceCandidateId
+              : candidate.voiceS3Key === asset.voiceS3Key,
         })),
       };
     }),

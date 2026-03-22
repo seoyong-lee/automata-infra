@@ -99,4 +99,9 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   llmConfigTable: sharedStack.llmConfigTable,
   reviewQueue: workflowStack.reviewQueue,
   stateMachine: workflowStack.stateMachine,
+  renderClusterArn: workflowStack.renderClusterArn,
+  renderTaskDefinitionArn: workflowStack.renderTaskDefinitionArn,
+  renderSecurityGroupId: workflowStack.renderSecurityGroupId,
+  renderSubnetIds: workflowStack.renderSubnetIds,
+  renderContainerName: workflowStack.renderContainerName,
 });

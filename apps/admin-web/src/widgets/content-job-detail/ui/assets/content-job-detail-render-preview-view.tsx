@@ -6,7 +6,11 @@ import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { cn } from '@packages/ui';
 import { getErrorMessage } from '@packages/utils';
-import type { AssetUploadCategory, PipelineExecution } from '@packages/graphql';
+import type {
+  AssetUploadCategory,
+  FinalCompositionProvider,
+  PipelineExecution,
+} from '@packages/graphql';
 import Link from 'next/link';
 
 import { uploadFileToPresignedUrl } from '@/shared/lib/upload-file-to-presigned-url';
@@ -37,7 +41,10 @@ type ContentJobDetailRenderPreviewViewProps = {
     category: AssetUploadCategory;
   }>;
   onSetJobBackgroundMusic: (s3Key?: string) => Promise<unknown>;
-  onRunFinalComposition: (opts?: { burnInSubtitles?: boolean }) => void;
+  onRunFinalComposition: (opts?: {
+    burnInSubtitles?: boolean;
+    renderProvider?: FinalCompositionProvider;
+  }) => void;
   latestRenderExecution?: PipelineExecution;
 };
 
@@ -118,6 +125,7 @@ export function ContentJobDetailRenderPreviewView({
   latestRenderExecution,
 }: ContentJobDetailRenderPreviewViewProps) {
   const [burnInSubtitles, setBurnInSubtitles] = useState(false);
+  const [renderProvider, setRenderProvider] = useState<FinalCompositionProvider>('FARGATE');
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const totalScenes = detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0;
@@ -164,7 +172,8 @@ export function ContentJobDetailRenderPreviewView({
         <CardHeader>
           <CardTitle>렌더·미리보기</CardTitle>
           <CardDescription>
-            에셋 준비가 끝나면 Shotstack 최종 합성을 실행하고, 결과 영상을 바로 확인합니다.
+            에셋 준비가 끝나면 선택한 렌더 엔진으로 최종 합성을 실행하고, 결과 영상을 바로
+            확인합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -331,12 +340,31 @@ export function ContentJobDetailRenderPreviewView({
               </p>
             </div>
           </label>
+          <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
+            <div className="space-y-1">
+              <p className="text-sm font-medium text-foreground">렌더 엔진</p>
+              <p className="text-xs leading-5 text-muted-foreground">
+                이번 최종 렌더를 `FFmpeg(Fargate)`로 돌릴지, `Shotstack`으로 돌릴지 직접 선택합니다.
+              </p>
+            </div>
+            <select
+              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
+              value={renderProvider}
+              onChange={(event) =>
+                setRenderProvider(event.target.value as FinalCompositionProvider)
+              }
+              disabled={isRunningFinalComposition}
+            >
+              <option value="FARGATE">FFmpeg (Fargate)</option>
+              <option value="SHOTSTACK">Shotstack</option>
+            </select>
+          </div>
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
             <Button
-              onClick={() => onRunFinalComposition({ burnInSubtitles })}
+              onClick={() => onRunFinalComposition({ burnInSubtitles, renderProvider })}
               disabled={!renderReady || isRunningFinalComposition}
             >
-              {isRunningFinalComposition ? '렌더링 중…' : 'Shotstack 렌더 실행'}
+              {isRunningFinalComposition ? '렌더링 중…' : '최종 렌더 실행'}
             </Button>
             {!renderReady ? (
               <span className="text-xs text-muted-foreground">
@@ -354,7 +382,7 @@ export function ContentJobDetailRenderPreviewView({
         <CardHeader>
           <CardTitle>렌더 결과</CardTitle>
           <CardDescription>
-            Shotstack 합성이 끝나면 preview 또는 final video를 여기서 바로 검토합니다.
+            최종 합성이 끝나면 preview 또는 final video를 여기서 바로 검토합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -365,7 +393,7 @@ export function ContentJobDetailRenderPreviewView({
                 src={previewUrl}
                 controls
                 playsInline
-                className="w-full rounded-xl border border-border bg-black"
+                className="w-full max-w-[450px] rounded-xl border border-border bg-black"
               />
               <div className="flex flex-wrap gap-2">
                 <Link href={previewUrl} target="_blank" className={linkClassName}>
@@ -395,7 +423,7 @@ export function ContentJobDetailRenderPreviewView({
             </div>
           ) : (
             <p className="text-sm text-muted-foreground">
-              아직 렌더 결과가 없습니다. 에셋 준비가 끝났다면 `Shotstack 렌더 실행`을 눌러 주세요.
+              아직 렌더 결과가 없습니다. 에셋 준비가 끝났다면 `최종 렌더 실행`을 눌러 주세요.
             </p>
           )}
         </CardContent>

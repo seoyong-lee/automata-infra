@@ -12,6 +12,7 @@ import {
   useRunSceneJsonMutation,
   useSetJobBackgroundMusicMutation,
   useSelectSceneImageCandidateMutation,
+  useSelectSceneVoiceCandidateMutation,
   useRunTopicPlanMutation,
   useUpdateSceneJsonMutation,
   useUpdateTopicSeedMutation,
@@ -29,6 +30,7 @@ export const useRunContentJobFinalComposition = useRunFinalCompositionMutation;
 export const useRunContentJobSceneJson = useRunSceneJsonMutation;
 export const useSetContentJobBackgroundMusic = useSetJobBackgroundMusicMutation;
 export const useSelectContentJobSceneImageCandidate = useSelectSceneImageCandidateMutation;
+export const useSelectContentJobSceneVoiceCandidate = useSelectSceneVoiceCandidateMutation;
 export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;
 export const useUpdateContentJobTopicSeed = useUpdateTopicSeedMutation;

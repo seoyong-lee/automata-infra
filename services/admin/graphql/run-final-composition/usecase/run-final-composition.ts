@@ -21,12 +21,17 @@ type RenderPipelineContext = {
   sceneJson: SceneJson;
   imageAssets: Array<{ sceneId: number; imageS3Key?: string }>;
   videoAssets: Array<{ sceneId: number; videoClipS3Key?: string }>;
-  voiceAssets: Array<{ sceneId: number; voiceS3Key?: string }>;
+  voiceAssets: Array<{
+    sceneId: number;
+    voiceS3Key?: string;
+    voiceDurationSec?: number;
+  }>;
   backgroundMusicS3Key?: string;
 };
 
 export type FinalCompositionScope = {
   burnInSubtitles?: boolean;
+  renderProvider?: "SHOTSTACK" | "FARGATE";
 };
 
 type RenderPlanResult = {
@@ -133,6 +138,10 @@ const loadRenderPipelineContext = async (
       sceneId: asset.sceneId,
       voiceS3Key:
         typeof asset.voiceS3Key === "string" ? asset.voiceS3Key : undefined,
+      voiceDurationSec:
+        typeof asset.voiceDurationSec === "number"
+          ? asset.voiceDurationSec
+          : undefined,
     })),
     backgroundMusicS3Key:
       typeof job.backgroundMusicS3Key === "string"
@@ -187,13 +196,26 @@ export const runFinalCompositionCore = async (
       renderPlan: {
         ...(renderPlan as Record<string, unknown> & {
           totalDurationSec: number;
+          subtitles?: Record<string, unknown>;
         }),
         ...(scope?.burnInSubtitles !== undefined
           ? { burnInSubtitles: scope.burnInSubtitles }
           : {}),
+        ...(scope?.burnInSubtitles !== undefined
+          ? {
+              subtitles: {
+                ...(((renderPlan as { subtitles?: Record<string, unknown> })
+                  .subtitles ?? {}) as Record<string, unknown>),
+                burnIn: scope.burnInSubtitles,
+              },
+            }
+          : {}),
         ...(subtitleSrtS3Key ? { subtitleSrtS3Key } : {}),
         ...(context.backgroundMusicS3Key
           ? { soundtrackSrc: context.backgroundMusicS3Key }
+          : {}),
+        ...(scope?.renderProvider
+          ? { renderProvider: scope.renderProvider }
           : {}),
       },
     },

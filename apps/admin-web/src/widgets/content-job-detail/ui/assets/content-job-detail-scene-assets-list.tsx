@@ -17,6 +17,7 @@ type ContentJobDetailSceneAssetsListProps = {
     imageProvider?: ImageGenerationProvider;
   }) => void;
   onSelectImageCandidate: (sceneId: number, candidateId: string) => void;
+  onSelectVoiceCandidate: (sceneId: number, candidateId: string) => void;
   isSelectingImageCandidate: boolean;
   imageProvider: ImageGenerationProvider;
   onImageProviderChange: (value: ImageGenerationProvider) => void;
@@ -32,6 +33,7 @@ export function ContentJobDetailSceneAssetsList({
   isSubmitting,
   onRegenerateScene,
   onSelectImageCandidate,
+  onSelectVoiceCandidate,
   isSelectingImageCandidate,
   imageProvider,
   onImageProviderChange,
@@ -58,6 +60,7 @@ export function ContentJobDetailSceneAssetsList({
           isSubmitting={isSubmitting}
           onRegenerate={onRegenerateScene}
           onSelectImageCandidate={onSelectImageCandidate}
+          onSelectVoiceCandidate={onSelectVoiceCandidate}
           isSelectingImageCandidate={isSelectingImageCandidate}
           imageProvider={imageProvider}
           onImageProviderChange={onImageProviderChange}

@@ -1,5 +1,6 @@
 import { Handler } from "aws-lambda";
 import { putJsonToS3 } from "../../shared/lib/aws/runtime";
+import { estimateMinimumVoiceDurationSec } from "../../shared/lib/providers/media/elevenlabs-voice";
 import {
   listSceneAssets,
   putRenderArtifact,
@@ -36,6 +37,46 @@ type RenderPlanEvent = {
 };
 
 const SCENE_GAP_SEC = 0.5;
+const DEFAULT_OUTPUT = {
+  format: "mp4",
+  size: {
+    width: 1080,
+    height: 1920,
+  },
+  fps: 30,
+} as const;
+const DEFAULT_SUBTITLE_STYLE = {
+  fontFamily: "Clear Sans",
+  fontSize: 32,
+  lineHeight: 1,
+  opacity: 1,
+  color: "#000000",
+  strokeColor: "#ffffff",
+  strokeWidth: 2,
+  position: "center",
+  offset: {
+    x: -0.019,
+    y: 0,
+  },
+} as const;
+type RenderPlanSceneInput = RenderPlanEvent["sceneJson"]["scenes"][number];
+type RenderPlanVoiceAsset = NonNullable<RenderPlanEvent["voiceAssets"]>[number];
+
+const resolveSceneDurationSec = (
+  scene: RenderPlanSceneInput,
+  voiceAsset?: RenderPlanVoiceAsset,
+): number => {
+  const plannedDurationSec = Math.max(0.1, scene.durationSec);
+  const actualVoiceDurationSec =
+    typeof voiceAsset?.voiceDurationSec === "number" &&
+    Number.isFinite(voiceAsset.voiceDurationSec)
+      ? voiceAsset.voiceDurationSec
+      : undefined;
+  const minimumNarrationDurationSec = actualVoiceDurationSec
+    ? actualVoiceDurationSec
+    : estimateMinimumVoiceDurationSec(scene.narration);
+  return Math.max(plannedDurationSec, minimumNarrationDurationSec);
+};
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
@@ -55,7 +96,7 @@ export const buildRenderPlanScenes = (
     const videoAsset = videoAssets.find(
       (asset) => asset.sceneId === scene.sceneId,
     );
-    const sceneDurationSec = Math.max(0.1, scene.durationSec);
+    const sceneDurationSec = resolveSceneDurationSec(scene, voiceAsset);
     const startSec = cursorSec;
     const endSec = startSec + sceneDurationSec;
     const gapAfterSec =
@@ -66,10 +107,12 @@ export const buildRenderPlanScenes = (
       sceneId: scene.sceneId,
       startSec,
       endSec,
+      durationSec: sceneDurationSec,
       gapAfterSec,
       imageS3Key: imageAsset?.imageS3Key,
       videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
+      voiceDurationSec: voiceAsset?.voiceDurationSec,
       subtitle: scene.subtitle,
       bgmMood: scene.bgmMood,
       sfx: scene.sfx,
@@ -100,11 +143,10 @@ const persistRenderPlan = async (
   );
 };
 
-export const run: Handler<
-  RenderPlanEvent,
-  RenderPlanEvent & { renderPlan: unknown; status: string }
-> = async (event) => {
-  const sceneAssets = await listSceneAssets(event.jobId);
+const resolveRenderPlanAssets = (
+  event: RenderPlanEvent,
+  sceneAssets: Awaited<ReturnType<typeof listSceneAssets>>,
+) => {
   const imageAssets =
     event.imageAssets ??
     sceneAssets.map((scene) => ({
@@ -118,6 +160,10 @@ export const run: Handler<
       sceneId: scene.sceneId,
       voiceS3Key:
         typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined,
+      voiceDurationSec:
+        typeof scene.voiceDurationSec === "number"
+          ? scene.voiceDurationSec
+          : undefined,
     }));
   const videoAssets =
     event.videoAssets ??
@@ -128,24 +174,56 @@ export const run: Handler<
           ? scene.videoClipS3Key
           : undefined,
     }));
+  return { imageAssets, voiceAssets, videoAssets };
+};
+
+const resolveSoundtrackMood = (event: RenderPlanEvent): string | undefined => {
+  return event.sceneJson.scenes.find(
+    (scene) =>
+      typeof scene.bgmMood === "string" && scene.bgmMood.trim().length > 0,
+  )?.bgmMood;
+};
+
+export const buildRenderPlan = (
+  event: RenderPlanEvent,
+  builtScenes: ReturnType<typeof buildRenderPlanScenes>,
+) => {
+  return {
+    videoTitle: event.sceneJson.videoTitle,
+    language: event.sceneJson.language,
+    output: DEFAULT_OUTPUT,
+    preview: {
+      enabled: true,
+      maxDurationSec: 12,
+    },
+    subtitles: {
+      burnIn: false,
+      format: "ass",
+      style: DEFAULT_SUBTITLE_STYLE,
+    },
+    totalDurationSec: builtScenes.totalDurationSec,
+    scenes: builtScenes.scenes,
+    soundtrackMood: resolveSoundtrackMood(event),
+    outputKey: `render-plans/${event.jobId}/render-plan.json`,
+  };
+};
+
+export const run: Handler<
+  RenderPlanEvent,
+  RenderPlanEvent & { renderPlan: unknown; status: string }
+> = async (event) => {
+  const sceneAssets = await listSceneAssets(event.jobId);
+  const { imageAssets, voiceAssets, videoAssets } = resolveRenderPlanAssets(
+    event,
+    sceneAssets,
+  );
   const builtScenes = buildRenderPlanScenes({
     ...event,
     imageAssets,
     videoAssets,
     voiceAssets,
   });
-  const renderPlan = {
-    videoTitle: event.sceneJson.videoTitle,
-    language: event.sceneJson.language,
-    totalDurationSec: builtScenes.totalDurationSec,
-    scenes: builtScenes.scenes,
-    soundtrackMood:
-      event.sceneJson.scenes.find(
-        (scene) =>
-          typeof scene.bgmMood === "string" && scene.bgmMood.trim().length > 0,
-      )?.bgmMood ?? undefined,
-    outputKey: `render-plans/${event.jobId}/render-plan.json`,
-  };
+  const renderPlan = buildRenderPlan(event, builtScenes);
 
   await persistRenderPlan(event.jobId, renderPlan);
 

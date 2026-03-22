@@ -16,6 +16,7 @@ type CompositionResult = {
   providerRenderId?: string | null;
   sourceVideoUrl?: string;
   sourceThumbnailUrl?: string;
+  artifactsStored?: boolean;
 };
 
 const toBuffer = (arrayBuffer: ArrayBuffer): Buffer => {
@@ -47,6 +48,9 @@ const storeRenderedArtifacts = async (
   jobId: string,
   composition: CompositionResult,
 ): Promise<void> => {
+  if (composition.artifactsStored) {
+    return;
+  }
   if (!composition.sourceVideoUrl) {
     await storePlaceholderArtifacts(jobId, composition);
     return;

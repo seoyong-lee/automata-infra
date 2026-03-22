@@ -2,6 +2,8 @@ import * as path from "path";
 import { Duration } from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
+import * as ec2 from "aws-cdk-lib/aws-ec2";
+import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
@@ -32,6 +34,13 @@ type CreateWorkflowLambdasProps = {
   llmConfigTable: dynamodb.Table;
   reviewQueue: sqs.Queue;
   previewDistribution: cloudfront.Distribution;
+  renderInfra: {
+    cluster: ecs.ICluster;
+    taskDefinition: ecs.FargateTaskDefinition;
+    securityGroup: ec2.ISecurityGroup;
+    vpc: ec2.IVpc;
+    containerName: string;
+  };
 };
 
 const createLambda = (
@@ -40,13 +49,14 @@ const createLambda = (
   functionName: string,
   entry: string,
   environment: Record<string, string>,
+  timeout = Duration.seconds(120),
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
     functionName,
     entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
-    timeout: Duration.seconds(120),
+    timeout,
     bundling: {
       target: "node20",
       format: nodejs.OutputFormat.CJS,
@@ -72,6 +82,18 @@ export const createWorkflowLambdas = (
     OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
     ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
     SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
+    ENABLE_FARGATE_COMPOSITION: props.envConfig.enableFargateComposition
+      ? "true"
+      : "false",
+    FARGATE_RENDER_CLUSTER_ARN: props.renderInfra.cluster.clusterArn,
+    FARGATE_RENDER_TASK_DEFINITION_ARN:
+      props.renderInfra.taskDefinition.taskDefinitionArn,
+    FARGATE_RENDER_CONTAINER_NAME: props.renderInfra.containerName,
+    FARGATE_RENDER_SECURITY_GROUP_ID:
+      props.renderInfra.securityGroup.securityGroupId,
+    FARGATE_RENDER_SUBNET_IDS: props.renderInfra.vpc.publicSubnets
+      .map((subnet) => subnet.subnetId)
+      .join(","),
     YOUTUBE_SECRETS_JSON: JSON.stringify(props.envConfig.youtubeSecrets ?? {}),
     CHANNEL_CONFIGS_JSON: JSON.stringify(props.envConfig.channelConfigs ?? {}),
     PREVIEW_DISTRIBUTION_DOMAIN:
@@ -140,6 +162,7 @@ export const createWorkflowLambdas = (
         "services/composition/final-composition/handler.ts",
       ),
       environment,
+      Duration.minutes(15),
     ),
     reviewRequest: createLambda(
       scope,
@@ -186,6 +209,28 @@ export const createWorkflowLambdas = (
   }
 
   props.reviewQueue.grantSendMessages(lambdas.reviewRequest);
+  const fargateRunner = lambdas.finalComposition;
+  fargateRunner.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: ["ecs:RunTask"],
+      resources: [props.renderInfra.taskDefinition.taskDefinitionArn],
+    }),
+  );
+  fargateRunner.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: ["ecs:DescribeTasks"],
+      resources: ["*"],
+    }),
+  );
+  fargateRunner.addToRolePolicy(
+    new iam.PolicyStatement({
+      actions: ["iam:PassRole"],
+      resources: [
+        props.renderInfra.taskDefinition.executionRole?.roleArn ?? "*",
+        props.renderInfra.taskDefinition.taskRole.roleArn,
+      ],
+    }),
+  );
 
   return lambdas;
 };

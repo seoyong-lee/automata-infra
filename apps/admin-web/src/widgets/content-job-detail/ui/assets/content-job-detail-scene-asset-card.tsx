@@ -20,6 +20,7 @@ type ContentJobDetailSceneAssetCardProps = {
     imageProvider?: ImageGenerationProvider;
   }) => void;
   onSelectImageCandidate: (sceneId: number, candidateId: string) => void;
+  onSelectVoiceCandidate: (sceneId: number, candidateId: string) => void;
   isSelectingImageCandidate: boolean;
   imageProvider: ImageGenerationProvider;
   onImageProviderChange: (value: ImageGenerationProvider) => void;
@@ -56,6 +57,7 @@ export function ContentJobDetailSceneAssetCard({
   isSubmitting,
   onRegenerate,
   onSelectImageCandidate,
+  onSelectVoiceCandidate,
   isSelectingImageCandidate,
   imageProvider,
   onImageProviderChange,
@@ -100,7 +102,11 @@ export function ContentJobDetailSceneAssetCard({
           disabled={disabled}
           voiceProfiles={voiceProfiles}
           selectedVoiceProfileId={card.voiceProfileId}
+          voiceCandidates={card.voiceCandidates}
           isSavingVoiceProfileSelection={isSavingVoiceProfileSelection}
+          onSelectVoiceCandidate={(candidateId) =>
+            onSelectVoiceCandidate(card.sceneId, candidateId)
+          }
           onVoiceProfileChange={(profileId) => onSceneVoiceProfileChange(card.sceneId, profileId)}
           onRegenerate={() => onRegenerate({ sceneId: card.sceneId, modality: 'VOICE' })}
         />

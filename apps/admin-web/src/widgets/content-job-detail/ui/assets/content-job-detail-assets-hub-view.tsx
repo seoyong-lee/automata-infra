@@ -191,6 +191,9 @@ export function ContentJobDetailAssetsHubView({
             onSelectImageCandidate={(sceneId, candidateId) =>
               pageData.selectSceneImageCandidate(sceneId, candidateId)
             }
+            onSelectVoiceCandidate={(sceneId, candidateId) =>
+              pageData.selectSceneVoiceCandidate(sceneId, candidateId)
+            }
           />
           <ContentJobDetailRenderPreviewView
             detail={pageData.detail}

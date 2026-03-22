@@ -141,6 +141,7 @@ export type SceneAssetItem = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   validationStatus?: string;
   [key: string]: unknown;
@@ -156,6 +157,20 @@ export type SceneImageCandidateItem = {
   providerLogS3Key?: string;
   promptHash?: string;
   mocked?: boolean;
+  createdAt: string;
+};
+
+export type SceneVoiceCandidateItem = {
+  PK: string;
+  SK: string;
+  sceneId: number;
+  candidateId: string;
+  voiceS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  mocked?: boolean;
+  voiceDurationSec?: number;
+  voiceProfileId?: string;
   createdAt: string;
 };
 
@@ -374,6 +389,53 @@ export const listSceneImageCandidates = async (
     expressionAttributeValues: {
       ":pk": jobPk(jobId),
       ":candidatePrefix": `SCENE#${sceneId}#IMAGE_CANDIDATE#`,
+    },
+    scanIndexForward: false,
+    limit: 100,
+  });
+
+  return items.sort((left, right) => {
+    const a = new Date(right.createdAt).getTime();
+    const b = new Date(left.createdAt).getTime();
+    return a - b;
+  });
+};
+
+export const putSceneVoiceCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+  item: Omit<SceneVoiceCandidateItem, "PK" | "SK" | "sceneId" | "candidateId">,
+): Promise<void> => {
+  await putItem({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#VOICE_CANDIDATE#${candidateId}`,
+    sceneId,
+    candidateId,
+    ...item,
+  });
+};
+
+export const getSceneVoiceCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+): Promise<SceneVoiceCandidateItem | null> => {
+  return getItem<SceneVoiceCandidateItem>({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#VOICE_CANDIDATE#${candidateId}`,
+  });
+};
+
+export const listSceneVoiceCandidates = async (
+  jobId: string,
+  sceneId: number,
+): Promise<SceneVoiceCandidateItem[]> => {
+  const items = await queryItems<SceneVoiceCandidateItem>({
+    keyConditionExpression: "PK = :pk AND begins_with(SK, :candidatePrefix)",
+    expressionAttributeValues: {
+      ":pk": jobPk(jobId),
+      ":candidatePrefix": `SCENE#${sceneId}#VOICE_CANDIDATE#`,
     },
     scanIndexForward: false,
     limit: 100,

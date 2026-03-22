@@ -11,6 +11,7 @@ import {
   useRunContentJobSceneJson,
   useRunContentJobTopicPlan,
   useSelectContentJobSceneImageCandidate,
+  useSelectContentJobSceneVoiceCandidate,
   useUpdateContentJobSceneJson,
   useUpdateContentJobTopicSeed,
 } from '@/entities/content-job';
@@ -57,6 +58,7 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
     updateSceneJson = useUpdateContentJobSceneJson({ onSuccess });
   const runAssetGeneration = useRunContentJobAssetGeneration({ onSuccess }),
     selectSceneImageCandidate = useSelectContentJobSceneImageCandidate({ onSuccess }),
+    selectSceneVoiceCandidate = useSelectContentJobSceneVoiceCandidate({ onSuccess }),
     setJobDefaultVoiceProfile = useSetJobDefaultVoiceProfile({ onSuccess }),
     setSceneVoiceProfile = useSetSceneVoiceProfile({ onSuccess });
   const {
@@ -82,6 +84,7 @@ export const useContentJobDetailMutations = (jobId: string, onSuccess: () => Pro
     requestUpload,
     runAssetGeneration,
     selectSceneImageCandidate,
+    selectSceneVoiceCandidate,
     setJobDefaultVoiceProfile,
     setSceneVoiceProfile,
     runFinalComposition,

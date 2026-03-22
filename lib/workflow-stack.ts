@@ -11,6 +11,7 @@ import { Construct } from "constructs";
 import { BaseStackProps } from "./config";
 import { createJobsTable } from "./modules/workflow/jobs-table";
 import { createWorkflowQueues } from "./modules/workflow/queues";
+import { createWorkflowRenderInfrastructure } from "./modules/workflow/render-infra";
 import { createWorkflowLambdas } from "./modules/workflow/runtime-lambdas";
 
 export type WorkflowStackProps = StackProps &
@@ -24,6 +25,11 @@ export class WorkflowStack extends Stack {
   public readonly jobsTable: dynamodb.Table;
   public readonly reviewQueue: sqs.Queue;
   public readonly stateMachine: sfn.StateMachine;
+  public readonly renderClusterArn: string;
+  public readonly renderTaskDefinitionArn: string;
+  public readonly renderSecurityGroupId: string;
+  public readonly renderSubnetIds: string[];
+  public readonly renderContainerName: string;
 
   constructor(scope: Construct, id: string, props: WorkflowStackProps) {
     super(scope, id, {
@@ -41,6 +47,15 @@ export class WorkflowStack extends Stack {
 
     const queues = createWorkflowQueues(this, props.projectPrefix);
     this.reviewQueue = queues.reviewQueue;
+    const renderInfra = createWorkflowRenderInfrastructure(this, {
+      projectPrefix: props.projectPrefix,
+      assetsBucket: props.assetsBucket,
+    });
+    this.renderClusterArn = renderInfra.cluster.clusterArn;
+    this.renderTaskDefinitionArn = renderInfra.taskDefinition.taskDefinitionArn;
+    this.renderSecurityGroupId = renderInfra.securityGroup.securityGroupId;
+    this.renderSubnetIds = renderInfra.vpc.publicSubnets.map((subnet) => subnet.subnetId);
+    this.renderContainerName = renderInfra.containerName;
 
     const lambdas = createWorkflowLambdas(this, {
       projectPrefix: props.projectPrefix,
@@ -50,6 +65,7 @@ export class WorkflowStack extends Stack {
       llmConfigTable: props.llmConfigTable,
       reviewQueue: queues.reviewQueue,
       previewDistribution: props.previewDistribution,
+      renderInfra,
     });
 
     const planTopic = new tasks.LambdaInvoke(this, "PlanTopic", {
@@ -395,6 +411,9 @@ export class WorkflowStack extends Stack {
 
     new CfnOutput(this, "StateMachineArn", {
       value: this.stateMachine.stateMachineArn,
+    });
+    new CfnOutput(this, "RenderClusterArn", {
+      value: this.renderClusterArn,
     });
   }
 }

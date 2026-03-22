@@ -187,6 +187,7 @@ export type SceneAsset = {
   imageS3Key?: string | null;
   videoClipS3Key?: string | null;
   voiceS3Key?: string | null;
+  voiceSelectedCandidateId?: string | null;
   voiceProfileId?: string | null;
   durationSec?: number | null;
   voiceDurationSec?: number | null;
@@ -197,6 +198,7 @@ export type SceneAsset = {
   validationStatus?: string | null;
   imageSelectedCandidateId?: string | null;
   imageCandidates: SceneImageCandidate[];
+  voiceCandidates: SceneVoiceCandidate[];
 };
 
 export type SceneImageCandidate = {
@@ -206,6 +208,18 @@ export type SceneImageCandidate = {
   providerLogS3Key?: string | null;
   promptHash?: string | null;
   mocked?: boolean | null;
+  createdAt: string;
+  selected: boolean;
+};
+
+export type SceneVoiceCandidate = {
+  candidateId: string;
+  voiceS3Key: string;
+  provider?: string | null;
+  providerLogS3Key?: string | null;
+  mocked?: boolean | null;
+  voiceDurationSec?: number | null;
+  voiceProfileId?: string | null;
   createdAt: string;
   selected: boolean;
 };
@@ -597,6 +611,7 @@ const jobDraftQuery = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
         voiceProfileId
         voiceDurationSec
         durationSec
@@ -613,6 +628,17 @@ const jobDraftQuery = `
           providerLogS3Key
           promptHash
           mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
           createdAt
           selected
         }
@@ -881,6 +907,9 @@ const updateSceneJsonMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
+        voiceProfileId
+        voiceDurationSec
         imageSelectedCandidateId
         imageCandidates {
           candidateId
@@ -892,6 +921,17 @@ const updateSceneJsonMutation = `
           createdAt
           selected
         }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
+          createdAt
+          selected
+        }
       }
     }
   }
@@ -900,6 +940,7 @@ const updateSceneJsonMutation = `
 /** GraphQL `AssetGenerationModality` — matches `lib/modules/publish/graphql/schema.graphql`. */
 export type AssetGenerationModality = "ALL" | "IMAGE" | "VOICE" | "VIDEO";
 export type ImageGenerationProvider = "OPENAI" | "SEEDREAM";
+export type FinalCompositionProvider = "SHOTSTACK" | "FARGATE";
 
 const runAssetGenerationMutation = `
   mutation RunAssetGeneration($input: RunAssetGenerationInput!) {
@@ -971,6 +1012,7 @@ const selectSceneImageCandidateMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
         voiceProfileId
         voiceDurationSec
         durationSec
@@ -987,6 +1029,104 @@ const selectSceneImageCandidateMutation = `
           providerLogS3Key
           promptHash
           mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
+          createdAt
+          selected
+        }
+      }
+    }
+  }
+`;
+
+const selectSceneVoiceCandidateMutation = `
+  mutation SelectSceneVoiceCandidate($input: SelectSceneVoiceCandidateInput!) {
+    selectSceneVoiceCandidate(input: $input) {
+      job {
+        jobId
+        status
+        updatedAt
+        sceneJsonS3Key
+        contentId
+        topicId
+        language
+        targetDurationSec
+        retryCount
+        createdAt
+        videoTitle
+      }
+      topicSeed {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      topicPlan {
+        contentId
+        targetLanguage
+        titleIdea
+        targetDurationSec
+        stylePreset
+        creativeBrief
+      }
+      sceneJson {
+        videoTitle
+        language
+        scenes {
+          sceneId
+          durationSec
+          narration
+          imagePrompt
+          videoPrompt
+          subtitle
+          bgmMood
+          sfx
+        }
+      }
+      assets {
+        sceneId
+        imageS3Key
+        videoClipS3Key
+        voiceS3Key
+        voiceSelectedCandidateId
+        voiceProfileId
+        voiceDurationSec
+        durationSec
+        narration
+        subtitle
+        imagePrompt
+        videoPrompt
+        validationStatus
+        imageSelectedCandidateId
+        imageCandidates {
+          candidateId
+          imageS3Key
+          provider
+          providerLogS3Key
+          promptHash
+          mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
           createdAt
           selected
         }
@@ -1047,6 +1187,7 @@ const setJobDefaultVoiceProfileMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
         voiceProfileId
         voiceDurationSec
         durationSec
@@ -1063,6 +1204,17 @@ const setJobDefaultVoiceProfileMutation = `
           providerLogS3Key
           promptHash
           mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
           createdAt
           selected
         }
@@ -1124,6 +1276,7 @@ const setJobBackgroundMusicMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
         voiceProfileId
         voiceDurationSec
         durationSec
@@ -1140,6 +1293,17 @@ const setJobBackgroundMusicMutation = `
           providerLogS3Key
           promptHash
           mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
           createdAt
           selected
         }
@@ -1206,6 +1370,7 @@ const setSceneVoiceProfileMutation = `
         imageS3Key
         videoClipS3Key
         voiceS3Key
+        voiceSelectedCandidateId
         voiceProfileId
         voiceDurationSec
         durationSec
@@ -1222,6 +1387,17 @@ const setSceneVoiceProfileMutation = `
           providerLogS3Key
           promptHash
           mocked
+          createdAt
+          selected
+        }
+        voiceCandidates {
+          candidateId
+          voiceS3Key
+          provider
+          providerLogS3Key
+          mocked
+          voiceDurationSec
+          voiceProfileId
           createdAt
           selected
         }
@@ -1989,19 +2165,16 @@ export const useLlmSettingsQuery = (
 
 export const useVoiceProfilesQuery = (
   options?: Omit<
-    UseQueryOptions<
-      VoiceProfile[],
-      Error,
-      VoiceProfile[],
-      readonly unknown[]
-    >,
+    UseQueryOptions<VoiceProfile[], Error, VoiceProfile[], readonly unknown[]>,
     "queryKey" | "queryFn"
   >,
 ) => {
   return useQuery({
     queryKey: ["voiceProfiles"],
     queryFn: async () => {
-      const data = await gql<{ voiceProfiles: VoiceProfile[] }>(voiceProfilesQuery);
+      const data = await gql<{ voiceProfiles: VoiceProfile[] }>(
+        voiceProfilesQuery,
+      );
       return data.voiceProfiles;
     },
     ...options,
@@ -3078,6 +3251,12 @@ export type SelectSceneImageCandidateMutationInput = {
   candidateId: string;
 };
 
+export type SelectSceneVoiceCandidateMutationInput = {
+  jobId: string;
+  sceneId: number;
+  candidateId: string;
+};
+
 export type SetJobDefaultVoiceProfileMutationInput = {
   jobId: string;
   profileId?: string;
@@ -3100,6 +3279,12 @@ export type SetSceneVoiceProfileMutationInput = {
   jobId: string;
   sceneId: number;
   profileId?: string;
+};
+
+export type RunFinalCompositionMutationInput = {
+  jobId: string;
+  burnInSubtitles?: boolean;
+  renderProvider?: FinalCompositionProvider;
 };
 
 export type UpsertVoiceProfileMutationInput = {
@@ -3147,6 +3332,26 @@ export const useSelectSceneImageCandidateMutation = (
     mutationFn: async (input) => {
       return gql<{ selectSceneImageCandidate: JobDraftDetail }>(
         selectSceneImageCandidateMutation,
+        {
+          input,
+        },
+      );
+    },
+    ...options,
+  });
+};
+
+export const useSelectSceneVoiceCandidateMutation = (
+  options?: UseMutationOptions<
+    { selectSceneVoiceCandidate: JobDraftDetail },
+    Error,
+    SelectSceneVoiceCandidateMutationInput
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ selectSceneVoiceCandidate: JobDraftDetail }>(
+        selectSceneVoiceCandidateMutation,
         {
           input,
         },
@@ -3219,9 +3424,12 @@ export const useUpsertVoiceProfileMutation = (
 ) => {
   return useMutation({
     mutationFn: async (input) => {
-      return gql<{ upsertVoiceProfile: VoiceProfile }>(upsertVoiceProfileMutation, {
-        input,
-      });
+      return gql<{ upsertVoiceProfile: VoiceProfile }>(
+        upsertVoiceProfileMutation,
+        {
+          input,
+        },
+      );
     },
     ...options,
   });
@@ -3231,7 +3439,7 @@ export const useRunFinalCompositionMutation = (
   options?: UseMutationOptions<
     { runFinalComposition: AdminJob },
     Error,
-    { jobId: string; burnInSubtitles?: boolean }
+    RunFinalCompositionMutationInput
   >,
 ) => {
   return useMutation({

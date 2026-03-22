@@ -25,6 +25,11 @@ export type PublishStackProps = StackProps &
     reviewQueue: sqs.Queue;
     stateMachine: sfn.StateMachine;
     previewDistribution: cloudfront.Distribution;
+    renderClusterArn: string;
+    renderTaskDefinitionArn: string;
+    renderSecurityGroupId: string;
+    renderSubnetIds: string[];
+    renderContainerName: string;
   };
 
 const createLambda = (
@@ -72,6 +77,14 @@ export class PublishStack extends Stack {
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
       SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
+      ENABLE_FARGATE_COMPOSITION: props.envConfig.enableFargateComposition
+        ? "true"
+        : "false",
+      FARGATE_RENDER_CLUSTER_ARN: props.renderClusterArn,
+      FARGATE_RENDER_TASK_DEFINITION_ARN: props.renderTaskDefinitionArn,
+      FARGATE_RENDER_CONTAINER_NAME: props.renderContainerName,
+      FARGATE_RENDER_SECURITY_GROUP_ID: props.renderSecurityGroupId,
+      FARGATE_RENDER_SUBNET_IDS: props.renderSubnetIds.join(","),
       YOUTUBE_SECRETS_JSON: JSON.stringify(
         props.envConfig.youtubeSecrets ?? {},
       ),
@@ -119,6 +132,27 @@ export class PublishStack extends Stack {
         resources: ["*"],
       }),
     );
+    const grantFargateRunPermissions = (fn: lambda.IFunction) => {
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["ecs:RunTask"],
+          resources: [props.renderTaskDefinitionArn],
+        }),
+      );
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["ecs:DescribeTasks"],
+          resources: ["*"],
+        }),
+      );
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
+          actions: ["iam:PassRole"],
+          resources: ["*"],
+        }),
+      );
+    };
+    grantFargateRunPermissions(pipelineWorker);
 
     const pipelineTriggerEnv = {
       ...environment,
@@ -423,6 +457,16 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
+    const selectSceneVoiceCandidateResolver = createLambda(
+      this,
+      "AdminSelectSceneVoiceCandidateResolverLambda",
+      `${props.projectPrefix}-admin-select-scene-voice-candidate`,
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/select-scene-voice-candidate/handler.ts",
+      ),
+      environment,
+    );
     const setJobDefaultVoiceProfileResolver = createLambda(
       this,
       "AdminSetJobDefaultVoiceProfileResolverLambda",
@@ -466,6 +510,7 @@ export class PublishStack extends Stack {
         SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
       },
     );
+    grantFargateRunPermissions(runFinalCompositionResolver);
     const deleteJobResolver = createLambda(
       this,
       "AdminDeleteJobResolverLambda",
@@ -619,6 +664,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
     props.jobsTable.grantReadWriteData(selectSceneImageCandidateResolver);
+    props.jobsTable.grantReadWriteData(selectSceneVoiceCandidateResolver);
     props.jobsTable.grantReadWriteData(setJobDefaultVoiceProfileResolver);
     props.jobsTable.grantReadWriteData(setJobBackgroundMusicResolver);
     props.jobsTable.grantReadWriteData(setSceneVoiceProfileResolver);
@@ -650,6 +696,7 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(requestAssetUploadResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     props.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
+    props.assetsBucket.grantReadWrite(selectSceneVoiceCandidateResolver);
     props.assetsBucket.grantReadWrite(setJobDefaultVoiceProfileResolver);
     props.assetsBucket.grantReadWrite(setJobBackgroundMusicResolver);
     props.assetsBucket.grantReadWrite(setSceneVoiceProfileResolver);
@@ -770,6 +817,7 @@ export class PublishStack extends Stack {
       updateSceneJsonResolver,
       runAssetGenerationResolver,
       selectSceneImageCandidateResolver,
+      selectSceneVoiceCandidateResolver,
       setJobDefaultVoiceProfileResolver,
       setJobBackgroundMusicResolver,
       setSceneVoiceProfileResolver,

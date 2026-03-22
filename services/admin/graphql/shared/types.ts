@@ -270,6 +270,7 @@ export type SceneAssetDto = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   voiceDurationSec?: number;
   durationSec?: number;
@@ -280,6 +281,7 @@ export type SceneAssetDto = {
   validationStatus?: string;
   imageSelectedCandidateId?: string;
   imageCandidates?: SceneImageCandidateDto[];
+  voiceCandidates?: SceneVoiceCandidateDto[];
 };
 
 export type VoiceProfileDto = {
@@ -315,6 +317,18 @@ export type SceneImageCandidateDto = {
   providerLogS3Key?: string;
   promptHash?: string;
   mocked?: boolean;
+  createdAt: string;
+  selected: boolean;
+};
+
+export type SceneVoiceCandidateDto = {
+  candidateId: string;
+  voiceS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  mocked?: boolean;
+  voiceDurationSec?: number;
+  voiceProfileId?: string;
   createdAt: string;
   selected: boolean;
 };

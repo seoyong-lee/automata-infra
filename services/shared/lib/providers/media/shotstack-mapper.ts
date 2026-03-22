@@ -26,8 +26,6 @@ const DEFAULT_SOUNDTRACK_BY_MOOD: Record<string, string> = {
     "https://s3-ap-southeast-2.amazonaws.com/shotstack-assets/music/moment.mp3",
   calm: "https://s3-ap-southeast-2.amazonaws.com/shotstack-assets/music/moment.mp3",
 };
-const KOREAN_SUBTITLE_FONT_URL =
-  "https://github.com/frappe/fonts/raw/refs/heads/master/usr_share_fonts/noto/NotoSansKR-Regular.otf";
 
 type RenderPlanScene = {
   sceneId: number;
@@ -36,6 +34,7 @@ type RenderPlanScene = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  voiceDurationSec?: number;
   subtitle?: string;
   bgmMood?: string;
   sfx?: string[];
@@ -45,7 +44,6 @@ type RenderPlan = {
   videoTitle?: string;
   language?: string;
   burnInSubtitles?: boolean;
-  subtitleSrtS3Key?: string;
   totalDurationSec: number;
   soundtrackMood?: string;
   soundtrackSrc?: string;
@@ -58,42 +56,46 @@ type RenderPlan = {
   scenes: RenderPlanScene[];
 };
 
-const buildSubtitleTrack = (subtitleSrtS3Key: string) => {
-  const subtitleUrl = buildAssetUrl(subtitleSrtS3Key);
-  if (!subtitleUrl) {
-    return undefined;
-  }
-  return {
-    clips: [
-      {
-        asset: {
-          type: "caption",
-          src: subtitleUrl,
-          font: {
-            family: "Noto Sans KR",
-            color: "#ffffff",
-            size: 28,
-            lineHeight: 1.15,
-            stroke: "#000000",
-            strokeWidth: 0.6,
-          },
-          background: {
-            color: "#000000",
-            opacity: 0.45,
-            padding: 12,
-            borderRadius: 12,
-          },
-          width: 920,
+const buildSubtitleTrack = (renderPlan: RenderPlan) => {
+  const clips = renderPlan.scenes
+    .filter(
+      (scene) =>
+        typeof scene.subtitle === "string" && scene.subtitle.trim().length > 0,
+    )
+    .map((scene) => ({
+      asset: {
+        type: "text",
+        text: scene.subtitle,
+        alignment: {
+          horizontal: "center",
+          vertical: "center",
         },
-        start: 0,
-        length: "end",
-        position: "bottom",
-        offset: {
-          y: 0.08,
+        font: {
+          color: "#000000",
+          family: "Clear Sans",
+          size: 32,
+          lineHeight: 1,
+          opacity: 1,
+        },
+        width: 400,
+        height: 72,
+        stroke: {
+          width: 2,
+          color: "#ffffff",
         },
       },
-    ],
-  };
+      start: scene.startSec,
+      length: Math.max(0.1, scene.endSec - scene.startSec),
+      offset: {
+        x: -0.019,
+        y: 0,
+      },
+      position: "center",
+    }));
+  if (clips.length === 0) {
+    return undefined;
+  }
+  return { clips };
 };
 
 const buildVisualAsset = (scene: RenderPlanScene) => {
@@ -137,7 +139,11 @@ const buildAudioAsset = (scene: RenderPlanScene) => {
       src: voiceUrl,
     },
     start: scene.startSec,
-    length: Math.max(0.1, scene.endSec - scene.startSec),
+    length:
+      typeof scene.voiceDurationSec === "number" &&
+      Number.isFinite(scene.voiceDurationSec)
+        ? Math.max(0.1, scene.voiceDurationSec)
+        : Math.max(0.1, scene.endSec - scene.startSec),
   };
 };
 
@@ -161,10 +167,9 @@ const resolveSoundtrackSrc = (renderPlan: RenderPlan): string | undefined => {
 const buildShotstackTracks = (
   renderPlan: RenderPlan,
 ): Array<Record<string, unknown>> => {
-  const subtitleTrack =
-    renderPlan.burnInSubtitles && renderPlan.subtitleSrtS3Key
-      ? buildSubtitleTrack(renderPlan.subtitleSrtS3Key)
-      : undefined;
+  const subtitleTrack = renderPlan.burnInSubtitles
+    ? buildSubtitleTrack(renderPlan)
+    : undefined;
 
   return [
     {
@@ -188,31 +193,16 @@ const buildShotstackTracks = (
   ];
 };
 
-const buildShotstackFonts = (
-  renderPlan: RenderPlan,
-): Array<{ src: string }> | undefined => {
-  if (!renderPlan.burnInSubtitles || !renderPlan.subtitleSrtS3Key) {
-    return undefined;
-  }
-  return [{ src: KOREAN_SUBTITLE_FONT_URL }];
-};
-
 export const mapRenderPlanToShotstackEdit = (
   renderPlan: Record<string, unknown>,
 ): Record<string, unknown> => {
   const parsed = renderPlan as RenderPlan;
   const soundtrackSrc = resolveSoundtrackSrc(parsed);
-  const fonts = buildShotstackFonts(parsed);
   const tracks = buildShotstackTracks(parsed);
 
   return {
     timeline: {
       background: "#000000",
-      ...(fonts
-        ? {
-            fonts,
-          }
-        : {}),
       ...(soundtrackSrc
         ? {
             soundtrack: {

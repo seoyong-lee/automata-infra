@@ -6,8 +6,8 @@ import {
 import { logResolverAudit } from "../shared/audit-log";
 import { toGraphqlResolverError } from "../shared/errors";
 import { GraphqlResolverEvent } from "../shared/types";
-import { parseRunFinalCompositionArgs } from "./normalize/parse-run-final-composition-args";
-import { runAdminFinalComposition } from "./usecase/run-final-composition";
+import { parseSelectSceneVoiceCandidateArgs } from "./normalize/parse-select-scene-voice-candidate-args";
+import { selectSceneVoiceCandidateUsecase } from "./usecase/select-scene-voice-candidate";
 
 export const run: Handler<
   GraphqlResolverEvent<Record<string, unknown>>,
@@ -15,25 +15,23 @@ export const run: Handler<
 > = async (event) => {
   const actor = getActor(event.identity);
   let jobId: string | undefined;
+
   try {
     assertAdminGroup(event.identity);
-    const parsed = parseRunFinalCompositionArgs(
+    const parsed = parseSelectSceneVoiceCandidateArgs(
       (event.arguments ?? {}) as Record<string, unknown>,
     );
     jobId = parsed.jobId;
     logResolverAudit({
-      operation: "runFinalComposition",
+      operation: "selectSceneVoiceCandidate",
       operationType: "mutation",
       phase: "started",
       actor,
       jobId,
     });
-    const result = await runAdminFinalComposition(parsed.jobId, actor, {
-      burnInSubtitles: parsed.burnInSubtitles,
-      renderProvider: parsed.renderProvider,
-    });
+    const result = await selectSceneVoiceCandidateUsecase(parsed);
     logResolverAudit({
-      operation: "runFinalComposition",
+      operation: "selectSceneVoiceCandidate",
       operationType: "mutation",
       phase: "succeeded",
       actor,
@@ -43,7 +41,7 @@ export const run: Handler<
   } catch (error) {
     const mapped = toGraphqlResolverError(error);
     logResolverAudit({
-      operation: "runFinalComposition",
+      operation: "selectSceneVoiceCandidate",
       operationType: "mutation",
       phase: "failed",
       actor,

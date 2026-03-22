@@ -16,7 +16,7 @@
   "workflowScheduleEnabled": false,
   "defaultContentId": "history-en",
   "defaultLanguage": "en",
-  "enableFargateComposition": false,
+  "enableFargateComposition": true,
   "byteplusImageSecretId": "automata-studio/byteplus-image",
   "byteplusVideoSecretId": "automata-studio/byteplus-video",
   "runwaySecretId": "automata-studio/runway",
