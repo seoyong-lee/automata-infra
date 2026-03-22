@@ -1,6 +1,10 @@
 import { createHash } from "crypto";
-import { getSecretJson, putJsonToS3 } from "../../aws/runtime";
-import { fetchJsonWithRetry, pollUntil } from "../http/retry";
+import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
+import {
+  fetchArrayBufferWithRetry,
+  fetchJsonWithRetry,
+  pollUntil,
+} from "../http/retry";
 
 type RunwayVideoSecret = {
   apiKey: string;
@@ -90,6 +94,49 @@ type RunwayVideoContext = {
   rawKey: string;
 };
 
+const collectStringUrls = (value: unknown): string[] => {
+  if (typeof value === "string") {
+    return /^https?:\/\//.test(value) ? [value] : [];
+  }
+  if (Array.isArray(value)) {
+    return value.flatMap((item) => collectStringUrls(item));
+  }
+  if (value && typeof value === "object") {
+    return Object.values(value).flatMap((item) => collectStringUrls(item));
+  }
+  return [];
+};
+
+const pickVideoUrl = (payload: Record<string, unknown>): string | undefined => {
+  const candidates = collectStringUrls(payload);
+  return (
+    candidates.find((url) => /\.(mp4|mov|webm)(\?|$)/i.test(url)) ??
+    candidates.find((url) => /video/i.test(url)) ??
+    candidates[0]
+  );
+};
+
+const persistVideoFile = async (
+  videoKey: string,
+  payload: Record<string, unknown>,
+): Promise<string | undefined> => {
+  const videoUrl = pickVideoUrl(payload);
+  if (!videoUrl) {
+    return undefined;
+  }
+  const arrayBuffer = await fetchArrayBufferWithRetry(
+    videoUrl,
+    {
+      method: "GET",
+    },
+    {
+      maxAttempts: 3,
+    },
+  );
+  await putBufferToS3(videoKey, Buffer.from(arrayBuffer), "video/mp4");
+  return videoUrl;
+};
+
 const resolveRunwayVideoContext = (
   input: Omit<RunwayVideoInput, "secretId">,
   secret: RunwayVideoSecret & { apiKey: string },
@@ -107,7 +154,7 @@ const resolveRunwayVideoContext = (
       "Content-Type": "application/json",
       "X-Runway-Version": "2024-11-06",
     },
-    videoKey: `assets/${input.jobId}/videos/scene-${input.sceneId}.json`,
+    videoKey: `assets/${input.jobId}/videos/scene-${input.sceneId}.mp4`,
     rawKey: `logs/${input.jobId}/provider/video-scene-${input.sceneId}.json`,
   };
 };
@@ -120,6 +167,7 @@ const persistRunwayVideoResult = async (input: {
   endpoint: string;
   model: string;
   imageField?: string;
+  sourceVideoUrl?: string;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
 }): Promise<void> => {
@@ -129,10 +177,10 @@ const persistRunwayVideoResult = async (input: {
     endpoint: input.endpoint,
     model: input.model,
     imageField: input.imageField,
+    sourceVideoUrl: input.sourceVideoUrl,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageAttached: Boolean(input.selectedImageDataUri),
   });
-  await putJsonToS3(input.videoKey, input.payload);
 };
 
 const putMockRunwayVideo = async (input: {
@@ -183,6 +231,61 @@ const failRunwayVideo = async (input: {
   );
 };
 
+const completeRunwayVideo = async (input: {
+  context: RunwayVideoContext;
+  prompt: string;
+  selectedImageS3Key?: string;
+  selectedImageDataUri?: string;
+}): Promise<Record<string, unknown>> => {
+  const submitted = await submitRunwayGeneration({
+    endpoint: input.context.endpoint,
+    headers: input.context.headers,
+    model: input.context.model,
+    prompt: input.prompt,
+    imageField: input.context.imageField,
+    selectedImageDataUri: input.selectedImageDataUri,
+  });
+  const generationId = getGenerationId(submitted);
+  let payload: Record<string, unknown> = submitted;
+  const initialStatus = getStatus(submitted);
+
+  if (generationId && !DONE_STATUSES.has(initialStatus)) {
+    payload = await pollRunwayGeneration({
+      endpoint: input.context.endpoint,
+      generationId,
+      headers: input.context.headers,
+    });
+  }
+  const sourceVideoUrl = await persistVideoFile(
+    input.context.videoKey,
+    payload,
+  );
+  if (!sourceVideoUrl) {
+    throw new Error("Runway response did not include a downloadable video URL");
+  }
+
+  await persistRunwayVideoResult({
+    rawKey: input.context.rawKey,
+    videoKey: input.context.videoKey,
+    submitted,
+    payload,
+    endpoint: input.context.endpoint,
+    model: input.context.model,
+    imageField: input.context.imageField,
+    sourceVideoUrl,
+    selectedImageS3Key: input.selectedImageS3Key,
+    selectedImageDataUri: input.selectedImageDataUri,
+  });
+
+  return {
+    provider: "runway-video",
+    videoClipS3Key: input.context.videoKey,
+    providerLogS3Key: input.context.rawKey,
+    promptHash: hashPrompt(input.prompt),
+    mocked: false,
+  };
+};
+
 export const generateSceneVideo = async (
   input: RunwayVideoInput,
 ): Promise<Record<string, unknown>> => {
@@ -202,45 +305,12 @@ export const generateSceneVideo = async (
 
   const context = resolveRunwayVideoContext(input, secret);
   try {
-    const submitted = await submitRunwayGeneration({
-      endpoint: context.endpoint,
-      headers: context.headers,
-      model: context.model,
+    return await completeRunwayVideo({
+      context,
       prompt: input.prompt,
-      imageField: context.imageField,
-      selectedImageDataUri: input.selectedImageDataUri,
-    });
-    const generationId = getGenerationId(submitted);
-    let payload: Record<string, unknown> = submitted;
-    const initialStatus = getStatus(submitted);
-
-    if (generationId && !DONE_STATUSES.has(initialStatus)) {
-      payload = await pollRunwayGeneration({
-        endpoint: context.endpoint,
-        generationId,
-        headers: context.headers,
-      });
-    }
-
-    await persistRunwayVideoResult({
-      rawKey: context.rawKey,
-      videoKey: context.videoKey,
-      submitted,
-      payload,
-      endpoint: context.endpoint,
-      model: context.model,
-      imageField: context.imageField,
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
     });
-
-    return {
-      provider: "runway-video",
-      videoClipS3Key: context.videoKey,
-      providerLogS3Key: context.rawKey,
-      promptHash: hashPrompt(input.prompt),
-      mocked: false,
-    };
   } catch (error) {
     return failRunwayVideo({
       rawKey: context.rawKey,

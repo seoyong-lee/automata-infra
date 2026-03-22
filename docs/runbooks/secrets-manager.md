@@ -153,15 +153,17 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 ```json
 {
   "apiKey": "ark_...",
-  "model": "seedance-1-0-lite-250528",
-  "endpoint": "https://<exact-create-task-endpoint-from-modelark>",
-  "queryEndpoint": "https://<exact-task-status-endpoint-from-modelark>/{id}",
-  "promptField": "prompt",
-  "imageField": "image"
+  "model": "seedance-1-5-pro-251215",
+  "endpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks",
+  "queryEndpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{id}",
+  "ratio": "9:16",
+  "duration": 5,
+  "resolution": "720p",
+  "watermark": false
 }
 ```
 
-`endpoint`와 `queryEndpoint`는 BytePlus ModelArk 문서 또는 API Explorer의 실제 video task 경로를 그대로 넣어야 한다. `queryEndpoint`는 `{id}` placeholder를 지원한다.
+현재 provider는 `contents/generations/tasks` 비동기 task API를 기준으로 동작한다. 예전 `video/generations` 경로가 들어 있어도 코드에서 기본 task endpoint로 보정하지만, 시크릿도 위 값으로 맞춰 두는 것을 권장한다. `queryEndpoint`는 `{id}` placeholder를 지원한다.
 
 ### 5) ElevenLabs Voice
 
@@ -239,7 +241,7 @@ aws secretsmanager create-secret \
 ```bash
 aws secretsmanager create-secret \
   --name "automata-studio/byteplus-video" \
-  --secret-string '{"apiKey":"ark_...","model":"seedance-1-0-lite-250528","endpoint":"https://<exact-create-task-endpoint-from-modelark>","queryEndpoint":"https://<exact-task-status-endpoint-from-modelark>/{id}","promptField":"prompt","imageField":"image"}'
+  --secret-string '{"apiKey":"ark_...","model":"seedance-1-5-pro-251215","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks","queryEndpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{id}","ratio":"9:16","duration":5,"resolution":"720p","watermark":false}'
 ```
 
 ### 수정

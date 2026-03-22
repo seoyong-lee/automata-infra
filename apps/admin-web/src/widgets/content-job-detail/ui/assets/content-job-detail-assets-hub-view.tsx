@@ -45,14 +45,24 @@ export function ContentJobDetailAssetsHubView({
   const execQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
   const [imageProvider, setImageProvider] = useState<ImageGenerationProvider>('OPENAI');
   const sceneCards = useMemo(() => buildSceneAssetCards(pageData.detail), [pageData.detail]);
-  const latestFailedAssetRun = useMemo(() => {
+  const assetRunSummary = useMemo(() => {
     const items = execQuery.data ?? [];
-    const failedRuns = items
-      .filter(
-        (execution) => execution.stageType === 'ASSET_GENERATION' && execution.status === 'FAILED',
-      )
-      .sort((a, b) => new Date(b.startedAt).getTime() - new Date(a.startedAt).getTime());
-    return failedRuns[0];
+    const assetRuns = items.filter((execution) => execution.stageType === 'ASSET_GENERATION');
+    const byRecent = (a: (typeof assetRuns)[number], b: (typeof assetRuns)[number]) =>
+      new Date(b.completedAt ?? b.startedAt).getTime() -
+      new Date(a.completedAt ?? a.startedAt).getTime();
+    const latestFailed = [...assetRuns].filter((execution) => execution.status === 'FAILED').sort(byRecent)[0];
+    const latestSucceeded = [...assetRuns]
+      .filter((execution) => execution.status === 'SUCCEEDED')
+      .sort(byRecent)[0];
+    const collapseFailure =
+      Boolean(latestFailed && latestSucceeded) &&
+      new Date(latestSucceeded.completedAt ?? latestSucceeded.startedAt).getTime() >
+        new Date(latestFailed.completedAt ?? latestFailed.startedAt).getTime();
+    return {
+      latestFailed,
+      collapseFailure,
+    };
   }, [execQuery.data]);
 
   const runScoped = (input: {
@@ -103,11 +113,21 @@ export function ContentJobDetailAssetsHubView({
         approveError={pageData.approvePipelineExecutionError}
       />
 
-      {latestFailedAssetRun?.errorMessage ? (
-        <div className="rounded-lg border border-destructive/30 bg-destructive/5 p-4">
-          <div className="space-y-2">
-            <p className="text-sm font-medium text-destructive">최근 에셋 생성이 실패했습니다</p>
-            <p className="text-sm text-destructive/90">{latestFailedAssetRun.errorMessage}</p>
+      {assetRunSummary.latestFailed?.errorMessage ? (
+        <details
+          open={!assetRunSummary.collapseFailure}
+          className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+        >
+          <summary className="cursor-pointer list-none text-sm font-medium text-destructive">
+            최근 에셋 생성 실패 메시지
+            {assetRunSummary.collapseFailure ? (
+              <span className="ml-2 text-xs font-normal text-muted-foreground">
+                마지막 성공 이후 접힘
+              </span>
+            ) : null}
+          </summary>
+          <div className="mt-3 space-y-2">
+            <p className="text-sm text-destructive/90">{assetRunSummary.latestFailed.errorMessage}</p>
             <p className="text-xs text-muted-foreground">
               자세한 실행 이력은{' '}
               <Link href={`/jobs/${jobId}/timeline`} className="underline underline-offset-4">
@@ -116,7 +136,7 @@ export function ContentJobDetailAssetsHubView({
               에서 확인할 수 있습니다.
             </p>
           </div>
-        </div>
+        </details>
       ) : null}
 
       {assetsViewMode === 'scenes' ? (
