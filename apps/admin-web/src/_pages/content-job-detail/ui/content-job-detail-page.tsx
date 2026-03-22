@@ -6,21 +6,22 @@ import { Suspense, useEffect } from 'react';
 
 import {
   ContentJobDetailBreadcrumb,
-  ContentJobDetailNestedTabs,
+  ContentJobReadinessChecklist,
   ContentJobDetailViewContent,
   ContentJobDetailWorkHeader,
+  ContentJobWorkflowBar,
   getJobDetailLegacyRedirect,
-  jobDetailRouteTabs,
   parseAssetStage,
   parseAssetsViewMode,
   parseJobDetailRouteTabParam,
   type JobDetailRouteTabKey,
   useContentJobDetailPageData,
+  useContentJobDetailWorkflowLayout,
   useJobDetailWorkState,
 } from '@/widgets/content-job-detail';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
-// eslint-disable-next-line complexity -- 라우트 동기화·로딩·탭·본문 한 화면에 묶음
+// eslint-disable-next-line complexity, max-lines-per-function -- 라우트 동기화·워크플로·본문 한 화면
 function ContentJobDetailPageBody() {
   const params = useParams<{
     jobId: string | string[] | undefined;
@@ -36,7 +37,6 @@ function ContentJobDetailPageBody() {
   const assetsViewMode = parseAssetsViewMode(searchParams);
   const parsedTab = parseJobDetailRouteTabParam(stepParam);
   const activeTab: JobDetailRouteTabKey = parsedTab ?? 'overview';
-
   useEffect(() => {
     if (!jobId) {
       return;
@@ -57,41 +57,40 @@ function ContentJobDetailPageBody() {
 
   const pageData = useContentJobDetailPageData(jobId);
   const { workActionResolution, dispatchWorkAction } = useJobDetailWorkState(jobId, pageData);
-  const jobTitle = pageData.detail?.job.videoTitle?.trim();
-  const pageTitle = jobTitle ? jobTitle : '제작 아이템';
-  const tabDescription = jobDetailRouteTabs.find((t) => t.key === activeTab)?.description;
-
+  const { workflowStages, readinessChips } = useContentJobDetailWorkflowLayout(
+    jobId,
+    activeTab,
+    pageData,
+  );
   return (
     <div className="space-y-8">
       <div className="space-y-3">
         <AdminPageHeader
           backHref={pageData.detailVm.contentLineHref}
           eyebrow={<ContentJobDetailBreadcrumb detail={pageData.detail} />}
-          title={pageTitle}
-          subtitle={
-            tabDescription ?? '상단에서 상태와 다음 작업을 확인하고, 탭으로 세부 단계를 다룹니다.'
-          }
+          title={pageData.detail?.job.videoTitle?.trim() || '제작 아이템'}
+          subtitle="상단 워크플로에서 전체 단계를 보고, 준비 상태 칩으로 막힌 이유를 확인한 뒤 하단에서 작업합니다."
         />
       </div>
-
-      {pageData.detailQuery.isLoading ? null : (
-        <ContentJobDetailWorkHeader
-          jobId={jobId}
-          detail={pageData.detail}
-          resolution={workActionResolution}
-          onAction={dispatchWorkAction}
-        />
-      )}
-
-      <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} />
-
+      {!pageData.detailQuery.isLoading ? (
+        <>
+          <ContentJobDetailWorkHeader
+            jobId={jobId}
+            detail={pageData.detail}
+            resolution={workActionResolution}
+            onAction={dispatchWorkAction}
+          />
+          <div className="sticky top-0 z-20 space-y-3 border-b border-border bg-background/95 py-3 backdrop-blur supports-backdrop-filter:bg-background/80">
+            <ContentJobWorkflowBar stages={workflowStages} />
+            <ContentJobReadinessChecklist chips={readinessChips} />
+          </div>
+        </>
+      ) : null}
       {pageData.detailQuery.isLoading ? (
         <p className="text-sm text-muted-foreground">제작 아이템 초안을 불러오는 중…</p>
-      ) : null}
-      {pageData.detailQuery.error ? (
+      ) : pageData.detailQuery.error ? (
         <p className="text-sm text-destructive">{getErrorMessage(pageData.detailQuery.error)}</p>
       ) : null}
-
       <ContentJobDetailViewContent
         jobId={jobId}
         activeTab={activeTab}

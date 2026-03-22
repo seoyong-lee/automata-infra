@@ -1,6 +1,9 @@
 export * from './model';
 export * from './model/useContentJobDetailPageData';
 export { useJobDetailWorkState } from './model/useJobDetailWorkState';
+export { useContentJobPublishHash } from './model/useContentJobPublishHash';
+export { useContentJobDetailWorkflowLayout } from './model/useContentJobDetailWorkflowLayout';
+export * from './lib/content-job-workflow';
 export { dispatchJobWorkAction } from './lib/job-work-action-dispatch';
 export { resolveJobWorkAction } from './lib/resolve-job-work-action';
 export type { JobWorkPrimaryAction } from './lib/resolve-job-work-action';
@@ -16,4 +19,6 @@ export * from './ui/publish/content-job-detail-render-review-view';
 export * from './ui/shared/content-job-detail-templates-view';
 export * from './ui/publish/content-job-detail-shipping-prep-view';
 export * from './ui/shell/content-job-detail-nested-tabs';
+export * from './ui/shell/content-job-workflow-bar';
+export * from './ui/shell/content-job-readiness-checklist';
 export * from './ui/shell/content-job-detail-view-content';

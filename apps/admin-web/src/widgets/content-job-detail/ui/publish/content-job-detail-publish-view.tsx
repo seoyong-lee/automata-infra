@@ -14,7 +14,7 @@ type ContentJobDetailPublishViewProps = {
 export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetailPublishViewProps) {
   return (
     <div className="space-y-10">
-      <section className="space-y-3">
+      <section id="cj-publish-review" className="scroll-mt-28 space-y-3">
         <h2 className="text-lg font-semibold">렌더·검수</h2>
         <ContentJobDetailRenderReviewView
           detail={pageData.detail}
@@ -22,13 +22,16 @@ export function ContentJobDetailPublishView({ jobId, pageData }: ContentJobDetai
           readyAssetCount={pageData.detailVm.readyAssetCount}
         />
       </section>
-      <section className="space-y-6">
-        <h2 className="text-lg font-semibold">출고 준비</h2>
+      <section id="cj-publish-draft" className="scroll-mt-28 space-y-6">
+        <h2 className="text-lg font-semibold">발행 문구</h2>
         <ContentPublishDraftSection
           jobId={jobId}
           contentId={pageData.detail?.job.contentId}
           fallbackTitle={pageData.detail?.job.videoTitle?.trim() ?? ''}
         />
+      </section>
+      <section id="cj-publish-queue" className="scroll-mt-28 space-y-6">
+        <h2 className="text-lg font-semibold">출고 대기</h2>
         <ContentJobDetailShippingPrepView
           detail={pageData.detail}
           contentId={pageData.detail?.job.contentId}
