@@ -38,7 +38,7 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
 
   return (
     <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm">
-      <h2 className="text-sm font-semibold tracking-tight">자동 발굴 후보</h2>
+      <h2 className="text-sm font-semibold tracking-tight">추천 후보</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         에이전트가 제안한 소재 후보입니다. 채택 시 소재(SourceItem)로 승격됩니다.
       </p>

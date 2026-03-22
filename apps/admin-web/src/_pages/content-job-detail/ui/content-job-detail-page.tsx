@@ -6,18 +6,20 @@ import { Suspense, useEffect } from 'react';
 
 import {
   ContentJobDetailBreadcrumb,
-  ContentJobDetailHeaderActions,
   ContentJobDetailNestedTabs,
   ContentJobDetailViewContent,
+  ContentJobDetailWorkHeader,
   getJobDetailLegacyRedirect,
   jobDetailRouteTabs,
   parseAssetStage,
   parseJobDetailRouteTabParam,
   type JobDetailRouteTabKey,
   useContentJobDetailPageData,
+  useJobDetailWorkState,
 } from '@/widgets/content-job-detail';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
+// eslint-disable-next-line complexity -- 라우트 동기화·로딩·탭·본문 한 화면에 묶음
 function ContentJobDetailPageBody() {
   const params = useParams<{
     jobId: string | string[] | undefined;
@@ -52,6 +54,7 @@ function ContentJobDetailPageBody() {
   }, [jobId, router, stepParam]);
 
   const pageData = useContentJobDetailPageData(jobId);
+  const { workActionResolution, dispatchWorkAction } = useJobDetailWorkState(jobId, pageData);
   const jobTitle = pageData.detail?.job.videoTitle?.trim();
   const pageTitle = jobTitle ? jobTitle : '제작 아이템';
   const tabDescription = jobDetailRouteTabs.find((t) => t.key === activeTab)?.description;
@@ -64,17 +67,19 @@ function ContentJobDetailPageBody() {
           eyebrow={<ContentJobDetailBreadcrumb detail={pageData.detail} />}
           title={pageTitle}
           subtitle={
-            tabDescription ??
-            '채널·제작 아이템·실행 이력을 분리해, 후보 생성과 채택·재실행 흐름을 맞춥니다.'
-          }
-          actions={
-            <ContentJobDetailHeaderActions
-              detail={pageData.detail}
-              newJobHref={pageData.detailVm.newJobHref}
-            />
+            tabDescription ?? '상단에서 상태와 다음 작업을 확인하고, 탭으로 세부 단계를 다룹니다.'
           }
         />
       </div>
+
+      {pageData.detailQuery.isLoading ? null : (
+        <ContentJobDetailWorkHeader
+          jobId={jobId}
+          detail={pageData.detail}
+          resolution={workActionResolution}
+          onAction={dispatchWorkAction}
+        />
+      )}
 
       <ContentJobDetailNestedTabs jobId={jobId} activeTab={activeTab} />
 
@@ -90,6 +95,9 @@ function ContentJobDetailPageBody() {
         activeTab={activeTab}
         assetStage={assetStage}
         pageData={pageData}
+        workActionResolution={workActionResolution}
+        onWorkAction={dispatchWorkAction}
+        sameLineNewJobHref={pageData.detailVm.newJobHref}
       />
     </div>
   );

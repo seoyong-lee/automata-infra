@@ -14,7 +14,6 @@ import {
 } from '../lib/saved-sources-aggregate';
 
 /** 채널별 소재 쿼리 병합 + 검색·상태 필터. */
-// eslint-disable-next-line max-lines-per-function -- query merge + filter state
 export function useSavedSourcesModel(channelFilter: string) {
   const [search, setSearch] = useState('');
   const [statusFilter, setStatusFilter] = useState('');

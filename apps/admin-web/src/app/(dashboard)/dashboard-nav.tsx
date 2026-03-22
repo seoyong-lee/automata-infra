@@ -106,7 +106,7 @@ export function DashboardSidebar() {
               )}
             >
               <Compass className="size-4 shrink-0" />
-              <span className="truncate">소재 발굴</span>
+              <span className="truncate">소재 찾기</span>
             </Link>
 
             <Link
@@ -191,7 +191,7 @@ export function DashboardMobileBar() {
           채널
         </Link>
         <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
-          발굴
+          소재
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
           설정

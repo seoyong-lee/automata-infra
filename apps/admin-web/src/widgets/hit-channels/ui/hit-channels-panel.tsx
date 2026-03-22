@@ -56,7 +56,7 @@ export function HitChannelsPanel({ channelId }: Props) {
 
   return (
     <section className="rounded-lg border border-border/80 bg-card p-4 shadow-sm">
-      <h2 className="text-sm font-semibold tracking-tight">히트 채널 · 워치리스트</h2>
+      <h2 className="text-sm font-semibold tracking-tight">관심 채널</h2>
       <p className="mt-1 text-xs text-muted-foreground">
         외부 YouTube 채널 ID를 찾아 추가하면 이 운영 라인 기준으로 추적·스냅샷합니다. 목록은 전역
         탐색 자산이며, 여기서는 선택한 라인과의 관심 관계로 저장됩니다. 스냅샷은 배치

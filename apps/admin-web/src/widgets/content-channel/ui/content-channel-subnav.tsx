@@ -17,7 +17,7 @@ export function ContentChannelSubnav({ contentId }: ContentChannelSubnavProps) {
     { href: `${base}/connections`, label: '매체 연결', prefix: `${base}/connections` },
   ];
 
-  const discoveryHref = `/discovery?channel=${encodeURIComponent(contentId)}`;
+  const discoveryHref = `/discovery?channel=${encodeURIComponent(contentId)}&tab=shortlist`;
 
   return (
     <div className="flex flex-col gap-2 border-b border-border pb-3 sm:flex-row sm:items-center sm:justify-between">
@@ -43,7 +43,7 @@ export function ContentChannelSubnav({ contentId }: ContentChannelSubnavProps) {
         href={discoveryHref}
         className="shrink-0 rounded-md px-3 py-1.5 text-sm text-muted-foreground hover:bg-accent/50 hover:text-foreground"
       >
-        소재 발굴 →
+        소재 찾기 →
       </Link>
     </div>
   );

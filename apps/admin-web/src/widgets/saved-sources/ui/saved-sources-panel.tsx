@@ -36,7 +36,7 @@ export function SavedSourcesPanel({ channelFilter, onCreateClick }: Props) {
       {!model.loading && model.filtered.length === 0 ? (
         <p className="text-sm text-muted-foreground">
           {model.merged.length === 0
-            ? '등록된 소재가 없습니다. 위에서 새 소재를 만들거나, 자동 발굴 후보에서 승격해 보세요.'
+            ? '등록된 소재가 없습니다. 위에서 새 소재를 만들거나, 추천 후보에서 승격해 보세요.'
             : '필터에 맞는 소재가 없습니다.'}
         </p>
       ) : null}

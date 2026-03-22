@@ -52,23 +52,7 @@ function JobsHubPageBody() {
     <div className="space-y-8">
       <AdminPageHeader
         title="전체 제작 아이템"
-        subtitle="미연결 항목을 포함한 전역 작업함입니다. 채널에 붙은 작업은 어떤 라인에 속하는지 표시됩니다. 한 번 연결된 뒤에는 다른 채널로 옮길 수 없습니다(재연결·중복 연결 불가)."
-        actions={
-          <div className="flex flex-wrap gap-2">
-            <Link
-              href="/jobs/new"
-              className="inline-flex h-8 items-center justify-center rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80"
-            >
-              새 제작 아이템
-            </Link>
-            <Link
-              href="/discovery?tab=sources&create=1"
-              className="inline-flex h-8 items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground"
-            >
-              새 소재 만들기
-            </Link>
-          </div>
-        }
+        subtitle="미연결 항목을 포함한 전역 작업함입니다. 채널에 붙은 작업은 어떤 라인에 속하는지 표시됩니다."
       />
 
       {linkJobId ? (
