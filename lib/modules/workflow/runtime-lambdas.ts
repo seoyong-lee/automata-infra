@@ -66,6 +66,8 @@ export const createWorkflowLambdas = (
     REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
     DEFAULT_CONTENT_ID: props.envConfig.defaultContentId,
     DEFAULT_LANGUAGE: props.envConfig.defaultLanguage,
+    BYTEPLUS_IMAGE_SECRET_ID: props.envConfig.byteplusImageSecretId ?? "",
+    BYTEPLUS_VIDEO_SECRET_ID: props.envConfig.byteplusVideoSecretId ?? "",
     RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
     OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
     ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
@@ -168,6 +170,12 @@ export const createWorkflowLambdas = (
     props.llmConfigTable.grantReadWriteData(lambdaFn);
     lambdaFn.addToRolePolicy(
       new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    lambdaFn.addToRolePolicy(
+      new iam.PolicyStatement({
         actions: [
           "bedrock:InvokeModel",
           "bedrock:InvokeModelWithResponseStream",
@@ -178,12 +186,6 @@ export const createWorkflowLambdas = (
   }
 
   props.reviewQueue.grantSendMessages(lambdas.reviewRequest);
-  lambdas.uploadWorker.addToRolePolicy(
-    new iam.PolicyStatement({
-      actions: ["secretsmanager:GetSecretValue"],
-      resources: ["*"],
-    }),
-  );
 
   return lambdas;
 };

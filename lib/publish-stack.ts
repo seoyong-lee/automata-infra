@@ -64,6 +64,8 @@ export class PublishStack extends Stack {
       JOBS_TABLE_NAME: props.jobsTable.tableName,
       CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
       REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
+      BYTEPLUS_IMAGE_SECRET_ID: props.envConfig.byteplusImageSecretId ?? "",
+      BYTEPLUS_VIDEO_SECRET_ID: props.envConfig.byteplusVideoSecretId ?? "",
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,

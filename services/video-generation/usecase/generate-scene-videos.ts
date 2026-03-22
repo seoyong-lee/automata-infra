@@ -1,8 +1,20 @@
-import { generateSceneVideo } from "../../shared/lib/providers/media/runway-video";
+import {
+  generateSceneBytePlusVideo,
+  generateSceneVideo,
+} from "../../shared/lib/providers/media";
 
 type VideoAsset = Record<string, unknown>;
 
 type GenerateSceneVideoFn = typeof generateSceneVideo;
+type VideoProvider = "runway" | "byteplus";
+
+const resolveSceneVideoGenerator = (
+  provider: VideoProvider | undefined,
+): GenerateSceneVideoFn => {
+  return provider === "byteplus"
+    ? generateSceneBytePlusVideo
+    : generateSceneVideo;
+};
 
 export const generateSceneVideos = async (
   input: {
@@ -12,13 +24,15 @@ export const generateSceneVideos = async (
       videoPrompt?: string;
     }>;
     secretId: string;
+    provider?: VideoProvider;
   },
   deps: {
     generateSceneVideo?: GenerateSceneVideoFn;
   } = {},
 ): Promise<VideoAsset[]> => {
   const videoAssets: VideoAsset[] = [];
-  const requestSceneVideo = deps.generateSceneVideo ?? generateSceneVideo;
+  const requestSceneVideo =
+    deps.generateSceneVideo ?? resolveSceneVideoGenerator(input.provider);
 
   for (const scene of input.scenes) {
     if (!scene.videoPrompt) {

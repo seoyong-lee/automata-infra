@@ -57,10 +57,12 @@ export const run: Handler<
   SceneJsonEvent & { imageAssets: unknown[]; status: string }
 > = async (event) => {
   const scenes = getScenes(event);
+  const bytePlusSecretId = process.env.BYTEPLUS_IMAGE_SECRET_ID?.trim();
   const imageAssets = await generateSceneImages({
     jobId: event.jobId,
     scenes,
-    secretId: process.env.OPENAI_SECRET_ID ?? "",
+    secretId: (bytePlusSecretId || process.env.OPENAI_SECRET_ID) ?? "",
+    provider: bytePlusSecretId ? "byteplus" : "openai",
   });
   await saveImageAssets({
     jobId: event.jobId,

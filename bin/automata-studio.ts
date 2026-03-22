@@ -58,6 +58,10 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.defaultContentId ?? envConfig.channelId ?? "history-en",
   defaultLanguage: envConfig.defaultLanguage ?? "en",
   enableFargateComposition: envConfig.enableFargateComposition ?? false,
+  byteplusImageSecretId:
+    envConfig.byteplusImageSecretId ?? `${projectPrefix}/byteplus-image`,
+  byteplusVideoSecretId:
+    envConfig.byteplusVideoSecretId ?? `${projectPrefix}/byteplus-video`,
   runwaySecretId: envConfig.runwaySecretId ?? `${projectPrefix}/runway`,
   openAiSecretId: envConfig.openAiSecretId ?? `${projectPrefix}/openai`,
   elevenLabsSecretId:

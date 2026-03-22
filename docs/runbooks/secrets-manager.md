@@ -7,12 +7,16 @@ Lambda/CDK에서 안전하게 참조하는 기준을 정의한다.
 
 ## 현재 코드 기준: 실제 사용 중인 시크릿
 
-아래 provider 시크릿 4개는 이미 코드에서 직접 참조 중이다.
+아래 provider 시크릿은 코드에서 직접 참조 중이거나, provider 전환용으로 지원된다.
 
 - `automata-studio/openai`
   - 소비처: `services/shared/lib/providers/media/openai-image.ts`
+- `automata-studio/byteplus-image`
+  - 소비처: `services/shared/lib/providers/media/byteplus-image.ts`
 - `automata-studio/runway`
   - 소비처: `services/shared/lib/providers/media/runway-video.ts`
+- `automata-studio/byteplus-video`
+  - 소비처: `services/shared/lib/providers/media/byteplus-video.ts`
 - `automata-studio/elevenlabs`
   - 소비처: `services/shared/lib/providers/media/elevenlabs-voice.ts`
 - `automata-studio/shotstack`
@@ -27,6 +31,7 @@ Lambda/CDK에서 안전하게 참조하는 기준을 정의한다.
 
 참조 방식:
 
+- `env/config.json`의 `byteplusImageSecretId`, `byteplusVideoSecretId`
 - `env/config.json`의 `openAiSecretId`, `runwaySecretId`, `elevenLabsSecretId`, `shotstackSecretId`
 - `env/config.json`의 `youtubeSecrets`
 - DB 또는 env의 `channelConfigs[channelId].youtubeSecretName`
@@ -131,7 +136,33 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 }
 ```
 
-### 3) ElevenLabs Voice
+### 3) BytePlus Image
+
+```json
+{
+  "apiKey": "ark_...",
+  "model": "seedream-4-0-250828",
+  "size": "1024x1024",
+  "endpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/images/generations",
+  "responseFormat": "b64_json"
+}
+```
+
+### 4) BytePlus Video
+
+```json
+{
+  "apiKey": "ark_...",
+  "model": "seedance-1-0-lite-250528",
+  "endpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/video/generations",
+  "queryEndpoint": "https://ark.ap-southeast.bytepluses.com/api/v3/video/generations/{id}",
+  "promptField": "prompt"
+}
+```
+
+`queryEndpoint`는 `{id}` placeholder를 지원한다. BytePlus 콘솔/문서의 실제 task 조회 경로가 다르면 여기를 그 경로로 맞춘다.
+
+### 5) ElevenLabs Voice
 
 ```json
 {
@@ -142,7 +173,7 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 }
 ```
 
-### 4) Shotstack
+### 6) Shotstack
 
 ```json
 {
@@ -151,7 +182,7 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 }
 ```
 
-### 5) Google OAuth (Admin)
+### 7) Google OAuth (Admin)
 
 ```json
 {
@@ -161,7 +192,7 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 }
 ```
 
-### 6) YouTube OAuth (Channel Upload)
+### 8) YouTube OAuth (Channel Upload)
 
 ```json
 {
@@ -196,6 +227,18 @@ Google 소셜 로그인을 붙일 계획이면 아래 시크릿을 추가한다.
 aws secretsmanager create-secret \
   --name "automata-studio/openai" \
   --secret-string '{"apiKey":"...","model":"gpt-image-1","size":"1024x1024"}'
+```
+
+```bash
+aws secretsmanager create-secret \
+  --name "automata-studio/byteplus-image" \
+  --secret-string '{"apiKey":"ark_...","model":"seedream-4-0-250828","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/images/generations"}'
+```
+
+```bash
+aws secretsmanager create-secret \
+  --name "automata-studio/byteplus-video" \
+  --secret-string '{"apiKey":"ark_...","model":"seedance-1-0-lite-250528","endpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/video/generations","queryEndpoint":"https://ark.ap-southeast.bytepluses.com/api/v3/video/generations/{id}"}'
 ```
 
 ### 수정
@@ -233,7 +276,8 @@ aws secretsmanager get-secret-value \
 
 ## 적용 체크리스트
 
-- [ ] 4개 생성 API 시크릿 존재 확인 (openai/runway/elevenlabs/shotstack)
+- [ ] 기본 생성 API 시크릿 존재 확인 (openai/runway/elevenlabs/shotstack)
+- [ ] BytePlus 전환 시 `byteplus-image` / `byteplus-video` 시크릿 존재 확인
 - [ ] 운영 채널별 `youtube-oauth-*` 시크릿 존재 확인
 - [ ] `env/config.json`의 secret id와 실제 Secrets Manager name 일치 확인
 - [ ] `youtubeSecrets` 또는 `channelConfigs[].youtubeSecretName` 매핑 확인

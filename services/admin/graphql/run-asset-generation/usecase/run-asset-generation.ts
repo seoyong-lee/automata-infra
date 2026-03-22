@@ -101,6 +101,7 @@ const runImageModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
 ) => {
+  const bytePlusSecretId = process.env.BYTEPLUS_IMAGE_SECRET_ID?.trim();
   const imageScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     imagePrompt: scene.imagePrompt,
@@ -108,7 +109,8 @@ const runImageModalityForScenes = async (
   const imageAssets = await generateSceneImages({
     jobId,
     scenes: imageScenes,
-    secretId: process.env.OPENAI_SECRET_ID ?? "",
+    secretId: (bytePlusSecretId || process.env.OPENAI_SECRET_ID) ?? "",
+    provider: bytePlusSecretId ? "byteplus" : "openai",
   });
   await saveImageAssets({
     jobId,
@@ -122,6 +124,7 @@ const runVideoModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
 ) => {
+  const bytePlusSecretId = process.env.BYTEPLUS_VIDEO_SECRET_ID?.trim();
   const videoScenes = scenes.map((scene) => ({
     sceneId: scene.sceneId,
     videoPrompt: scene.videoPrompt,
@@ -129,7 +132,8 @@ const runVideoModalityForScenes = async (
   const videoAssets = await generateSceneVideos({
     jobId,
     scenes: videoScenes,
-    secretId: process.env.RUNWAY_SECRET_ID ?? "",
+    secretId: (bytePlusSecretId || process.env.RUNWAY_SECRET_ID) ?? "",
+    provider: bytePlusSecretId ? "byteplus" : "runway",
   });
   await saveVideoAssets({
     jobId,

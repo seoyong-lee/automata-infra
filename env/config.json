@@ -17,6 +17,8 @@
   "defaultContentId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": false,
+  "byteplusImageSecretId": "automata-studio/byteplus-image",
+  "byteplusVideoSecretId": "automata-studio/byteplus-video",
   "runwaySecretId": "automata-studio/runway",
   "openAiSecretId": "automata-studio/openai",
   "elevenLabsSecretId": "automata-studio/elevenlabs",

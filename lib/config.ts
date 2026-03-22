@@ -14,6 +14,8 @@ export type VideoFactoryEnvConfig = {
   channelId?: string;
   defaultLanguage: string;
   enableFargateComposition: boolean;
+  byteplusImageSecretId?: string;
+  byteplusVideoSecretId?: string;
   runwaySecretId: string;
   openAiSecretId: string;
   elevenLabsSecretId: string;

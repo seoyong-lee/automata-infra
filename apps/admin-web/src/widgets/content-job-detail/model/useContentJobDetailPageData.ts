@@ -1,4 +1,5 @@
-import type { AssetGenerationModality } from '@packages/graphql';
+import type { AssetGenerationModality, PipelineExecution } from '@packages/graphql';
+import { useJobExecutionsQuery } from '@packages/graphql';
 import { useQueryClient, type UseQueryResult } from '@tanstack/react-query';
 import { useMemo } from 'react';
 import { useContentJobDraft } from '@/entities/content-job';
@@ -9,12 +10,44 @@ import { buildContentJobDetailViewModel } from './view-model';
 
 type ContentJobDetailMutations = ReturnType<typeof useContentJobDetailMutations>;
 
-function buildPendingState(mutations: ContentJobDetailMutations) {
+const DETAIL_POLL_ACTIVE_STATUSES = new Set([
+  'PLANNING',
+  'SCENE_JSON_BUILDING',
+  'ASSET_GENERATING',
+  'VALIDATING',
+]);
+
+const ACTIVE_EXECUTION_STATUSES = new Set(['QUEUED', 'RUNNING']);
+
+function shouldPollDetail(detail: JobDraftDetail | null | undefined) {
+  const status = detail?.job.status;
+  return typeof status === 'string' && DETAIL_POLL_ACTIVE_STATUSES.has(status);
+}
+
+function hasActiveStageExecution(
+  executions: PipelineExecution[] | undefined,
+  stageType: PipelineExecution['stageType'],
+) {
+  return (
+    executions?.some(
+      (execution) =>
+        execution.stageType === stageType && ACTIVE_EXECUTION_STATUSES.has(execution.status),
+    ) ?? false
+  );
+}
+
+function buildPendingState(
+  mutations: ContentJobDetailMutations,
+  detail: JobDraftDetail | undefined,
+  executions: PipelineExecution[] | undefined,
+) {
+  const status = detail?.job.status;
+  const assetExecutionRunning = hasActiveStageExecution(executions, 'ASSET_GENERATION');
   return {
-    isRunningAssetGeneration: mutations.runAssetGeneration.isPending,
+    isRunningAssetGeneration: mutations.runAssetGeneration.isPending || assetExecutionRunning,
     isRunningFinalComposition: mutations.runFinalComposition.isPending,
-    isRunningSceneJson: mutations.runSceneJson.isPending,
-    isRunningTopicPlan: mutations.runTopicPlan.isPending,
+    isRunningSceneJson: mutations.runSceneJson.isPending || status === 'SCENE_JSON_BUILDING',
+    isRunningTopicPlan: mutations.runTopicPlan.isPending || status === 'PLANNING',
     isSavingSceneJson: mutations.updateSceneJson.isPending,
     isSavingTopicSeed: mutations.updateTopicSeed.isPending,
     isApprovingPipelineExecution: mutations.approvePipelineExecution.isPending,
@@ -70,25 +103,58 @@ function buildContentJobDetailPageSnapshot(
   detailQuery: UseQueryResult<JobDraftDetail | null, Error>,
   detailVm: ContentJobDetailViewModel,
   mutations: ContentJobDetailMutations,
+  executions: PipelineExecution[] | undefined,
 ) {
   return {
     detail,
     detailQuery,
     detailVm,
-    ...buildPendingState(mutations),
+    ...buildPendingState(mutations, detail, executions),
     ...buildPageHandlers(jobId, mutations),
   };
 }
 
 export const useContentJobDetailPageData = (jobId: string) => {
   const queryClient = useQueryClient();
-  const detailQuery = useContentJobDraft({ jobId }, { enabled: Boolean(jobId) });
+  const detailQuery = useContentJobDraft(
+    { jobId },
+    {
+      enabled: Boolean(jobId),
+      refetchInterval: (query) =>
+        shouldPollDetail((query.state.data as JobDraftDetail | null | undefined) ?? undefined)
+          ? 3000
+          : false,
+      refetchIntervalInBackground: true,
+    },
+  );
   const detail = detailQuery.data ?? undefined;
+  const executionsQuery = useJobExecutionsQuery(
+    { jobId },
+    {
+      enabled: Boolean(jobId),
+      refetchInterval: (query) =>
+        hasActiveStageExecution(
+          (query.state.data as PipelineExecution[] | undefined) ?? undefined,
+          'ASSET_GENERATION',
+        )
+          ? 3000
+          : false,
+      refetchIntervalInBackground: true,
+    },
+  );
+  const executions = executionsQuery.data ?? undefined;
   const detailVm = useMemo(() => buildContentJobDetailViewModel(detail), [detail]);
   const refresh = createContentJobDetailRefresh(queryClient, jobId);
   const mutations = useContentJobDetailMutations(jobId, refresh);
 
-  return buildContentJobDetailPageSnapshot(jobId, detail, detailQuery, detailVm, mutations);
+  return buildContentJobDetailPageSnapshot(
+    jobId,
+    detail,
+    detailQuery,
+    detailVm,
+    mutations,
+    executions,
+  );
 };
 
 export type ContentJobDetailPageData = ReturnType<typeof useContentJobDetailPageData>;

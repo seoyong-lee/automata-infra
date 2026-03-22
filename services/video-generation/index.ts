@@ -57,10 +57,12 @@ export const run: Handler<
   SceneJsonEvent & { videoAssets: unknown[] }
 > = async (event) => {
   const scenes = getScenes(event);
+  const bytePlusSecretId = process.env.BYTEPLUS_VIDEO_SECRET_ID?.trim();
   const videoAssets = await generateSceneVideos({
     jobId: event.jobId,
     scenes,
-    secretId: process.env.RUNWAY_SECRET_ID ?? "",
+    secretId: (bytePlusSecretId || process.env.RUNWAY_SECRET_ID) ?? "",
+    provider: bytePlusSecretId ? "byteplus" : "runway",
   });
   await saveVideoAssets({
     jobId: event.jobId,
