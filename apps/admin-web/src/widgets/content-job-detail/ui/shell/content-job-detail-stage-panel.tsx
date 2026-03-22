@@ -2,11 +2,7 @@
 
 import type { ReactNode } from 'react';
 
-import type {
-  ReadinessChip,
-  WorkflowNavItem,
-  WorkflowStageMeta,
-} from '../../lib/content-job-workflow';
+import type { WorkflowNavItem, WorkflowStageMeta } from '../../lib/content-job-workflow';
 import { ContentJobDetailStagePanelHeader } from './content-job-detail-stage-panel-header';
 import { ContentJobDetailStagePanelSidebar } from './content-job-detail-stage-panel-sidebar';
 
@@ -15,7 +11,6 @@ type ContentJobDetailStagePanelProps = {
   currentStageMeta: WorkflowStageMeta | null;
   nextStage: WorkflowNavItem | null;
   nextStageMeta: WorkflowStageMeta | null;
-  readinessChips: ReadinessChip[];
   children: ReactNode;
 };
 
@@ -24,7 +19,6 @@ export function ContentJobDetailStagePanel({
   currentStageMeta,
   nextStage,
   nextStageMeta,
-  readinessChips,
   children,
 }: ContentJobDetailStagePanelProps) {
   return (
@@ -41,7 +35,6 @@ export function ContentJobDetailStagePanel({
           currentStageMeta={currentStageMeta}
           nextStage={nextStage}
           nextStageMeta={nextStageMeta}
-          readinessChips={readinessChips}
         />
       </div>
     </section>

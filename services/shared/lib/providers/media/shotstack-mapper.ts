@@ -15,6 +15,14 @@ const buildAssetUrl = (s3Key?: unknown): string | undefined => {
   return `https://${domain}/${path}`;
 };
 
+const DEFAULT_SOUNDTRACK_BY_MOOD: Record<string, string> = {
+  dark_ambient:
+    "https://s3-ap-southeast-2.amazonaws.com/shotstack-assets/music/moment.mp3",
+  mystery:
+    "https://s3-ap-southeast-2.amazonaws.com/shotstack-assets/music/moment.mp3",
+  calm: "https://s3-ap-southeast-2.amazonaws.com/shotstack-assets/music/moment.mp3",
+};
+
 type RenderPlanScene = {
   sceneId: number;
   startSec: number;
@@ -23,12 +31,22 @@ type RenderPlanScene = {
   videoClipS3Key?: string;
   voiceS3Key?: string;
   subtitle?: string;
+  bgmMood?: string;
+  sfx?: string[];
 };
 
 type RenderPlan = {
   videoTitle?: string;
   language?: string;
   totalDurationSec: number;
+  soundtrackMood?: string;
+  soundtrackSrc?: string;
+  output?: {
+    width?: number;
+    height?: number;
+    format?: string;
+    fps?: number;
+  };
   scenes: RenderPlanScene[];
 };
 
@@ -50,17 +68,31 @@ const buildVisualAsset = (scene: RenderPlanScene) => {
   }
 
   return {
-    type: "title",
+    type: "text",
     text: "Missing visual asset",
-    style: "minimal",
+    font: {
+      family: "Montserrat ExtraBold",
+      color: "#ffffff",
+      size: 32,
+    },
+    alignment: {
+      horizontal: "center",
+    },
   };
 };
 
 const buildTextAsset = (scene: RenderPlanScene) => {
   return {
-    type: "title",
+    type: "text",
     text: scene.subtitle ?? "",
-    style: "minimal",
+    font: {
+      family: "Montserrat SemiBold",
+      color: "#ffffff",
+      size: 26,
+    },
+    alignment: {
+      horizontal: "center",
+    },
   };
 };
 
@@ -79,10 +111,26 @@ const buildAudioAsset = (scene: RenderPlanScene) => {
   };
 };
 
+const resolveSoundtrackSrc = (renderPlan: RenderPlan): string | undefined => {
+  if (
+    typeof renderPlan.soundtrackSrc === "string" &&
+    renderPlan.soundtrackSrc.trim().length > 0
+  ) {
+    return renderPlan.soundtrackSrc;
+  }
+  const envDefault = process.env.DEFAULT_SHOTSTACK_SOUNDTRACK_URL?.trim();
+  if (envDefault) {
+    return envDefault;
+  }
+  const mood = renderPlan.soundtrackMood?.trim().toLowerCase();
+  return mood ? DEFAULT_SOUNDTRACK_BY_MOOD[mood] : undefined;
+};
+
 export const mapRenderPlanToShotstackEdit = (
   renderPlan: Record<string, unknown>,
 ): Record<string, unknown> => {
   const parsed = renderPlan as RenderPlan;
+  const soundtrackSrc = resolveSoundtrackSrc(parsed);
   const tracks = [
     {
       clips: parsed.scenes.map((scene) => ({
@@ -90,6 +138,10 @@ export const mapRenderPlanToShotstackEdit = (
         start: scene.startSec,
         length: Math.max(0.1, scene.endSec - scene.startSec),
         fit: "cover",
+        transition: {
+          in: "fade",
+          out: "fade",
+        },
       })),
     },
     {
@@ -99,9 +151,13 @@ export const mapRenderPlanToShotstackEdit = (
           asset: buildTextAsset(scene),
           start: scene.startSec,
           length: Math.max(0.1, scene.endSec - scene.startSec),
-          position: "center",
+          transition: {
+            in: "fade",
+            out: "fade",
+          },
+          position: "bottom",
           offset: {
-            y: 0.35,
+            y: 0.1,
           },
         })),
     },
@@ -115,21 +171,23 @@ export const mapRenderPlanToShotstackEdit = (
   return {
     timeline: {
       background: "#000000",
+      ...(soundtrackSrc
+        ? {
+            soundtrack: {
+              src: soundtrackSrc,
+              effect: "fadeOut",
+            },
+          }
+        : {}),
       tracks,
     },
     output: {
-      format: "mp4",
-      fps: 30,
+      format: parsed.output?.format ?? "mp4",
+      fps: parsed.output?.fps ?? 30,
       size: {
-        width: 1080,
-        height: 1920,
+        width: parsed.output?.width ?? 1080,
+        height: parsed.output?.height ?? 1920,
       },
     },
-    merge: [
-      {
-        find: "TITLE",
-        replace: parsed.videoTitle ?? "Untitled",
-      },
-    ],
   };
 };

@@ -12,6 +12,7 @@ type ContentJobDetailMutations = ReturnType<typeof useContentJobDetailMutations>
 function buildPendingState(mutations: ContentJobDetailMutations) {
   return {
     isRunningAssetGeneration: mutations.runAssetGeneration.isPending,
+    isRunningFinalComposition: mutations.runFinalComposition.isPending,
     isRunningSceneJson: mutations.runSceneJson.isPending,
     isRunningTopicPlan: mutations.runTopicPlan.isPending,
     isSavingSceneJson: mutations.updateSceneJson.isPending,
@@ -32,6 +33,8 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
     runAssetGeneration: (opts?: { targetSceneId?: number; modality?: AssetGenerationModality }) =>
       mutations.runAssetGeneration.mutate({ jobId, ...opts }),
     runAssetGenerationError: mutations.runAssetGeneration.error,
+    runFinalComposition: () => mutations.runFinalComposition.mutate({ jobId }),
+    runFinalCompositionError: mutations.runFinalComposition.error,
     runSceneJson: () => mutations.runSceneJson.mutate({ jobId }),
     runSceneJsonError: mutations.runSceneJson.error,
     runTopicPlan: () => mutations.runTopicPlan.mutate({ jobId }),

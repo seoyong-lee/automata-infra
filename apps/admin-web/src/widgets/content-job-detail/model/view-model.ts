@@ -12,10 +12,12 @@ export {
   detailWorkspaceTabKeys,
   detailWorkspaceTabs,
   getJobDetailLegacyRedirect,
+  jobDetailModeKeys,
   jobDetailRouteTabKeys,
   jobDetailRouteTabs,
   parseAssetStage,
   parseAssetsViewMode,
+  parseJobDetailModeParam,
   parseDetailWorkspaceTabParam,
   parseJobDetailRouteTabParam,
 } from '../lib/detail-workspace-tabs';
@@ -32,6 +34,7 @@ export type {
 export type {
   AssetStage,
   DetailWorkspaceTabKey,
+  JobDetailModeKey,
   JobDetailRouteTabKey,
 } from '../lib/detail-workspace-tabs';
 

@@ -27,10 +27,8 @@ export function ContentJobDetailOverviewNextActionCard({
   return (
     <Card>
       <CardHeader>
-        <CardTitle>다음 액션</CardTitle>
-        <CardDescription>
-          지금 이 제작 아이템에서 우선 눌러야 할 작업입니다. 상단 작업 바와 동일한 단축 동작입니다.
-        </CardDescription>
+        <CardTitle>지금 할 일</CardTitle>
+        <CardDescription>이 화면에서 가장 먼저 눌러야 할 작업입니다.</CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
         {workActionResolution.note ? (
@@ -47,7 +45,7 @@ export function ContentJobDetailOverviewNextActionCard({
             </span>
           </span>
           <span>
-            대략 단계{' '}
+            현재 단계{' '}
             <span className="font-medium text-foreground">{PIPELINE_STAGE_LABELS[stageIdx]}</span>
           </span>
         </div>

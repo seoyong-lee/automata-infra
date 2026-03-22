@@ -6,6 +6,8 @@ import { Suspense, useEffect } from 'react';
 
 import {
   ContentJobDetailBreadcrumb,
+  ContentJobDetailIdeationStudioView,
+  ContentJobDetailModeTabs,
   ContentJobDetailStagePanel,
   ContentJobReadinessChecklist,
   ContentJobDetailViewContent,
@@ -14,6 +16,7 @@ import {
   getJobDetailLegacyRedirect,
   parseAssetStage,
   parseAssetsViewMode,
+  parseJobDetailModeParam,
   parseJobDetailRouteTabParam,
   type JobDetailRouteTabKey,
   useContentJobDetailPageData,
@@ -36,6 +39,7 @@ function ContentJobDetailPageBody() {
   const stepParam = Array.isArray(rawStep) ? rawStep[0] : rawStep;
   const assetStage = parseAssetStage(searchParams.get('stage'));
   const assetsViewMode = parseAssetsViewMode(searchParams);
+  const activeMode = parseJobDetailModeParam(searchParams.get('mode'));
   const parsedTab = parseJobDetailRouteTabParam(stepParam);
   const activeTab: JobDetailRouteTabKey = parsedTab ?? 'overview';
   useEffect(() => {
@@ -53,8 +57,12 @@ function ContentJobDetailPageBody() {
     }
     if (!stepParam || !parseJobDetailRouteTabParam(stepParam)) {
       router.replace(`/jobs/${jobId}/overview`);
+      return;
     }
-  }, [jobId, router, stepParam]);
+    if (activeMode === 'ideation' && stepParam === 'timeline') {
+      router.replace(`/jobs/${jobId}/overview?mode=ideation`);
+    }
+  }, [activeMode, jobId, router, stepParam]);
 
   const pageData = useContentJobDetailPageData(jobId);
   const { workActionResolution, dispatchWorkAction } = useJobDetailWorkState(jobId, pageData);
@@ -66,6 +74,11 @@ function ContentJobDetailPageBody() {
     nextStage,
     nextStageMeta,
   } = useContentJobDetailWorkflowLayout(jobId, activeTab, pageData);
+  const workflowHref = `/jobs/${jobId}/${activeTab}`;
+  const ideationBaseTab = activeTab === 'timeline' ? 'overview' : activeTab;
+  const ideationQuery =
+    activeTab === 'assets' && assetsViewMode === 'byKind' ? `&view=byKind&stage=${assetStage}` : '';
+  const ideationHref = `/jobs/${jobId}/${ideationBaseTab}?mode=ideation${ideationQuery}`;
   return (
     <div className="space-y-8">
       <div className="space-y-3">
@@ -73,7 +86,7 @@ function ContentJobDetailPageBody() {
           backHref={pageData.detailVm.contentLineHref}
           eyebrow={<ContentJobDetailBreadcrumb detail={pageData.detail} />}
           title={pageData.detail?.job.videoTitle?.trim() || '제작 아이템'}
-          subtitle="상단 워크플로에서 전체 단계를 보고, 준비 상태 칩으로 막힌 이유를 확인한 뒤 하단에서 작업합니다."
+          subtitle="상단에서 현재 모드와 준비 상태를 확인하고, 아래에서 바로 작업합니다."
         />
       </div>
       {!pageData.detailQuery.isLoading ? (
@@ -85,8 +98,17 @@ function ContentJobDetailPageBody() {
             onAction={dispatchWorkAction}
           />
           <div className="border-t border-border pt-5">
-            <ContentJobWorkflowBar stages={workflowStages} />
+            <ContentJobDetailModeTabs
+              activeMode={activeMode}
+              ideationHref={ideationHref}
+              workflowHref={workflowHref}
+            />
           </div>
+          {activeMode === 'workflow' ? (
+            <div className="border-t border-border pt-5">
+              <ContentJobWorkflowBar stages={workflowStages} />
+            </div>
+          ) : null}
           <div className="border-t border-border pt-4">
             <ContentJobReadinessChecklist chips={readinessChips} />
           </div>
@@ -98,24 +120,32 @@ function ContentJobDetailPageBody() {
         <p className="text-sm text-destructive">{getErrorMessage(pageData.detailQuery.error)}</p>
       ) : null}
       {!pageData.detailQuery.isLoading && !pageData.detailQuery.error ? (
-        <ContentJobDetailStagePanel
-          currentStage={currentStage}
-          currentStageMeta={currentStageMeta}
-          nextStage={nextStage}
-          nextStageMeta={nextStageMeta}
-          readinessChips={readinessChips}
-        >
-          <ContentJobDetailViewContent
+        activeMode === 'workflow' ? (
+          <ContentJobDetailStagePanel
+            currentStage={currentStage}
+            currentStageMeta={currentStageMeta}
+            nextStage={nextStage}
+            nextStageMeta={nextStageMeta}
+          >
+            <ContentJobDetailViewContent
+              jobId={jobId}
+              activeTab={activeTab}
+              assetStage={assetStage}
+              assetsViewMode={assetsViewMode}
+              pageData={pageData}
+              workActionResolution={workActionResolution}
+              onWorkAction={dispatchWorkAction}
+            />
+          </ContentJobDetailStagePanel>
+        ) : (
+          <ContentJobDetailIdeationStudioView
             jobId={jobId}
             activeTab={activeTab}
             assetStage={assetStage}
             assetsViewMode={assetsViewMode}
             pageData={pageData}
-            workActionResolution={workActionResolution}
-            onWorkAction={dispatchWorkAction}
-            sameLineNewJobHref={pageData.detailVm.newJobHref}
           />
-        </ContentJobDetailStagePanel>
+        )
       ) : null}
     </div>
   );

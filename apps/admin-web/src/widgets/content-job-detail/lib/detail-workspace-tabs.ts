@@ -9,6 +9,8 @@ export const jobDetailRouteTabKeys = [
 ] as const;
 
 export type JobDetailRouteTabKey = (typeof jobDetailRouteTabKeys)[number];
+export const jobDetailModeKeys = ['ideation', 'workflow'] as const;
+export type JobDetailModeKey = (typeof jobDetailModeKeys)[number];
 
 /** 에셋 탭 내부 서브구간 (`?stage=`). */
 export type AssetStage = 'image' | 'voice' | 'video';
@@ -66,6 +68,10 @@ export function parseJobDetailRouteTabParam(
   return jobDetailRouteTabKeys.includes(param as JobDetailRouteTabKey)
     ? (param as JobDetailRouteTabKey)
     : null;
+}
+
+export function parseJobDetailModeParam(param: string | null | undefined): JobDetailModeKey {
+  return param === 'ideation' ? 'ideation' : 'workflow';
 }
 
 /**

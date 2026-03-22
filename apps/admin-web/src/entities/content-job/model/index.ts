@@ -6,6 +6,7 @@ import {
   usePublishTargetsForJobQuery,
   useRequestUploadMutation,
   useRunAssetGenerationMutation,
+  useRunFinalCompositionMutation,
   useRunPublishOrchestrationMutation,
   useRunSceneJsonMutation,
   useRunTopicPlanMutation,
@@ -20,6 +21,7 @@ export type ContentJobDraftDetail = NonNullable<ReturnType<typeof useJobDraftQue
 export const useContentJobDraft = useJobDraftQuery;
 export const useRequestContentJobUpload = useRequestUploadMutation;
 export const useRunContentJobAssetGeneration = useRunAssetGenerationMutation;
+export const useRunContentJobFinalComposition = useRunFinalCompositionMutation;
 export const useRunContentJobSceneJson = useRunSceneJsonMutation;
 export const useRunContentJobTopicPlan = useRunTopicPlanMutation;
 export const useUpdateContentJobSceneJson = useUpdateSceneJsonMutation;

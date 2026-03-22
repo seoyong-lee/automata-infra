@@ -25,13 +25,21 @@ type ContentJobDetailAssetsHubViewProps = {
   assetStage: AssetStage;
   assetsViewMode: AssetsViewMode;
   pageData: ContentJobDetailPageData;
+  mode?: 'ideation' | 'workflow';
 };
+
+function buildAssetsHref(jobId: string, mode: 'ideation' | 'workflow', suffix = ''): string {
+  const glue = suffix.includes('?') ? '&' : '?';
+  const modeQuery = mode === 'ideation' ? `${glue}mode=ideation` : '';
+  return `/jobs/${jobId}/assets${suffix}${modeQuery}`;
+}
 
 export function ContentJobDetailAssetsHubView({
   jobId,
   assetStage,
   assetsViewMode,
   pageData,
+  mode = 'workflow',
 }: ContentJobDetailAssetsHubViewProps) {
   const tabClass =
     'inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
@@ -47,7 +55,7 @@ export function ContentJobDetailAssetsHubView({
       <div className="flex flex-wrap items-center justify-between gap-3 border-b pb-3">
         <div className="flex flex-wrap gap-2">
           <Link
-            href={`/jobs/${jobId}/assets`}
+            href={buildAssetsHref(jobId, mode)}
             scroll={false}
             className={cn(
               tabClass,
@@ -59,7 +67,7 @@ export function ContentJobDetailAssetsHubView({
             씬별 보기
           </Link>
           <Link
-            href={`/jobs/${jobId}/assets?view=byKind&stage=${assetStage}`}
+            href={buildAssetsHref(jobId, mode, `?view=byKind&stage=${assetStage}`)}
             scroll={false}
             className={cn(
               tabClass,
@@ -110,7 +118,7 @@ export function ContentJobDetailAssetsHubView({
             {stages.map(({ stage, label }) => (
               <Link
                 key={stage}
-                href={`/jobs/${jobId}/assets?view=byKind&stage=${stage}`}
+                href={buildAssetsHref(jobId, mode, `?view=byKind&stage=${stage}`)}
                 scroll={false}
                 className={cn(
                   tabClass,

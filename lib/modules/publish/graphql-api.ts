@@ -30,6 +30,7 @@ type CreatePublishGraphqlApiProps = {
   runSceneJsonResolver: lambda.IFunction;
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
+  runFinalCompositionResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
   approvePipelineExecutionResolver: lambda.IFunction;
@@ -215,6 +216,13 @@ export const createPublishGraphqlApi = (
     "runAssetGeneration",
     "Mutation",
     props.runAssetGenerationResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunFinalComposition",
+    "runFinalComposition",
+    "Mutation",
+    props.runFinalCompositionResolver,
   );
   addLambdaResolver(
     graphqlApi,

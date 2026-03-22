@@ -10,7 +10,7 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <DashboardSidebar />
 
       <section className="min-w-0 flex-1">
-        <div className="mx-auto flex w-full max-w-7xl flex-col gap-6 px-4 py-6 md:px-8">
+        <div className="mx-auto flex w-full flex-col gap-6 px-4 py-6 md:px-8">
           <DashboardMobileBar />
           {children}
         </div>

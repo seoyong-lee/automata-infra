@@ -352,6 +352,18 @@ export class PublishStack extends Stack {
       ),
       pipelineTriggerEnv,
     );
+    const runFinalCompositionResolver = createLambda(
+      this,
+      "AdminRunFinalCompositionResolverLambda",
+      path.join(
+        process.cwd(),
+        "services/admin/graphql/run-final-composition/handler.ts",
+      ),
+      {
+        ...environment,
+        SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
+      },
+    );
     const deleteJobResolver = createLambda(
       this,
       "AdminDeleteJobResolverLambda",
@@ -492,6 +504,7 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(runSceneJsonResolver);
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
+    props.jobsTable.grantReadWriteData(runFinalCompositionResolver);
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
     props.jobsTable.grantReadWriteData(approvePipelineExecutionResolver);
@@ -517,6 +530,7 @@ export class PublishStack extends Stack {
     props.assetsBucket.grantReadWrite(runSceneJsonResolver);
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(runAssetGenerationResolver);
+    props.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     props.assetsBucket.grantReadWrite(deleteJobResolver);
     props.assetsBucket.grantReadWrite(attachJobToContentResolver);
     props.llmConfigTable.grantReadData(getLlmSettingsResolver);
@@ -539,6 +553,12 @@ export class PublishStack extends Stack {
       }),
     );
     runAssetGenerationResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    runFinalCompositionResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
         resources: ["*"],
@@ -617,6 +637,7 @@ export class PublishStack extends Stack {
       runSceneJsonResolver,
       updateSceneJsonResolver,
       runAssetGenerationResolver,
+      runFinalCompositionResolver,
       deleteJobResolver,
       attachJobToContentResolver,
       approvePipelineExecutionResolver,

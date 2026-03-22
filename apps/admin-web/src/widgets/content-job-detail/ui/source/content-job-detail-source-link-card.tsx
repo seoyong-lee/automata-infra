@@ -46,8 +46,7 @@ export function ContentJobDetailSourceLinkCard({
         <CardHeader>
           <CardTitle>소재 연결</CardTitle>
           <CardDescription>
-            이 제작 아이템이 어떤 소재(Source)를 기반으로 하는지 정합니다. 새 소재는「소재
-            찾기」에서 만들고, 여기서는 저장된 소재를 고르거나 바꿉니다.
+            이 아이템이 어떤 소재를 기준으로 제작되는지 확인하고 바꿉니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -75,14 +74,14 @@ export function ContentJobDetailSourceLinkCard({
               disabled={!channelOk}
               onClick={() => setPickerOpen(true)}
             >
-              {sourceItemId ? '소재 변경…' : '소재 연결…'}
+              {sourceItemId ? '소재 변경' : '소재 연결'}
             </Button>
             {channelOk ? (
               <Link
                 href={discoveryHref}
                 className="text-sm font-medium text-primary underline-offset-4 hover:underline"
               >
-                소재 찾기에서 찾기 · 만들기
+                소재 라이브러리 열기
               </Link>
             ) : null}
           </div>

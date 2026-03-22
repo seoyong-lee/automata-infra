@@ -92,6 +92,10 @@ type Mutation {
   """
   runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
   """
+  씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
+  """
+  runFinalComposition(input: RunFinalCompositionInput!): AdminJob!
+  """
   성공한 파이프라인 실행을 해당 단계의 채택본(승인 라인)으로 기록한다. 다음 단계 자동화는 추후 이 포인터를 소비하도록 확장한다.
   """
   approvePipelineExecution(input: ApprovePipelineExecutionInput!): AdminJob!
@@ -492,6 +496,10 @@ input RunAssetGenerationInput {
   생략 또는 ALL이면 이미지→영상→음성 순 전체. IMAGE/VOICE/VIDEO는 해당 모달리티만.
   """
   modality: AssetGenerationModality
+}
+
+input RunFinalCompositionInput {
+  jobId: ID!
 }
 
 type UploadRequestResult {

@@ -788,6 +788,29 @@ const runAssetGenerationMutation = `
   }
 `;
 
+const runFinalCompositionMutation = `
+  mutation RunFinalComposition($input: RunFinalCompositionInput!) {
+    runFinalComposition(input: $input) {
+      jobId
+      status
+      updatedAt
+      contentId
+      topicId
+      language
+      targetDurationSec
+      retryCount
+      createdAt
+      videoTitle
+      sceneJsonS3Key
+      assetManifestS3Key
+      renderPlanS3Key
+      finalVideoS3Key
+      thumbnailS3Key
+      previewS3Key
+    }
+  }
+`;
+
 const approvePipelineExecutionMutation = `
   mutation ApprovePipelineExecution($input: ApprovePipelineExecutionInput!) {
     approvePipelineExecution(input: $input) {
@@ -2554,6 +2577,23 @@ export const useRunAssetGenerationMutation = (
   return useMutation({
     mutationFn: async (input) => {
       return gql<{ runAssetGeneration: AdminJob }>(runAssetGenerationMutation, {
+        input,
+      });
+    },
+    ...options,
+  });
+};
+
+export const useRunFinalCompositionMutation = (
+  options?: UseMutationOptions<
+    { runFinalComposition: AdminJob },
+    Error,
+    { jobId: string }
+  >,
+) => {
+  return useMutation({
+    mutationFn: async (input) => {
+      return gql<{ runFinalComposition: AdminJob }>(runFinalCompositionMutation, {
         input,
       });
     },

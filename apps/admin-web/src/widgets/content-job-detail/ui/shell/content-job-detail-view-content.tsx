@@ -22,7 +22,6 @@ type ContentJobDetailViewContentProps = {
   pageData: ContentJobDetailPageData;
   workActionResolution: JobWorkActionResolution;
   onWorkAction: (action: JobWorkPrimaryAction) => void;
-  sameLineNewJobHref: string;
 };
 
 export function ContentJobDetailViewContent({
@@ -33,19 +32,15 @@ export function ContentJobDetailViewContent({
   pageData,
   workActionResolution,
   onWorkAction,
-  sameLineNewJobHref,
 }: ContentJobDetailViewContentProps) {
   if (activeTab === 'overview') {
     return (
       <ContentJobDetailOverviewView
         jobId={jobId}
         detail={pageData.detail}
-        experimentOptions={pageData.detailVm.experimentOptions}
         readyAssetCount={pageData.detailVm.readyAssetCount}
-        stylePreset={pageData.detailVm.seedFormInitialValue.stylePreset}
         workActionResolution={workActionResolution}
         onWorkAction={onWorkAction}
-        sameLineNewJobHref={sameLineNewJobHref}
       />
     );
   }

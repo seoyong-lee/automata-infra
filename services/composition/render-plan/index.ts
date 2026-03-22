@@ -15,6 +15,8 @@ type RenderPlanEvent = {
       sceneId: number;
       durationSec: number;
       subtitle: string;
+      bgmMood?: string;
+      sfx?: string[];
     }>;
   };
   imageAssets?: Array<{
@@ -61,6 +63,8 @@ export const buildRenderPlanScenes = (
       videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
       subtitle: scene.subtitle,
+      bgmMood: scene.bgmMood,
+      sfx: scene.sfx,
     };
   });
 
@@ -127,6 +131,9 @@ export const run: Handler<
     language: event.sceneJson.language,
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
+    soundtrackMood:
+      event.sceneJson.scenes.find((scene) => typeof scene.bgmMood === "string" && scene.bgmMood.trim().length > 0)
+        ?.bgmMood ?? undefined,
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };
 

@@ -4,7 +4,6 @@ import { getErrorMessage } from '@packages/utils';
 import { useMemo } from 'react';
 
 import { useContentJobDraft } from '@/entities/content-job';
-import { getNewJobHref } from '../../lib/detail-links';
 import { buildContentJobDetailViewModel } from '../../model';
 import { ContentJobDetailContext } from '../shared/content-job-detail-context';
 import { ContentJobDetailLogsView } from '../shared/content-job-detail-logs-view';
@@ -40,10 +39,7 @@ export function ContentJobOperationsPanel({ jobId }: ContentJobOperationsPanelPr
       <ContentJobDetailOverviewView
         jobId={jobId}
         detail={detail}
-        experimentOptions={detailVm.experimentOptions}
         readyAssetCount={detailVm.readyAssetCount}
-        stylePreset={detailVm.seedFormInitialValue.stylePreset}
-        sameLineNewJobHref={getNewJobHref(detail)}
       />
       <ContentJobDetailTemplatesView
         compareRows={detailVm.compareRows}

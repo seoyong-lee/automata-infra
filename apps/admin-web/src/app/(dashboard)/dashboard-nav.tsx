@@ -52,20 +52,47 @@ export function DashboardSidebar() {
 
         <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-4">
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">운영</p>
+            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">제작</p>
             <Link
-              href="/"
+              href="/jobs"
               className={cn(
                 'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                pathname === '/'
+                isUnderJobsPath(pathname)
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
               )}
             >
-              <LayoutDashboard className="size-4 shrink-0" />
-              <span>대시보드</span>
+              <ClipboardList className="size-4 shrink-0" />
+              <span className="truncate">아이템</span>
             </Link>
+            <Link
+              href="/discovery"
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+                isDiscoveryPath(pathname)
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+              )}
+            >
+              <Compass className="size-4 shrink-0" />
+              <span className="truncate">소재 라이브러리</span>
+            </Link>
+            <Link
+              href="/content"
+              className={cn(
+                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
+                isUnderContentPath(pathname)
+                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
+                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
+              )}
+            >
+              <ImagePlay className="size-4 shrink-0" />
+              <span className="truncate">채널</span>
+            </Link>
+          </div>
 
+          <div className="space-y-1">
+            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">운영</p>
             <Link
               href="/reviews"
               className={cn(
@@ -78,7 +105,6 @@ export function DashboardSidebar() {
               <ListChecks className="size-4 shrink-0" />
               <span>검수함</span>
             </Link>
-
             <Link
               href="/executions"
               className={cn(
@@ -89,50 +115,19 @@ export function DashboardSidebar() {
               )}
             >
               <Activity className="size-4 shrink-0" />
-              <span className="truncate">실행 모니터링</span>
+              <span className="truncate">실행 현황</span>
             </Link>
-          </div>
-
-          <div className="space-y-1">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">제작</p>
-
             <Link
-              href="/discovery"
+              href="/"
               className={cn(
                 'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isDiscoveryPath(pathname)
+                pathname === '/'
                   ? 'bg-sidebar-accent text-sidebar-accent-foreground'
                   : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
               )}
             >
-              <Compass className="size-4 shrink-0" />
-              <span className="truncate">소재 찾기</span>
-            </Link>
-
-            <Link
-              href="/jobs"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isUnderJobsPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
-              <ClipboardList className="size-4 shrink-0" />
-              <span className="truncate">제작 아이템</span>
-            </Link>
-
-            <Link
-              href="/content"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isUnderContentPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
-              <ImagePlay className="size-4 shrink-0" />
-              <span className="truncate">채널</span>
+              <LayoutDashboard className="size-4 shrink-0" />
+              <span>대시보드</span>
             </Link>
           </div>
 
@@ -175,23 +170,23 @@ export function DashboardMobileBar() {
   return (
     <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 lg:hidden">
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-        <Link href="/" className={linkClass(pathname === '/')}>
-          대시보드
+        <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
+          아이템
+        </Link>
+        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
+          소재
+        </Link>
+        <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
+          채널
         </Link>
         <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
           검수함
         </Link>
         <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
-          실행
+          실행 현황
         </Link>
-        <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
-          제작
-        </Link>
-        <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
-          채널
-        </Link>
-        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
-          소재
+        <Link href="/" className={linkClass(pathname === '/')}>
+          대시보드
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
           설정

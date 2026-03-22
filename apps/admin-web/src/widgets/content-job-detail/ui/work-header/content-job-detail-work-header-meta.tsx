@@ -19,15 +19,16 @@ export function ContentJobDetailWorkHeaderMeta({ detail, resolution }: Props) {
   const status = job?.status ?? '—';
   const updatedAt = job?.updatedAt ? formatJobTimestamp(job.updatedAt) : '—';
   const contentId = job?.contentId;
-  const sourceItemId = job?.sourceItemId;
   const channelOk =
     Boolean(contentId) && contentId !== ADMIN_UNASSIGNED_CONTENT_ID && Boolean(contentId?.trim());
   const discoveryHref = channelOk
     ? `/discovery?tab=saved&channel=${encodeURIComponent(contentId!)}`
     : '/discovery?tab=saved';
+  const targetDuration = job?.targetDurationSec != null ? `${job.targetDurationSec}s` : '—';
+  const sourceReady = Boolean(job?.sourceItemId?.trim());
 
   return (
-    <div className="min-w-0 space-y-2">
+    <div className="min-w-0 space-y-3">
       <div className="flex flex-wrap items-center gap-2">
         <Badge variant="secondary" className="font-mono text-xs font-normal">
           {status}
@@ -35,19 +36,37 @@ export function ContentJobDetailWorkHeaderMeta({ detail, resolution }: Props) {
         <span className="text-sm text-muted-foreground">현재 단계</span>
         <span className="text-sm font-medium text-foreground">{resolution.pipelineStageLabel}</span>
       </div>
-      <p className="text-xs text-muted-foreground">
-        마지막 갱신 <span className="tabular-nums text-foreground">{updatedAt}</span>
-      </p>
-      <p className="text-xs text-muted-foreground">
-        연결 소재{' '}
-        {sourceItemId ? (
-          <Link href={discoveryHref} className="font-medium text-primary hover:underline">
-            {sourceItemId}
-          </Link>
-        ) : (
-          <span className="text-amber-700 dark:text-amber-400">미연결 · 소재 찾기에서 연결</span>
-        )}
-      </p>
+      <div className="flex flex-wrap gap-x-5 gap-y-2 text-xs text-muted-foreground">
+        <p>
+          목표 길이 <span className="font-medium text-foreground">{targetDuration}</span>
+        </p>
+        <p>
+          채널{' '}
+          {channelOk && contentId ? (
+            <Link
+              href={`/content/${encodeURIComponent(contentId)}/jobs`}
+              className="font-medium text-primary hover:underline"
+            >
+              {contentId}
+            </Link>
+          ) : (
+            <span className="text-amber-700 dark:text-amber-400">미연결</span>
+          )}
+        </p>
+        <p>
+          소재{' '}
+          {sourceReady ? (
+            <Link href={discoveryHref} className="font-medium text-primary hover:underline">
+              연결됨
+            </Link>
+          ) : (
+            <span className="text-amber-700 dark:text-amber-400">미연결</span>
+          )}
+        </p>
+        <p>
+          마지막 갱신 <span className="tabular-nums text-foreground">{updatedAt}</span>
+        </p>
+      </div>
       {resolution.note ? (
         <p className="text-sm leading-snug text-muted-foreground">{resolution.note}</p>
       ) : null}
