@@ -57,11 +57,13 @@ function DiscoveryPageBody() {
     },
     saved: {
       eyebrow: (
-        <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-admin-primary">
-          소재 탐색
-        </span>
+        <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-admin-text-muted">
+          <span>Discovery Module</span>
+          <span className="size-1 rounded-full bg-admin-outline-ghost" />
+          <span>Saved Ideas</span>
+        </div>
       ),
-      title: '소재 찾기',
+      title: '저장한 아이디어',
       subtitle:
         '저장한 아이디어를 빠르게 검색하고, 상태를 확인한 뒤 바로 제작 아이템으로 이어집니다.',
     },

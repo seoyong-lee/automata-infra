@@ -64,7 +64,7 @@ export function DashboardActionQueueSection({
   const maxValue = Math.max(reviewNeeded, activeJobs, uploadPending, failedExecutions, 1);
 
   return (
-    <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4" aria-label="System metrics">
+    <section className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4" aria-label="System metrics">
       {metrics.map((metric) => {
         const value = metricValues[metric.key];
         const percent = Math.max(8, Math.round((value / maxValue) * 100));
@@ -72,23 +72,25 @@ export function DashboardActionQueueSection({
         return (
           <article
             key={metric.key}
-            className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+            className="rounded-2xl border border-slate-100 bg-white p-4 shadow-sm transition-shadow hover:shadow-md md:rounded-xl md:p-6"
           >
-            <div className="mb-4 flex items-start justify-between">
+            <div className="mb-3 flex items-start justify-between md:mb-4">
               <div className={`rounded-lg p-2 ${metric.iconClassName}`}>
                 <Icon className="size-4" />
               </div>
-              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${metric.badgeClassName}`}>
+              <span
+                className={`rounded px-1.5 py-0.5 text-[9px] font-bold uppercase tracking-[0.12em] md:rounded-full md:px-2 md:text-[10px] ${metric.badgeClassName}`}
+              >
                 {metric.badge}
               </span>
             </div>
-            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
+            <p className="mb-1 text-[9px] font-bold uppercase tracking-[0.22em] text-slate-400 md:text-[10px] md:tracking-[0.24em]">
               {metric.label}
             </p>
-            <h3 className="font-admin-display text-4xl leading-none font-extrabold tabular-nums text-slate-900">
+            <h3 className="font-admin-display text-3xl leading-none font-extrabold tabular-nums text-slate-900 md:text-4xl">
               {metric.key === 'failed' ? String(value).padStart(2, '0') : value.toLocaleString()}
             </h3>
-            <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+            <div className="mt-3 h-1 w-full overflow-hidden rounded-full bg-slate-100 md:mt-4">
               <div className={`h-full ${metric.barClassName}`} style={{ width: `${percent}%` }} />
             </div>
           </article>

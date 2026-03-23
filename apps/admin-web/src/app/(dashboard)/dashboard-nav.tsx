@@ -11,6 +11,11 @@ import {
   ListChecks,
   ClipboardList,
   Workflow,
+  LayoutDashboard,
+  BriefcaseBusiness,
+  FileText,
+  Settings2,
+  Menu,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,6 +38,7 @@ function isDiscoveryPath(pathname: string) {
 
 export function DashboardSidebar() {
   const pathname = usePathname() ?? '/';
+  const dashboardActive = pathname === '/';
 
   const workflowItems = [
     {
@@ -108,6 +114,19 @@ export function DashboardSidebar() {
         <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              Overview
+            </p>
+            <Link href="/" className={itemClass(dashboardActive)}>
+              <span className={itemAccentClass(dashboardActive)} aria-hidden />
+              <div className="flex min-w-0 items-center gap-3">
+                <LayoutDashboard className="size-4 shrink-0" />
+                <span className="truncate tracking-wide">대시보드</span>
+              </div>
+            </Link>
+          </div>
+
+          <div className="space-y-1">
+            <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
               Workflow
             </p>
             {workflowItems.map((item) => {
@@ -173,44 +192,96 @@ export function DashboardSidebar() {
 }
 
 export function DashboardMobileBar() {
+  return (
+    <div className="sticky top-0 z-30 -mx-4 border-b border-slate-200/80 bg-slate-50/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8 lg:hidden">
+      <div className="flex items-center justify-between gap-3">
+        <div className="flex min-w-0 items-center gap-3">
+          <button
+            type="button"
+            className="flex size-9 items-center justify-center rounded-full text-admin-primary transition-colors hover:bg-slate-200/60"
+          >
+            <Menu className="size-5" />
+          </button>
+          <div className="min-w-0">
+            <p className="font-admin-display truncate text-lg font-extrabold tracking-tight text-admin-primary">
+              Automata Studio
+            </p>
+          </div>
+        </div>
+        <div className="flex items-center gap-3">
+          <p className="hidden text-sm font-semibold text-admin-primary sm:block">Admin Profile</p>
+          <button
+            type="button"
+            className="flex size-8 items-center justify-center rounded-full bg-admin-primary-container/35 text-admin-primary"
+          >
+            AU
+          </button>
+        </div>
+      </div>
+    </div>
+  );
+}
+
+export function DashboardMobileBottomNav() {
   const pathname = usePathname() ?? '/';
 
-  const linkClass = (active: boolean) =>
-    cn(
-      'rounded-md px-2 py-1 transition-colors',
-      active
-        ? 'bg-primary/10 text-primary'
-        : 'text-muted-foreground hover:bg-admin-surface-section hover:text-admin-primary',
-    );
+  const items = [
+    {
+      href: '/',
+      label: 'Overview',
+      active: pathname === '/',
+      Icon: LayoutDashboard,
+    },
+    {
+      href: '/jobs',
+      label: 'Jobs',
+      active: isUnderJobsPath(pathname),
+      Icon: BriefcaseBusiness,
+    },
+    {
+      href: '/content',
+      label: 'Content',
+      active: isUnderContentPath(pathname),
+      Icon: FileText,
+    },
+    {
+      href: '/reviews',
+      label: 'Reviews',
+      active: pathname === '/reviews' || pathname.startsWith('/reviews/'),
+      Icon: ListChecks,
+    },
+    {
+      href: '/settings',
+      label: 'Settings',
+      active: pathname === '/settings' || pathname.startsWith('/settings/'),
+      Icon: Settings2,
+    },
+  ] as const;
 
   return (
-    <div className="rounded-2xl border border-admin-outline-ghost bg-admin-topbar p-4 shadow-sm backdrop-blur lg:hidden">
-      <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-admin-primary">
-        Workflow Steps
+    <nav className="fixed bottom-0 left-0 right-0 z-40 border-t border-slate-200 bg-white px-4 pb-4 pt-2 shadow-[0_-4px_12px_rgba(0,0,0,0.04)] lg:hidden">
+      <div className="flex items-center justify-around gap-1">
+        {items.map((item) => {
+          const Icon = item.Icon;
+          return (
+            <Link
+              key={item.href}
+              href={item.href}
+              className={cn(
+                'flex min-w-0 flex-col items-center justify-center rounded-xl px-3 py-1.5 transition-all duration-200 ease-out active:scale-90',
+                item.active
+                  ? 'bg-admin-surface-section text-admin-primary'
+                  : 'text-slate-400 hover:text-admin-primary',
+              )}
+            >
+              <Icon className="size-4" />
+              <span className="mt-1 text-[10px] font-medium uppercase tracking-[0.05em]">
+                {item.label}
+              </span>
+            </Link>
+          );
+        })}
       </div>
-      <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
-          소재 탐색
-        </Link>
-        <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
-          아이템 작업
-        </Link>
-        <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
-          채널 편성
-        </Link>
-        <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
-          검수
-        </Link>
-        <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
-          실행 모니터링
-        </Link>
-        <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
-          설정
-        </Link>
-      </div>
-      <Button variant="outline" size="sm" className="mt-3" onClick={() => logout()}>
-        Logout
-      </Button>
-    </div>
+    </nav>
   );
 }

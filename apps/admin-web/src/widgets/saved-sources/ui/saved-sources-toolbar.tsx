@@ -24,22 +24,7 @@ export function SavedSourcesToolbar({
   onStatusFilterChange,
 }: Props) {
   return (
-    <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
-        <div className="min-w-0 flex-1">
-          <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-admin-primary">
-            Saved Ideas
-          </span>
-          <h2 className="mt-2 font-admin-display text-3xl font-extrabold tracking-tight text-admin-primary">
-            저장한 아이디어
-          </h2>
-          <p className="mt-2 text-sm leading-6 text-admin-text-muted">
-            채널에 귀속된 소재를 한곳에서 찾습니다. 제작 아이템 쪽에서는 저장된 소재를 고르고 연결만
-            하면 됩니다.
-          </p>
-        </div>
-      </div>
-      <div className="flex flex-col gap-3 rounded-xl bg-admin-surface-base p-4 sm:flex-row sm:items-center">
+    <div className="flex flex-col gap-3 rounded-xl bg-admin-surface-base p-4 sm:flex-row sm:items-center">
         <div className="relative flex-1">
           <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-admin-text-muted" />
           <Input
@@ -72,6 +57,5 @@ export function SavedSourcesToolbar({
           </button>
         </div>
       </div>
-    </>
   );
 }

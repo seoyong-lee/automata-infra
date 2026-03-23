@@ -1,5 +1,7 @@
 'use client';
 
+import { Cpu, Database, Gauge, Layers3 } from 'lucide-react';
+
 import type { DashboardBottlenecks } from '../lib/dashboard-model';
 
 type Props = {
@@ -11,12 +13,14 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
     {
       label: 'Scene JSON Parsing',
       value: bottlenecks.sceneJsonLongDwell,
+      Icon: Layers3,
       note:
         bottlenecks.sceneJsonLongDwell > 0 ? `+${bottlenecks.sceneJsonLongDwell} dwell` : 'stable',
     },
     {
       label: 'Asset Generation (3D Mesh)',
       value: bottlenecks.assetGenLongDwell,
+      Icon: Cpu,
       note:
         bottlenecks.assetGenLongDwell > 0 ? `+${bottlenecks.assetGenLongDwell} dwell` : 'stable',
     },
@@ -26,11 +30,13 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
         1,
         Math.round((bottlenecks.assetGenLongDwell + bottlenecks.sceneJsonLongDwell) / 2),
       ),
+      Icon: Database,
       note: 'stable',
     },
     {
       label: 'Final Composition Render',
       value: Math.max(1, bottlenecks.failedJobs),
+      Icon: Gauge,
       note: bottlenecks.failedJobs > 0 ? `+${bottlenecks.failedJobs} failed` : 'stable',
     },
   ];
@@ -41,21 +47,22 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
       className="rounded-xl border border-slate-100 bg-white shadow-sm"
       aria-labelledby="dash-bottleneck-heading"
     >
-      <div className="flex items-center justify-between border-b border-slate-50 bg-slate-50/30 px-6 py-5">
+      <div className="flex items-center justify-between px-0 py-0 md:border-b md:border-slate-50 md:bg-slate-50/30 md:px-6 md:py-5">
         <h3
           id="dash-bottleneck-heading"
-          className="text-sm font-bold uppercase tracking-[0.24em] text-slate-600"
+          className="px-0 pt-0 text-xs font-bold uppercase tracking-[0.24em] text-slate-600 md:text-sm md:px-0"
         >
           Bottleneck Analysis
         </h3>
-        <span className="rounded px-2 py-1 text-[10px] font-bold text-indigo-500 bg-indigo-50">
+        <span className="hidden rounded bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-500 md:inline-flex">
           LIVE MONITORING
         </span>
       </div>
-      <div className="p-6">
-        <div className="space-y-6">
+      <div className="mt-3 space-y-2 md:mt-0 md:p-6">
+        <div className="space-y-2 md:space-y-6">
           {rows.map((row, index) => {
             const width = Math.max(12, Math.round((row.value / maxValue) * 100));
+            const Icon = row.Icon;
             const tone =
               index === 1
                 ? 'bg-indigo-600'
@@ -72,9 +79,17 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
                   : 'text-emerald-500';
 
             return (
-              <div key={row.label}>
-                <div className="mb-2 flex justify-between text-xs">
-                  <span className="font-semibold text-slate-700">{row.label}</span>
+              <div
+                key={row.label}
+                className="rounded-xl bg-slate-50/90 p-4 md:rounded-none md:bg-transparent md:p-0"
+              >
+                <div className="mb-2 flex items-center justify-between gap-3 text-xs">
+                  <div className="flex min-w-0 items-center gap-3">
+                    <div className="flex size-10 shrink-0 items-center justify-center rounded-lg bg-indigo-50 text-indigo-600 md:hidden">
+                      <Icon className="size-4" />
+                    </div>
+                    <span className="font-semibold text-slate-700">{row.label}</span>
+                  </div>
                   <span className="tabular-nums text-slate-500">
                     {row.value === 0 ? '0ms' : `${row.value * 124}ms`}{' '}
                     <span className={`text-[10px] ${noteTone}`}>

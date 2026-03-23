@@ -86,15 +86,14 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8 pb-8">
-
-      <div className="space-y-10">
+    <div className="space-y-6 pb-4 md:space-y-8 md:pb-8">
+      <div className="space-y-6 md:space-y-10">
         <div>
-          <h2 className="font-admin-display text-3xl font-extrabold tracking-tight text-slate-900">
+          <h2 className="font-admin-display text-[2rem] font-extrabold tracking-tight text-slate-900 md:text-3xl">
             System Snapshot
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Real-time health and throughput metrics across the Automata Studio pipeline.
+            Real-time production health monitoring
           </p>
         </div>
 
@@ -116,7 +115,7 @@ export function DashboardPage() {
         <p className="text-sm text-destructive">{getErrorMessage(contentsQuery.error)}</p>
       ) : null}
 
-      <div className="grid grid-cols-12 gap-6 items-start">
+      <div className="grid grid-cols-12 gap-4 md:gap-6 items-start">
         <div className="col-span-12 space-y-6 lg:col-span-7">
           <DashboardBottlenecksSection bottlenecks={bottlenecks} />
           <DashboardResumeSection jobs={resume.recentUpdatedJobs} />
@@ -137,7 +136,7 @@ export function DashboardPage() {
 
       <Link
         href="/jobs/new"
-        className="fixed bottom-8 right-8 z-30 flex size-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xl transition-transform hover:scale-105 active:scale-95"
+        className="fixed bottom-8 right-8 z-30 hidden size-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xl transition-transform hover:scale-105 active:scale-95 md:flex"
       >
         <span className="text-2xl leading-none">+</span>
       </Link>
