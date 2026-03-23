@@ -17,8 +17,11 @@ import {
   Settings2,
   Menu,
 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
+
+import { AdminLocaleSwitcher } from '@/shared/ui/admin-locale-switcher';
 
 function isUnderContentPath(pathname: string) {
   return pathname === '/content' || pathname.startsWith('/content/');
@@ -39,39 +42,40 @@ function isDiscoveryPath(pathname: string) {
 export function DashboardSidebar() {
   const pathname = usePathname() ?? '/';
   const dashboardActive = pathname === '/';
+  const t = useTranslations('nav.sidebar');
 
   const workflowItems = [
     {
       href: '/discovery',
-      label: '소재 탐색',
+      label: t('discovery'),
       step: '01',
       icon: Compass,
       active: isDiscoveryPath(pathname),
     },
     {
       href: '/jobs',
-      label: '아이템 작업',
+      label: t('jobs'),
       step: '02',
       icon: ClipboardList,
       active: isUnderJobsPath(pathname),
     },
     {
       href: '/content',
-      label: '채널 편성',
+      label: t('content'),
       step: '03',
       icon: ImagePlay,
       active: isUnderContentPath(pathname),
     },
     {
       href: '/reviews',
-      label: '검수',
+      label: t('reviews'),
       step: '04',
       icon: ListChecks,
       active: pathname === '/reviews' || pathname.startsWith('/reviews/'),
     },
     {
       href: '/executions',
-      label: '실행 모니터링',
+      label: t('executions'),
       step: '05',
       icon: Activity,
       active: isUnderExecutionsPath(pathname),
@@ -105,7 +109,7 @@ export function DashboardSidebar() {
                 Automata Studio
               </p>
               <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-indigo-300/80">
-                Admin Console
+                {t('adminConsole')}
               </p>
             </div>
           </Link>
@@ -114,20 +118,20 @@ export function DashboardSidebar() {
         <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Overview
+              {t('overview')}
             </p>
             <Link href="/" className={itemClass(dashboardActive)}>
               <span className={itemAccentClass(dashboardActive)} aria-hidden />
               <div className="flex min-w-0 items-center gap-3">
                 <LayoutDashboard className="size-4 shrink-0" />
-                <span className="truncate tracking-wide">대시보드</span>
+                <span className="truncate tracking-wide">{t('dashboard')}</span>
               </div>
             </Link>
           </div>
 
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Workflow
+              {t('workflow')}
             </p>
             {workflowItems.map((item) => {
               const Icon = item.icon;
@@ -148,7 +152,7 @@ export function DashboardSidebar() {
 
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              Workspace
+              {t('workspace')}
             </p>
             <Link
               href="/settings"
@@ -161,7 +165,7 @@ export function DashboardSidebar() {
                 aria-hidden
               />
               <Workflow className="size-4 shrink-0" />
-              <span className="tracking-wide">설정 워크스페이스</span>
+              <span className="tracking-wide">{t('settingsWorkspace')}</span>
             </Link>
           </div>
         </nav>
@@ -173,8 +177,8 @@ export function DashboardSidebar() {
                 AU
               </div>
               <div className="min-w-0">
-                <p className="truncate text-xs font-semibold text-white">Admin User</p>
-                <p className="truncate text-[10px] text-slate-400">System Operator</p>
+                <p className="truncate text-xs font-semibold text-white">{t('adminUser')}</p>
+                <p className="truncate text-[10px] text-slate-400">{t('systemOperator')}</p>
               </div>
             </div>
             <Button
@@ -182,7 +186,7 @@ export function DashboardSidebar() {
               className="mt-4 w-full border-slate-700 bg-transparent text-slate-200 hover:bg-white/5 hover:text-white"
               onClick={() => logout()}
             >
-              Logout
+              {t('logout')}
             </Button>
           </div>
         </div>
@@ -192,6 +196,8 @@ export function DashboardSidebar() {
 }
 
 export function DashboardMobileBar() {
+  const t = useTranslations('nav.sidebar');
+
   return (
     <div className="sticky top-0 z-30 -mx-4 border-b border-slate-200/80 bg-slate-50/95 px-4 py-3 backdrop-blur md:-mx-8 md:px-8 lg:hidden">
       <div className="flex items-center justify-between gap-3">
@@ -204,12 +210,15 @@ export function DashboardMobileBar() {
           </button>
           <div className="min-w-0">
             <p className="font-admin-display truncate text-lg font-extrabold tracking-tight text-admin-primary">
-              Automata Studio
+              {t('mobileTitle')}
             </p>
           </div>
         </div>
         <div className="flex items-center gap-3">
-          <p className="hidden text-sm font-semibold text-admin-primary sm:block">Admin Profile</p>
+          <AdminLocaleSwitcher />
+          <p className="hidden text-sm font-semibold text-admin-primary sm:block">
+            {t('adminProfile')}
+          </p>
           <button
             type="button"
             className="flex size-8 items-center justify-center rounded-full bg-admin-primary-container/35 text-admin-primary"
@@ -224,35 +233,36 @@ export function DashboardMobileBar() {
 
 export function DashboardMobileBottomNav() {
   const pathname = usePathname() ?? '/';
+  const t = useTranslations('nav.sidebar');
 
   const items = [
     {
       href: '/',
-      label: 'Overview',
+      label: t('bottomOverview'),
       active: pathname === '/',
       Icon: LayoutDashboard,
     },
     {
       href: '/jobs',
-      label: 'Jobs',
+      label: t('bottomJobs'),
       active: isUnderJobsPath(pathname),
       Icon: BriefcaseBusiness,
     },
     {
       href: '/content',
-      label: 'Content',
+      label: t('bottomContent'),
       active: isUnderContentPath(pathname),
       Icon: FileText,
     },
     {
       href: '/reviews',
-      label: 'Reviews',
+      label: t('bottomReviews'),
       active: pathname === '/reviews' || pathname.startsWith('/reviews/'),
       Icon: ListChecks,
     },
     {
       href: '/settings',
-      label: 'Settings',
+      label: t('bottomSettings'),
       active: pathname === '/settings' || pathname.startsWith('/settings/'),
       Icon: Settings2,
     },

@@ -24,42 +24,14 @@ export type ChannelSummary = {
   dbSource: number;
 };
 
-export const settingsSections: SettingsSectionCard[] = [
-  {
-    key: 'general',
-    label: 'General',
-    description: 'Summary of workspace-wide defaults, coverage, and operational boundaries.',
-  },
-  {
-    key: 'channels',
-    label: 'Channels',
-    description: 'Manage YouTube connection defaults, publishing visibility, and upload metadata.',
-  },
-  {
-    key: 'models',
-    label: 'Models & Prompts',
-    description: 'Configure the core intelligence layer and prompt defaults for each LLM stage.',
-  },
-  {
-    key: 'voices',
-    label: 'Voices',
-    description: 'Manage reusable TTS voice profiles and tuning defaults.',
-  },
-  {
-    key: 'providers',
-    label: 'Providers',
-    description: 'Review provider ownership, secret boundaries, and fallback responsibilities.',
-  },
-  {
-    key: 'publish-policy',
-    label: 'Publish Policy',
-    description: 'Review auto-publish, visibility, and playlist-related workspace defaults.',
-  },
-  {
-    key: 'runtime',
-    label: 'Runtime',
-    description: 'Document retry strategy, fallback behavior, and runtime control direction.',
-  },
+export const settingsSectionKeys: SettingsSection[] = [
+  'general',
+  'channels',
+  'models',
+  'voices',
+  'providers',
+  'publish-policy',
+  'runtime',
 ];
 
 export const getChannelSummary = (contents: AdminContent[]): ChannelSummary => {

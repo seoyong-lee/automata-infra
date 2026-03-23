@@ -2,6 +2,7 @@
 
 import Link from 'next/link';
 import { Podcast, Tv2 } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 export type DashboardChannelRow = {
   contentId: string;
@@ -18,6 +19,7 @@ type Props = {
 };
 
 export function DashboardChannelSummarySection({ channelRows, overallLoadPercent }: Props) {
+  const t = useTranslations('dashboard.channelSummary');
   const visibleRows = channelRows.slice(0, 5);
 
   return (
@@ -27,14 +29,14 @@ export function DashboardChannelSummarySection({ channelRows, overallLoadPercent
           id="dash-channel-heading"
           className="text-xs font-bold uppercase tracking-[0.24em] text-slate-600 md:text-sm"
         >
-          Channel Summary
+          {t('title')}
         </h3>
         <span className="hidden text-lg text-slate-400 md:inline">⋮</span>
       </div>
       <div className="md:hidden">
         {visibleRows.length === 0 ? (
           <div className="px-4 py-6 text-sm text-slate-500">
-            아직 집계할 채널이 없습니다. 먼저 채널을 추가하거나 제작 아이템을 생성하세요.
+            {t('empty')}
           </div>
         ) : (
           <div className="divide-y divide-slate-50">
@@ -55,7 +57,9 @@ export function DashboardChannelSummarySection({ channelRows, overallLoadPercent
                     <div className="min-w-0">
                       <div className="truncate text-sm font-bold text-slate-900">{row.contentLabel}</div>
                       <div className="text-[10px] text-slate-500">
-                        {Math.max(1, row.totalJobs)} Active {index % 2 === 0 ? 'Streams' : 'Threads'}
+                        {index % 2 === 0
+                          ? t('activeStreams', { count: Math.max(1, row.totalJobs) })
+                          : t('activeThreads', { count: Math.max(1, row.totalJobs) })}
                       </div>
                     </div>
                   </div>
@@ -74,37 +78,38 @@ export function DashboardChannelSummarySection({ channelRows, overallLoadPercent
       <div className="hidden overflow-x-auto md:block">
         {visibleRows.length === 0 ? (
           <div className="px-6 py-8 text-sm text-slate-500">
-            아직 집계할 채널이 없습니다. 먼저 채널을 추가하거나 제작 아이템을 생성하세요.
+            {t('empty')}
           </div>
         ) : (
           <table className="w-full text-left">
             <thead className="bg-slate-50/50">
               <tr>
                 <th className="px-6 py-3 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Channel Name
+                  {t('channelName')}
                 </th>
                 <th className="px-6 py-3 text-center text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Jobs
+                  {t('jobs')}
                 </th>
                 <th className="px-6 py-3 text-right text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
-                  Status
+                  {t('status')}
                 </th>
               </tr>
             </thead>
             <tbody className="divide-y divide-slate-50">
               {visibleRows.map((row) => {
-                const status =
-                  row.totalJobs === 0 ? 'Idle' : row.blockedCount > 0 ? 'Congested' : 'Active';
+                const statusKey =
+                  row.totalJobs === 0 ? 'idle' : row.blockedCount > 0 ? 'congested' : 'active';
+                const status = t(statusKey);
                 const dotClassName =
-                  status === 'Active'
+                  statusKey === 'active'
                     ? 'bg-emerald-500'
-                    : status === 'Congested'
+                    : statusKey === 'congested'
                       ? 'bg-amber-500'
                       : 'bg-slate-300';
                 const badgeClassName =
-                  status === 'Active'
+                  statusKey === 'active'
                     ? 'bg-emerald-50 text-emerald-700'
-                    : status === 'Congested'
+                    : statusKey === 'congested'
                       ? 'bg-amber-50 text-amber-700'
                       : 'bg-slate-100 text-slate-500';
 
@@ -135,7 +140,7 @@ export function DashboardChannelSummarySection({ channelRows, overallLoadPercent
       </div>
       <div className="hidden border-t border-slate-50 bg-slate-50/20 p-6 md:block">
         <div className="mb-4 flex items-center justify-between">
-          <span className="text-xs font-bold text-slate-700">Overall System Load</span>
+          <span className="text-xs font-bold text-slate-700">{t('overallSystemLoad')}</span>
           <span className="text-xs font-bold text-indigo-600">{overallLoadPercent}%</span>
         </div>
         <div className="h-2 w-full rounded-full bg-slate-100">

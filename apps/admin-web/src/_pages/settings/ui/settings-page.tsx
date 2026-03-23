@@ -1,5 +1,6 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
 import { useState } from 'react';
 
 import { type AdminContent, useAdminContents } from '@/entities/admin-content';
@@ -56,6 +57,7 @@ function SettingsSectionBody({
 }
 
 export function SettingsPage() {
+  const t = useTranslations('settings.page');
   const settingsQuery = useLlmSettings();
   const voiceProfilesQuery = useVoiceProfiles();
   const contentsQuery = useAdminContents({ limit: 100 });
@@ -66,46 +68,39 @@ export function SettingsPage() {
   const channelSummary = getChannelSummary(contents);
   const heroBySection: Record<SettingsSection, { eyebrow: string; title: string; subtitle: string }> = {
     general: {
-      eyebrow: 'Global Configuration',
-      title: 'General',
-      subtitle:
-        'Review the global policy layer, workspace coverage, and operational boundaries for the Admin console.',
+      eyebrow: t('generalEyebrow'),
+      title: t('generalTitle'),
+      subtitle: t('generalSubtitle'),
     },
     channels: {
-      eyebrow: 'Global Configuration',
-      title: 'Channels',
-      subtitle:
-        'Manage YouTube connection defaults, publishing metadata, and automation rules for each content channel.',
+      eyebrow: t('generalEyebrow'),
+      title: t('channelsTitle'),
+      subtitle: t('channelsSubtitle'),
     },
     models: {
-      eyebrow: 'Global Configuration',
-      title: 'Models & Prompts',
-      subtitle:
-        'Configure the core intelligence layer of Automata Studio. Define model parameters, prompt engineering strategies, and orchestrate how different stages of the pipeline interact with LLMs.',
+      eyebrow: t('generalEyebrow'),
+      title: t('modelsTitle'),
+      subtitle: t('modelsSubtitle'),
     },
     voices: {
-      eyebrow: 'Global Configuration',
-      title: 'Voices',
-      subtitle:
-        'Manage reusable TTS voice profiles, tuning presets, and playback references for production use.',
+      eyebrow: t('generalEyebrow'),
+      title: t('voicesTitle'),
+      subtitle: t('voicesSubtitle'),
     },
     providers: {
-      eyebrow: 'Global Configuration',
-      title: 'Providers',
-      subtitle:
-        'Review provider ownership, secret boundaries, and fallback responsibilities for external integrations.',
+      eyebrow: t('generalEyebrow'),
+      title: t('providersTitle'),
+      subtitle: t('providersSubtitle'),
     },
     'publish-policy': {
-      eyebrow: 'Global Configuration',
-      title: 'Publish Policy',
-      subtitle:
-        'Review publishing visibility defaults, playlist coverage, and automation safeguards before release.',
+      eyebrow: t('generalEyebrow'),
+      title: t('publishPolicyTitle'),
+      subtitle: t('publishPolicySubtitle'),
     },
     runtime: {
-      eyebrow: 'Global Configuration',
-      title: 'Runtime',
-      subtitle:
-        'Track retry, fallback, and runtime control principles that shape how the workspace behaves in production.',
+      eyebrow: t('generalEyebrow'),
+      title: t('runtimeTitle'),
+      subtitle: t('runtimeSubtitle'),
     },
   };
   const hero = heroBySection[activeSection];
@@ -128,23 +123,19 @@ export function SettingsPage() {
           />
           <div className="mt-4 space-y-2">
             {settingsQuery.isLoading ? (
-              <p className="text-sm text-admin-text-muted">설정 기본값을 불러오는 중…</p>
+              <p className="text-sm text-admin-text-muted">{t('loadingDefaults')}</p>
             ) : null}
             {settingsQuery.error ? (
               <p className="text-sm text-destructive">
-                {settingsQuery.error instanceof Error
-                  ? settingsQuery.error.message
-                  : '설정을 불러오지 못했습니다.'}
+                {settingsQuery.error instanceof Error ? settingsQuery.error.message : t('failedDefaults')}
               </p>
             ) : null}
             {contentsQuery.isLoading ? (
-              <p className="text-sm text-admin-text-muted">채널 목록을 불러오는 중…</p>
+              <p className="text-sm text-admin-text-muted">{t('loadingChannels')}</p>
             ) : null}
             {contentsQuery.error ? (
               <p className="text-sm text-destructive">
-                {contentsQuery.error instanceof Error
-                  ? contentsQuery.error.message
-                  : '채널 목록을 불러오지 못했습니다.'}
+                {contentsQuery.error instanceof Error ? contentsQuery.error.message : t('failedChannels')}
               </p>
             ) : null}
           </div>

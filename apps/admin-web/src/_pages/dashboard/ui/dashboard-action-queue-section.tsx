@@ -1,6 +1,7 @@
 'use client';
 
 import { CloudUpload, Bolt, CircleAlert, MessageSquareMore } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   reviewNeeded: number;
@@ -54,6 +55,7 @@ export function DashboardActionQueueSection({
   uploadPending,
   failedExecutions,
 }: Props) {
+  const t = useTranslations('dashboard.metrics');
   const metricValues = {
     review: reviewNeeded,
     active: activeJobs,
@@ -62,10 +64,16 @@ export function DashboardActionQueueSection({
   } as const;
 
   const maxValue = Math.max(reviewNeeded, activeJobs, uploadPending, failedExecutions, 1);
+  const localizedMetrics = [
+    { ...metrics[0], label: t('pendingReviews'), badge: t('badgeLive') },
+    { ...metrics[1], label: t('activeJobs'), badge: t('badgeStable') },
+    { ...metrics[2], label: t('uploadQueue'), badge: t('badgeCap') },
+    { ...metrics[3], label: t('failedExecutions'), badge: t('badgeHighAlert') },
+  ] as const;
 
   return (
     <section className="grid grid-cols-2 gap-3 md:gap-6 lg:grid-cols-4" aria-label="System metrics">
-      {metrics.map((metric) => {
+      {localizedMetrics.map((metric) => {
         const value = metricValues[metric.key];
         const percent = Math.max(8, Math.round((value / maxValue) * 100));
         const Icon = metric.Icon;

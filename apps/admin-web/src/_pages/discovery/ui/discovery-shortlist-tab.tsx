@@ -1,5 +1,7 @@
 'use client';
 
+import { useTranslations } from 'next-intl';
+
 import type { AdminContent } from '@/entities/admin-content';
 import { HitChannelsPanel } from '@/widgets/hit-channels';
 import { IdeaCandidatesPanel } from '@/widgets/idea-candidates';
@@ -19,6 +21,8 @@ export function DiscoveryShortlistTab({
   contentsLoading,
   onChannelChange,
 }: Props) {
+  const t = useTranslations('discovery.shortlist');
+
   return (
     <div className="space-y-8">
       <DiscoveryLineFilterRow
@@ -29,9 +33,7 @@ export function DiscoveryShortlistTab({
       />
       {!channelId ? (
         <p className="rounded-xl border border-dashed border-admin-outline-ghost/30 bg-admin-surface-base px-5 py-4 text-sm text-admin-text-muted">
-          <strong className="text-admin-text-strong">관심 채널</strong>과{' '}
-          <strong className="text-admin-text-strong">추천 후보</strong>는 운영 라인별 데이터입니다.
-          위 <strong className="text-admin-text-strong">라인 필터</strong>에서 라인을 선택하세요.
+          {t('noLineSelected')}
         </p>
       ) : null}
       {channelId ? <HitChannelsPanel channelId={channelId} /> : null}

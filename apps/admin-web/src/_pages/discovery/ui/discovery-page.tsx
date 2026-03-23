@@ -1,6 +1,7 @@
 'use client';
 
 import { Button } from '@packages/ui/button';
+import { useTranslations } from 'next-intl';
 import { Suspense } from 'react';
 
 import { CreateSourceItemDialog } from '@/widgets/create-source-item';
@@ -13,6 +14,7 @@ import { DiscoveryTabStrip } from './discovery-tab-strip';
 import { useDiscoveryPage } from '../model/discovery-page-state';
 
 function DiscoveryPageBody() {
+  const t = useTranslations('discovery.hero');
   const {
     channelId,
     tab,
@@ -34,38 +36,35 @@ function DiscoveryPageBody() {
     explore: {
       eyebrow: (
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-admin-text-muted">
-          <span>Discovery Module</span>
+          <span>{t('module')}</span>
           <span className="size-1 rounded-full bg-admin-outline-ghost" />
-          <span>Explore</span>
+          <span>{t('exploreTag')}</span>
         </div>
       ),
-      title: '소재 찾기',
-      subtitle:
-        '외부 채널과 트렌드 데이터를 분석해 제작에 필요한 아이디어를 탐색하고, 후보를 선별한 뒤 저장해 운영 라인에 연결합니다.',
+      title: t('exploreTitle'),
+      subtitle: t('exploreSubtitle'),
     },
     shortlist: {
       eyebrow: (
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-admin-text-muted">
-          <span>Discovery Module</span>
+          <span>{t('module')}</span>
           <span className="size-1 rounded-full bg-admin-outline-ghost" />
-          <span>Shortlist</span>
+          <span>{t('shortlistTag')}</span>
         </div>
       ),
-      title: '후보 검토',
-      subtitle:
-        '선택한 운영 라인 기준으로 관심 채널과 추천 후보를 비교하면서 실제로 저장할 만한 아이디어만 좁혀갑니다.',
+      title: t('shortlistTitle'),
+      subtitle: t('shortlistSubtitle'),
     },
     saved: {
       eyebrow: (
         <div className="flex items-center gap-2 text-[11px] font-bold uppercase tracking-[0.22em] text-admin-text-muted">
-          <span>Discovery Module</span>
+          <span>{t('module')}</span>
           <span className="size-1 rounded-full bg-admin-outline-ghost" />
-          <span>Saved Ideas</span>
+          <span>{t('savedIdeasTag')}</span>
         </div>
       ),
-      title: '저장한 아이디어',
-      subtitle:
-        '저장한 아이디어를 빠르게 검색하고, 상태를 확인한 뒤 바로 제작 아이템으로 이어집니다.',
+      title: t('savedTitle'),
+      subtitle: t('savedSubtitle'),
     },
   } as const;
   const hero = heroByTab[tab];
@@ -83,7 +82,7 @@ function DiscoveryPageBody() {
               className="h-11 rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-5 text-sm font-bold text-white shadow-lg shadow-slate-900/10"
               onClick={() => setCreateOpenManual(true)}
             >
-              + 새 소재 만들기
+              {t('createNew')}
             </Button>
           ) : null
         }

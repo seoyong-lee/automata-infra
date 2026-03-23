@@ -1,5 +1,8 @@
+'use client';
+
 import { cn } from '@packages/ui';
 import { ArrowLeft } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 export type AdminPageBackProps = {
@@ -9,7 +12,9 @@ export type AdminPageBackProps = {
   className?: string;
 };
 
-export function AdminPageBack({ href, label = '뒤로가기', className }: AdminPageBackProps) {
+export function AdminPageBack({ href, label, className }: AdminPageBackProps) {
+  const t = useTranslations('common');
+
   return (
     <div className={cn(className)}>
       <Link
@@ -17,7 +22,7 @@ export function AdminPageBack({ href, label = '뒤로가기', className }: Admin
         className="inline-flex items-center gap-1.5 rounded-md text-sm text-muted-foreground transition-colors hover:bg-accent/60 hover:text-foreground"
       >
         <ArrowLeft className="size-4 shrink-0" aria-hidden />
-        <span>{label}</span>
+        <span>{label ?? t('back')}</span>
       </Link>
     </div>
   );

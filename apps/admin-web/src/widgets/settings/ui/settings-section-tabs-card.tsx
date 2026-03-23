@@ -1,7 +1,8 @@
 import { Button } from '@packages/ui/button';
 import { CloudCog, Mic2, PanelTop, RadioTower, Settings2, TerminalSquare, Workflow } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
-import { settingsSections, type SettingsSection } from '../model';
+import { settingsSectionKeys, type SettingsSection } from '../model';
 
 type SettingsSectionTabsCardProps = {
   activeSection: SettingsSection;
@@ -12,8 +13,20 @@ export function SettingsSectionTabsCard({
   activeSection,
   onSectionChange,
 }: SettingsSectionTabsCardProps) {
+  const t = useTranslations('settings');
+  const sectionCards = settingsSectionKeys.map((key) => ({
+    key,
+    label:
+      key === 'publish-policy'
+        ? t('sections.publishPolicyLabel')
+        : t(`sections.${key}Label` as const),
+    description:
+      key === 'publish-policy'
+        ? t('sections.publishPolicyDescription')
+        : t(`sections.${key}Description` as const),
+  }));
   const activeDescription =
-    settingsSections.find((section) => section.key === activeSection)?.description ?? '';
+    sectionCards.find((section) => section.key === activeSection)?.description ?? '';
   const iconBySection: Record<SettingsSection, typeof Settings2> = {
     general: Settings2,
     channels: Workflow,
@@ -27,7 +40,7 @@ export function SettingsSectionTabsCard({
   return (
     <div className="space-y-8">
       <nav className="flex flex-col gap-1">
-        {settingsSections.map((section) => {
+        {sectionCards.map((section) => {
           const Icon = iconBySection[section.key];
           return (
             <Button
@@ -52,21 +65,21 @@ export function SettingsSectionTabsCard({
 
       <div className="rounded-xl border border-admin-outline-ghost/20 bg-admin-surface-section p-6">
         <h4 className="mb-3 text-xs font-bold uppercase tracking-[0.2em] text-admin-primary">
-          Workspace Status
+          {t('tabs.workspaceStatus')}
         </h4>
         <div className="mb-4 flex items-center gap-3">
           <div className="size-2 rounded-full bg-emerald-500" />
-          <span className="text-xs text-admin-text-strong">Engine: Online</span>
+          <span className="text-xs text-admin-text-strong">{t('tabs.engineOnline')}</span>
         </div>
         <div className="h-1.5 w-full overflow-hidden rounded-full bg-admin-surface-card">
           <div className="h-full w-2/3 bg-admin-primary" />
         </div>
-        <p className="mt-2 text-[10px] text-admin-text-muted">68% Quota remaining for current cycle</p>
+        <p className="mt-2 text-[10px] text-admin-text-muted">{t('tabs.quotaRemaining')}</p>
       </div>
 
       <div className="rounded-xl border border-admin-outline-ghost/10 bg-admin-surface-card p-4">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-admin-primary">
-          Active View
+          {t('tabs.activeView')}
         </p>
         <p className="mt-2 text-sm leading-relaxed text-admin-text-muted">{activeDescription}</p>
       </div>

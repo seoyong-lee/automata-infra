@@ -1,6 +1,7 @@
 'use client';
 
 import { Clock3, Rocket, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type TrendEnqueue = {
   isPending: boolean;
@@ -23,45 +24,46 @@ export function DiscoveryTrendSection({
   onTrendDryRunChange,
   enqueueTrendScout,
 }: Props) {
+  const t = useTranslations('discovery.trend');
   const workflowRows = [
     {
       index: '01',
-      title: '채널 인사이트 수집',
+      title: t('insightCollection'),
       hint: channelId
-        ? `선택 라인 ${channelId} 기준으로 탐색합니다.`
-        : '라인을 고르지 않으면 전역 스코프로 탐색합니다.',
-      metric: channelId ? 'Scoped' : 'Global',
+        ? t('insightCollectionScoped', { channelId })
+        : t('insightCollectionGlobal'),
+      metric: channelId ? t('scopedScope') : t('globalScope'),
     },
     {
       index: '02',
-      title: '트렌드 스카우트 실행',
+      title: t('scoutRun'),
       hint: enqueueTrendScout.isPending
-        ? '큐에 작업을 넣는 중입니다.'
-        : '버튼으로 스카우트 작업을 큐에 한 건씩 넣습니다.',
-      metric: enqueueTrendScout.isPending ? 'Queueing' : 'Ready',
+        ? t('scoutQueueing')
+        : t('scoutReady'),
+      metric: enqueueTrendScout.isPending ? t('queueing') : t('ready'),
     },
     {
       index: '03',
-      title: '후보 검토 및 저장',
+      title: t('reviewAndSave'),
       hint: trendDryRun
-        ? '드라이런 모드에서는 스토어에 기록하지 않습니다.'
-        : '결과를 후보/저장 단계로 이어갈 수 있습니다.',
-      metric: trendDryRun ? 'Dry Run' : 'Store',
+        ? t('reviewDryRun')
+        : t('reviewStore'),
+      metric: trendDryRun ? t('dryRun') : t('store'),
     },
   ] as const;
   const scopePercent = channelId ? 78 : 42;
   const activityRows = [
     {
-      label: channelId ? '라인 선택 완료' : '전역 탐색 준비',
-      detail: channelId ? `${channelId} scope` : 'No scoped line',
+      label: channelId ? t('lineSelected') : t('globalReady'),
+      detail: channelId ? `${channelId} scope` : t('noScopedLine'),
     },
     {
-      label: channelId ? 'YouTube Search' : 'Channel selection',
-      detail: trendDryRun ? 'Dry run mode' : 'Store mode',
+      label: channelId ? 'YouTube Search' : t('channelSelection'),
+      detail: trendDryRun ? t('dryRun') : t('storeMode'),
     },
     {
-      label: enqueueTrendScout.isSuccess ? 'Scout job queued' : '다음 액션 대기',
-      detail: enqueueTrendScout.isSuccess ? 'Queue accepted' : 'Run scout when ready',
+      label: enqueueTrendScout.isSuccess ? t('scoutJobQueued') : t('waitingNextAction'),
+      detail: enqueueTrendScout.isSuccess ? t('queueAccepted') : t('runScoutWhenReady'),
     },
   ] as const;
 
@@ -70,10 +72,10 @@ export function DiscoveryTrendSection({
       <section className="col-span-12 overflow-hidden rounded-xl border border-admin-outline-ghost/15 bg-white shadow-sm lg:col-span-8">
         <div className="flex items-center justify-between border-b border-admin-outline-ghost/10 bg-admin-surface-base/60 px-8 py-5">
           <h2 className="font-admin-display text-xl font-bold text-admin-primary">
-            실시간 추천 흐름
+            {t('title')}
           </h2>
           <span className="text-xs font-bold uppercase tracking-[0.2em] text-admin-primary">
-            Refresh list
+            {t('refreshList')}
           </span>
         </div>
         <div className="divide-y divide-admin-outline-ghost/10">
@@ -94,7 +96,7 @@ export function DiscoveryTrendSection({
               <div className="text-right">
                 <div className="text-sm font-bold text-admin-text-strong">{row.metric}</div>
                 <div className="text-[10px] font-bold uppercase tracking-[0.18em] text-admin-text-muted">
-                  Stage
+                  {t('stage')}
                 </div>
               </div>
             </div>
@@ -105,15 +107,14 @@ export function DiscoveryTrendSection({
       <div className="col-span-12 space-y-6 lg:col-span-4">
         <section className="relative overflow-hidden rounded-3xl bg-admin-primary p-6 text-white shadow-2xl shadow-slate-900/15">
           <div className="absolute -right-6 -top-6 size-24 rounded-full bg-white/5 blur-2xl" />
-          <h2 className="font-admin-display text-xl font-extrabold">트렌드 스카우트</h2>
+          <h2 className="font-admin-display text-xl font-extrabold">{t('scoutTitle')}</h2>
           <p className="mt-2 text-sm leading-6 text-indigo-100/90">
-            외부 API 쿼터를 사용해 스카우트 작업을 큐에 넣습니다. 후보 탭에서 라인을 고르면 해당
-            스코프로 실행됩니다.
+            {t('scoutDescription')}
           </p>
 
           <div className="mt-6 rounded-2xl bg-white/10 p-4">
             <div className="flex items-center justify-between text-xs font-bold uppercase tracking-[0.18em] text-indigo-100">
-              <span>탐색 범위</span>
+              <span>{t('scope')}</span>
               <span>{scopePercent}%</span>
             </div>
             <div className="mt-3 h-2 rounded-full bg-white/15">
@@ -123,8 +124,8 @@ export function DiscoveryTrendSection({
               />
             </div>
             <div className="mt-3 flex items-center justify-between text-sm text-indigo-100">
-              <span>{channelId ? '선택 라인 기준' : '전역 스코프'}</span>
-              <span>{trendDryRun ? 'Dry run' : 'Store mode'}</span>
+              <span>{channelId ? t('scoped') : t('global')}</span>
+              <span>{trendDryRun ? t('dryRun') : t('storeMode')}</span>
             </div>
           </div>
 
@@ -140,7 +141,7 @@ export function DiscoveryTrendSection({
             }
           >
             <Rocket className="mr-2 size-4" />
-            {enqueueTrendScout.isPending ? '큐에 넣는 중…' : '스카우트 실행하기'}
+            {enqueueTrendScout.isPending ? t('executePending') : t('execute')}
           </button>
 
           <label className="mt-4 flex cursor-pointer items-center gap-2 text-xs text-indigo-100">
@@ -150,13 +151,11 @@ export function DiscoveryTrendSection({
               checked={trendDryRun}
               onChange={(e) => onTrendDryRunChange(e.target.checked)}
             />
-            드라이런으로 실행하고 스토어에는 기록하지 않기
+            {t('dryRunToggle')}
           </label>
 
           {enqueueTrendScout.isError ? (
-            <p className="mt-3 text-xs text-rose-100">
-              요청에 실패했습니다. 네트워크·권한·큐 설정을 확인하세요.
-            </p>
+            <p className="mt-3 text-xs text-rose-100">{t('requestFailed')}</p>
           ) : null}
           {enqueueTrendScout.isSuccess && enqueueTrendScout.data ? (
             <p className="mt-3 text-xs text-emerald-100">
@@ -168,7 +167,7 @@ export function DiscoveryTrendSection({
         <section className="rounded-xl border border-admin-outline-ghost/15 bg-white shadow-sm">
           <div className="flex items-center justify-between border-b border-admin-outline-ghost/10 px-6 py-5">
             <h3 className="text-sm font-bold uppercase tracking-[0.22em] text-admin-text-muted">
-              최근 탐색 활동
+              {t('recentActivity')}
             </h3>
             <Clock3 className="size-4 text-admin-text-muted" />
           </div>

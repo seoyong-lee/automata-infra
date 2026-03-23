@@ -8,6 +8,7 @@ import {
   type ChannelScoreSnapshotGql,
 } from '@packages/graphql';
 import { PauseCircle, PlayCircle, Radar } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import { useMemo, useState } from 'react';
 import { useQueryClient } from '@tanstack/react-query';
 
@@ -16,6 +17,7 @@ type Props = {
 };
 
 export function HitChannelsPanel({ channelId }: Props) {
+  const t = useTranslations('discovery.watchlist');
   const queryClient = useQueryClient();
   const [externalId, setExternalId] = useState('');
   const watchlist = useChannelWatchlistQuery({ channelId });
@@ -59,11 +61,9 @@ export function HitChannelsPanel({ channelId }: Props) {
     <section className="rounded-xl border border-admin-outline-ghost/15 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-admin-display text-xl font-bold text-admin-primary">관심 채널</h2>
+          <h2 className="font-admin-display text-xl font-bold text-admin-primary">{t('title')}</h2>
           <p className="mt-1 text-xs leading-6 text-admin-text-muted">
-            외부 YouTube 채널 ID를 찾아 추가하면 이 운영 라인 기준으로 추적·스냅샷합니다. 목록은
-            전역 탐색 자산이며, 여기서는 선택한 라인과의 관심 관계로 저장됩니다. 스냅샷은 배치
-            (channel-evaluation-jobs)로 갱신됩니다.
+            {t('description')}
           </p>
         </div>
         <div className="flex size-10 items-center justify-center rounded-xl bg-admin-primary-container/20 text-admin-primary">
@@ -76,7 +76,7 @@ export function HitChannelsPanel({ channelId }: Props) {
           type="text"
           value={externalId}
           onChange={(e) => setExternalId(e.target.value)}
-          placeholder="YouTube externalChannelId"
+          placeholder={t('placeholder')}
           className="min-w-[220px] flex-1 rounded-lg border-none bg-admin-surface-section px-4 py-3 text-sm text-admin-text-strong outline-none ring-0 placeholder:text-admin-text-muted focus:ring-2 focus:ring-admin-primary/20"
         />
         <button
@@ -92,16 +92,16 @@ export function HitChannelsPanel({ channelId }: Props) {
             })
           }
         >
-          추적 추가
+          {t('addTracking')}
         </button>
       </div>
 
       {loading ? (
-        <p className="mt-3 text-sm text-admin-text-muted">불러오는 중…</p>
+        <p className="mt-3 text-sm text-admin-text-muted">{t('loading')}</p>
       ) : watchlist.isError || snapshots.isError ? (
-        <p className="mt-3 text-sm text-destructive">목록을 불러오지 못했습니다.</p>
+        <p className="mt-3 text-sm text-destructive">{t('loadFailed')}</p>
       ) : entries.length === 0 ? (
-        <p className="mt-3 text-sm text-admin-text-muted">워치리스트가 비어 있습니다.</p>
+        <p className="mt-3 text-sm text-admin-text-muted">{t('empty')}</p>
       ) : (
         <ul className="mt-6 space-y-3">
           {entries.map((w) => {
@@ -121,18 +121,18 @@ export function HitChannelsPanel({ channelId }: Props) {
                       <span className="rounded-full bg-admin-surface-card px-2 py-1 font-semibold text-admin-text-strong">
                         {w.status}
                       </span>
-                      <span>우선순위 {w.priority}</span>
+                      <span>{t('priority', { value: w.priority })}</span>
                     </div>
                   </div>
                   {snap ? (
                     <div className="text-right text-xs">
                       <div className="font-bold text-admin-text-strong">
-                        overall {(snap.scores.overallScore * 100).toFixed(0)}%
+                        {t('overall', { value: (snap.scores.overallScore * 100).toFixed(0) })}
                       </div>
                       <div className="text-admin-text-muted">{snap.status}</div>
                     </div>
                   ) : (
-                    <div className="text-xs text-admin-text-muted">스냅샷 없음</div>
+                    <div className="text-xs text-admin-text-muted">{t('noSnapshot')}</div>
                   )}
                 </div>
                 {snap?.rationale?.length ? (
@@ -159,7 +159,7 @@ export function HitChannelsPanel({ channelId }: Props) {
                   ) : (
                     <PlayCircle className="size-4" />
                   )}
-                  {watching ? '일시중지' : '추적 재개'}
+                  {watching ? t('pause') : t('resume')}
                 </button>
               </li>
             );

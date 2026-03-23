@@ -3,18 +3,19 @@
 import type { SourceItemGql } from '@packages/graphql';
 import { Button } from '@packages/ui/button';
 import { ArrowRight, Eye, Film, Shapes, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 
 import type { MergedRow } from '../types';
 
-function statusLabelKo(status: SourceItemGql['status']): string {
+function statusLabel(status: SourceItemGql['status'], t: ReturnType<typeof useTranslations>): string {
   switch (status) {
     case 'IDEATING':
-      return '기획';
+      return t('ideating');
     case 'READY_FOR_DISTRIBUTION':
-      return '배포 가능';
+      return t('ready');
     case 'ARCHIVED':
-      return '보관';
+      return t('archived');
     default:
       return status;
   }
@@ -46,6 +47,7 @@ type Props = {
 };
 
 export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Props) {
+  const t = useTranslations('discovery.savedIdeas');
   if (rows.length === 0) return null;
 
   return (
@@ -53,12 +55,12 @@ export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Prop
       <table className="w-full min-w-[820px] text-sm">
         <thead>
           <tr className="bg-admin-surface-base/80 text-left text-[10px] font-black uppercase tracking-[0.22em] text-admin-text-muted">
-            <th className="px-6 py-4">제목</th>
-            <th className="px-6 py-4 text-center">채널</th>
-            <th className="px-6 py-4">상태</th>
-            <th className="px-6 py-4">연결된 제작</th>
-            <th className="px-6 py-4">갱신</th>
-            <th className="px-6 py-4 text-right">액션</th>
+            <th className="px-6 py-4">{t('tableTitle')}</th>
+            <th className="px-6 py-4 text-center">{t('tableChannel')}</th>
+            <th className="px-6 py-4">{t('tableStatus')}</th>
+            <th className="px-6 py-4">{t('tableLinkedJobs')}</th>
+            <th className="px-6 py-4">{t('tableUpdated')}</th>
+            <th className="px-6 py-4 text-right">{t('tableActions')}</th>
           </tr>
         </thead>
         <tbody className="divide-y divide-admin-outline-ghost/10">
@@ -66,7 +68,7 @@ export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Prop
             const s = row.source;
             const cnt = jobCountBySource[s.id] ?? 0;
             const preview =
-              s.masterHook?.trim() || s.sourceNotes?.trim() || '메모가 아직 없습니다.';
+              s.masterHook?.trim() || s.sourceNotes?.trim() || t('noMemo');
             return (
               <tr
                 key={`${row.channelId}-${s.id}`}
@@ -96,7 +98,7 @@ export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Prop
                     className={`inline-flex items-center gap-1.5 rounded-full px-2.5 py-1 text-[11px] font-bold ${statusTone(s.status)}`}
                   >
                     <span className="size-1.5 rounded-full bg-current opacity-80" />
-                    {statusLabelKo(s.status)}
+                    {statusLabel(s.status, t)}
                   </span>
                 </td>
                 <td className="px-6 py-5">
@@ -109,7 +111,7 @@ export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Prop
                         <Sparkles className="size-3" />
                       </span>
                     </div>
-                    <span className="tabular-nums">{cnt}건 연결됨</span>
+                    <span className="tabular-nums">{t('linkedJobs', { count: cnt })}</span>
                   </div>
                 </td>
                 <td className="px-6 py-5 text-xs text-admin-text-muted">
@@ -131,13 +133,13 @@ export function SavedSourcesTable({ rows, jobCountBySource, onOpenDetail }: Prop
                       onClick={() => onOpenDetail(s.id)}
                     >
                       <Eye className="mr-1.5 size-4" />
-                      보기
+                      {t('view')}
                     </Button>
                     <Link
                       href={`/content/${encodeURIComponent(row.channelId)}/jobs/new`}
                       className="inline-flex h-9 items-center justify-center rounded-md bg-admin-primary/10 px-3 text-[11px] font-bold text-admin-primary transition-colors hover:bg-admin-primary hover:text-white"
                     >
-                      이 채널에서 제작
+                      {t('createInChannel')}
                       <ArrowRight className="ml-1.5 size-4" />
                     </Link>
                   </div>

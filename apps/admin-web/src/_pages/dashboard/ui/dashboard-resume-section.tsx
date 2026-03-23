@@ -1,17 +1,21 @@
 'use client';
 
 import { CheckCircle2, RotateCw, TriangleAlert } from 'lucide-react';
+import { useLocale, useTranslations } from 'next-intl';
 import Link from 'next/link';
 
-import { getJobStatusLabelKo, type AdminJob } from '@/entities/admin-job';
+import { getJobStatusLabel, type AdminJob } from '@/entities/admin-job';
 
-import { formatRelativeKo } from '../lib/format-relative-ko';
+import { formatRelative } from '../lib/format-relative-ko';
 
 type Props = {
   jobs: AdminJob[];
 };
 
 export function DashboardResumeSection({ jobs }: Props) {
+  const t = useTranslations('dashboard.recentExecutions');
+  const locale = useLocale() as 'ko' | 'en';
+
   return (
     <section
       className="rounded-xl border border-slate-100 bg-white shadow-sm"
@@ -22,15 +26,15 @@ export function DashboardResumeSection({ jobs }: Props) {
           id="dash-resume-heading"
           className="text-xs font-bold uppercase tracking-[0.24em] text-slate-600 md:text-sm"
         >
-          Recent Pipeline Executions
+          {t('title')}
         </h3>
         <Link href="/jobs" className="text-[10px] font-semibold uppercase tracking-[0.12em] text-indigo-600 hover:underline md:text-xs md:normal-case md:tracking-normal">
-          View All
+          {t('viewAll')}
         </Link>
       </div>
       <div className="space-y-3 p-4 md:hidden">
         {jobs.length === 0 ? (
-          <div className="text-sm text-slate-500">표시할 실행 이력이 없습니다.</div>
+          <div className="text-sm text-slate-500">{t('empty')}</div>
         ) : null}
         {jobs.slice(0, 2).map((job) => {
           const isFailed = job.status === 'FAILED';
@@ -44,7 +48,7 @@ export function DashboardResumeSection({ jobs }: Props) {
             : isFailed
               ? 'bg-amber-100 text-amber-700'
               : 'bg-indigo-100 text-indigo-700';
-          const badgeLabel = isSuccess ? 'Success' : isFailed ? 'Warning' : 'Running';
+          const badgeLabel = isSuccess ? t('success') : isFailed ? t('warning') : t('running');
           const confidenceValue = isSuccess ? '98.4%' : isFailed ? '72.1%' : '84.0%';
           const confidenceTone = isSuccess ? 'text-indigo-700' : isFailed ? 'text-rose-600' : 'text-indigo-700';
 
@@ -67,11 +71,11 @@ export function DashboardResumeSection({ jobs }: Props) {
               </div>
               <div className="grid grid-cols-2 gap-4 border-t border-slate-100 pt-3">
                 <div>
-                  <div className="text-[9px] uppercase tracking-[0.16em] text-slate-400">Runtime</div>
-                  <div className="text-xs font-bold text-slate-900">{formatRelativeKo(job.updatedAt)}</div>
+                  <div className="text-[9px] uppercase tracking-[0.16em] text-slate-400">{t('runtime')}</div>
+                  <div className="text-xs font-bold text-slate-900">{formatRelative(job.updatedAt, locale)}</div>
                 </div>
                 <div>
-                  <div className="text-[9px] uppercase tracking-[0.16em] text-slate-400">Confidence</div>
+                  <div className="text-[9px] uppercase tracking-[0.16em] text-slate-400">{t('confidence')}</div>
                   <div className={`text-xs font-bold ${confidenceTone}`}>{confidenceValue}</div>
                 </div>
               </div>
@@ -81,7 +85,7 @@ export function DashboardResumeSection({ jobs }: Props) {
       </div>
       <div className="hidden divide-y divide-slate-50 md:block">
         {jobs.length === 0 ? (
-          <div className="px-6 py-6 text-sm text-slate-500">표시할 실행 이력이 없습니다.</div>
+          <div className="px-6 py-6 text-sm text-slate-500">{t('empty')}</div>
         ) : null}
         {jobs.map((job) => {
           const isFailed = job.status === 'FAILED';
@@ -96,7 +100,7 @@ export function DashboardResumeSection({ jobs }: Props) {
               ? 'bg-emerald-50 text-emerald-600'
               : 'bg-indigo-50 text-indigo-600';
           const detailTone = isFailed ? 'text-rose-500' : 'text-indigo-500';
-          const detailLabel = isFailed ? 'Err: Timeout' : isSuccess ? 'Log: 4KB' : 'Log: Streaming';
+          const detailLabel = isFailed ? t('errorTimeout') : isSuccess ? t('log4kb') : t('logStreaming');
 
           return (
             <Link
@@ -114,12 +118,12 @@ export function DashboardResumeSection({ jobs }: Props) {
                   <span className="font-medium text-slate-700">
                     {job.contentId || 'Unassigned'}
                   </span>{' '}
-                  • {getJobStatusLabelKo(job.status)}
+                  • {getJobStatusLabel(job.status, locale)}
                 </p>
               </div>
               <div className="text-right">
                 <p className="text-[10px] font-bold tabular-nums text-slate-400">
-                  {formatRelativeKo(job.updatedAt)}
+                  {formatRelative(job.updatedAt, locale)}
                 </p>
                 <p className={`text-[10px] font-semibold ${detailTone}`}>{detailLabel}</p>
               </div>

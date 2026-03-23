@@ -1,12 +1,8 @@
 'use client';
 
 import { cn } from '@packages/ui';
-
-import {
-  DISCOVERY_TAB_IDS,
-  DISCOVERY_TAB_LABELS,
-  type DiscoveryTabId,
-} from '../lib/discovery-tabs';
+import { useTranslations } from 'next-intl';
+import { DISCOVERY_TAB_IDS, type DiscoveryTabId } from '../lib/discovery-tabs';
 
 type Props = {
   tab: DiscoveryTabId;
@@ -14,6 +10,8 @@ type Props = {
 };
 
 export function DiscoveryTabStrip({ tab, onTabChange }: Props) {
+  const t = useTranslations('discovery.tabs');
+
   return (
     <div className="border-b border-admin-outline-ghost/60">
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="소재 찾기 단계">
@@ -31,7 +29,7 @@ export function DiscoveryTabStrip({ tab, onTabChange }: Props) {
             )}
             onClick={() => onTabChange(id)}
           >
-            {DISCOVERY_TAB_LABELS[id]}
+            {t(id)}
           </button>
         ))}
       </div>

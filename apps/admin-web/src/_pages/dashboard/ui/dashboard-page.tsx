@@ -1,6 +1,7 @@
 'use client';
 
 import { getErrorMessage } from '@packages/utils';
+import { useTranslations } from 'next-intl';
 import Link from 'next/link';
 import { useMemo } from 'react';
 
@@ -16,6 +17,7 @@ import { DashboardOptimizationCard } from './dashboard-optimization-card';
 import { DashboardResumeSection } from './dashboard-resume-section';
 
 export function DashboardPage() {
+  const t = useTranslations('dashboard.page');
   const jobsQuery = useAdminJobs({ limit: DASHBOARD_JOBS_QUERY_LIMIT });
   const contentsQuery = useAdminContents({ limit: 100 });
   const pendingReviewsQuery = usePendingReviews({ limit: 100 });
@@ -90,10 +92,10 @@ export function DashboardPage() {
       <div className="space-y-6 md:space-y-10">
         <div>
           <h2 className="font-admin-display text-[2rem] font-extrabold tracking-tight text-slate-900 md:text-3xl">
-            System Snapshot
+            {t('title')}
           </h2>
           <p className="mt-1 text-sm text-slate-500">
-            Real-time production health monitoring
+            {t('subtitle')}
           </p>
         </div>
 

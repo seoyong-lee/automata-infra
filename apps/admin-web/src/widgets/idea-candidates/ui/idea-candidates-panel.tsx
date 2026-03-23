@@ -7,12 +7,14 @@ import {
 } from '@packages/graphql';
 import { useQueryClient } from '@tanstack/react-query';
 import { Lightbulb, Sparkles } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 type Props = {
   channelId: string;
 };
 
 export function IdeaCandidatesPanel({ channelId }: Props) {
+  const t = useTranslations('discovery.candidates');
   const queryClient = useQueryClient();
   const list = useIdeaCandidatesForChannelQuery({ channelId });
   const promote = usePromoteIdeaCandidateToSourceMutation({
@@ -41,9 +43,9 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
     <section className="rounded-xl border border-admin-outline-ghost/15 bg-white p-6 shadow-sm">
       <div className="flex items-start justify-between gap-4">
         <div>
-          <h2 className="font-admin-display text-xl font-bold text-admin-primary">추천 후보</h2>
+          <h2 className="font-admin-display text-xl font-bold text-admin-primary">{t('title')}</h2>
           <p className="mt-1 text-xs leading-6 text-admin-text-muted">
-            에이전트가 제안한 소재 후보입니다. 채택 시 소재(SourceItem)로 승격됩니다.
+            {t('description')}
           </p>
         </div>
         <div className="flex size-10 items-center justify-center rounded-xl bg-admin-primary-container/20 text-admin-primary">
@@ -52,11 +54,11 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
       </div>
 
       {list.isLoading ? (
-        <p className="mt-4 text-sm text-admin-text-muted">불러오는 중…</p>
+        <p className="mt-4 text-sm text-admin-text-muted">{t('loading')}</p>
       ) : list.isError ? (
-        <p className="mt-4 text-sm text-destructive">목록을 불러오지 못했습니다.</p>
+        <p className="mt-4 text-sm text-destructive">{t('loadFailed')}</p>
       ) : items.length === 0 ? (
-        <p className="mt-4 text-sm text-admin-text-muted">후보가 없습니다.</p>
+        <p className="mt-4 text-sm text-admin-text-muted">{t('empty')}</p>
       ) : (
         <ul className="mt-6 space-y-3">
           {items.map((c) => (
@@ -77,7 +79,7 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
                   ) : null}
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[11px] text-admin-text-muted">
                     <span className="rounded-full bg-white px-2 py-1 font-semibold text-admin-text-strong">
-                      점수 {(c.score * 100).toFixed(0)}%
+                      {t('score', { value: (c.score * 100).toFixed(0) })}
                     </span>
                     <span>{c.status}</span>
                   </div>
@@ -90,7 +92,7 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
                       disabled={promote.isPending}
                       onClick={() => promote.mutate({ ideaCandidateId: c.id })}
                     >
-                      소재로 승격
+                      {t('promote')}
                     </button>
                     <button
                       type="button"
@@ -98,7 +100,7 @@ export function IdeaCandidatesPanel({ channelId }: Props) {
                       disabled={reject.isPending}
                       onClick={() => reject.mutate({ ideaCandidateId: c.id })}
                     >
-                      거절
+                      {t('reject')}
                     </button>
                   </div>
                 ) : null}

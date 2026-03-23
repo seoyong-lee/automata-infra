@@ -1,6 +1,7 @@
 'use client';
 
 import { Clapperboard, Gauge, Image, Mic } from 'lucide-react';
+import { useTranslations } from 'next-intl';
 
 import type { DashboardBottlenecks } from '../lib/dashboard-model';
 
@@ -9,6 +10,7 @@ type Props = {
 };
 
 export function DashboardBottlenecksSection({ bottlenecks }: Props) {
+  const t = useTranslations('dashboard.credits');
   const scriptImageCredits = Math.max(8, 18 + bottlenecks.sceneJsonLongDwell * 3);
   const voiceCredits = Math.max(6, 12 + bottlenecks.failedJobs * 4);
   const videoCredits = Math.max(
@@ -22,28 +24,28 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
 
   const rows = [
     {
-      label: '스크립트 이미지',
+      label: t('scriptImage'),
       value: scriptImageCredits,
       Icon: Image,
-      note: `${Math.round(scriptImageCredits * 0.18)} credits / item`,
+      note: t('creditsPerItem', { value: Math.round(scriptImageCredits * 0.18) }),
     },
     {
-      label: '음성',
+      label: t('voice'),
       value: voiceCredits,
       Icon: Mic,
-      note: `${Math.round(voiceCredits * 0.12)} credits / item`,
+      note: t('creditsPerItem', { value: Math.round(voiceCredits * 0.12) }),
     },
     {
-      label: '영상',
+      label: t('video'),
       value: videoCredits,
       Icon: Clapperboard,
-      note: `${Math.round(videoCredits * 0.24)} credits / item`,
+      note: t('creditsPerItem', { value: Math.round(videoCredits * 0.24) }),
     },
     {
-      label: '렌더링',
+      label: t('rendering'),
       value: renderingCredits,
       Icon: Gauge,
-      note: `${Math.round(renderingCredits * 0.31)} credits / item`,
+      note: t('creditsPerItem', { value: Math.round(renderingCredits * 0.31) }),
     },
   ];
   const maxValue = Math.max(...rows.map((row) => row.value), 1);
@@ -58,10 +60,10 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
           id="dash-bottleneck-heading"
           className="px-0 pt-0 text-xs font-bold uppercase tracking-[0.24em] text-slate-600 md:text-sm md:px-0"
         >
-          Credit Usage
+          {t('title')}
         </h3>
         <span className="hidden rounded bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-500 md:inline-flex">
-          LIVE MONITORING
+          {t('badge')}
         </span>
       </div>
       <div className="mt-3 space-y-2 md:mt-0 md:p-6">
