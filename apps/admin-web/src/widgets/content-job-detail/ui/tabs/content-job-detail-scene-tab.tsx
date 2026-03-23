@@ -28,7 +28,8 @@ export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
     [pageData.detail?.assets],
   );
   const executionsQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
-  const sceneExecutions = executionsQuery.data?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
+  const sceneExecutions =
+    executionsQuery.data?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
   const byRecent = (a: (typeof sceneExecutions)[number], b: (typeof sceneExecutions)[number]) =>
     new Date(b.completedAt ?? b.startedAt).getTime() -
     new Date(a.completedAt ?? a.startedAt).getTime();
@@ -72,8 +73,8 @@ export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
           <CardTitle className="text-base">씬 설계 진입</CardTitle>
         </CardHeader>
         <CardContent className="text-sm text-muted-foreground">
-          토픽 시드를 조정하려면 `아이디어`, Scene JSON 결과를 직접 보정하려면 아래 `씬 설계`
-          패널을 사용하세요.
+          토픽 시드를 조정하려면 `아이디어`, Scene JSON 결과를 직접 보정하려면 아래 `씬 설계` 패널을
+          사용하세요.
         </CardContent>
       </Card>
       <ContentJobDetailSceneBuildPanel
