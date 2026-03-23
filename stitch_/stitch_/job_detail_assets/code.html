@@ -1,0 +1,400 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#dee1ff",
+              "on-surface-variant": "#454652",
+              "on-primary-container": "#ccd0f6",
+              "surface-tint": "#585c7d",
+              "surface-dim": "#dadada",
+              "error": "#ba1a1a",
+              "surface-container-lowest": "#ffffff",
+              "outline": "#757684",
+              "on-primary-fixed": "#141936",
+              "on-secondary-container": "#565b7e",
+              "on-secondary": "#ffffff",
+              "outline-variant": "#c5c5d4",
+              "on-primary-fixed-variant": "#404564",
+              "primary-container": "#545879",
+              "secondary": "#575c7f",
+              "primary": "#3c4160",
+              "tertiary-fixed-dim": "#bdc4f2",
+              "surface-container-low": "#f3f3f3",
+              "on-tertiary-fixed-variant": "#3d446b",
+              "secondary-fixed": "#dee0ff",
+              "primary-fixed": "#dee0ff",
+              "on-error": "#ffffff",
+              "secondary-fixed-dim": "#c0c4ed",
+              "tertiary-container": "#515880",
+              "inverse-primary": "#c0c4ea",
+              "on-secondary-fixed": "#141938",
+              "secondary-container": "#d0d5fe",
+              "on-tertiary-fixed": "#11183d",
+              "primary-fixed-dim": "#c0c4ea",
+              "on-tertiary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-surface": "#1a1c1c",
+              "surface-container": "#eeeeee",
+              "surface": "#f9f9f9",
+              "surface-container-highest": "#e2e2e2",
+              "surface-variant": "#e2e2e2",
+              "surface-bright": "#f9f9f9",
+              "background": "#f9f9f9",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary": "#394167",
+              "surface-container-high": "#e8e8e8",
+              "inverse-surface": "#2f3131",
+              "on-background": "#1a1c1c",
+              "on-secondary-fixed-variant": "#404566",
+              "on-tertiary-container": "#c9d0ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        body { font-family: 'Inter', sans-serif; }
+        h1, h2, h3, .font-headline { font-family: 'Manrope', sans-serif; }
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+            vertical-align: middle;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+        .tonal-gradient {
+            background: linear-gradient(135deg, #3c4160 0%, #545879 100%);
+        }
+    </style>
+</head>
+<body class="bg-surface text-on-surface min-h-screen">
+<!-- TopNavBar -->
+<header class="flex justify-between items-center px-8 h-16 w-full sticky top-0 z-50 bg-white dark:bg-slate-900 tonal-shift bg-slate-50 dark:bg-slate-950 flat no shadows">
+<div class="flex items-center gap-8">
+<span class="text-xl font-bold tracking-tight text-slate-900 dark:text-white">Automata Studio</span>
+<nav class="hidden md:flex gap-6 items-center">
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest text-[10px] font-bold" href="#">Dashboard</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest text-[10px] font-bold" href="#">Productions</a>
+<a class="text-indigo-600 dark:text-indigo-400 border-b-2 border-indigo-600 dark:border-indigo-400 pb-1 uppercase tracking-widest text-[10px] font-bold" href="#">Assets</a>
+<a class="text-slate-500 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200 transition-colors uppercase tracking-widest text-[10px] font-bold" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">notifications</span>
+</button>
+<button class="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all rounded-full">
+<span class="material-symbols-outlined text-on-surface-variant">help_outline</span>
+</button>
+<div class="h-8 w-8 rounded-full bg-primary-container flex items-center justify-center text-white overflow-hidden">
+<img alt="User Profile Avatar" data-alt="Close up portrait of a smiling user" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBqE5aHwC3-4iK_wZHgeUobS4LFL4y9fO98vRm-l-tZnkOZNWrjhkwcFK_h4qd7g1jIJz7dRddyzogOl3SFlfBcmD3ZxqegY0l4nCoZK9aSTig6wAtF-JPVAPuG3QxuT_yFBIZCkCiVU0JBP8fVm04iWhn4r-EAi0IN8OYKqzzgKTnq_rfAXNJlZTINH0hSi3BxRs7JVIYxxon6aiwVGi-d7l223Ayb8LAW5xfzkkJ8g0rFyYGMLUwN8pfOhoNSLv1euUoe3YH8LAtq"/>
+</div>
+</div>
+</header>
+<div class="flex">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full flex flex-col py-6 z-40 bg-slate-900 dark:bg-black docked left-0 h-screen w-64 shadow-xl shadow-indigo-900/10 transition-transform active:scale-[0.98]">
+<div class="px-6 mb-8 mt-12">
+<p class="uppercase font-semibold text-[11px] text-indigo-400 tracking-wider">Scene Designer</p>
+<p class="text-slate-400 text-xs font-mono">Production ID: #8821</p>
+</div>
+<nav class="flex-1 flex flex-col">
+<a class="text-slate-400 flex items-center gap-3 px-6 py-4 hover:text-slate-100 hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">movie_filter</span>
+<span class="font-headline text-sm">Scene List</span>
+</a>
+<a class="text-slate-400 flex items-center gap-3 px-6 py-4 hover:text-slate-100 hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">view_timeline</span>
+<span class="font-headline text-sm">Timeline</span>
+</a>
+<a class="bg-indigo-600/10 text-white border-r-4 border-indigo-500 flex items-center gap-3 px-6 py-4" href="#">
+<span class="material-symbols-outlined">image_search</span>
+<span class="font-headline text-sm">Visual Assets</span>
+</a>
+<a class="text-slate-400 flex items-center gap-3 px-6 py-4 hover:text-slate-100 hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">bluetooth_audio</span>
+<span class="font-headline text-sm">Audio Triggers</span>
+</a>
+<a class="text-slate-400 flex items-center gap-3 px-6 py-4 hover:text-slate-100 hover:bg-white/5 transition-all duration-200" href="#">
+<span class="material-symbols-outlined">ios_share</span>
+<span class="font-headline text-sm">Export</span>
+</a>
+</nav>
+<div class="mt-auto px-6 pt-4">
+<button class="w-full py-3 px-4 rounded-md tonal-gradient text-white text-sm font-bold flex items-center justify-center gap-2 mb-8">
+<span class="material-symbols-outlined text-sm">add</span>
+                    Add New Scene
+                </button>
+<div class="border-t border-slate-800 pt-4">
+<a class="text-slate-400 flex items-center gap-3 px-0 py-3 hover:text-slate-100 transition-all text-xs" href="#">
+<span class="material-symbols-outlined text-sm">archive</span>
+                        Archive
+                    </a>
+<a class="text-slate-400 flex items-center gap-3 px-0 py-3 hover:text-slate-100 transition-all text-xs" href="#">
+<span class="material-symbols-outlined text-sm">last_page</span>
+                        Collapse
+                    </a>
+</div>
+</div>
+</aside>
+<!-- Main Content Stage -->
+<main class="ml-64 flex-1 p-8 bg-surface">
+<!-- Page Header & Workflow Bar -->
+<div class="flex flex-col gap-6 mb-10">
+<div class="flex justify-between items-end">
+<div>
+<span class="uppercase tracking-widest text-[10px] font-bold text-outline">Production Detail</span>
+<h1 class="text-4xl font-extrabold font-headline text-primary tracking-tight">The Quantum Paradox</h1>
+</div>
+<div class="flex gap-2 p-1 bg-surface-container-low rounded-lg">
+<button class="px-4 py-2 bg-surface-container-lowest text-primary rounded-md shadow-sm text-sm font-semibold flex items-center gap-2">
+<span class="material-symbols-outlined text-sm" style="font-variation-settings: 'FILL' 1;">grid_view</span>
+                            Scenes view
+                        </button>
+<button class="px-4 py-2 text-on-surface-variant hover:bg-surface-container-high transition-colors rounded-md text-sm font-medium flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">category</span>
+                            By Kind view
+                        </button>
+</div>
+</div>
+<!-- Workflow Navigation Bar -->
+<div class="flex items-center gap-1 bg-surface-container-low p-1.5 rounded-xl border border-outline-variant/10">
+<button class="flex-1 py-3 px-4 flex items-center justify-center gap-2 text-primary font-semibold text-sm rounded-lg bg-surface-container-lowest shadow-sm">
+<span class="material-symbols-outlined text-indigo-500">image</span> Image Stage
+                    </button>
+<button class="flex-1 py-3 px-4 flex items-center justify-center gap-2 text-on-surface-variant font-medium text-sm rounded-lg hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined">record_voice_over</span> Voice Stage
+                    </button>
+<button class="flex-1 py-3 px-4 flex items-center justify-center gap-2 text-on-surface-variant font-medium text-sm rounded-lg hover:bg-surface-container-high transition-all">
+<span class="material-symbols-outlined">movie</span> Video Stage
+                    </button>
+</div>
+</div>
+<div class="grid grid-cols-12 gap-8">
+<!-- Asset Content Column -->
+<div class="col-span-8 flex flex-col gap-6">
+<!-- Summary Bar -->
+<div class="p-6 bg-surface-container-lowest rounded-xl shadow-sm border border-outline-variant/10 flex flex-wrap items-center justify-between gap-6">
+<div class="flex gap-8">
+<div>
+<p class="uppercase font-semibold text-[10px] text-outline tracking-wider mb-1">Readiness</p>
+<div class="flex items-baseline gap-1">
+<span class="text-2xl font-bold font-headline text-primary">12</span>
+<span class="text-sm text-outline font-medium">/ 18 Scenes</span>
+</div>
+</div>
+<div class="h-10 w-px bg-outline-variant/20"></div>
+<div>
+<p class="uppercase font-semibold text-[10px] text-outline tracking-wider mb-1">Provider</p>
+<select class="bg-transparent border-none p-0 text-sm font-bold text-indigo-600 focus:ring-0">
+<option>Flux.1 Dev</option>
+<option>Stable Diffusion XL</option>
+<option>Midjourney v6.1</option>
+</select>
+</div>
+</div>
+<div class="flex gap-3">
+<button class="px-5 py-2.5 bg-surface-container-low text-primary text-sm font-bold rounded-md hover:bg-surface-container-high transition-all">
+                                Regenerate Drafts
+                            </button>
+<button class="px-5 py-2.5 tonal-gradient text-white text-sm font-bold rounded-md shadow-lg shadow-indigo-900/10 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">bolt</span>
+                                Batch Generate
+                            </button>
+</div>
+</div>
+<!-- Scene List / Cards -->
+<div class="flex flex-col gap-4">
+<h3 class="font-headline text-lg font-bold text-primary px-1">Production Scenes</h3>
+<!-- Scene Card 01 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-transparent hover:border-indigo-500/20 hover:shadow-xl hover:shadow-indigo-900/5 transition-all overflow-hidden flex h-48">
+<div class="w-72 relative overflow-hidden bg-surface-container">
+<img alt="Scene 01 Render" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="Abstract blue and magenta 3D flow forms" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDmnwmHkswHpbtHJ3oesdau_lGvYn6lXkCI5LJmwzMdJSrONpEdFklP8r4IcXdkpvVY-uAuFTP60B23d0GWIfeAXOkYv4_EKdzCpsE9JRDXfet-tO1ZlD6o9mdVAIMeVf3FB3DT1uulC6VARB0XPtbw1uINIPzhqtJp2eGDOOabmKViwUfTO1MteOjHpKfzLiYyuLcHA8xMpjqd3P6NIpr5OgwHSe7_W8u6clVFacvh82vheQQe4yKxTL3dNseM4i-mFEjVJJTnCevX"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+<span class="text-white text-xs font-bold bg-black/40 backdrop-blur-md px-2 py-1 rounded">Scene 01</span>
+</div>
+</div>
+<div class="flex-1 p-5 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline font-bold text-primary">The Obsidian Monolith</h4>
+<p class="text-xs text-outline line-clamp-2 mt-1">Camera pans slowly across a cracked desert landscape as a massive black structure emerges from the dust.</p>
+</div>
+<span class="material-symbols-outlined text-green-500" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+</div>
+<div class="grid grid-cols-3 gap-4 pt-4">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Voice</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">graphic_eq</span>
+<span class="text-xs font-bold text-primary">Marcus V2</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Image Status</p>
+<span class="text-xs font-bold text-green-600">Ready</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Video Status</p>
+<span class="text-xs font-bold text-indigo-500">Processing</span>
+</div>
+</div>
+</div>
+</div>
+<!-- Scene Card 02 -->
+<div class="group bg-surface-container-lowest rounded-xl border border-transparent hover:border-indigo-500/20 hover:shadow-xl hover:shadow-indigo-900/5 transition-all overflow-hidden flex h-48">
+<div class="w-72 relative overflow-hidden bg-surface-container">
+<img alt="Scene 02 Render" class="w-full h-full object-cover group-hover:scale-105 transition-transform duration-500" data-alt="High tech blue earth satellite view" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCx7pNO61-F8JIIIM0QjdQovUji7lxsNhBeoAm2h8N3yDnLI3QvR6TlzJ7nZr6zcEwDfCNpNcpf5YXvCdJKQ2RBMIW3DF8Z2NK2rnXDbWzYHAaN7fQWl711r7Y4G-0aBKDq571w9fG5fRBTfga1ptkp-1NQUX2UKtwFvrQiFDM0wnlL1Dh2wBo5DLVYMpAqtApKneQpP7hqI4RP8xOUFiHLDJvTI_S-dJ1kbGohEfd8jlvRekmWazqKFkbecer89dg_528CU2UjoPHw"/>
+<div class="absolute inset-0 bg-gradient-to-t from-black/60 to-transparent flex items-end p-4">
+<span class="text-white text-xs font-bold bg-black/40 backdrop-blur-md px-2 py-1 rounded">Scene 02</span>
+</div>
+<div class="absolute inset-0 flex items-center justify-center bg-black/20 group-hover:bg-black/40 transition-colors">
+<button class="w-12 h-12 rounded-full bg-white/20 backdrop-blur-md text-white flex items-center justify-center hover:scale-110 transition-transform">
+<span class="material-symbols-outlined text-3xl">play_arrow</span>
+</button>
+</div>
+</div>
+<div class="flex-1 p-5 flex flex-col justify-between">
+<div class="flex justify-between items-start">
+<div>
+<h4 class="font-headline font-bold text-primary">Orbital Network</h4>
+<p class="text-xs text-outline line-clamp-2 mt-1">Satellite's eye view of glowing neural networks connecting global cities in a web of light.</p>
+</div>
+<span class="material-symbols-outlined text-outline">pending</span>
+</div>
+<div class="grid grid-cols-3 gap-4 pt-4">
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Voice</p>
+<div class="flex items-center gap-2">
+<span class="material-symbols-outlined text-sm text-primary">graphic_eq</span>
+<span class="text-xs font-bold text-outline italic">Selection needed</span>
+</div>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Image Status</p>
+<span class="text-xs font-bold text-green-600">Ready</span>
+</div>
+<div class="bg-surface-container-low p-2 rounded-lg">
+<p class="uppercase text-[9px] font-bold text-outline mb-1">Video Status</p>
+<span class="text-xs font-bold text-outline">Not Started</span>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+<!-- Side Render Preview Panel -->
+<div class="col-span-4">
+<div class="sticky top-24 flex flex-col gap-6">
+<!-- Render Preview Player -->
+<div class="bg-primary-container rounded-2xl overflow-hidden shadow-2xl shadow-primary/20 aspect-video relative group">
+<div class="absolute inset-0 bg-black/40 flex flex-col items-center justify-center p-6 text-center text-white">
+<span class="material-symbols-outlined text-6xl mb-4 opacity-50">movie_creation</span>
+<h5 class="font-headline font-bold text-lg">Preview Preview Player</h5>
+<p class="text-sm text-on-primary-container/80 mt-2">Render scene sequence to preview final composite</p>
+</div>
+<img alt="Preview Placeholder" class="w-full h-full object-cover opacity-30" data-alt="Abstract dark aesthetic glitch texture" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCef4863bgILlhlUClmLyTKt_w8AS0maDBKRGjXBe5KWGK51Lhc5jx10-5G-OfTfS5fmR93ZPMcobrMteeGwMxB8q5Sjv6PsV9IH4GrahTYYTAmLhvuSF1E2bFYoMILNSXTF3mN-7b19GybWhAi-VcecjVITzi1bQlva30oCxx77phl43E7NMswSdsxxRBBxYb3fuT1XJC7xnVghI5wY3HMKlJGi7qVpcsR9CTC8mRQtGu5PV4pEUkOF-ZNRzxaARbJO-C3J3Tod30_"/>
+<div class="absolute bottom-0 inset-x-0 p-4 bg-gradient-to-t from-black to-transparent flex justify-between items-center opacity-0 group-hover:opacity-100 transition-opacity">
+<div class="flex items-center gap-4 text-white">
+<span class="material-symbols-outlined">play_circle</span>
+<div class="h-1 w-32 bg-white/30 rounded-full relative">
+<div class="absolute inset-y-0 left-0 w-1/3 bg-indigo-400 rounded-full"></div>
+</div>
+<span class="text-[10px] font-mono">00:14 / 00:45</span>
+</div>
+<span class="material-symbols-outlined text-white">fullscreen</span>
+</div>
+</div>
+<!-- Render Settings Card -->
+<div class="bg-surface-container-lowest p-6 rounded-2xl border border-outline-variant/10 shadow-sm flex flex-col gap-6">
+<div class="flex items-center justify-between">
+<h4 class="font-headline font-bold text-primary">Master Settings</h4>
+<span class="bg-indigo-100 text-indigo-700 px-2 py-0.5 rounded text-[10px] font-bold uppercase tracking-wider">Draft Mode</span>
+</div>
+<div class="flex flex-col gap-4">
+<div class="flex flex-col gap-2">
+<label class="uppercase font-semibold text-[10px] text-outline tracking-wider">Background Music</label>
+<div class="flex items-center gap-3 p-3 bg-surface-container-low rounded-lg border border-outline-variant/10">
+<span class="material-symbols-outlined text-primary">music_note</span>
+<div class="flex-1">
+<p class="text-xs font-bold text-primary">Cinematic Ambient.mp3</p>
+<p class="text-[10px] text-outline">S3://assets/bgm/002.mp3</p>
+</div>
+<button class="material-symbols-outlined text-on-surface-variant hover:text-primary">upload_file</button>
+</div>
+</div>
+<div class="flex items-center justify-between p-3 bg-surface-container-low rounded-lg">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-primary">subtitles</span>
+<span class="text-xs font-bold text-primary">Burn-in Subtitles</span>
+</div>
+<button class="w-10 h-5 bg-indigo-600 rounded-full relative">
+<div class="absolute right-1 top-1 w-3 h-3 bg-white rounded-full"></div>
+</button>
+</div>
+</div>
+<button class="w-full py-4 tonal-gradient text-white font-extrabold text-sm rounded-xl shadow-lg shadow-indigo-900/20 flex items-center justify-center gap-3 active:scale-95 transition-all">
+<span class="material-symbols-outlined">send</span>
+                                Final Render &amp; Publish
+                            </button>
+<p class="text-[10px] text-outline text-center leading-relaxed">
+                                Estimated render time: 14 mins.<br/>Credits remaining: 1,420
+                            </p>
+</div>
+<!-- Asset Readiness Summary -->
+<div class="bg-surface-container p-6 rounded-2xl border border-dashed border-outline-variant/40">
+<h5 class="text-xs font-bold text-primary mb-4 flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">inventory_2</span>
+                                Asset Payload Summary
+                            </h5>
+<div class="space-y-3">
+<div class="flex justify-between text-[11px] font-medium text-on-surface-variant">
+<span>Images (High Res)</span>
+<span class="text-primary font-bold">18/18</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full">
+<div class="bg-indigo-500 h-full w-full rounded-full"></div>
+</div>
+<div class="flex justify-between text-[11px] font-medium text-on-surface-variant">
+<span>Voice Layers</span>
+<span class="text-primary font-bold">12/18</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full">
+<div class="bg-indigo-500 h-full w-[66%] rounded-full"></div>
+</div>
+<div class="flex justify-between text-[11px] font-medium text-on-surface-variant">
+<span>Video Clips</span>
+<span class="text-primary font-bold">4/18</span>
+</div>
+<div class="w-full bg-surface-container-highest h-1 rounded-full">
+<div class="bg-indigo-500 h-full w-[22%] rounded-full"></div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</div>
+</body></html>

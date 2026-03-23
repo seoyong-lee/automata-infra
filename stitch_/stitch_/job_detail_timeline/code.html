@@ -1,0 +1,479 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Job Execution Timeline - Automata Studio</title>
+<!-- Google Fonts: Manrope & Inter -->
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@300;400;500;600;700&amp;display=swap" rel="stylesheet"/>
+<!-- Material Symbols Outlined -->
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<script id="tailwind-config">
+      tailwind.config = {
+        darkMode: "class",
+        theme: {
+          extend: {
+            colors: {
+              "error-container": "#ffdad6",
+              "tertiary-fixed": "#dee1ff",
+              "on-surface-variant": "#454652",
+              "on-primary-container": "#ccd0f6",
+              "surface-tint": "#585c7d",
+              "surface-dim": "#dadada",
+              "error": "#ba1a1a",
+              "surface-container-lowest": "#ffffff",
+              "outline": "#757684",
+              "on-primary-fixed": "#141936",
+              "on-secondary-container": "#565b7e",
+              "on-secondary": "#ffffff",
+              "outline-variant": "#c5c5d4",
+              "on-primary-fixed-variant": "#404564",
+              "primary-container": "#545879",
+              "secondary": "#575c7f",
+              "primary": "#3c4160",
+              "tertiary-fixed-dim": "#bdc4f2",
+              "surface-container-low": "#f3f3f3",
+              "on-tertiary-fixed-variant": "#3d446b",
+              "secondary-fixed": "#dee0ff",
+              "primary-fixed": "#dee0ff",
+              "on-error": "#ffffff",
+              "secondary-fixed-dim": "#c0c4ed",
+              "tertiary-container": "#515880",
+              "inverse-primary": "#c0c4ea",
+              "on-secondary-fixed": "#141938",
+              "secondary-container": "#d0d5fe",
+              "on-tertiary-fixed": "#11183d",
+              "primary-fixed-dim": "#c0c4ea",
+              "on-tertiary": "#ffffff",
+              "on-primary": "#ffffff",
+              "on-error-container": "#93000a",
+              "on-surface": "#1a1c1c",
+              "surface-container": "#eeeeee",
+              "surface": "#f9f9f9",
+              "surface-container-highest": "#e2e2e2",
+              "surface-variant": "#e2e2e2",
+              "surface-bright": "#f9f9f9",
+              "background": "#f9f9f9",
+              "inverse-on-surface": "#f1f1f1",
+              "tertiary": "#394167",
+              "surface-container-high": "#e8e8e8",
+              "inverse-surface": "#2f3131",
+              "on-background": "#1a1c1c",
+              "on-secondary-fixed-variant": "#404566",
+              "on-tertiary-container": "#c9d0ff"
+            },
+            fontFamily: {
+              "headline": ["Manrope"],
+              "body": ["Inter"],
+              "label": ["Inter"]
+            },
+            borderRadius: {"DEFAULT": "0.5rem", "lg": "1rem", "xl": "1.5rem", "full": "9999px"},
+          },
+        },
+      }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .glass-panel {
+            background: rgba(255, 255, 255, 0.7);
+            backdrop-filter: blur(12px);
+            -webkit-backdrop-filter: blur(12px);
+        }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<!-- SideNavBar (Shared Component) -->
+<aside class="bg-slate-900 dark:bg-black h-screen w-64 fixed left-0 top-0 flex flex-col py-6 shadow-xl z-50">
+<div class="px-6 mb-10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 rounded bg-indigo-500 flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg">settings_input_component</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-white">Automata Studio</h1>
+<p class="text-[10px] text-slate-400 uppercase tracking-[0.2em] font-label">Admin Console</p>
+</div>
+</div>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3">explore</span>
+<span class="font-label text-sm uppercase tracking-wider">Discovery</span>
+</a>
+<!-- Active Tab: Jobs -->
+<a class="flex items-center px-6 py-3 text-white font-semibold border-r-4 border-indigo-500 bg-slate-800/50 transition-all" href="#">
+<span class="material-symbols-outlined mr-3">work</span>
+<span class="font-label text-sm uppercase tracking-wider">Jobs</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3">inventory_2</span>
+<span class="font-label text-sm uppercase tracking-wider">Content</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3">rate_review</span>
+<span class="font-label text-sm uppercase tracking-wider">Reviews</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3">play_circle</span>
+<span class="font-label text-sm uppercase tracking-wider">Executions</span>
+</a>
+<a class="flex items-center px-6 py-3 text-slate-400 hover:text-slate-200 hover:bg-slate-800 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined mr-3">settings</span>
+<span class="font-label text-sm uppercase tracking-wider">Settings</span>
+</a>
+</nav>
+<div class="px-6 mt-auto">
+<div class="p-4 bg-slate-800 rounded-lg">
+<p class="text-xs text-slate-400 mb-2">Cloud Status</p>
+<div class="flex items-center gap-2">
+<span class="w-2 h-2 rounded-full bg-emerald-500"></span>
+<span class="text-sm text-white font-medium">us-east-1 Active</span>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Wrapper -->
+<main class="ml-64 min-h-screen">
+<!-- TopAppBar (Shared Component) -->
+<header class="fixed top-0 right-0 left-64 h-16 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex justify-between items-center px-8 w-full">
+<div class="flex items-center gap-6 flex-1">
+<div class="relative w-full max-w-md">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm">search</span>
+<input class="w-full bg-surface-container-low border-none rounded-md pl-10 pr-4 py-2 text-sm focus:ring-2 focus:ring-indigo-500 transition-all" placeholder="Search executions, logs, keys..." type="text"/>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium transition-colors" href="#">Items</a>
+<a class="text-indigo-600 border-b-2 border-indigo-600 text-sm font-medium transition-colors pb-1" href="#">Queue</a>
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium transition-colors" href="#">Schedule</a>
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium transition-colors" href="#">Connections</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+<span class="material-symbols-outlined">notifications</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+<span class="material-symbols-outlined">dns</span>
+</button>
+<button class="p-2 text-slate-500 hover:bg-slate-100 rounded-full transition-all">
+<span class="material-symbols-outlined">help</span>
+</button>
+<div class="h-8 w-px bg-slate-200 mx-2"></div>
+<img alt="User Profile" class="w-8 h-8 rounded-full bg-slate-200" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAlu7km91hVBXBdxzifOMdLJk1Ud9R5oTZLBvJX0ZX5EsEB1vhVaKGVcn-j7Mfr6RPIZ-eF8mAVJxEDagb-jYD9Inj_VGmcphTkAGdwiwhk_woW-uKzd9jofVsSNSRRsW3iTLvaTcHwta6SYOzMihiQBNY-1WecMAbcU4Egftwj4MnDritgAAFiR1PDKei7AMqDEFjyGSYbLXKoBNgEpCjArmvELf8FsKaAn8KOtADJh8UUerfRGIep5BtTAdvrEzLxW4Xq8YVheXIk"/>
+</div>
+</header>
+<!-- Page Content -->
+<div class="pt-24 px-10 pb-12">
+<!-- Breadcrumbs & Header -->
+<div class="mb-8">
+<nav class="flex items-center gap-2 text-xs font-label uppercase tracking-widest text-slate-500 mb-2">
+<a class="hover:text-indigo-600" href="#">Jobs</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<a class="hover:text-indigo-600" href="#">JB-882910</a>
+<span class="material-symbols-outlined text-[14px]">chevron_right</span>
+<span class="text-on-surface">Execution Timeline</span>
+</nav>
+<div class="flex justify-between items-end">
+<div>
+<h2 class="text-4xl font-headline font-extrabold tracking-tight text-primary mb-1">Execution: Video-Transcode-04</h2>
+<p class="text-on-surface-variant text-sm flex items-center gap-2">
+<span class="material-symbols-outlined text-sm">fingerprint</span>
+                            UUID: 4f3e-9b2c-7721-a0e1-88fc21
+                        </p>
+</div>
+<div class="flex gap-3">
+<button class="px-4 py-2 bg-surface-container-high text-on-surface font-medium rounded-md text-sm hover:bg-surface-container-highest transition-colors">Download Logs</button>
+<button class="px-4 py-2 bg-gradient-to-br from-primary to-primary-container text-white font-medium rounded-md text-sm shadow-md flex items-center gap-2 hover:opacity-90 transition-all">
+<span class="material-symbols-outlined text-sm">refresh</span>
+                            Rerun Pipeline
+                        </button>
+</div>
+</div>
+</div>
+<!-- Workflow Progress Bar -->
+<div class="mb-12 bg-surface-container-low p-6 rounded-xl relative overflow-hidden">
+<div class="absolute top-0 left-0 w-1 h-full bg-indigo-500"></div>
+<div class="flex justify-between items-center relative z-10">
+<div class="flex flex-col items-center gap-3 w-1/5 group">
+<div class="w-10 h-10 rounded-full bg-indigo-100 flex items-center justify-center text-indigo-600 ring-4 ring-white">
+<span class="material-symbols-outlined">input</span>
+</div>
+<span class="text-[10px] font-label uppercase tracking-tighter text-indigo-600 font-bold">Ingest</span>
+<div class="text-[10px] text-slate-400">04:12:01</div>
+</div>
+<div class="flex-1 h-[2px] bg-indigo-200 mb-8 mx-2"></div>
+<div class="flex flex-col items-center gap-3 w-1/5">
+<div class="w-10 h-10 rounded-full bg-indigo-600 flex items-center justify-center text-white ring-4 ring-white">
+<span class="material-symbols-outlined">video_settings</span>
+</div>
+<span class="text-[10px] font-label uppercase tracking-tighter text-indigo-600 font-bold">Transcode</span>
+<div class="text-[10px] text-slate-400">04:15:22</div>
+</div>
+<div class="flex-1 h-[2px] bg-slate-200 mb-8 mx-2"></div>
+<div class="flex flex-col items-center gap-3 w-1/5 opacity-50">
+<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 ring-4 ring-white">
+<span class="material-symbols-outlined">psychology</span>
+</div>
+<span class="text-[10px] font-label uppercase tracking-tighter text-slate-600 font-bold">Analysis</span>
+<div class="text-[10px] text-slate-400">Pending</div>
+</div>
+<div class="flex-1 h-[2px] bg-slate-200 mb-8 mx-2"></div>
+<div class="flex flex-col items-center gap-3 w-1/5 opacity-50">
+<div class="w-10 h-10 rounded-full bg-slate-200 flex items-center justify-center text-slate-500 ring-4 ring-white">
+<span class="material-symbols-outlined">cloud_upload</span>
+</div>
+<span class="text-[10px] font-label uppercase tracking-tighter text-slate-600 font-bold">Export</span>
+<div class="text-[10px] text-slate-400">Pending</div>
+</div>
+</div>
+</div>
+<!-- Bento Layout Content -->
+<div class="grid grid-cols-12 gap-8">
+<!-- Left: Pipeline History Table (Main Stage) -->
+<div class="col-span-12 xl:col-span-8 space-y-8">
+<section class="bg-surface-container-lowest rounded-xl overflow-hidden shadow-sm">
+<div class="px-6 py-4 border-b border-outline-variant/15 flex justify-between items-center">
+<h3 class="text-sm font-label uppercase tracking-widest text-primary font-bold">Pipeline Step History</h3>
+<span class="text-xs bg-indigo-50 text-indigo-700 px-2 py-1 rounded">5 Active Workers</span>
+</div>
+<div class="overflow-x-auto">
+<table class="w-full text-left border-collapse">
+<thead>
+<tr class="bg-surface-container-low text-[10px] font-label uppercase tracking-widest text-slate-500">
+<th class="px-6 py-3 font-semibold">Stage Type</th>
+<th class="px-6 py-3 font-semibold">Status</th>
+<th class="px-6 py-3 font-semibold">S3 Keys (In/Out)</th>
+<th class="px-6 py-3 font-semibold">Duration</th>
+<th class="px-6 py-3 font-semibold">Operator</th>
+</tr>
+</thead>
+<tbody class="text-sm divide-y divide-outline-variant/10">
+<!-- Row 1 -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-500">file_upload</span>
+<span class="font-medium">Ingest_Stage</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1 font-mono text-[10px] text-slate-500">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">login</span> s3://raw-vids/input.mp4</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">logout</span> s3://proc/temp_882.v</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-600">42s</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">LS</div>
+<span class="text-xs">lambda-system-1</span>
+</div>
+</td>
+</tr>
+<!-- Row 2 (Error State) -->
+<tr class="bg-red-50/30 hover:bg-red-50 transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-error">video_file</span>
+<span class="font-medium text-error">Transcode_Main</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-red-100 text-red-800">Failed</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1 font-mono text-[10px] text-slate-500">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">login</span> s3://proc/temp_882.v</span>
+<span class="text-error flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">error</span> AccessDenied</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-600">1.2s</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">FF</div>
+<span class="text-xs">ffmpeg-worker-08</span>
+</div>
+</td>
+</tr>
+<!-- Row 3 (Retried Success) -->
+<tr class="hover:bg-surface-container transition-colors">
+<td class="px-6 py-4">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-500">video_file</span>
+<span class="font-medium">Transcode_Main (Retry)</span>
+</div>
+</td>
+<td class="px-6 py-4">
+<span class="inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium bg-green-100 text-green-800">Completed</span>
+</td>
+<td class="px-6 py-4">
+<div class="flex flex-col gap-1 font-mono text-[10px] text-slate-500">
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">login</span> s3://proc/temp_882.v</span>
+<span class="flex items-center gap-1"><span class="material-symbols-outlined text-[12px]">logout</span> s3://out/fin_04.mp4</span>
+</div>
+</td>
+<td class="px-6 py-4 text-slate-600">3m 12s</td>
+<td class="px-6 py-4">
+<div class="flex items-center gap-2">
+<div class="w-6 h-6 rounded-full bg-slate-200 flex items-center justify-center text-[10px]">FF</div>
+<span class="text-xs">ffmpeg-worker-08</span>
+</div>
+</td>
+</tr>
+</tbody>
+</table>
+</div>
+</section>
+<!-- Raw Timeline / Technical Logs -->
+<section class="space-y-4">
+<div class="flex justify-between items-center">
+<h3 class="text-sm font-label uppercase tracking-widest text-primary font-bold">System Log Stream (DynamoDB)</h3>
+<div class="flex gap-2">
+<button class="p-1 hover:bg-slate-200 rounded text-slate-500"><span class="material-symbols-outlined text-sm">filter_list</span></button>
+<button class="p-1 hover:bg-slate-200 rounded text-slate-500"><span class="material-symbols-outlined text-sm">download</span></button>
+</div>
+</div>
+<!-- Log Entry 1 -->
+<div class="bg-slate-900 rounded-lg overflow-hidden font-mono text-xs border border-slate-800">
+<div class="bg-slate-800/50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors">
+<div class="flex items-center gap-4">
+<span class="text-indigo-400">04:15:22.091</span>
+<span class="text-emerald-400">[INFO]</span>
+<span class="text-slate-300">Execution.Started: PK=JOB#882910 SK=LOG#1693822</span>
+</div>
+<span class="material-symbols-outlined text-slate-500">expand_more</span>
+</div>
+<div class="p-4 text-slate-400 leading-relaxed bg-slate-900">
+<pre>{
+  "pk": "JOB#882910",
+  "sk": "LOG#1693822522",
+  "event": "PIPELINE_INITIATED",
+  "payload": {
+    "workflow_id": "vid-trans-v2",
+    "trigger": "S3_EVENT",
+    "params": { "preset": "1080p_60", "codec": "h264" }
+  }
+}</pre>
+</div>
+</div>
+<!-- Log Entry 2 (Collapsed) -->
+<div class="bg-slate-900 rounded-lg overflow-hidden font-mono text-xs border border-slate-800">
+<div class="bg-slate-800/50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors">
+<div class="flex items-center gap-4">
+<span class="text-indigo-400">04:15:23.402</span>
+<span class="text-amber-400">[WARN]</span>
+<span class="text-slate-300">Resource.Throttled: DynamoDB provisioned throughput exceeded</span>
+</div>
+<span class="material-symbols-outlined text-slate-500">expand_less</span>
+</div>
+</div>
+<!-- Log Entry 3 -->
+<div class="bg-slate-900 rounded-lg overflow-hidden font-mono text-xs border border-slate-800">
+<div class="bg-slate-800/50 px-4 py-2 flex items-center justify-between cursor-pointer hover:bg-slate-800 transition-colors">
+<div class="flex items-center gap-4">
+<span class="text-indigo-400">04:15:24.111</span>
+<span class="text-emerald-400">[INFO]</span>
+<span class="text-slate-300">Stage.Success: Ingest_Stage completed</span>
+</div>
+<span class="material-symbols-outlined text-slate-500">expand_more</span>
+</div>
+</div>
+</section>
+</div>
+<!-- Right Sidebar: Metadata & Analytics -->
+<aside class="col-span-12 xl:col-span-4 space-y-8">
+<!-- Metric Card -->
+<div class="bg-primary text-white p-6 rounded-xl shadow-lg relative overflow-hidden">
+<div class="absolute -right-10 -bottom-10 opacity-10">
+<span class="material-symbols-outlined text-[120px]" style="font-variation-settings: 'FILL' 1;">speed</span>
+</div>
+<p class="text-[10px] font-label uppercase tracking-widest opacity-70 mb-2">Total Processing Time</p>
+<h4 class="text-5xl font-headline font-black mb-4">03:54<span class="text-lg font-normal opacity-60">m:s</span></h4>
+<div class="flex items-center gap-2 text-emerald-300 text-xs font-medium">
+<span class="material-symbols-outlined text-sm">trending_down</span>
+                            12% faster than baseline
+                        </div>
+</div>
+<!-- Job Summary Card -->
+<div class="bg-surface-container-lowest border border-outline-variant/15 p-6 rounded-xl">
+<h3 class="text-xs font-label uppercase tracking-widest text-primary font-bold mb-6">Execution Summary</h3>
+<div class="space-y-4">
+<div class="flex justify-between">
+<span class="text-xs text-on-surface-variant">Started At</span>
+<span class="text-xs font-medium">Oct 24, 04:15:22 AM</span>
+</div>
+<div class="flex justify-between">
+<span class="text-xs text-on-surface-variant">Cost Estimate</span>
+<span class="text-xs font-medium">$0.042 USD</span>
+</div>
+<div class="flex justify-between">
+<span class="text-xs text-on-surface-variant">Resources Used</span>
+<span class="text-xs font-medium">Lambda, Fargate, S3</span>
+</div>
+<div class="flex justify-between items-center pt-2">
+<span class="text-xs text-on-surface-variant">Health Index</span>
+<div class="w-24 h-2 bg-slate-100 rounded-full overflow-hidden">
+<div class="w-4/5 h-full bg-emerald-500"></div>
+</div>
+</div>
+</div>
+</div>
+<!-- Quick Actions -->
+<div class="space-y-3">
+<button class="w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-between transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-600">terminal</span>
+<span class="text-sm font-medium text-slate-700">Open CloudWatch Stream</span>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-indigo-600 transition-colors">open_in_new</span>
+</button>
+<button class="w-full text-left px-4 py-3 bg-white hover:bg-indigo-50 border border-indigo-100 rounded-lg flex items-center justify-between transition-all group">
+<div class="flex items-center gap-3">
+<span class="material-symbols-outlined text-indigo-600">account_tree</span>
+<span class="text-sm font-medium text-slate-700">View Infrastructure Graph</span>
+</div>
+<span class="material-symbols-outlined text-slate-300 group-hover:text-indigo-600 transition-colors">open_in_new</span>
+</button>
+</div>
+<!-- Environment Info -->
+<div class="p-6 bg-surface-container-low rounded-xl border border-dashed border-outline-variant">
+<p class="text-[10px] font-label uppercase tracking-widest text-slate-500 mb-4">Worker Context</p>
+<div class="flex items-center gap-4">
+<img alt="AWS Logo" class="w-8 h-8 opacity-60" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBL20cKcR9jv2HoXJTXn_TL3JlyC1MQAcit0QSgnkEJKjXRA4rKYonHMTMnGMDnNZ2zGx0eVT6kRcX4S2Izl2TuGlHuF7rANr5PN65UjiZRvaH96N7hu1moXyjrtHch_0iYiSxGPZzSODose-o9JxhEMcmvjJH7yp587I8blQPtAOZTcphcpakcgA_2alxPpMQMLmI_r_1dNIJqfdm1xOL2bObhhSdAC0IkWTzOP6bfphyrksOn8nqP3dQ0oT2AQHZOVXqoyM3qPx7G"/>
+<div>
+<p class="text-xs font-bold text-slate-700">Production Stack A</p>
+<p class="text-[10px] text-slate-500">v1.2.4-stable | x86_64</p>
+</div>
+</div>
+</div>
+</aside>
+</div>
+</div>
+<!-- BottomNavBar (Mobile Shared Component - Suppressed on Desktop via MD:HIDDEN) -->
+<nav class="fixed bottom-0 left-0 w-full flex justify-around items-center px-4 py-2 bg-white border-t border-slate-200 shadow-[0_-4px_6px_-1px_rgba(0,0,0,0.1)] md:hidden z-50">
+<div class="flex flex-col items-center justify-center text-slate-500 p-2">
+<span class="material-symbols-outlined">dashboard</span>
+<span class="text-[10px] font-medium">Overview</span>
+</div>
+<div class="flex flex-col items-center justify-center bg-indigo-50 text-indigo-700 rounded-xl p-2">
+<span class="material-symbols-outlined">description</span>
+<span class="text-[10px] font-medium">Timeline</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 p-2">
+<span class="material-symbols-outlined">perm_media</span>
+<span class="text-[10px] font-medium">Assets</span>
+</div>
+<div class="flex flex-col items-center justify-center text-slate-500 p-2">
+<span class="material-symbols-outlined">movie</span>
+<span class="text-[10px] font-medium">Render</span>
+</div>
+</nav>
+</main>
+</body></html>

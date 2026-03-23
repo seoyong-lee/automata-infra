@@ -1,0 +1,363 @@
+<!DOCTYPE html>
+
+<html class="light" lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<title>Scene Designer | Automata Studio</title>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;500;600&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    colors: {
+                        "error-container": "#ffdad6",
+                        "tertiary": "#394167",
+                        "on-primary": "#ffffff",
+                        "surface-container": "#eeeeee",
+                        "tertiary-fixed": "#dee1ff",
+                        "on-tertiary-fixed": "#11183d",
+                        "on-tertiary-fixed-variant": "#3d446b",
+                        "surface-container-low": "#f3f3f3",
+                        "secondary-container": "#d0d5fe",
+                        "on-surface-variant": "#454652",
+                        "on-secondary-fixed": "#141938",
+                        "on-error": "#ffffff",
+                        "tertiary-fixed-dim": "#bdc4f2",
+                        "on-tertiary-container": "#c9d0ff",
+                        "on-tertiary": "#ffffff",
+                        "primary-fixed-dim": "#c0c4ea",
+                        "secondary-fixed": "#dee0ff",
+                        "on-primary-container": "#ccd0f6",
+                        "primary": "#3c4160",
+                        "surface-container-lowest": "#ffffff",
+                        "surface-container-high": "#e8e8e8",
+                        "on-secondary-fixed-variant": "#404566",
+                        "primary-fixed": "#dee0ff",
+                        "secondary-fixed-dim": "#c0c4ed",
+                        "on-secondary-container": "#565b7e",
+                        "tertiary-container": "#515880",
+                        "outline": "#757684",
+                        "on-surface": "#1a1c1c",
+                        "error": "#ba1a1a",
+                        "surface-dim": "#dadada",
+                        "on-primary-fixed-variant": "#404564",
+                        "on-primary-fixed": "#141936",
+                        "secondary": "#575c7f",
+                        "surface-variant": "#e2e2e2",
+                        "surface-tint": "#585c7d",
+                        "on-secondary": "#ffffff",
+                        "on-error-container": "#93000a",
+                        "on-background": "#1a1c1c",
+                        "inverse-on-surface": "#f1f1f1",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface": "#f9f9f9",
+                        "outline-variant": "#c5c5d4",
+                        "inverse-primary": "#c0c4ea",
+                        "inverse-surface": "#2f3131",
+                        "background": "#f9f9f9",
+                        "primary-container": "#545879",
+                        "surface-bright": "#f9f9f9"
+                    },
+                    fontFamily: {
+                        "headline": ["Manrope"],
+                        "body": ["Inter"],
+                        "label": ["Inter"]
+                    },
+                    borderRadius: { "DEFAULT": "0.125rem", "lg": "0.25rem", "xl": "0.5rem", "full": "0.75rem" },
+                },
+            },
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+        .headline-font { font-family: 'Manrope', sans-serif; }
+    </style>
+</head>
+<body class="bg-surface font-body text-on-surface">
+<!-- TopNavBar -->
+<header class="fixed top-0 right-0 left-64 h-16 z-40 bg-white/80 backdrop-blur-md border-b border-slate-200/50 flex justify-between items-center px-8 w-full">
+<div class="flex items-center gap-8">
+<div class="relative">
+<span class="material-symbols-outlined absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 text-sm" data-icon="search">search</span>
+<input class="pl-10 pr-4 py-1.5 bg-surface-container-low border-none rounded-full text-sm w-64 focus:ring-1 focus:ring-primary" placeholder="Search operations..." type="text"/>
+</div>
+<nav class="hidden lg:flex items-center gap-6">
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium py-5 transition-colors" href="#">Dashboard</a>
+<a class="text-indigo-600 border-b-2 border-indigo-600 text-sm font-medium py-5" href="#">Productions</a>
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium py-5 transition-colors" href="#">Assets</a>
+<a class="text-slate-500 hover:text-indigo-500 text-sm font-medium py-5 transition-colors" href="#">Settings</a>
+</nav>
+</div>
+<div class="flex items-center gap-4">
+<button class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+</button>
+<button class="w-10 h-10 flex items-center justify-center text-slate-500 hover:text-indigo-500 transition-colors">
+<span class="material-symbols-outlined" data-icon="help">help</span>
+</button>
+<div class="h-8 w-[1px] bg-slate-200 mx-2"></div>
+<img alt="User Profile" class="w-8 h-8 rounded-lg bg-primary-container" data-alt="Professional user portrait profile avatar" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBF7c4LrWQAyxXrOId2L4J-KHLUlsp6lAf171gBOGsho7e9aYtf-RPcGWZi2_FZUmArQjt9IsNLahoLK93jaYhovN-9gDDbGlKmRaTic-zCTtcq7sPLKdphX0CqIpp8U46iSk09VVSu-BS4GtrHg6NBVih06H13e9nhgKhCC0f_njImpH50FbQZbNwYA01ZZWOry0eBbaXsLaL6lWuP7TImu38d8dQA3UWr3KtCvQG7hOZtqpkpFZaZFo3rgWnmjxLWd3inuq6WP4M3"/>
+</div>
+</header>
+<!-- SideNavBar (Updated to match Dashboard SCREEN_14) -->
+<aside class="bg-slate-900 h-screen w-64 fixed left-0 top-0 flex flex-col py-6 shadow-xl z-50">
+<div class="px-6 mb-10">
+<div class="flex items-center gap-3">
+<div class="w-8 h-8 bg-indigo-500 rounded-lg flex items-center justify-center">
+<span class="material-symbols-outlined text-white text-lg" data-icon="movie_filter">movie_filter</span>
+</div>
+<div>
+<h1 class="text-xl font-bold tracking-tight text-white headline-font">Automata Studio</h1>
+<p class="text-[10px] uppercase tracking-[0.2em] text-indigo-400 font-semibold">Scene Designer</p>
+</div>
+</div>
+<p class="text-slate-500 text-[10px] font-body mt-2">Production ID: #8821</p>
+</div>
+<nav class="flex-1 space-y-1 px-3">
+<a class="text-white font-semibold border-r-4 border-indigo-500 bg-slate-800/50 flex items-center px-4 py-3 gap-3 transition-all" href="#">
+<span class="material-symbols-outlined text-indigo-400" data-icon="movie_filter">movie_filter</span>
+<span class="text-sm font-medium">Scene List</span>
+</a>
+<a class="text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="view_timeline">view_timeline</span>
+<span class="text-sm font-medium">Timeline</span>
+</a>
+<a class="text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="image_search">image_search</span>
+<span class="text-sm font-medium">Visual Assets</span>
+</a>
+<a class="text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="bluetooth_audio">bluetooth_audio</span>
+<span class="text-sm font-medium">Audio Triggers</span>
+</a>
+<a class="text-slate-400 hover:text-slate-200 hover:bg-slate-800 flex items-center px-4 py-3 gap-3 transition-colors duration-200" href="#">
+<span class="material-symbols-outlined" data-icon="ios_share">ios_share</span>
+<span class="text-sm font-medium">Export</span>
+</a>
+</nav>
+<div class="px-4 mb-6">
+<button class="w-full py-3 bg-indigo-600 text-white text-xs font-bold uppercase tracking-widest rounded-lg flex items-center justify-center gap-2 hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-900/20">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+            Add New Scene
+        </button>
+</div>
+<div class="mt-auto px-6">
+<div class="bg-slate-800 rounded-xl p-4 flex items-center gap-3">
+<img alt="User Profile" class="w-8 h-8 rounded-full bg-slate-700" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBF7c4LrWQAyxXrOId2L4J-KHLUlsp6lAf171gBOGsho7e9aYtf-RPcGWZi2_FZUmArQjt9IsNLahoLK93jaYhovN-9gDDbGlKmRaTic-zCTtcq7sPLKdphX0CqIpp8U46iSk09VVSu-BS4GtrHg6NBVih06H13e9nhgKhCC0f_njImpH50FbQZbNwYA01ZZWOry0eBbaXsLaL6lWuP7TImu38d8dQA3UWr3KtCvQG7hOZtqpkpFZaZFo3rgWnmjxLWd3inuq6WP4M3"/>
+<div class="overflow-hidden">
+<p class="text-xs font-semibold text-white truncate">Admin User</p>
+<p class="text-[10px] text-slate-400 truncate">System Operator</p>
+</div>
+</div>
+</div>
+</aside>
+<!-- Main Content Stage -->
+<main class="ml-64 min-h-screen flex flex-col pt-16">
+<!-- Workflow Stepper (Consistent with SCREEN_5) -->
+<div class="bg-surface px-10 py-6 border-b border-slate-200/50">
+<div class="bg-surface-container-low p-1.5 rounded-xl flex items-center max-w-5xl mx-auto">
+<div class="flex-1 flex items-center gap-2 px-4 py-3 bg-white shadow-sm rounded-lg border border-slate-200/50">
+<div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">1</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-900">Ideation</span>
+<span class="material-symbols-outlined text-green-500 text-lg ml-auto">check_circle</span>
+</div>
+<div class="w-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<div class="flex-1 flex items-center gap-2 px-4 py-3 bg-indigo-50 border border-indigo-200 rounded-lg">
+<div class="w-6 h-6 rounded-full bg-indigo-600 text-white flex items-center justify-center text-[10px] font-bold">2</div>
+<span class="text-xs font-bold uppercase tracking-wider text-indigo-900">Scene Logic</span>
+<span class="px-2 py-0.5 bg-indigo-200 text-indigo-800 text-[8px] font-bold rounded ml-auto">ACTIVE</span>
+</div>
+<div class="w-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<div class="flex-1 flex items-center gap-2 px-4 py-3 opacity-50">
+<div class="w-6 h-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-[10px] font-bold">3</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Assets</span>
+</div>
+<div class="w-8 flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-300">chevron_right</span>
+</div>
+<div class="flex-1 flex items-center gap-2 px-4 py-3 opacity-50">
+<div class="w-6 h-6 rounded-full bg-slate-400 text-white flex items-center justify-center text-[10px] font-bold">4</div>
+<span class="text-xs font-bold uppercase tracking-wider text-slate-500">Publish</span>
+</div>
+</div>
+</div>
+<!-- Split-Pane Workspace -->
+<div class="flex-1 flex overflow-hidden">
+<!-- Left Sidebar: Scene List -->
+<section class="w-80 border-r border-outline-variant/10 bg-surface flex flex-col">
+<div class="p-6 overflow-y-auto flex-1 hide-scrollbar space-y-4">
+<!-- Scene Card 1 (Active) -->
+<div class="p-3 bg-white border-2 border-indigo-500 rounded-xl shadow-sm cursor-pointer">
+<div class="aspect-video bg-slate-200 rounded-lg mb-3 overflow-hidden">
+<img alt="Scene 1 Thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuB5Ill67aBldcyfTa2hRHl2utEr6H2wvH3V-HtOe4N1bp-OHOevHJYoBwsj2hpnQhl0BsUWux1suN_aZ-xnNkCKTklajNJDWcbP9acLlGh_wC9I1lZgyUxmFeJgbS7oa0XfLSx3EXoGlwn_3_p2xku6oDIqsWscbza6RfgV3Y1dxjU9SySMQO8zQBjSSvGBYwkrQaJSQKMIBU5R9kUy_2YV_UTgWW3-Y49ICPM5dR69Dk7hu15-NjXNkcLEGdquTEHwfpcVJ5TaRGmF"/>
+</div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline font-bold text-sm text-indigo-600">Scene 1</h3>
+<span class="text-[10px] font-body bg-indigo-50 text-indigo-600 px-2 py-0.5 rounded font-bold">0:05</span>
+</div>
+<p class="text-[11px] text-on-surface-variant line-clamp-2 leading-relaxed">Opening sequence introducing the AI core concept with ethereal visuals.</p>
+</div>
+<!-- Scene Card 2 -->
+<div class="p-3 bg-surface-container-low border border-transparent hover:border-outline-variant/30 rounded-xl transition-all cursor-pointer group">
+<div class="aspect-video bg-slate-300 rounded-lg mb-3 overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<img alt="Scene 2 Thumbnail" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCyZ5ao__Lt106Yki79FQGvgXHtfNkYrn5D_IgWu0rEUXi-f3vwRojceVE9c3SWgrqZYeJ2jEFImjdNmiw4F_K57h5N0sKwFP5AGgFQG3LnfGIbk9p49o1IteaaSUwYTnZYt5vLPyIXvCUfIyl8I_TjuWPw-WNOBMU-9wOGencbiKaatVuQ7MzZ_nKuvz6LChSuaBFt8RVhZ9Kx3jN5vIjkK0zCv0l4QJTyP5OEEIHmI5vX1eQA4PqvqK5y5-p-PFq2KwCczpVEA6Pq"/>
+</div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline font-bold text-sm">Scene 2</h3>
+<span class="text-[10px] font-body text-on-surface-variant font-semibold">0:12</span>
+</div>
+<p class="text-[11px] text-on-surface-variant line-clamp-2">Neural network visualization showing data flow across nodes.</p>
+</div>
+<!-- Scene Card 3 -->
+<div class="p-3 bg-surface-container-low border border-transparent hover:border-outline-variant/30 rounded-xl transition-all cursor-pointer group">
+<div class="aspect-video bg-slate-300 rounded-lg mb-3 overflow-hidden opacity-80 group-hover:opacity-100 transition-opacity">
+<div class="w-full h-full bg-surface-container-high flex items-center justify-center">
+<span class="material-symbols-outlined text-slate-400" data-icon="image">image</span>
+</div>
+</div>
+<div class="flex justify-between items-start mb-1">
+<h3 class="font-headline font-bold text-sm">Scene 3</h3>
+<span class="text-[10px] font-body text-on-surface-variant font-semibold">0:08</span>
+</div>
+<p class="text-[11px] text-on-surface-variant line-clamp-2">Human interaction interface mockup for the final demo.</p>
+</div>
+</div>
+<div class="p-6 border-t border-outline-variant/10">
+<button class="w-full py-2.5 border-2 border-dashed border-outline-variant hover:border-indigo-600 hover:text-indigo-600 transition-all text-on-surface-variant font-label font-bold text-[11px] uppercase tracking-widest rounded-xl flex items-center justify-center gap-2">
+<span class="material-symbols-outlined text-sm" data-icon="add_circle">add_circle</span>
+                    Add Scene
+                </button>
+</div>
+</section>
+<!-- Main Editor Area -->
+<section class="flex-1 overflow-y-auto p-10 bg-surface">
+<div class="max-w-4xl mx-auto space-y-10 pb-24">
+<!-- Scene Header -->
+<div class="flex justify-between items-end">
+<div class="space-y-2">
+<span class="uppercase font-label font-bold text-[10px] tracking-[0.2em] text-indigo-500">Active Scene</span>
+<h1 class="font-headline font-extrabold text-3xl tracking-tight">Scene 1: Introduction to AI</h1>
+</div>
+<div class="flex items-center gap-4">
+<div class="space-y-1">
+<label class="block text-[10px] font-bold uppercase tracking-widest text-on-surface-variant">Duration</label>
+<input class="bg-surface-container-high border-none rounded-lg text-sm font-body font-semibold w-24 px-3 py-2 focus:ring-2 focus:ring-primary/20" type="text" value="0:05.00"/>
+</div>
+<button class="h-10 px-4 bg-surface-container-highest hover:bg-surface-dim transition-colors rounded-lg flex items-center gap-2 text-sm font-bold">
+<span class="material-symbols-outlined text-lg" data-icon="refresh">refresh</span>
+                            Regenerate
+                        </button>
+</div>
+</div>
+<!-- Editor Grid -->
+<div class="grid grid-cols-1 lg:grid-cols-2 gap-8">
+<div class="space-y-6">
+<!-- Visual Prompt -->
+<div class="space-y-3">
+<div class="flex justify-between items-center">
+<label class="font-headline font-bold text-xs uppercase tracking-widest text-indigo-600">Visual Prompt</label>
+<span class="text-[10px] font-semibold text-on-surface-variant italic">Powered by Automata Engine v2</span>
+</div>
+<textarea class="w-full bg-white border-none shadow-sm rounded-xl p-5 text-sm font-body leading-relaxed focus:ring-2 focus:ring-indigo-500/10 resize-none" placeholder="Describe the scene visuals in detail..." rows="6">A high-tech laboratory environment with holographic interfaces floating in the center. Ethereal blue light pulses from a central core. Cinematic lighting with shallow depth of field, 8k resolution, photorealistic textures.</textarea>
+</div>
+<!-- Art Style Selection -->
+<div class="space-y-4">
+<label class="font-headline font-bold text-xs uppercase tracking-widest text-indigo-600">Art Style</label>
+<div class="grid grid-cols-3 gap-3">
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-indigo-600 bg-indigo-50/30 group transition-all">
+<div class="w-full aspect-square rounded-lg bg-slate-300 overflow-hidden mb-1">
+<img alt="Cinematic style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDFTwmSDVAaEhHGJlTeLB-rwcUbzje9cXlhZB-JAXXpVgaH5oeO5HWeCsfsoiUuNQykppZ-5RjjgkCO9RTMqRpsDmn0LX6mVqeFYX3c8oEwKS4VGGl8TpMNram4MrWkc27tpmm01nUJeOId8UYXZTDaUj6qxKhwYemNtqZzIz1jlVyvG4ABNyuSQ4hZu9gP_qY8kFLDTu64RO_n9EBWEukpkmvzshQNpobh6nn93hKFrqkwIAcBzdL8Zr_nsXdD2ZnqXw5qF4rsQqFn"/>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-indigo-600">Cinematic</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent bg-surface-container-low hover:border-outline-variant/30 transition-all">
+<div class="w-full aspect-square rounded-lg bg-slate-300 overflow-hidden mb-1">
+<img alt="Minimalist style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDsWYfKaTDOnrHDgzeTyb1wh7O92MwyeeCk1gUOvRdmg_lQn6LGQxkFkiFAv5Z9loih6JvhnMjsMlpnxWWwGaArwR585HYu940dNV6WP-O2l194oDEwvWqkMzRQUgsUA6csg2JEwDdIrXa-5pm4uSC4cgfs9HcsFVjpgHZ2U6WkEtBfrEkXG1DFnMyOJFLzPYo-OTKPuUSayRGbneMnBdwHVsPndmwBwPFJZw_dYIWQgZuEKXGULQARXR9al4AjZivyDP9RzgANORhm"/>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Minimalist</span>
+</button>
+<button class="flex flex-col items-center gap-2 p-3 rounded-xl border-2 border-transparent bg-surface-container-low hover:border-outline-variant/30 transition-all">
+<div class="w-full aspect-square rounded-lg bg-slate-300 overflow-hidden mb-1">
+<img alt="Blueprint style" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAhvlM_IByqlNqx_vllHBoAHRznLGxRMa9TiJzDzdM42cT1mxiyU3A81MYNmhbGgF768ah88sB7f5wzXfAII46NFSj7wNIEfM4iEtw2yKFSwlbGCcWeKDyrIufJ_8Q6anfm4aiOImNiDqsILuSmMk29U-DYGtqmD88EpNfbKyFiRqg1y2w-Wf4p94VS9f8AA4SXijenGC5u2BTW-bWXdpmGlm7xQNeYclP5shNvks9ko1hJgAcQwjxP8t6ZkCNahq3quDjyX-PlPU2D"/>
+</div>
+<span class="text-[10px] font-bold uppercase tracking-wider text-on-surface-variant">Blueprint</span>
+</button>
+</div>
+</div>
+</div>
+<!-- Preview Area -->
+<div class="flex flex-col">
+<div class="flex justify-between items-center mb-3">
+<label class="font-headline font-bold text-xs uppercase tracking-widest text-indigo-600">Scene Preview</label>
+<button class="text-xs font-bold text-indigo-600 flex items-center gap-1 hover:underline">
+<span class="material-symbols-outlined text-sm" data-icon="fullscreen">fullscreen</span>
+                                Enlarge
+                            </button>
+</div>
+<div class="flex-1 bg-surface-container-low rounded-2xl relative overflow-hidden group shadow-inner min-h-[320px]">
+<img alt="Active Scene Preview" class="w-full h-full object-cover" src="https://lh3.googleusercontent.com/aida-public/AB6AXuADNbvyWfPt5p1O1r1sCz-7YB9P82jZvNroM0wTjjmuVmoyvoqmIGN8wCrSKYp5ojxucRxPFXynK5MPcckpc3CFAWbyqbgxiflQAKcCtSRvxXeL7iNZAhTaev6LaAPlPXJHngQ74_1bkWruZzhjt5Q8CGvSGeIOS8aOd9VbKG9q7Q6ngKSeMnONoiYOVWdIZv-sAgPcxX8tQACzey4ncB4L4Q-kn5c7oulTI8cmjoCIwNo_xywjkc-ES6WuaslhhnQyW9_SLgwT45CI"/>
+<div class="absolute inset-0 bg-black/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity backdrop-blur-sm">
+<button class="px-6 py-3 bg-white text-slate-900 rounded-full font-headline font-bold text-sm flex items-center gap-2 shadow-xl hover:scale-105 transition-transform">
+<span class="material-symbols-outlined" data-icon="play_circle" style="font-variation-settings: 'FILL' 1;">play_circle</span>
+                                    Generate Preview
+                                </button>
+</div>
+</div>
+<!-- Controls -->
+<div class="mt-6 p-5 bg-white rounded-xl shadow-sm space-y-4">
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Entrance Transition</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-indigo-600 text-white text-[10px] font-bold rounded-full uppercase">Fade</button>
+<button class="px-3 py-1 bg-surface-container text-on-surface-variant text-[10px] font-bold rounded-full uppercase hover:bg-surface-container-high">Cut</button>
+<button class="px-3 py-1 bg-surface-container text-on-surface-variant text-[10px] font-bold rounded-full uppercase hover:bg-surface-container-high">Dissolve</button>
+</div>
+</div>
+<div class="h-px bg-outline-variant/10 w-full"></div>
+<div class="flex items-center justify-between">
+<span class="text-[11px] font-bold uppercase tracking-wider text-on-surface-variant">Camera Motion</span>
+<div class="flex gap-2">
+<button class="px-3 py-1 bg-surface-container text-on-surface-variant text-[10px] font-bold rounded-full uppercase hover:bg-surface-container-high">Static</button>
+<button class="px-3 py-1 bg-indigo-50 text-indigo-600 border border-indigo-200/50 text-[10px] font-bold rounded-full uppercase">Slow Zoom</button>
+<button class="px-3 py-1 bg-surface-container text-on-surface-variant text-[10px] font-bold rounded-full uppercase hover:bg-surface-container-high">Pan Right</button>
+</div>
+</div>
+</div>
+</div>
+</div>
+</div>
+</section>
+</div>
+<!-- Sticky Action Bar -->
+<footer class="h-20 bg-white border-t border-slate-200/50 px-10 flex items-center justify-between shadow-2xl z-50">
+<div class="flex items-center gap-4">
+<div class="flex -space-x-2">
+<img alt="Collab 1" class="w-7 h-7 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuBn0wvsggFdzH4-T5wi0zm0SM2sxy0jpazor8A43amc1ew0kZyLy8BwtVUTUtMoEEt5CjAB4w1AxZP5R39dVGlE6-8HihKOUZC0FJdN5lBZl_laQwERioYsYRdRtgJXuWGO1LZmlHpmZMSGUmqmcALw5iYomeaRHk4WO3bcOYGAiUpgjibXyPQ4d_xIkVBhD8gG5_4k6lFnGP_VDBEZDI3Zgu_HpbEVZc2LyfQOiMQXEnPBUIibLGkAziZTUmN3XszgMVKB0WHVb_Kd"/>
+<img alt="Collab 2" class="w-7 h-7 rounded-full border-2 border-white" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC44Zmmsg4u0bK2Ehzzes12ChfUekNCeQ2eat_ejFJRVY6GShvaRSbtAg-64KMBBIbGJj1R_xK-lPAip1Cd4udTsbPL7xVq2Vh3nt20nOt9E8_TBGrzEuD_8YzmiDo9wa-YA5ECaTICgMjENtLQ5BAgNE-3lwEGcDmaz0svnAbRlvlBqX842s7bYewi1IxihYfiSTYSNCCe-ivGBy3y4o_Ns-qKbGlZn-9xhe5WtSitigGCzP_vbMoxlweF5G9i2CV3ArBgIpjwSa8_"/>
+<div class="w-7 h-7 rounded-full border-2 border-white bg-slate-100 flex items-center justify-center text-[8px] font-bold">+3</div>
+</div>
+<span class="text-[10px] font-semibold text-slate-400">Autosaved 2m ago</span>
+</div>
+<div class="flex gap-4">
+<button class="px-6 py-2.5 text-on-surface-variant font-label font-bold text-[11px] uppercase tracking-widest hover:bg-slate-50 rounded-lg transition-colors">
+                Save Draft
+            </button>
+<button class="px-8 py-2.5 bg-indigo-600 text-white font-label font-bold text-[11px] uppercase tracking-widest rounded-lg shadow-lg shadow-indigo-900/20 hover:scale-[1.02] transition-all flex items-center gap-2">
+                Proceed to Assets
+                <span class="material-symbols-outlined text-sm" data-icon="arrow_forward">arrow_forward</span>
+</button>
+</div>
+</footer>
+</main>
+</body></html>
