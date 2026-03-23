@@ -1,7 +1,7 @@
 'use client';
 
-import { Button } from '@packages/ui/button';
 import { Input } from '@packages/ui/input';
+import { Filter, Search } from 'lucide-react';
 
 const STATUS_OPTIONS: { value: string; label: string }[] = [
   { value: '', label: '전체 상태' },
@@ -15,7 +15,6 @@ type Props = {
   onSearchChange: (value: string) => void;
   statusFilter: string;
   onStatusFilterChange: (value: string) => void;
-  onCreateClick: () => void;
 };
 
 export function SavedSourcesToolbar({
@@ -23,43 +22,38 @@ export function SavedSourcesToolbar({
   onSearchChange,
   statusFilter,
   onStatusFilterChange,
-  onCreateClick,
 }: Props) {
   return (
     <>
-      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-start sm:justify-between">
+      <div className="flex flex-col gap-3 sm:flex-row sm:flex-wrap sm:items-end sm:justify-between">
         <div className="min-w-0 flex-1">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <h2 className="text-sm font-semibold tracking-tight">저장한 아이디어</h2>
-            <Button type="button" size="sm" className="h-8" onClick={onCreateClick}>
-              새 소재 만들기
-            </Button>
-          </div>
-          <p className="mt-1 text-xs text-muted-foreground">
+          <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-admin-primary">
+            Saved Ideas
+          </span>
+          <h2 className="mt-2 font-admin-display text-3xl font-extrabold tracking-tight text-admin-primary">
+            저장한 아이디어
+          </h2>
+          <p className="mt-2 text-sm leading-6 text-admin-text-muted">
             채널에 귀속된 소재를 한곳에서 찾습니다. 제작 아이템 쪽에서는 저장된 소재를 고르고 연결만
             하면 됩니다.
           </p>
         </div>
       </div>
-      <div className="flex gap-2">
-        <div className="flex w-full max-w-md flex-col gap-2 sm:w-auto sm:min-w-[240px]">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="saved-src-search">
-            검색
-          </label>
+      <div className="flex flex-col gap-3 rounded-xl bg-admin-surface-base p-4 sm:flex-row sm:items-center">
+        <div className="relative flex-1">
+          <Search className="pointer-events-none absolute left-4 top-1/2 size-4 -translate-y-1/2 text-admin-text-muted" />
           <Input
             id="saved-src-search"
-            placeholder="제목·훅·메모…"
+            placeholder="제목 또는 메모를 검색하세요"
             value={search}
             onChange={(e) => onSearchChange(e.target.value)}
+            className="h-12 border-none bg-white pl-11 shadow-none"
           />
         </div>
-        <div className="flex w-full max-w-xs flex-col gap-2">
-          <label className="text-xs font-medium text-muted-foreground" htmlFor="saved-src-status">
-            상태
-          </label>
+        <div className="flex gap-3">
           <select
             id="saved-src-status"
-            className="h-9 rounded-md border border-border bg-background px-3 text-sm"
+            className="h-12 min-w-36 rounded-lg border-none bg-white px-4 text-sm font-medium text-admin-text-strong outline-none ring-0 focus:ring-2 focus:ring-admin-primary/20"
             value={statusFilter}
             onChange={(e) => onStatusFilterChange(e.target.value)}
           >
@@ -69,6 +63,13 @@ export function SavedSourcesToolbar({
               </option>
             ))}
           </select>
+          <button
+            type="button"
+            className="inline-flex h-12 items-center justify-center rounded-lg bg-white px-4 text-sm font-semibold text-admin-text-strong"
+          >
+            <Filter className="mr-2 size-4 text-admin-text-muted" />
+            상세 필터
+          </button>
         </div>
       </div>
     </>

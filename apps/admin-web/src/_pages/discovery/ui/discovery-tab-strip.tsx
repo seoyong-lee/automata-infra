@@ -15,7 +15,7 @@ type Props = {
 
 export function DiscoveryTabStrip({ tab, onTabChange }: Props) {
   return (
-    <div className="border-b border-border">
+    <div className="border-b border-admin-outline-ghost/60">
       <div className="flex flex-wrap gap-1" role="tablist" aria-label="소재 찾기 단계">
         {DISCOVERY_TAB_IDS.map((id) => (
           <button
@@ -24,10 +24,10 @@ export function DiscoveryTabStrip({ tab, onTabChange }: Props) {
             role="tab"
             aria-selected={tab === id}
             className={cn(
-              'rounded-t-md px-3 py-2 text-sm font-medium transition-colors',
+              'relative px-6 py-3 text-sm font-bold transition-colors',
               tab === id
-                ? 'border border-b-0 border-border bg-card text-foreground'
-                : 'text-muted-foreground hover:text-foreground',
+                ? 'top-px border-b-[3px] border-admin-primary text-admin-primary'
+                : 'text-admin-text-muted hover:text-admin-primary',
             )}
             onClick={() => onTabChange(id)}
           >

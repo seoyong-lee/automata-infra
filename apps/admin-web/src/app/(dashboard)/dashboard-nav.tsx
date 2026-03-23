@@ -58,7 +58,7 @@ export function DashboardSidebar() {
     },
     {
       href: '/reviews',
-      label: '검수 게이트',
+      label: '검수',
       step: '04',
       icon: ListChecks,
       active: pathname === '/reviews' || pathname.startsWith('/reviews/'),
@@ -190,22 +190,22 @@ export function DashboardMobileBar() {
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
         <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
-          01 소재 탐색
+          소재 탐색
         </Link>
         <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
-          02 아이템 작업
+          아이템 작업
         </Link>
         <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
-          03 채널 편성
+          채널 편성
         </Link>
         <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
-          04 검수 게이트
+          검수
         </Link>
         <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
-          05 실행 모니터링
+          실행 모니터링
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
-          설정 워크스페이스
+          설정
         </Link>
       </div>
       <Button variant="outline" size="sm" className="mt-3" onClick={() => logout()}>
