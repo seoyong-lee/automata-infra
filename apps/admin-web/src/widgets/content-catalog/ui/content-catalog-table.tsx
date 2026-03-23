@@ -4,7 +4,7 @@ import type { AdminContent } from '@/entities/admin-content';
 import { AdminDataTable, type AdminDataTableColumnClassName } from '@/shared/ui/admin-data-table';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
-import type { KeyboardEvent } from 'react';
+import type { KeyboardEvent, ReactNode } from 'react';
 import { useMemo } from 'react';
 
 import { createContentCatalogColumns } from './content-catalog-columns';
@@ -14,6 +14,7 @@ type Props = {
   isLoading: boolean;
   onDelete: (contentId: string) => void;
   deletingId: string | undefined;
+  toolbarEnd?: ReactNode | null;
 };
 
 function getCatalogColumnClassName(columnId: string): AdminDataTableColumnClassName {
@@ -32,7 +33,7 @@ function getCatalogColumnClassName(columnId: string): AdminDataTableColumnClassN
   return {};
 }
 
-export function ContentCatalogTable({ items, isLoading, onDelete, deletingId }: Props) {
+export function ContentCatalogTable({ items, isLoading, onDelete, deletingId, toolbarEnd }: Props) {
   const router = useRouter();
 
   const columns = useMemo(
@@ -66,12 +67,16 @@ export function ContentCatalogTable({ items, isLoading, onDelete, deletingId }: 
           filterColumnId="label"
           filterPlaceholder="이름 검색…"
           toolbarEnd={
-            <Link
-              href="/content/new"
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              채널 추가
-            </Link>
+            toolbarEnd === undefined ? (
+              <Link
+                href="/content/new"
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:opacity-95"
+              >
+                채널 추가
+              </Link>
+            ) : (
+              toolbarEnd
+            )
           }
           getColumnClassName={getCatalogColumnClassName}
           rowProps={(row) => ({

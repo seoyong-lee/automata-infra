@@ -23,14 +23,16 @@ export function AdminPageHeader({
   className,
 }: AdminPageHeaderProps) {
   return (
-    <div className={cn('space-y-3', className)}>
-      {eyebrow ? <div className="text-sm text-muted-foreground">{eyebrow}</div> : null}
-      <div className="flex flex-wrap items-start justify-between gap-4 mt-6">
-        <div className="min-w-0 space-y-1">
+    <div className={cn('space-y-4', className)}>
+      {eyebrow ? <div className="text-sm text-admin-text-muted">{eyebrow}</div> : null}
+      <div className="flex flex-wrap items-end justify-between gap-5">
+        <div className="min-w-0 space-y-2">
           {backHref ? <AdminPageBack href={backHref} label={backLabel} /> : null}
-          <h1 className="text-2xl font-semibold tracking-tight text-foreground">{title}</h1>
+          <h1 className="font-admin-display text-3xl font-extrabold tracking-tight text-admin-primary md:text-4xl">
+            {title}
+          </h1>
           {subtitle ? (
-            <div className="max-w-3xl text-sm leading-relaxed text-muted-foreground">
+            <div className="max-w-3xl text-sm leading-relaxed text-admin-text-muted">
               {subtitle}
             </div>
           ) : null}

@@ -22,6 +22,7 @@ type Props = {
   channelLabelById?: ContentJobsColumnsOptions['channelLabelById'];
   /** 행 우측 액션(예: 미연결 제작 아이템 → 채널 연결). */
   renderJobAction?: (job: AdminJob) => ReactNode;
+  toolbarEnd?: ReactNode | null;
 };
 
 function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName {
@@ -52,6 +53,7 @@ export function ContentJobsTable({
   newJobHrefOverride,
   channelLabelById,
   renderJobAction,
+  toolbarEnd,
 }: Props) {
   const router = useRouter();
   const columns = useMemo((): ColumnDef<AdminJob>[] => {
@@ -108,12 +110,16 @@ export function ContentJobsTable({
           filterColumnId="videoTitle"
           filterPlaceholder="제목 검색…"
           toolbarEnd={
-            <Link
-              href={newJobHref}
-              className="inline-flex h-9 shrink-0 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground transition-colors hover:bg-primary/90"
-            >
-              새 제작 아이템
-            </Link>
+            toolbarEnd === undefined ? (
+              <Link
+                href={newJobHref}
+                className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:opacity-95"
+              >
+                새 제작 아이템
+              </Link>
+            ) : (
+              toolbarEnd
+            )
           }
           getColumnClassName={getJobColumnClassName}
           tableBodyClassName="[&_td]:py-2.5"

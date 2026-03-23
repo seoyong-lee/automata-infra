@@ -4,50 +4,105 @@
 
 @import "./default-tokens.css";
 
-/* Slate override */
+/* Admin web override */
 :root {
-  --foreground: #0f172b;
-  --card-foreground: #0f172b;
-  --popover-foreground: #0f172b;
-  --primary: #0f172b;
-  --primary-foreground: #f8fafc;
-  --secondary: #f1f5f9;
-  --secondary-foreground: #0f172b;
-  --muted: #f1f5f9;
-  --muted-foreground: #62748e;
-  --accent: #f1f5f9;
-  --accent-foreground: #0f172b;
-  --border: #e2e8f0;
-  --input: #e5e7eb;
-  --ring: #0f172b;
-  --radius: 12px;
-}
-
-/* Slate dark */
-html.dark {
-  --background: #0f172b;
-  --foreground: #f8fafc;
-  --card: #1d293d;
-  --card-foreground: #f8fafc;
-  --popover: #1d293d;
-  --popover-foreground: #f8fafc;
-  --primary: #f8fafc;
-  --primary-foreground: #0f172b;
-  --secondary: #1d293d;
-  --secondary-foreground: #f8fafc;
-  --muted: #1d293d;
-  --muted-foreground: #90a1b9;
-  --accent: #1d293d;
-  --accent-foreground: #f8fafc;
-  --border: #1d293d;
-  --input: #000;
-  --ring: #e2e8f0;
+  --background: #f9f9f9;
+  --foreground: #1a1c1c;
+  --card: #ffffff;
+  --card-foreground: #1a1c1c;
+  --popover: #ffffff;
+  --popover-foreground: #1a1c1c;
+  --primary: #3c4160;
+  --primary-foreground: #ffffff;
+  --secondary: #f3f3f3;
+  --secondary-foreground: #1a1c1c;
+  --muted: #f3f3f3;
+  --muted-foreground: #454652;
+  --accent: #eeeeee;
+  --accent-foreground: #1a1c1c;
+  --border: #dde1e7;
+  --input: #f3f3f3;
+  --ring: #3c4160;
   --sidebar-background: #0f172b;
   --sidebar-foreground: #f8fafc;
-  --sidebar-primary: #f8fafc;
-  --sidebar-primary-foreground: #0f172b;
-  --sidebar-accent: #1d293d;
+  --sidebar-primary: #6366f1;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #1f2937;
   --sidebar-accent-foreground: #f8fafc;
-  --sidebar-border: #1d293d;
-  --sidebar-ring: #e2e8f0;
+  --sidebar-border: #1f2937;
+  --sidebar-ring: #c0c4ea;
+  --surface: #f9f9f9;
+  --radius: 10px;
+
+  --admin-primary: #3c4160;
+  --admin-primary-container: #545879;
+  --admin-surface-base: #f9f9f9;
+  --admin-surface-section: #f3f3f3;
+  --admin-surface-card: #ffffff;
+  --admin-surface-field: #eeeeee;
+  --admin-outline-ghost: rgb(197 197 212 / 0.28);
+  --admin-text-strong: #1a1c1c;
+  --admin-text-muted: #454652;
+  --admin-status-success: #0f8a5f;
+  --admin-status-success-surface: #e7f8f1;
+  --admin-status-warning: #a86b00;
+  --admin-status-warning-surface: #fff6de;
+  --admin-status-error: #ba1a1a;
+  --admin-status-error-surface: #ffebe8;
+  --admin-sidebar: #0f172b;
+  --admin-sidebar-muted: #94a3b8;
+  --admin-sidebar-active: rgb(99 102 241 / 0.2);
+  --admin-topbar: rgb(255 255 255 / 0.82);
+  --admin-gradient-start: #3c4160;
+  --admin-gradient-end: #545879;
+}
+
+html.dark {
+  --background: #0b1120;
+  --foreground: #f8fafc;
+  --card: #111827;
+  --card-foreground: #f8fafc;
+  --popover: #111827;
+  --popover-foreground: #f8fafc;
+  --primary: #cfd5ff;
+  --primary-foreground: #101426;
+  --secondary: #172033;
+  --secondary-foreground: #f8fafc;
+  --muted: #172033;
+  --muted-foreground: #94a3b8;
+  --accent: #1b2438;
+  --accent-foreground: #f8fafc;
+  --border: #243146;
+  --input: #0f172b;
+  --ring: #cfd5ff;
+  --sidebar-background: #050816;
+  --sidebar-foreground: #f8fafc;
+  --sidebar-primary: #818cf8;
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #121a2b;
+  --sidebar-accent-foreground: #f8fafc;
+  --sidebar-border: #1b2438;
+  --sidebar-ring: #cfd5ff;
+
+  --admin-primary: #cfd5ff;
+  --admin-primary-container: #818cf8;
+  --admin-surface-base: #0b1120;
+  --admin-surface-section: #111827;
+  --admin-surface-card: #172033;
+  --admin-surface-field: #1b2438;
+  --admin-outline-ghost: rgb(148 163 184 / 0.22);
+  --admin-text-strong: #f8fafc;
+  --admin-text-muted: #cbd5e1;
+  --admin-status-success: #34d399;
+  --admin-status-success-surface: rgb(52 211 153 / 0.16);
+  --admin-status-warning: #fbbf24;
+  --admin-status-warning-surface: rgb(251 191 36 / 0.16);
+  --admin-status-error: #f87171;
+  --admin-status-error-surface: rgb(248 113 113 / 0.16);
+  --admin-sidebar: #050816;
+  --admin-sidebar-muted: #94a3b8;
+  --admin-sidebar-active: rgb(129 140 248 / 0.18);
+  --admin-topbar: rgb(11 17 32 / 0.82);
+  --admin-gradient-start: #5b638d;
+  --admin-gradient-end: #747cb0;
 }

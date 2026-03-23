@@ -78,17 +78,17 @@ function ContentJobDetailPageBody() {
         />
       </div>
       {!pageData.detailQuery.isLoading ? (
-        <section className="space-y-5 rounded-2xl border border-border bg-card p-5 shadow-sm">
+        <section className="admin-page-shell space-y-6 p-6">
           <ContentJobDetailWorkHeader
             jobId={jobId}
             detail={pageData.detail}
             resolution={workActionResolution}
             onAction={dispatchWorkAction}
           />
-          <div className="border-t border-border pt-5">
+          <div className="border-t border-admin-outline-ghost pt-5">
             <ContentJobWorkflowBar stages={workflowStages} />
           </div>
-          <div className="border-t border-border pt-4">
+          <div className="border-t border-admin-outline-ghost pt-4">
             <ContentJobReadinessChecklist chips={readinessChips} />
           </div>
         </section>

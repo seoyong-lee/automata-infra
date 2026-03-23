@@ -53,6 +53,14 @@ function JobsHubPageBody() {
       <AdminPageHeader
         title="전체 제작 아이템"
         subtitle="미연결 항목을 포함한 전역 작업함입니다. 채널에 붙은 작업은 어떤 라인에 속하는지 표시됩니다."
+        actions={
+          <Link
+            href="/jobs/new"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-opacity hover:opacity-95"
+          >
+            새 제작 아이템
+          </Link>
+        }
       />
 
       {linkJobId ? (
@@ -117,6 +125,7 @@ function JobsHubPageBody() {
         isLoading={jobsQuery.isLoading}
         newJobHrefOverride="/jobs/new"
         channelLabelById={channelLabelById}
+        toolbarEnd={null}
         renderJobAction={(job) =>
           !job.contentId || job.contentId === ADMIN_UNASSIGNED_CONTENT_ID ? (
             <Button

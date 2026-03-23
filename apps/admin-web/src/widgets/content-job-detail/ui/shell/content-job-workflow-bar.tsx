@@ -115,10 +115,12 @@ export function ContentJobWorkflowBar({ stages }: ContentJobWorkflowBarProps) {
   );
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-4">
       <div className="space-y-1 px-1">
-        <p className="text-xs font-medium text-muted-foreground">운영 단계</p>
-        <p className="text-sm text-muted-foreground">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-primary">
+          Workflow
+        </p>
+        <p className="text-sm text-admin-text-muted">
           필요한 단계만 골라 아래에서 바로 작업합니다.
         </p>
       </div>
@@ -131,44 +133,57 @@ export function ContentJobWorkflowBar({ stages }: ContentJobWorkflowBarProps) {
                   href={stage.href}
                   scroll={!stage.href.includes('#')}
                   className={cn(
-                    'flex w-36 shrink-0 flex-col rounded-2xl border bg-background p-3 transition-colors',
+                    'flex w-40 shrink-0 flex-col rounded-xl border p-4 transition-colors',
                     stage.isCurrent
-                      ? 'border-primary bg-primary/5 shadow-sm'
+                      ? 'border-admin-outline-ghost bg-admin-surface-card shadow-sm'
                       : stage.state === 'complete'
-                        ? 'border-emerald-500/35'
+                        ? 'border-admin-outline-ghost bg-admin-surface-card'
                         : stage.state === 'blocked'
-                          ? 'border-border opacity-70'
-                          : 'border-border hover:bg-accent hover:text-accent-foreground',
+                          ? 'border-admin-outline-ghost bg-admin-surface-card opacity-70'
+                          : 'border-admin-outline-ghost bg-admin-surface-section/70 hover:bg-admin-surface-card',
                   )}
                   title={stage.state === 'blocked' ? '선행 단계를 먼저 완료하세요.' : undefined}
                 >
                   <div className="flex items-center justify-between gap-2">
                     <span
                       className={cn(
-                        'inline-flex h-8 w-8 items-center justify-center rounded-xl text-xs font-semibold',
+                        'inline-flex h-8 w-8 items-center justify-center rounded-lg text-xs font-semibold',
                         stage.isCurrent
-                          ? 'bg-primary text-primary-foreground'
+                          ? 'bg-linear-to-br from-admin-primary to-admin-primary-container text-white'
                           : stage.state === 'complete'
-                            ? 'bg-emerald-500/15 text-emerald-700 dark:text-emerald-200'
-                            : 'bg-muted text-muted-foreground',
+                            ? 'bg-admin-status-success-surface text-admin-status-success'
+                            : stage.state === 'blocked'
+                              ? 'bg-admin-status-error-surface text-admin-status-error'
+                              : 'bg-admin-surface-field text-admin-text-muted',
                       )}
                     >
                       {String(index + 1).padStart(2, '0')}
                     </span>
-                    <span className="text-[11px] font-medium text-muted-foreground">
+                    <span
+                      className={cn(
+                        'text-[11px] font-medium',
+                        stage.isCurrent
+                          ? 'text-admin-primary'
+                          : stage.state === 'complete'
+                            ? 'text-admin-status-success'
+                            : stage.state === 'blocked'
+                              ? 'text-admin-status-error'
+                              : 'text-admin-text-muted',
+                      )}
+                    >
                       {stateBadgeLabel(stage)}
                     </span>
                   </div>
                   <div className="mt-4 space-y-1">
-                    <p className="text-sm font-semibold text-foreground">{stage.label}</p>
-                    <p className="line-clamp-2 text-xs leading-5 text-muted-foreground">
+                    <p className="text-sm font-semibold text-admin-text-strong">{stage.label}</p>
+                    <p className="line-clamp-2 text-xs leading-5 text-admin-text-muted">
                       {stage.description}
                     </p>
                   </div>
                 </Link>
-                {index < stages.length - 1 ? (
-                  <div className="flex w-7 shrink-0 items-center" aria-hidden>
-                    <div className="h-px w-full bg-border" />
+                {index < groupedStages.length - 1 ? (
+                  <div className="flex w-8 shrink-0 items-center px-1" aria-hidden>
+                    <div className="h-px w-full bg-admin-outline-ghost" />
                   </div>
                 ) : null}
               </Fragment>

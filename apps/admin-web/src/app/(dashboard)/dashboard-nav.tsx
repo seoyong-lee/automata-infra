@@ -8,7 +8,6 @@ import {
   Cog,
   Compass,
   ImagePlay,
-  LayoutDashboard,
   ListChecks,
   Settings,
   ClipboardList,
@@ -35,111 +34,124 @@ function isDiscoveryPath(pathname: string) {
 export function DashboardSidebar() {
   const pathname = usePathname() ?? '/';
 
+  const itemClass = (active: boolean) =>
+    cn(
+      'group relative flex items-center gap-3 rounded-md px-4 py-3 text-sm transition-all',
+      active
+        ? 'bg-[var(--admin-sidebar-active)] font-semibold text-white'
+        : 'text-[var(--admin-sidebar-muted)] hover:bg-white/5 hover:text-white',
+    );
+
+  const itemAccentClass = (active: boolean) =>
+    cn(
+      'absolute inset-y-2 right-0 w-1 rounded-full bg-sidebar-primary transition-opacity',
+      active ? 'opacity-100' : 'opacity-0 group-hover:opacity-60',
+    );
+
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden border-r bg-sidebar text-sidebar-foreground lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden bg-admin-sidebar text-sidebar-foreground shadow-2xl shadow-slate-950/15 lg:flex">
       <div className="flex h-full w-full flex-col">
-        <div className="border-b px-4 py-4">
-          <Link href="/" className="flex items-center gap-3 rounded-md p-2">
-            <div className="flex size-8 items-center justify-center rounded-md bg-sidebar-primary text-sidebar-primary-foreground">
+        <div className="px-5 py-6">
+          <Link href="/" className="flex items-center gap-3 rounded-md px-2 py-2">
+            <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-indigo-950/20">
               <Cog className="size-4" />
             </div>
             <div className="min-w-0">
-              <p className="truncate text-sm font-semibold">Automata Studio</p>
-              <p className="truncate text-xs text-muted-foreground">Admin Console</p>
+              <p className="font-admin-display truncate text-lg font-extrabold tracking-tight text-white">
+                Automata Studio
+              </p>
+              <p className="truncate text-[10px] font-semibold uppercase tracking-[0.24em] text-indigo-300/80">
+                Admin Console
+              </p>
             </div>
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-4 overflow-y-auto px-3 py-4">
+        <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-2">
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">제작</p>
-            <Link
-              href="/discovery"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isDiscoveryPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
+            <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              제작
+            </p>
+            <Link href="/discovery" className={itemClass(isDiscoveryPath(pathname))}>
+              <span className={itemAccentClass(isDiscoveryPath(pathname))} aria-hidden />
               <Compass className="size-4 shrink-0" />
-              <span className="truncate">소재 탐색</span>
+              <span className="truncate uppercase tracking-wide">소재 탐색</span>
             </Link>
-            <Link
-              href="/jobs"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isUnderJobsPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
+            <Link href="/jobs" className={itemClass(isUnderJobsPath(pathname))}>
+              <span className={itemAccentClass(isUnderJobsPath(pathname))} aria-hidden />
               <ClipboardList className="size-4 shrink-0" />
-              <span className="truncate">아이템</span>
+              <span className="truncate uppercase tracking-wide">아이템</span>
             </Link>
-            <Link
-              href="/content"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isUnderContentPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
+            <Link href="/content" className={itemClass(isUnderContentPath(pathname))}>
+              <span className={itemAccentClass(isUnderContentPath(pathname))} aria-hidden />
               <ImagePlay className="size-4 shrink-0" />
-              <span className="truncate">채널</span>
+              <span className="truncate uppercase tracking-wide">채널</span>
             </Link>
           </div>
 
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">운영</p>
+            <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              운영
+            </p>
             <Link
               href="/reviews"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                pathname === '/reviews' || pathname.startsWith('/reviews/')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
+              className={itemClass(pathname === '/reviews' || pathname.startsWith('/reviews/'))}
             >
+              <span
+                className={itemAccentClass(
+                  pathname === '/reviews' || pathname.startsWith('/reviews/'),
+                )}
+                aria-hidden
+              />
               <ListChecks className="size-4 shrink-0" />
-              <span>검수함</span>
+              <span className="uppercase tracking-wide">검수함</span>
             </Link>
-            <Link
-              href="/executions"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                isUnderExecutionsPath(pathname)
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
-            >
+            <Link href="/executions" className={itemClass(isUnderExecutionsPath(pathname))}>
+              <span className={itemAccentClass(isUnderExecutionsPath(pathname))} aria-hidden />
               <Activity className="size-4 shrink-0" />
-              <span className="truncate">실행 현황</span>
+              <span className="truncate uppercase tracking-wide">실행 현황</span>
             </Link>
           </div>
 
           <div className="space-y-1">
-            <p className="px-3 pb-1 text-xs font-medium text-muted-foreground">설정</p>
+            <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
+              설정
+            </p>
             <Link
               href="/settings"
-              className={cn(
-                'flex items-center gap-2 rounded-md px-3 py-2.5 text-sm transition-colors',
-                pathname === '/settings' || pathname.startsWith('/settings/')
-                  ? 'bg-sidebar-accent text-sidebar-accent-foreground'
-                  : 'text-muted-foreground hover:bg-sidebar-accent/60 hover:text-sidebar-foreground',
-              )}
+              className={itemClass(pathname === '/settings' || pathname.startsWith('/settings/'))}
             >
+              <span
+                className={itemAccentClass(
+                  pathname === '/settings' || pathname.startsWith('/settings/'),
+                )}
+                aria-hidden
+              />
               <Settings className="size-4 shrink-0" />
-              <span>설정</span>
+              <span className="uppercase tracking-wide">설정</span>
             </Link>
           </div>
         </nav>
 
-        <div className="border-t p-4">
-          <Button variant="outline" className="w-full" onClick={() => logout()}>
-            Logout
-          </Button>
+        <div className="mt-auto px-5 pb-5 pt-4">
+          <div className="rounded-xl bg-white/5 p-4">
+            <div className="flex items-center gap-3">
+              <div className="flex size-9 items-center justify-center rounded-full bg-slate-700 text-xs font-bold text-white">
+                AU
+              </div>
+              <div className="min-w-0">
+                <p className="truncate text-xs font-semibold text-white">Admin User</p>
+                <p className="truncate text-[10px] text-slate-400">System Operator</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="mt-4 w-full border-slate-700 bg-transparent text-slate-200 hover:bg-white/5 hover:text-white"
+              onClick={() => logout()}
+            >
+              Logout
+            </Button>
+          </div>
         </div>
       </div>
     </aside>
@@ -152,12 +164,17 @@ export function DashboardMobileBar() {
   const linkClass = (active: boolean) =>
     cn(
       'rounded-md px-2 py-1 transition-colors',
-      active ? 'bg-accent text-accent-foreground' : 'text-muted-foreground hover:text-primary',
+      active
+        ? 'bg-primary/10 text-primary'
+        : 'text-muted-foreground hover:bg-admin-surface-section hover:text-admin-primary',
     );
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-2 border-b pb-4 lg:hidden">
+    <div className="admin-page-shell flex flex-wrap items-center justify-between gap-2 p-4 lg:hidden">
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
+        <Link href="/" className={linkClass(pathname === '/')}>
+          대시보드
+        </Link>
         <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
           아이템
         </Link>
@@ -172,9 +189,6 @@ export function DashboardMobileBar() {
         </Link>
         <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
           실행 현황
-        </Link>
-        <Link href="/" className={linkClass(pathname === '/')}>
-          대시보드
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
           설정

@@ -11,20 +11,22 @@ type ContentJobReadinessChecklistProps = {
 
 export function ContentJobReadinessChecklist({ chips }: ContentJobReadinessChecklistProps) {
   return (
-    <div className="flex flex-wrap gap-2">
-      <span className="w-full text-xs font-medium text-muted-foreground">준비 상태</span>
+    <div className="flex flex-wrap gap-2.5">
+      <span className="w-full text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-primary">
+        Readiness
+      </span>
       {chips.map((chip) => (
         <Link
           key={chip.key}
           href={chip.href}
           className={cn(
-            'inline-flex items-center rounded-md border px-2.5 py-1 text-xs font-medium transition-colors',
+            'inline-flex items-center rounded-full border px-3 py-1.5 text-xs font-semibold transition-colors',
             chip.state === 'done' &&
-              'border-emerald-500/35 bg-emerald-500/10 text-emerald-900 dark:text-emerald-100',
+              'border-admin-status-success/20 bg-admin-status-success-surface text-admin-status-success',
             chip.state === 'needed' &&
-              'border-amber-500/40 bg-amber-500/10 text-amber-950 dark:text-amber-100',
+              'border-admin-status-warning/20 bg-admin-status-warning-surface text-admin-status-warning',
             chip.state === 'blocked' &&
-              'border-destructive/40 bg-destructive/10 text-destructive dark:text-destructive',
+              'border-admin-status-error/20 bg-admin-status-error-surface text-admin-status-error',
           )}
         >
           {chip.label}

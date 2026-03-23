@@ -46,7 +46,7 @@ export function ContentJobDetailWorkHeaderActions({ jobId, resolution, onAction 
           type="button"
           size="sm"
           variant="outline"
-          className="border-destructive/40 text-destructive hover:bg-destructive/10 hover:text-destructive"
+          className="border-admin-outline-ghost bg-admin-surface-card text-admin-text-strong hover:bg-admin-surface-section hover:text-admin-primary"
           disabled={deleteJob.isPending}
           onClick={handleDeleteJob}
         >

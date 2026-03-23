@@ -16,23 +16,38 @@ export function SettingsSectionTabsCard({
     settingsSections.find((section) => section.key === activeSection)?.description ?? '';
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>Settings Sections</CardTitle>
+    <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
+      <CardHeader className="space-y-2">
+        <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-admin-primary">
+          Global Configuration
+        </div>
+        <CardTitle className="font-admin-display text-2xl font-extrabold tracking-tight text-admin-primary">
+          Settings
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="flex flex-wrap gap-2">
+        <div className="flex flex-col gap-1">
           {settingsSections.map((section) => (
             <Button
               key={section.key}
-              variant={activeSection === section.key ? 'default' : 'outline'}
+              variant="ghost"
+              className={
+                activeSection === section.key
+                  ? 'justify-between rounded-md bg-admin-surface-section px-4 py-6 text-admin-primary hover:bg-admin-surface-section'
+                  : 'justify-between rounded-md px-4 py-6 text-admin-text-muted hover:bg-admin-surface-section hover:text-admin-primary'
+              }
               onClick={() => onSectionChange(section.key)}
             >
               {section.label}
             </Button>
           ))}
         </div>
-        <p className="text-sm text-muted-foreground">{activeDescription}</p>
+        <div className="rounded-xl border border-admin-outline-ghost bg-admin-surface-section p-4">
+          <p className="text-xs font-semibold uppercase tracking-[0.2em] text-admin-primary">
+            Active Section
+          </p>
+          <p className="mt-2 text-sm leading-relaxed text-admin-text-muted">{activeDescription}</p>
+        </div>
       </CardContent>
     </Card>
   );

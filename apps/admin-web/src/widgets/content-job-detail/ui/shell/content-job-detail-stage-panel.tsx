@@ -22,7 +22,7 @@ export function ContentJobDetailStagePanel({
   children,
 }: ContentJobDetailStagePanelProps) {
   return (
-    <section className="rounded-2xl border border-border bg-card p-5 shadow-sm">
+    <section className="admin-page-shell p-6">
       <div className="grid gap-6 xl:grid-cols-[minmax(0,1fr)_280px]">
         <div className="min-w-0 space-y-6">
           <ContentJobDetailStagePanelHeader

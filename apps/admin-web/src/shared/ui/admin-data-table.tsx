@@ -1,5 +1,6 @@
 'use client';
 
+import { cn } from '@packages/ui';
 import { Input } from '@packages/ui/input';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@packages/ui/table';
 import type { ReactNode } from 'react';
@@ -71,27 +72,36 @@ export function AdminDataTable<TData>({
   return (
     <div className="space-y-4">
       {showToolbar ? (
-        <div className="flex flex-wrap items-center gap-3">
+        <div className="admin-section-shell flex flex-wrap items-center gap-3 p-4">
           {filterColumnId ? (
             <Input
               placeholder={filterPlaceholder}
               value={(table.getColumn(filterColumnId)?.getFilterValue() as string) ?? ''}
               onChange={(e) => table.getColumn(filterColumnId)?.setFilterValue(e.target.value)}
-              className="min-w-0 flex-1 max-w-md"
+              className="h-11 max-w-md min-w-0 flex-1 border-admin-outline-ghost bg-admin-surface-card"
             />
           ) : null}
           {toolbarEnd ? <div className="ms-auto shrink-0">{toolbarEnd}</div> : null}
         </div>
       ) : null}
-      <div className="overflow-hidden rounded-md border">
+      <div className="admin-page-shell overflow-hidden">
         <Table>
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
+              <TableRow
+                key={headerGroup.id}
+                className="bg-admin-surface-section/70 hover:bg-admin-surface-section/70"
+              >
                 {headerGroup.headers.map((header) => {
                   const cls = getColumnClassName?.(header.column.id) ?? {};
                   return (
-                    <TableHead key={header.id} className={cls.header}>
+                    <TableHead
+                      key={header.id}
+                      className={cn(
+                        'h-12 text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-text-muted',
+                        cls.header,
+                      )}
+                    >
                       {header.isPlaceholder
                         ? null
                         : flexRender(header.column.columnDef.header, header.getContext())}
@@ -106,11 +116,25 @@ export function AdminDataTable<TData>({
               table.getRowModel().rows.map((row) => {
                 const extra = rowProps?.(row) ?? {};
                 return (
-                  <TableRow key={row.id} data-state={row.getIsSelected() && 'selected'} {...extra}>
+                  <TableRow
+                    key={row.id}
+                    data-state={row.getIsSelected() && 'selected'}
+                    className={cn(
+                      'border-admin-outline-ghost transition-colors hover:bg-admin-surface-section/45',
+                      extra.className,
+                    )}
+                    {...extra}
+                  >
                     {row.getVisibleCells().map((cell) => {
                       const cls = getColumnClassName?.(cell.column.id) ?? {};
                       return (
-                        <TableCell key={cell.id} className={cls.cell}>
+                        <TableCell
+                          key={cell.id}
+                          className={cn(
+                            'py-4 align-middle text-sm text-admin-text-strong',
+                            cls.cell,
+                          )}
+                        >
                           {flexRender(cell.column.columnDef.cell, cell.getContext())}
                         </TableCell>
                       );

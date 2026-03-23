@@ -1,6 +1,5 @@
 'use client';
 
-import { cn } from '@packages/ui';
 import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
 import { Suspense } from 'react';
@@ -27,12 +26,21 @@ function ContentCatalogPageBody() {
       <AdminPageHeader
         title="채널"
         subtitle="운영 라인(채널) 카탈로그입니다. 채널에 붙지 않은 제작 아이템은 제작 아이템 메뉴에서 다룹니다."
+        actions={
+          <Link
+            href="/content/new"
+            className="inline-flex h-10 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-4 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-opacity hover:opacity-95"
+          >
+            채널 추가
+          </Link>
+        }
       />
       <ContentCatalogTable
         items={list.data?.items ?? []}
         isLoading={list.isLoading}
         onDelete={(contentId) => del.mutate({ contentId })}
         deletingId={deletingId}
+        toolbarEnd={null}
       />
       {del.error ? (
         <p className="text-sm text-destructive">

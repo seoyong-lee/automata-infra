@@ -9,12 +9,12 @@ type ContentJobDetailStagePanelHeaderProps = {
 
 function statusLabel(state: WorkflowNavItem['state']): string {
   if (state === 'complete') {
-    return '완료';
+    return '??';
   }
   if (state === 'blocked') {
-    return '막힘';
+    return '??';
   }
-  return '진행 중';
+  return '?? ?';
 }
 
 export function ContentJobDetailStagePanelHeader({
@@ -22,24 +22,24 @@ export function ContentJobDetailStagePanelHeader({
   currentStageMeta,
 }: ContentJobDetailStagePanelHeaderProps) {
   return (
-    <div className="space-y-3 border-b border-border pb-4">
+    <div className="space-y-3 border-b border-admin-outline-ghost pb-5">
       <div className="flex flex-wrap items-center gap-2">
-        <span className="rounded-full bg-muted px-2.5 py-1 text-[11px] font-medium text-muted-foreground">
-          현재 작업
+        <span className="rounded-full bg-admin-surface-section px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-admin-primary">
+          Current Stage
         </span>
         {currentStage ? (
-          <span className="rounded-full border border-border px-2.5 py-1 text-[11px] font-medium text-foreground">
+          <span className="rounded-full border border-admin-outline-ghost px-2.5 py-1 text-[11px] font-medium text-admin-text-strong">
             {statusLabel(currentStage.state)}
           </span>
         ) : null}
       </div>
       <div className="space-y-1">
-        <h2 className="text-xl font-semibold text-foreground">
-          {currentStageMeta?.title ?? currentStage?.label ?? '상세 작업'}
+        <h2 className="font-admin-display text-2xl font-extrabold tracking-tight text-admin-primary">
+          {currentStageMeta?.title ?? currentStage?.label ?? '?? ??'}
         </h2>
-        <p className="text-sm leading-6 text-muted-foreground">
+        <p className="text-sm leading-6 text-admin-text-muted">
           {currentStageMeta?.description ??
-            '선택된 단계의 상세 작업과 상태를 아래에서 확인할 수 있습니다.'}
+            '??? ??? ??? ?? ??? ???? ?? ???? ??? ? ????.'}
         </p>
       </div>
     </div>
