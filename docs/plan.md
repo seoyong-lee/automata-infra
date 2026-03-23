@@ -10,13 +10,15 @@
 
 아래는 **최초 설계 의도(본 문서)**를 바꾸지 않되, 실제 `ai-pipeline-studio` 코드베이스와 읽을 때 혼동을 줄이기 위한 교차 참조다.
 
-| 구분 | 설명 |
-| --- | --- |
-| **본 문서(`plan.md`)의 역할** | 장면 JSON 중심 파이프라인, AWS 서버리스 오케스트레이션(EventBridge·Step Functions·Lambda·SQS), 외부 생성 API·Shotstack·업로드까지의 **실행 설계안·의사결정**을 보존한다. §0 구조도는 “초기에 목표로 한 흐름”을 나타낸다. |
-| **실제 구현의 추가 축** | 주 운영 표면은 **AppSync GraphQL + Cognito** 기반 Admin API(`services/admin/graphql/*`, `lib/modules/publish/graphql/`)이며, `publish-stack`이 파이프라인·발행·리뷰·업로드·일부 에이전트 큐를 연결한다. **발행·발굴·에이전트**(소재·후보·트렌드·워치리스트·수동 트렌드 스카우트 큐 등)는 제작 파이프라인과 **느슨히** 붙어 있으며, 상세는 스키마와 CDK가 정본이다. |
-| **현재 구현 개요(외부 검토용 한 장)** | [`implementation-overview-external-review.md`](./implementation-overview-external-review.md) — 스냅샷·원칙·목표 모델을 묶었으나 **모든 세부를 대체하지는 않는다**(문서 내 “이 문서가 커버하는 범위” 표 참고). |
-| **최근 변경만** | [`recent-work-summary.md`](./recent-work-summary.md) |
-| **짧은 아키텍처 개요** | [`architecture.md`](./architecture.md) |
+
+| 구분                       | 설명                                                                                                                                                                                                                                                                  |
+| ------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
+| **본 문서(`plan.md`)의 역할**  | 장면 JSON 중심 파이프라인, AWS 서버리스 오케스트레이션(EventBridge·Step Functions·Lambda·SQS), 외부 생성 API·Shotstack·업로드까지의 **실행 설계안·의사결정**을 보존한다. §0 구조도는 “초기에 목표로 한 흐름”을 나타낸다.                                                                                                          |
+| **실제 구현의 추가 축**          | 주 운영 표면은 **AppSync GraphQL + Cognito** 기반 Admin API(`services/admin/graphql/`*, `lib/modules/publish/graphql/`)이며, `publish-stack`이 파이프라인·발행·리뷰·업로드·일부 에이전트 큐를 연결한다. **발행·발굴·에이전트**(소재·후보·트렌드·워치리스트·수동 트렌드 스카우트 큐 등)는 제작 파이프라인과 **느슨히** 붙어 있으며, 상세는 스키마와 CDK가 정본이다. |
+| **현재 구현 개요(외부 검토용 한 장)** | `[implementation-overview-external-review.md](./implementation-overview-external-review.md)` — 스냅샷·원칙·목표 모델을 묶었으나 **모든 세부를 대체하지는 않는다**(문서 내 “이 문서가 커버하는 범위” 표 참고).                                                                                                  |
+| **최근 변경만**               | `[recent-work-summary.md](./recent-work-summary.md)`                                                                                                                                                                                                                |
+| **짧은 아키텍처 개요**           | `[architecture.md](./architecture.md)`                                                                                                                                                                                                                              |
+
 
 요약: **“전체 구현 현황”은 `plan.md` 단독 또는 `implementation-overview-external-review.md` 단독으로 완결되지 않는다.** 실행 의도는 본 문서, 운영 중인 API·화면·발굴 축은 스키마 + 상기 개요 문서 + `docs/plans/`를 함께 본다.
 
@@ -36,6 +38,8 @@ G --> H[Review]
 H --> I[YouTube Upload]
 B --> J[DynamoDB Job State]
 ```
+
+
 
 ### 핵심 리소스
 
@@ -383,6 +387,8 @@ Secrets --> C4
 Secrets --> C5
 Secrets --> C8
 ```
+
+
 
 ### MVP 기본 구성
 
@@ -874,7 +880,7 @@ s3://automata-studio/
 
 ### Phase 3. 런타임 구현
 
-- topic planner
+- topic planner 
 - scene JSON builder
 - 단계별 LLM adapter / prompt resolver
 - image generator
