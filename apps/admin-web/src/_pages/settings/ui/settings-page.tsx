@@ -18,7 +18,6 @@ import { ProvidersSection } from '@/widgets/settings/ui/providers-section';
 import { PublishPolicySection } from '@/widgets/settings/ui/publish-policy-section';
 import { RuntimeSection } from '@/widgets/settings/ui/runtime-section';
 import { SettingsSectionTabsCard } from '@/widgets/settings/ui/settings-section-tabs-card';
-import { SettingsTopAppBar } from '@/widgets/settings/ui/settings-top-app-bar';
 import { VoicesSection } from '@/widgets/settings/ui/voices-section';
 
 type SettingsSectionBodyProps = {
@@ -112,10 +111,9 @@ export function SettingsPage() {
   const hero = heroBySection[activeSection];
 
   return (
-    <div className="space-y-8 pb-20 pt-10">
-      <SettingsTopAppBar />
+    <div className="space-y-8 pb-20">
       <div className="space-y-10">
-        <div className="space-y-4 pt-6">
+        <div className="space-y-4">
           <span className="block text-[10px] font-bold uppercase tracking-[0.2em] text-admin-primary">
             {hero.eyebrow}
           </span>

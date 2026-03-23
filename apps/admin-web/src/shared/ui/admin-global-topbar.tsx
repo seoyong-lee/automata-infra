@@ -2,15 +2,22 @@
 
 import { Bell, CircleHelp, Search, Server } from 'lucide-react';
 import Link from 'next/link';
+import { usePathname } from 'next/navigation';
 
-const tabs = [
-  { href: '/jobs', label: 'Items', active: true },
-  { href: '/reviews', label: 'Queue' },
-  { href: '/executions', label: 'Schedule' },
-  { href: '/settings', label: 'Connections' },
+const topTabs = [
+  { href: '/jobs', label: 'Work Queue' },
+  { href: '/reviews', label: 'Review Backlog' },
+  { href: '/executions', label: 'Run Health' },
+  { href: '/settings', label: 'Cost & Limits' },
 ];
 
-export function DashboardTopAppBar() {
+function isActive(pathname: string, href: string) {
+  return pathname === href || pathname.startsWith(`${href}/`);
+}
+
+export function AdminGlobalTopBar() {
+  const pathname = usePathname() ?? '/';
+
   return (
     <header className="fixed left-0 right-0 top-0 z-40 hidden border-b border-slate-200/60 bg-white/80 backdrop-blur-md md:block lg:left-72">
       <div className="flex h-16 items-center justify-between gap-6 px-4 md:px-8 xl:px-10">
@@ -19,17 +26,17 @@ export function DashboardTopAppBar() {
             <Search className="pointer-events-none absolute left-3 top-1/2 size-4 -translate-y-1/2 text-slate-400" />
             <input
               className="h-9 w-64 rounded-full border-none bg-admin-surface-section px-10 pr-4 text-sm text-slate-700 outline-none ring-0 placeholder:text-slate-400 focus:ring-1 focus:ring-admin-primary"
-              placeholder="Search operations..."
+              placeholder="Search workspace..."
               type="text"
             />
           </div>
           <nav className="hidden items-center gap-6 lg:flex">
-            {tabs.map((tab) => (
+            {topTabs.map((tab) => (
               <Link
                 key={tab.href}
                 href={tab.href}
                 className={
-                  tab.active
+                  isActive(pathname, tab.href)
                     ? 'border-b-2 border-admin-primary py-5 text-sm font-medium text-admin-primary'
                     : 'py-5 text-sm font-medium text-slate-500 transition-colors hover:text-admin-primary'
                 }

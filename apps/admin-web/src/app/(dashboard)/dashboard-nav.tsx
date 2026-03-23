@@ -9,8 +9,8 @@ import {
   Compass,
   ImagePlay,
   ListChecks,
-  Settings,
   ClipboardList,
+  Workflow,
 } from 'lucide-react';
 import Link from 'next/link';
 import { usePathname } from 'next/navigation';
@@ -33,6 +33,44 @@ function isDiscoveryPath(pathname: string) {
 
 export function DashboardSidebar() {
   const pathname = usePathname() ?? '/';
+
+  const workflowItems = [
+    {
+      href: '/discovery',
+      label: '소재 탐색',
+      step: '01',
+      icon: Compass,
+      active: isDiscoveryPath(pathname),
+    },
+    {
+      href: '/jobs',
+      label: '아이템 작업',
+      step: '02',
+      icon: ClipboardList,
+      active: isUnderJobsPath(pathname),
+    },
+    {
+      href: '/content',
+      label: '채널 편성',
+      step: '03',
+      icon: ImagePlay,
+      active: isUnderContentPath(pathname),
+    },
+    {
+      href: '/reviews',
+      label: '검수 게이트',
+      step: '04',
+      icon: ListChecks,
+      active: pathname === '/reviews' || pathname.startsWith('/reviews/'),
+    },
+    {
+      href: '/executions',
+      label: '실행 모니터링',
+      step: '05',
+      icon: Activity,
+      active: isUnderExecutionsPath(pathname),
+    },
+  ] as const;
 
   const itemClass = (active: boolean) =>
     cn(
@@ -70,52 +108,28 @@ export function DashboardSidebar() {
         <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              제작
+              Workflow
             </p>
-            <Link href="/discovery" className={itemClass(isDiscoveryPath(pathname))}>
-              <span className={itemAccentClass(isDiscoveryPath(pathname))} aria-hidden />
-              <Compass className="size-4 shrink-0" />
-              <span className="truncate uppercase tracking-wide">소재 탐색</span>
-            </Link>
-            <Link href="/jobs" className={itemClass(isUnderJobsPath(pathname))}>
-              <span className={itemAccentClass(isUnderJobsPath(pathname))} aria-hidden />
-              <ClipboardList className="size-4 shrink-0" />
-              <span className="truncate uppercase tracking-wide">아이템</span>
-            </Link>
-            <Link href="/content" className={itemClass(isUnderContentPath(pathname))}>
-              <span className={itemAccentClass(isUnderContentPath(pathname))} aria-hidden />
-              <ImagePlay className="size-4 shrink-0" />
-              <span className="truncate uppercase tracking-wide">채널</span>
-            </Link>
+            {workflowItems.map((item) => {
+              const Icon = item.icon;
+              return (
+                <Link key={item.href} href={item.href} className={itemClass(item.active)}>
+                  <span className={itemAccentClass(item.active)} aria-hidden />
+                  <div className="flex min-w-0 items-center gap-3">
+                    <span className="w-6 shrink-0 text-[10px] font-semibold tracking-[0.22em] text-slate-500/90">
+                      {item.step}
+                    </span>
+                    <Icon className="size-4 shrink-0" />
+                    <span className="truncate tracking-wide">{item.label}</span>
+                  </div>
+                </Link>
+              );
+            })}
           </div>
 
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              운영
-            </p>
-            <Link
-              href="/reviews"
-              className={itemClass(pathname === '/reviews' || pathname.startsWith('/reviews/'))}
-            >
-              <span
-                className={itemAccentClass(
-                  pathname === '/reviews' || pathname.startsWith('/reviews/'),
-                )}
-                aria-hidden
-              />
-              <ListChecks className="size-4 shrink-0" />
-              <span className="uppercase tracking-wide">검수함</span>
-            </Link>
-            <Link href="/executions" className={itemClass(isUnderExecutionsPath(pathname))}>
-              <span className={itemAccentClass(isUnderExecutionsPath(pathname))} aria-hidden />
-              <Activity className="size-4 shrink-0" />
-              <span className="truncate uppercase tracking-wide">실행 현황</span>
-            </Link>
-          </div>
-
-          <div className="space-y-1">
-            <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
-              설정
+              Workspace
             </p>
             <Link
               href="/settings"
@@ -127,8 +141,8 @@ export function DashboardSidebar() {
                 )}
                 aria-hidden
               />
-              <Settings className="size-4 shrink-0" />
-              <span className="uppercase tracking-wide">설정</span>
+              <Workflow className="size-4 shrink-0" />
+              <span className="tracking-wide">설정 워크스페이스</span>
             </Link>
           </div>
         </nav>
@@ -170,31 +184,28 @@ export function DashboardMobileBar() {
     );
 
   return (
-    <div className="rounded-2xl border border-admin-outline-ghost bg-[var(--admin-topbar)] p-4 shadow-sm backdrop-blur lg:hidden">
+    <div className="rounded-2xl border border-admin-outline-ghost bg-admin-topbar p-4 shadow-sm backdrop-blur lg:hidden">
       <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-admin-primary">
-        Console Navigation
+        Workflow Steps
       </div>
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
-        <Link href="/" className={linkClass(pathname === '/')}>
-          대시보드
+        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
+          01 소재 탐색
         </Link>
         <Link href="/jobs" className={linkClass(isUnderJobsPath(pathname))}>
-          아이템
-        </Link>
-        <Link href="/discovery" className={linkClass(isDiscoveryPath(pathname))}>
-          소재
+          02 아이템 작업
         </Link>
         <Link href="/content" className={linkClass(isUnderContentPath(pathname))}>
-          채널
+          03 채널 편성
         </Link>
         <Link href="/reviews" className={linkClass(pathname.startsWith('/reviews'))}>
-          검수함
+          04 검수 게이트
         </Link>
         <Link href="/executions" className={linkClass(isUnderExecutionsPath(pathname))}>
-          실행 현황
+          05 실행 모니터링
         </Link>
         <Link href="/settings" className={linkClass(pathname.startsWith('/settings'))}>
-          설정
+          설정 워크스페이스
         </Link>
       </div>
       <Button variant="outline" size="sm" className="mt-3" onClick={() => logout()}>

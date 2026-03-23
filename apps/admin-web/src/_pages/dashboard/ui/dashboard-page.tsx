@@ -14,7 +14,6 @@ import { DashboardChannelSummarySection } from './dashboard-channel-summary-sect
 import type { DashboardChannelRow } from './dashboard-channel-summary-section';
 import { DashboardOptimizationCard } from './dashboard-optimization-card';
 import { DashboardResumeSection } from './dashboard-resume-section';
-import { DashboardTopAppBar } from './dashboard-top-app-bar';
 
 export function DashboardPage() {
   const jobsQuery = useAdminJobs({ limit: DASHBOARD_JOBS_QUERY_LIMIT });
@@ -87,8 +86,7 @@ export function DashboardPage() {
   );
 
   return (
-    <div className="space-y-8 pb-8 pt-10">
-      <DashboardTopAppBar />
+    <div className="space-y-8 pb-8">
 
       <div className="space-y-10">
         <div>

@@ -2,6 +2,7 @@
 
 import type { ReactNode } from 'react';
 
+import { AdminGlobalTopBar } from '@/shared/ui/admin-global-topbar';
 import { DashboardMobileBar, DashboardSidebar } from './dashboard-nav';
 
 export default function DashboardLayout({ children }: { children: ReactNode }) {
@@ -10,7 +11,8 @@ export default function DashboardLayout({ children }: { children: ReactNode }) {
       <DashboardSidebar />
 
       <section className="min-w-0 flex-1">
-        <div className="flex w-full flex-col gap-6 px-4 py-6 md:px-8 xl:px-10">
+        <AdminGlobalTopBar />
+        <div className="flex w-full flex-col gap-6 px-4 pb-6 pt-6 md:px-8 md:pt-24 xl:px-10">
           <DashboardMobileBar />
           {children}
         </div>
