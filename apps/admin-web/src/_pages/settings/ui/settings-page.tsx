@@ -2,17 +2,58 @@
 
 import { useState } from 'react';
 
-import {
-  getChannelSummary,
-  SettingsQueryStatus,
-  SettingsSectionContent,
-  SettingsSectionTabsCard,
-  type SettingsSection,
-} from '@/widgets/settings';
-import { useAdminContents } from '@/entities/admin-content';
-import { useLlmSettings } from '@/entities/llm-step';
-import { useVoiceProfiles } from '@/entities/voice-profile';
+import { type AdminContent, useAdminContents } from '@/entities/admin-content';
+import { type LlmStepSettings, useLlmSettings } from '@/entities/llm-step';
+import { type VoiceProfile, useVoiceProfiles } from '@/entities/voice-profile';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
+import {
+  type ChannelSummary,
+  getChannelSummary,
+  type SettingsSection,
+} from '@/widgets/settings/model';
+import { ChannelsSection } from '@/widgets/settings/ui/channels-section';
+import { GeneralSection } from '@/widgets/settings/ui/general-section';
+import { ModelsSection } from '@/widgets/settings/ui/models-section';
+import { ProvidersSection } from '@/widgets/settings/ui/providers-section';
+import { PublishPolicySection } from '@/widgets/settings/ui/publish-policy-section';
+import { RuntimeSection } from '@/widgets/settings/ui/runtime-section';
+import { SettingsSectionTabsCard } from '@/widgets/settings/ui/settings-section-tabs-card';
+import { VoicesSection } from '@/widgets/settings/ui/voices-section';
+
+type SettingsSectionBodyProps = {
+  activeSection: SettingsSection;
+  items: LlmStepSettings[];
+  voiceProfiles: VoiceProfile[];
+  contents: AdminContent[];
+  channelSummary: ChannelSummary;
+};
+
+function SettingsSectionBody({
+  activeSection,
+  items,
+  voiceProfiles,
+  contents,
+  channelSummary,
+}: SettingsSectionBodyProps) {
+  switch (activeSection) {
+    case 'general':
+      return <GeneralSection items={items} channelSummary={channelSummary} />;
+    case 'channels':
+      return <ChannelsSection contents={contents} />;
+    case 'models':
+      return <ModelsSection items={items} />;
+    case 'voices':
+      return <VoicesSection voiceProfiles={voiceProfiles} />;
+    case 'providers':
+      return <ProvidersSection items={items} />;
+    case 'publish-policy':
+      return <PublishPolicySection contents={contents} channelSummary={channelSummary} />;
+    case 'runtime':
+      return <RuntimeSection />;
+    default:
+      return null;
+  }
+}
 
 export function SettingsPage() {
   const settingsQuery = useLlmSettings();
@@ -36,15 +77,29 @@ export function SettingsPage() {
             activeSection={activeSection}
             onSectionChange={setActiveSection}
           />
-          <SettingsQueryStatus
-            settingsLoading={settingsQuery.isLoading}
-            settingsError={settingsQuery.error}
-            contentsLoading={contentsQuery.isLoading}
-            contentsError={contentsQuery.error}
-          />
+          {settingsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">Loading settings...</p>
+          ) : null}
+          {settingsQuery.error ? (
+            <p className="text-sm text-destructive">
+              {settingsQuery.error instanceof Error
+                ? settingsQuery.error.message
+                : '설정을 불러오지 못했습니다.'}
+            </p>
+          ) : null}
+          {contentsQuery.isLoading ? (
+            <p className="text-sm text-muted-foreground">채널 목록을 불러오는 중…</p>
+          ) : null}
+          {contentsQuery.error ? (
+            <p className="text-sm text-destructive">
+              {contentsQuery.error instanceof Error
+                ? contentsQuery.error.message
+                : '채널 목록을 불러오지 못했습니다.'}
+            </p>
+          ) : null}
         </div>
         <div className="min-w-0">
-          <SettingsSectionContent
+          <SettingsSectionBody
             activeSection={activeSection}
             items={items}
             voiceProfiles={voiceProfiles}

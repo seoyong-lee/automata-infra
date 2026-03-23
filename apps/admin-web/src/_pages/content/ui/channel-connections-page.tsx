@@ -9,14 +9,12 @@ import {
 } from '@packages/graphql';
 import { getErrorMessage } from '@packages/utils';
 import { useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useParams } from 'next/navigation';
-import { Suspense, useMemo, useState } from 'react';
+import { Suspense, useState } from 'react';
 
-import { useAdminContents } from '@/entities/admin-content';
-import { ContentChannelSubnav } from '@/widgets/content-channel';
 import { AdminPageBack } from '@/shared/ui/admin-page-back';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
+import { ContentChannelPageShell } from './content-channel-page-shell';
 
 const PLATFORMS: PublishPlatform[] = ['YOUTUBE', 'TIKTOK', 'INSTAGRAM'];
 
@@ -24,10 +22,6 @@ function ChannelConnectionsPageBody() {
   const params = useParams();
   const contentId = typeof params.contentId === 'string' ? params.contentId : '';
   const queryClient = useQueryClient();
-  const contentsQuery = useAdminContents({ limit: 200 });
-  const label = useMemo(() => {
-    return contentsQuery.data?.items.find((c) => c.contentId === contentId)?.label;
-  }, [contentsQuery.data?.items, contentId]);
 
   const listQuery = usePlatformConnectionsQuery({ contentId }, { enabled: Boolean(contentId) });
 
@@ -56,26 +50,11 @@ function ChannelConnectionsPageBody() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <AdminPageHeader
-          backHref="/content"
-          eyebrow={
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/content" className="hover:text-foreground">
-                채널
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground">{(label ?? contentId) || '—'}</span>
-            </div>
-          }
-          title="매체 연결"
-          subtitle="이 채널이 어떤 외부 계정으로 배포되는지 정의합니다. OAuth 연동은 추후 연결하고, 여기서는 계정 식별자를 수동으로 등록·갱신할 수 있습니다."
-        />
-      </div>
-
-      <ContentChannelSubnav contentId={contentId} />
-
+    <ContentChannelPageShell
+      contentId={contentId}
+      title={() => '매체 연결'}
+      subtitle="이 채널이 어떤 외부 계정으로 배포되는지 정의합니다. OAuth 연동은 추후 연결하고, 여기서는 계정 식별자를 수동으로 등록·갱신할 수 있습니다."
+    >
       <Card>
         <CardHeader>
           <CardTitle>연결 목록</CardTitle>
@@ -197,7 +176,7 @@ function ChannelConnectionsPageBody() {
           </div>
         </CardContent>
       </Card>
-    </div>
+    </ContentChannelPageShell>
   );
 }
 

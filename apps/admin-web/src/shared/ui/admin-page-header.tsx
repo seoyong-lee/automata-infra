@@ -5,7 +5,7 @@ import { AdminPageBack } from './admin-page-back';
 export type AdminPageHeaderProps = {
   backHref?: string;
   backLabel?: string;
-  title: string;
+  title: ReactNode;
   subtitle?: ReactNode;
   /** Rendered above the title (e.g. breadcrumb). No card or border. */
   eyebrow?: ReactNode;

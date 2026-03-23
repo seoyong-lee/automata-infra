@@ -4,23 +4,17 @@ import { getErrorMessage } from '@packages/utils';
 import { useParams, useRouter, useSearchParams } from 'next/navigation';
 import { Suspense, useEffect } from 'react';
 
-import {
-  ContentJobDetailBreadcrumb,
-  ContentJobDetailStagePanel,
-  ContentJobReadinessChecklist,
-  ContentJobDetailViewContent,
-  ContentJobDetailWorkHeader,
-  ContentJobWorkflowBar,
-  getJobDetailLegacyRedirect,
-  parseAssetStage,
-  parseAssetsViewMode,
-  parseJobDetailRouteTabParam,
-  type JobDetailRouteTabKey,
-  useContentJobDetailPageData,
-  useContentJobDetailWorkflowLayout,
-  useJobDetailWorkState,
-} from '@/widgets/content-job-detail';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
+import { getJobDetailLegacyRedirect, parseAssetStage, parseAssetsViewMode, parseJobDetailRouteTabParam, type JobDetailRouteTabKey } from '@/widgets/content-job-detail/lib/detail-workspace-tabs';
+import { useContentJobDetailWorkflowLayout } from '@/widgets/content-job-detail/model/useContentJobDetailWorkflowLayout';
+import { useContentJobDetailPageData } from '@/widgets/content-job-detail/model/useContentJobDetailPageData';
+import { useJobDetailWorkState } from '@/widgets/content-job-detail/model/useJobDetailWorkState';
+import { ContentJobReadinessChecklist } from '@/widgets/content-job-detail/ui/shell/content-job-readiness-checklist';
+import { ContentJobDetailBreadcrumb } from '@/widgets/content-job-detail/ui/shell/content-job-detail-breadcrumb';
+import { ContentJobDetailStagePanel } from '@/widgets/content-job-detail/ui/shell/content-job-detail-stage-panel';
+import { ContentJobDetailViewContent } from '@/widgets/content-job-detail/ui/shell/content-job-detail-view-content';
+import { ContentJobWorkflowBar } from '@/widgets/content-job-detail/ui/shell/content-job-workflow-bar';
+import { ContentJobDetailWorkHeader } from '@/widgets/content-job-detail/ui/work-header/content-job-detail-work-header';
 
 // eslint-disable-next-line complexity, max-lines-per-function -- 라우트 동기화·워크플로·본문 한 화면
 function ContentJobDetailPageBody() {

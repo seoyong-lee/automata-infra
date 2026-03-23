@@ -5,10 +5,8 @@ import Link from 'next/link';
 import { useParams } from 'next/navigation';
 import { useMemo } from 'react';
 
-import { ContentChannelSubnav } from '@/widgets/content-channel';
-import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
-import { AdminPageHeader } from '@/shared/ui/admin-page-header';
+import { ContentChannelPageShell } from './content-channel-page-shell';
 
 function titleForJob(
   jobId: string,
@@ -30,11 +28,6 @@ function queueStatusLabel(row: ChannelPublishQueueItem): string {
 export function ChannelShippingQueuePage() {
   const params = useParams();
   const contentId = typeof params.contentId === 'string' ? params.contentId : '';
-  const contentsQuery = useAdminContents({ limit: 200 });
-  const label = useMemo(() => {
-    return contentsQuery.data?.items.find((c) => c.contentId === contentId)?.label;
-  }, [contentsQuery.data?.items, contentId]);
-
   const queueQuery = useChannelPublishQueueQuery({ contentId }, { enabled: Boolean(contentId) });
   const jobsQuery = useAdminJobs({ contentId, limit: 200 });
   const jobs = jobsQuery.data?.items;
@@ -47,26 +40,13 @@ export function ChannelShippingQueuePage() {
   }, [queueQuery.data]);
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <AdminPageHeader
-          backHref="/content"
-          eyebrow={
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/content" className="hover:text-foreground">
-                채널
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground">{(label ?? contentId) || '—'}</span>
-            </div>
-          }
-          title={label ? `「${label}」의 출고 큐` : contentId ? '이 채널의 출고 큐' : '출고 큐'}
-          subtitle="이 채널에서 다음에 처리할 제작 아이템을 오래된 순서대로 모아 둡니다. 예약 시각 조정과 실제 발행 실행은 예약·발행 화면에서 진행합니다."
-        />
-      </div>
-
-      <ContentChannelSubnav contentId={contentId} />
-
+    <ContentChannelPageShell
+      contentId={contentId}
+      title={({ label, contentId: shellContentId }) =>
+        label ? `「${label}」의 출고 큐` : shellContentId ? '이 채널의 출고 큐' : '출고 큐'
+      }
+      subtitle="이 채널에서 다음에 처리할 제작 아이템을 오래된 순서대로 모아 둡니다. 예약 시각 조정과 실제 발행 실행은 예약·발행 화면에서 진행합니다."
+    >
       <div className="rounded-lg border">
         <table className="w-full text-left text-sm">
           <thead className="border-b bg-muted/40">
@@ -127,6 +107,6 @@ export function ChannelShippingQueuePage() {
           </tbody>
         </table>
       </div>
-    </div>
+    </ContentChannelPageShell>
   );
 }

@@ -12,10 +12,8 @@ import Link from 'next/link';
 import { useParams, useSearchParams } from 'next/navigation';
 import { useMemo, useState } from 'react';
 
-import { ContentChannelSubnav } from '@/widgets/content-channel';
-import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs } from '@/entities/admin-job';
-import { AdminPageHeader } from '@/shared/ui/admin-page-header';
+import { ContentChannelPageShell } from './content-channel-page-shell';
 
 function formatDateTimeLocal(value?: string | null): string {
   if (!value) {
@@ -81,11 +79,7 @@ export function ChannelPublishSchedulePage() {
   const params = useParams();
   const searchParams = useSearchParams();
   const contentId = typeof params.contentId === 'string' ? params.contentId : '';
-  const contentsQuery = useAdminContents({ limit: 200 });
   const jobsQuery = useAdminJobs({ contentId, limit: 200 });
-  const label = useMemo(() => {
-    return contentsQuery.data?.items.find((c) => c.contentId === contentId)?.label;
-  }, [contentsQuery.data?.items, contentId]);
   const selectedJobId = searchParams.get('job') ?? '';
 
   const queueQuery = useChannelPublishQueueQuery({ contentId }, { enabled: Boolean(contentId) });
@@ -132,11 +126,7 @@ export function ChannelPublishSchedulePage() {
     }));
   };
 
-  const handleSaveSchedule = async (
-    jobId: string,
-    publishTargetId: string,
-    draftValue: string,
-  ) => {
+  const handleSaveSchedule = async (jobId: string, publishTargetId: string, draftValue: string) => {
     setActiveTargetId(publishTargetId);
     try {
       await updateTargetSchedule.mutateAsync({
@@ -161,28 +151,13 @@ export function ChannelPublishSchedulePage() {
   };
 
   return (
-    <div className="space-y-8">
-      <div className="space-y-3">
-        <AdminPageHeader
-          backHref="/content"
-          eyebrow={
-            <div className="flex flex-wrap items-center gap-2">
-              <Link href="/content" className="hover:text-foreground">
-                채널
-              </Link>
-              <span className="text-muted-foreground/70">/</span>
-              <span className="text-foreground">{(label ?? contentId) || '—'}</span>
-            </div>
-          }
-          title={
-            label ? `「${label}」의 예약·발행` : contentId ? '이 채널의 예약·발행' : '예약·발행'
-          }
-          subtitle="출고 큐에 올라온 항목의 예약 시각을 조정하고, 즉시 또는 도래한 예약 항목을 실행합니다."
-        />
-      </div>
-
-      <ContentChannelSubnav contentId={contentId} />
-
+    <ContentChannelPageShell
+      contentId={contentId}
+      title={({ label, contentId: shellContentId }) =>
+        label ? `「${label}」의 예약·발행` : shellContentId ? '이 채널의 예약·발행' : '예약·발행'
+      }
+      subtitle="출고 큐에 올라온 항목의 예약 시각을 조정하고, 즉시 또는 도래한 예약 항목을 실행합니다."
+    >
       <div className="grid gap-3 md:grid-cols-3">
         <div className="rounded-lg border p-4">
           <p className="text-sm text-muted-foreground">즉시 실행 가능</p>
@@ -207,12 +182,21 @@ export function ChannelPublishSchedulePage() {
         <div className="rounded-lg border p-6 text-sm text-muted-foreground">불러오는 중…</div>
       ) : rows.length === 0 ? (
         <div className="rounded-lg border p-6 text-sm text-muted-foreground">
-          예약·발행할 항목이 없습니다. 먼저 <Link href={`/content/${encodeURIComponent(contentId)}/queue`} className="text-primary hover:underline">출고 큐</Link>에 제작 아이템을 추가하세요.
+          예약·발행할 항목이 없습니다. 먼저{' '}
+          <Link
+            href={`/content/${encodeURIComponent(contentId)}/queue`}
+            className="text-primary hover:underline"
+          >
+            출고 큐
+          </Link>
+          에 제작 아이템을 추가하세요.
         </div>
       ) : (
         <div className="space-y-4">
           {rows.map((row) => {
-            const runnableCount = row.publishTargets.filter((target) => isRunnableTarget(target)).length;
+            const runnableCount = row.publishTargets.filter((target) =>
+              isRunnableTarget(target),
+            ).length;
             const rowSelected = selectedJobId === row.jobId;
             return (
               <section
@@ -360,6 +344,6 @@ export function ChannelPublishSchedulePage() {
       {runPublishOrchestration.error ? (
         <p className="text-sm text-destructive">{runPublishOrchestration.error.message}</p>
       ) : null}
-    </div>
+    </ContentChannelPageShell>
   );
 }

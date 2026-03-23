@@ -5,14 +5,13 @@ import Link from 'next/link';
 import type { ColumnDef } from '@tanstack/react-table';
 import { ArrowUpRight } from 'lucide-react';
 
-import type { AdminJob } from '@/entities/admin-job';
-import { DataTableColumnHeader } from '@/shared/ui/data-table-column-header';
-
 import {
   getJobActionNeededLabel,
   getJobPhaseLabelKo,
   getJobStatusLabelKo,
-} from '../lib/job-table-labels';
+  type AdminJob,
+} from '@/entities/admin-job';
+import { DataTableColumnHeader } from '@/shared/ui/data-table-column-header';
 
 const PIPELINE_STATUS_ORDER: AdminJob['status'][] = [
   'DRAFT',

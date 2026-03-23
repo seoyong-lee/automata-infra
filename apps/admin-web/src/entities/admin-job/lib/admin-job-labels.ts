@@ -1,4 +1,4 @@
-import type { AdminJob } from '@/entities/admin-job';
+import type { AdminJob } from '../model';
 
 /** 파이프라인 상위 구간 — 목록에서 “어디쯤인지” 빠르게 보기 위함. */
 // eslint-disable-next-line complexity

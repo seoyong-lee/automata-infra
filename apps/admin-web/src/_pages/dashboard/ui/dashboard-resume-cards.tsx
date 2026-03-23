@@ -4,8 +4,11 @@ import { Badge } from '@packages/ui/badge';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import Link from 'next/link';
 
-import { getJobPhaseLabelKo, getJobStatusLabelKo } from '@/widgets/content-operations';
-import type { AdminJob } from '@/entities/admin-job';
+import {
+  getJobPhaseLabelKo,
+  getJobStatusLabelKo,
+  type AdminJob,
+} from '@/entities/admin-job';
 
 import type { ResumeReviewRow } from '../lib/dashboard-model';
 import { formatRelativeKo } from '../lib/format-relative-ko';
