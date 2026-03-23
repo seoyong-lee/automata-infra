@@ -28,7 +28,7 @@ export function AdminPageHeader({
       <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
         <div className="min-w-0 space-y-3">
           {backHref ? <AdminPageBack href={backHref} label={backLabel} /> : null}
-          <h1 className="font-admin-display text-4xl font-extrabold tracking-tight text-admin-primary md:text-5xl">
+          <h1 className="font-admin-display font-extrabold tracking-tight text-admin-primary text-3xl">
             {title}
           </h1>
           {subtitle ? (

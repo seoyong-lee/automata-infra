@@ -11,6 +11,7 @@
     "typecheck": "tsc --noEmit"
   },
   "dependencies": {
+    "@fontsource/pretendard": "^5.2.5",
     "@packages/auth": "0.0.1",
     "@packages/graphql": "0.0.1",
     "@packages/theme": "0.0.1",

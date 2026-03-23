@@ -1,6 +1,6 @@
 'use client';
 
-import { Cpu, Database, Gauge, Layers3 } from 'lucide-react';
+import { Clapperboard, Gauge, Image, Mic } from 'lucide-react';
 
 import type { DashboardBottlenecks } from '../lib/dashboard-model';
 
@@ -9,35 +9,41 @@ type Props = {
 };
 
 export function DashboardBottlenecksSection({ bottlenecks }: Props) {
+  const scriptImageCredits = Math.max(8, 18 + bottlenecks.sceneJsonLongDwell * 3);
+  const voiceCredits = Math.max(6, 12 + bottlenecks.failedJobs * 4);
+  const videoCredits = Math.max(
+    10,
+    24 + bottlenecks.assetGenLongDwell * 4 + Math.round(bottlenecks.sceneJsonLongDwell / 2),
+  );
+  const renderingCredits = Math.max(
+    12,
+    28 + bottlenecks.assetGenLongDwell * 5 + bottlenecks.failedJobs * 3,
+  );
+
   const rows = [
     {
-      label: 'Scene JSON Parsing',
-      value: bottlenecks.sceneJsonLongDwell,
-      Icon: Layers3,
-      note:
-        bottlenecks.sceneJsonLongDwell > 0 ? `+${bottlenecks.sceneJsonLongDwell} dwell` : 'stable',
+      label: '스크립트 이미지',
+      value: scriptImageCredits,
+      Icon: Image,
+      note: `${Math.round(scriptImageCredits * 0.18)} credits / item`,
     },
     {
-      label: 'Asset Generation (3D Mesh)',
-      value: bottlenecks.assetGenLongDwell,
-      Icon: Cpu,
-      note:
-        bottlenecks.assetGenLongDwell > 0 ? `+${bottlenecks.assetGenLongDwell} dwell` : 'stable',
+      label: '음성',
+      value: voiceCredits,
+      Icon: Mic,
+      note: `${Math.round(voiceCredits * 0.12)} credits / item`,
     },
     {
-      label: 'PBR Texture Baking',
-      value: Math.max(
-        1,
-        Math.round((bottlenecks.assetGenLongDwell + bottlenecks.sceneJsonLongDwell) / 2),
-      ),
-      Icon: Database,
-      note: 'stable',
+      label: '영상',
+      value: videoCredits,
+      Icon: Clapperboard,
+      note: `${Math.round(videoCredits * 0.24)} credits / item`,
     },
     {
-      label: 'Final Composition Render',
-      value: Math.max(1, bottlenecks.failedJobs),
+      label: '렌더링',
+      value: renderingCredits,
       Icon: Gauge,
-      note: bottlenecks.failedJobs > 0 ? `+${bottlenecks.failedJobs} failed` : 'stable',
+      note: `${Math.round(renderingCredits * 0.31)} credits / item`,
     },
   ];
   const maxValue = Math.max(...rows.map((row) => row.value), 1);
@@ -52,7 +58,7 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
           id="dash-bottleneck-heading"
           className="px-0 pt-0 text-xs font-bold uppercase tracking-[0.24em] text-slate-600 md:text-sm md:px-0"
         >
-          Bottleneck Analysis
+          Credit Usage
         </h3>
         <span className="hidden rounded bg-indigo-50 px-2 py-1 text-[10px] font-bold text-indigo-500 md:inline-flex">
           LIVE MONITORING
@@ -72,11 +78,7 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
                     ? 'bg-indigo-300'
                     : 'bg-indigo-400';
             const noteTone =
-              row.note === 'stable'
-                ? 'text-slate-400'
-                : index === 1
-                  ? 'text-rose-500'
-                  : 'text-emerald-500';
+              index === 3 ? 'text-rose-500' : index === 2 ? 'text-amber-500' : 'text-emerald-500';
 
             return (
               <div
@@ -91,10 +93,8 @@ export function DashboardBottlenecksSection({ bottlenecks }: Props) {
                     <span className="font-semibold text-slate-700">{row.label}</span>
                   </div>
                   <span className="tabular-nums text-slate-500">
-                    {row.value === 0 ? '0ms' : `${row.value * 124}ms`}{' '}
-                    <span className={`text-[10px] ${noteTone}`}>
-                      {row.note === 'stable' ? '(stable)' : `(${row.note})`}
-                    </span>
+                    {row.value.toLocaleString()} cr{' '}
+                    <span className={`text-[10px] ${noteTone}`}>({row.note})</span>
                   </span>
                 </div>
                 <div className="flex h-2 w-full overflow-hidden rounded-full bg-slate-100">

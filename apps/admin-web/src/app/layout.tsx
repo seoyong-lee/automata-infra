@@ -1,6 +1,13 @@
 import type { Metadata } from 'next';
 import { Inter, Manrope } from 'next/font/google';
 import type { ReactNode } from 'react';
+
+import '@fontsource/pretendard/400.css';
+import '@fontsource/pretendard/500.css';
+import '@fontsource/pretendard/600.css';
+import '@fontsource/pretendard/700.css';
+import '@fontsource/pretendard/800.css';
+
 import { Providers } from './providers/providers';
 import './globals.css';
 
