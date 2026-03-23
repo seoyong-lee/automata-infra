@@ -12,33 +12,44 @@ import { createContentCatalogColumns } from './content-catalog-columns';
 type Props = {
   items: AdminContent[];
   isLoading: boolean;
+  activeJobCountByContentId?: Record<string, number>;
   onDelete: (contentId: string) => void;
   deletingId: string | undefined;
   toolbarEnd?: ReactNode | null;
 };
 
 function getCatalogColumnClassName(columnId: string): AdminDataTableColumnClassName {
-  if (columnId === 'createdAt') {
-    return { header: 'hidden sm:table-cell', cell: 'hidden sm:table-cell' };
-  }
   if (columnId === 'updatedAt') {
     return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
   }
-  if (columnId === 'contentId') {
+  if (columnId === 'platforms') {
     return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
   }
+  if (columnId === 'activeJobs') {
+    return { header: 'hidden md:table-cell', cell: 'hidden md:table-cell' };
+  }
+  if (columnId === 'channelStatus') {
+    return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
+  }
   if (columnId === 'actions') {
-    return { header: 'w-[100px] text-right', cell: 'text-right' };
+    return { header: 'w-[120px] text-right', cell: 'text-right' };
   }
   return {};
 }
 
-export function ContentCatalogTable({ items, isLoading, onDelete, deletingId, toolbarEnd }: Props) {
+export function ContentCatalogTable({
+  items,
+  isLoading,
+  activeJobCountByContentId,
+  onDelete,
+  deletingId,
+  toolbarEnd,
+}: Props) {
   const router = useRouter();
 
   const columns = useMemo(
-    () => createContentCatalogColumns({ onDelete, deletingId }),
-    [onDelete, deletingId],
+    () => createContentCatalogColumns({ onDelete, deletingId, activeJobCountByContentId }),
+    [onDelete, deletingId, activeJobCountByContentId],
   );
 
   const goToDetail = (contentId: string) => {

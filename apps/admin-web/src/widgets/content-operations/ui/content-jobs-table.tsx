@@ -27,20 +27,20 @@ type Props = {
 
 function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName {
   switch (columnId) {
+    case 'jobId':
+      return { header: 'w-[7rem]', cell: 'whitespace-nowrap' };
     case 'phase':
-      return { header: 'w-[4.5rem]', cell: 'whitespace-nowrap' };
+      return { header: 'min-w-[8.5rem]', cell: 'whitespace-nowrap' };
     case 'statusLabel':
       return { header: 'min-w-[7rem]' };
-    case 'actionNeeded':
-      return { header: 'min-w-[6.5rem]' };
     case 'contentId':
-      return { header: 'hidden lg:table-cell', cell: 'hidden lg:table-cell' };
+      return { header: 'hidden lg:table-cell min-w-[12rem]', cell: 'hidden lg:table-cell' };
     case 'updatedAt':
-      return { header: 'hidden sm:table-cell', cell: 'hidden sm:table-cell' };
+      return { header: 'hidden md:table-cell min-w-[10rem]', cell: 'hidden md:table-cell' };
     case 'openDetail':
-      return { header: 'w-[4rem]', cell: 'w-[4rem]' };
+      return { header: 'w-[6rem] text-right', cell: 'w-[6rem] text-right' };
     case 'jobActions':
-      return { header: 'w-[140px]', cell: 'w-[140px]' };
+      return { header: 'w-[140px] text-right', cell: 'w-[140px] text-right' };
     default:
       return {};
   }

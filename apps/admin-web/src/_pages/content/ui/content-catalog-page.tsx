@@ -2,15 +2,17 @@
 
 import { useQueryClient } from '@tanstack/react-query';
 import Link from 'next/link';
-import { Suspense } from 'react';
+import { Suspense, useMemo } from 'react';
 
 import { useAdminContents, useDeleteContent } from '@/entities/admin-content';
+import { useAdminJobs } from '@/entities/admin-job';
 import { ContentCatalogTable } from '@/widgets/content-catalog';
 import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 function ContentCatalogPageBody() {
   const queryClient = useQueryClient();
   const list = useAdminContents({ limit: 100 });
+  const jobsQuery = useAdminJobs({ limit: 200 });
   const del = useDeleteContent({
     onSuccess: async () => {
       await queryClient.invalidateQueries({ queryKey: ['adminContents'] });
@@ -20,6 +22,17 @@ function ContentCatalogPageBody() {
 
   const deletingId =
     del.isPending && del.variables?.contentId ? del.variables.contentId : undefined;
+
+  const activeJobCountByContentId = useMemo(() => {
+    const counts: Record<string, number> = {};
+    for (const job of jobsQuery.data?.items ?? []) {
+      if (!job.contentId) {
+        continue;
+      }
+      counts[job.contentId] = (counts[job.contentId] ?? 0) + 1;
+    }
+    return counts;
+  }, [jobsQuery.data?.items]);
 
   return (
     <div className="space-y-8">
@@ -38,6 +51,7 @@ function ContentCatalogPageBody() {
       <ContentCatalogTable
         items={list.data?.items ?? []}
         isLoading={list.isLoading}
+        activeJobCountByContentId={activeJobCountByContentId}
         onDelete={(contentId) => del.mutate({ contentId })}
         deletingId={deletingId}
         toolbarEnd={null}
