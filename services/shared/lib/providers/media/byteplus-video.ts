@@ -15,6 +15,7 @@ type BytePlusVideoSecret = {
   imageField?: string;
   ratio?: string;
   duration?: number;
+  supportedDurations?: number[];
   resolution?: string;
   watermark?: boolean;
   generateAudio?: boolean;
@@ -109,10 +110,49 @@ const resolveRatio = (
   return secret.ratio?.trim() || (hasImage ? "adaptive" : "9:16");
 };
 
-const resolveDuration = (secret: BytePlusVideoSecret): number => {
-  return typeof secret.duration === "number" && Number.isFinite(secret.duration)
-    ? secret.duration
-    : 5;
+const DEFAULT_SUPPORTED_DURATIONS_SEC = [5, 8, 10] as const;
+
+const resolveSupportedDurations = (
+  secret: BytePlusVideoSecret,
+): number[] => {
+  const configured = Array.isArray(secret.supportedDurations)
+    ? secret.supportedDurations.filter(
+        (value): value is number =>
+          typeof value === "number" &&
+          Number.isFinite(value) &&
+          value > 0,
+      )
+    : [];
+  const fallback =
+    typeof secret.duration === "number" && Number.isFinite(secret.duration)
+      ? [Math.ceil(secret.duration)]
+      : [];
+  return [...new Set([...configured, ...fallback, ...DEFAULT_SUPPORTED_DURATIONS_SEC])]
+    .sort((left, right) => left - right);
+};
+
+export const resolveRequestedBytePlusDurationSec = (input: {
+  secret: BytePlusVideoSecret;
+  targetDurationSec?: number;
+}): number => {
+  const supportedDurations = resolveSupportedDurations(input.secret);
+  const preferredDuration =
+    typeof input.secret.duration === "number" && Number.isFinite(input.secret.duration)
+      ? Math.ceil(input.secret.duration)
+      : supportedDurations[0] ?? 5;
+  if (
+    typeof input.targetDurationSec !== "number" ||
+    !Number.isFinite(input.targetDurationSec) ||
+    input.targetDurationSec <= 0
+  ) {
+    return preferredDuration;
+  }
+  const roundedTarget = Math.ceil(input.targetDurationSec);
+  return (
+    supportedDurations.find((value) => value >= roundedTarget) ??
+    supportedDurations[supportedDurations.length - 1] ??
+    preferredDuration
+  );
 };
 
 const resolveResolution = (secret: BytePlusVideoSecret): string => {
@@ -245,12 +285,16 @@ const putMockVideo = async (input: {
   videoKey: string;
   rawKey: string;
   prompt: string;
+  targetDurationSec?: number;
+  resolvedDurationSec?: number;
 }): Promise<Record<string, unknown>> => {
   const mocked = {
     mocked: true,
     prompt: input.prompt,
     clipManifest: true,
     provider: "byteplus-video",
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec: input.resolvedDurationSec,
   };
   await putJsonToS3(input.videoKey, mocked);
   await putJsonToS3(input.rawKey, mocked);
@@ -261,6 +305,8 @@ const putMockVideo = async (input: {
     providerLogS3Key: input.rawKey,
     promptHash: hashPrompt(input.prompt),
     mocked: true,
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec: input.resolvedDurationSec,
   };
 };
 
@@ -276,6 +322,8 @@ const persistBytePlusVideoResult = async (input: {
   imageField?: string;
   requestMeta: Record<string, unknown>;
   sourceVideoUrl?: string;
+  targetDurationSec?: number;
+  resolvedDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
 }): Promise<void> => {
@@ -289,6 +337,8 @@ const persistBytePlusVideoResult = async (input: {
     imageField: input.imageField,
     requestMeta: input.requestMeta,
     sourceVideoUrl: input.sourceVideoUrl,
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec: input.resolvedDurationSec,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageAttached: Boolean(input.selectedImageDataUri),
   });
@@ -301,6 +351,8 @@ const failBytePlusVideo = async (input: {
   model: string;
   promptField: string;
   imageField?: string;
+  targetDurationSec?: number;
+  resolvedDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
   prompt: string;
@@ -315,6 +367,8 @@ const failBytePlusVideo = async (input: {
     model: input.model,
     promptField: input.promptField,
     imageField: input.imageField,
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec: input.resolvedDurationSec,
     normalizedEndpoint: input.endpoint,
     normalizedQueryEndpoint: input.queryEndpoint,
     selectedImageS3Key: input.selectedImageS3Key,
@@ -337,6 +391,7 @@ const completeBytePlusVideo = async (input: {
   promptField: string;
   imageField?: string;
   prompt: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
 }): Promise<Record<string, unknown>> => {
@@ -346,6 +401,7 @@ const completeBytePlusVideo = async (input: {
       endpoint: input.endpoint,
       queryEndpointTemplate: input.queryEndpointTemplate,
       prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
       selectedImageDataUri: input.selectedImageDataUri,
     });
   const sourceVideoUrl = await persistBytePlusVideoFile(
@@ -369,6 +425,8 @@ const completeBytePlusVideo = async (input: {
     imageField: input.imageField,
     requestMeta,
     sourceVideoUrl,
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec: requestMeta.duration as number | undefined,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageDataUri: input.selectedImageDataUri,
   });
@@ -379,6 +437,9 @@ const completeBytePlusVideo = async (input: {
     providerLogS3Key: input.rawKey,
     promptHash: hashPrompt(input.prompt),
     mocked: false,
+    targetDurationSec: input.targetDurationSec,
+    resolvedDurationSec:
+      typeof requestMeta.duration === "number" ? requestMeta.duration : undefined,
   };
 };
 
@@ -387,6 +448,7 @@ const executeBytePlusVideoTask = async (input: {
   endpoint: string;
   queryEndpointTemplate: string;
   prompt: string;
+  targetDurationSec?: number;
   selectedImageDataUri?: string;
 }): Promise<{
   submitted: Record<string, unknown>;
@@ -397,7 +459,10 @@ const executeBytePlusVideoTask = async (input: {
   const imageField = input.secret.imageField?.trim();
   const promptField = resolvePromptField(input.secret);
   const ratio = resolveRatio(input.secret, Boolean(input.selectedImageDataUri));
-  const duration = resolveDuration(input.secret);
+  const duration = resolveRequestedBytePlusDurationSec({
+    secret: input.secret,
+    targetDurationSec: input.targetDurationSec,
+  });
   const resolution = resolveResolution(input.secret);
   const generateAudio = resolveGenerateAudio(input.secret);
   const watermark = resolveWatermark(input.secret);
@@ -438,6 +503,8 @@ const executeBytePlusVideoTask = async (input: {
       promptField,
       imageField,
       ratio,
+      targetDurationSec: input.targetDurationSec,
+      supportedDurations: resolveSupportedDurations(input.secret),
       duration,
       resolution,
       generateAudio,
@@ -479,6 +546,7 @@ export const generateSceneBytePlusVideo = async (input: {
   jobId: string;
   sceneId: number;
   prompt: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
   secretId: string;
@@ -488,10 +556,16 @@ export const generateSceneBytePlusVideo = async (input: {
   const rawKey = `logs/${input.jobId}/provider/byteplus-video-scene-${input.sceneId}.json`;
 
   if (!secret?.apiKey) {
+    const resolvedDurationSec = resolveRequestedBytePlusDurationSec({
+      secret: secret ?? { apiKey: "" },
+      targetDurationSec: input.targetDurationSec,
+    });
     return putMockVideo({
       videoKey,
       rawKey,
       prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
+      resolvedDurationSec,
     });
   }
 
@@ -512,6 +586,7 @@ export const generateSceneBytePlusVideo = async (input: {
       promptField,
       imageField,
       prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
     });
@@ -523,6 +598,11 @@ export const generateSceneBytePlusVideo = async (input: {
       model,
       promptField,
       imageField,
+      targetDurationSec: input.targetDurationSec,
+      resolvedDurationSec: resolveRequestedBytePlusDurationSec({
+        secret,
+        targetDurationSec: input.targetDurationSec,
+      }),
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
       prompt: input.prompt,

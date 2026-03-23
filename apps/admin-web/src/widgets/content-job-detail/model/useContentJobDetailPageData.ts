@@ -2,7 +2,6 @@
 import type {
   AssetUploadCategory,
   AssetGenerationModality,
-  FinalCompositionProvider,
   ImageGenerationProvider,
   PipelineExecution,
 } from '@packages/graphql';
@@ -134,7 +133,6 @@ function buildPageHandlers(jobId: string, mutations: ContentJobDetailMutations) 
     ...buildBackgroundMusicHandlers(jobId, mutations),
     runFinalComposition: (opts?: {
       burnInSubtitles?: boolean;
-      renderProvider?: FinalCompositionProvider;
     }) =>
       mutations.runFinalComposition.mutate({ jobId, ...opts }),
     runFinalCompositionError: mutations.runFinalComposition.error,

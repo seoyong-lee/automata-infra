@@ -2,8 +2,10 @@
 
 import { useJobExecutionsQuery } from '@packages/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
+import { useMemo } from 'react';
 
 import { ContentJobDetailSceneBuildPanel } from '@/features/content-job-detail';
+import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
 
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
 import { ContentJobDetailStageApprovalWorkbench } from '../stage/content-job-detail-stage-approval-workbench';
@@ -16,6 +18,15 @@ type Props = {
 
 export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
   const { detailVm } = pageData;
+  const previewAssets = useMemo(
+    () =>
+      (pageData.detail?.assets ?? []).map((asset) => ({
+        sceneId: asset.sceneId,
+        imagePreviewUrl: buildAssetPreviewUrlFromS3Key(asset.imageS3Key),
+        videoPreviewUrl: buildAssetPreviewUrlFromS3Key(asset.videoClipS3Key),
+      })),
+    [pageData.detail?.assets],
+  );
   const executionsQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
   const sceneExecutions = executionsQuery.data?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
   const byRecent = (a: (typeof sceneExecutions)[number], b: (typeof sceneExecutions)[number]) =>
@@ -68,6 +79,7 @@ export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
       <ContentJobDetailSceneBuildPanel
         key={detailVm.sceneJsonKey}
         initialValue={detailVm.sceneJsonInitialValue}
+        previewAssets={previewAssets}
         runError={pageData.runSceneJsonError}
         saveError={pageData.updateSceneJsonError}
         isRunning={pageData.isRunningSceneJson}

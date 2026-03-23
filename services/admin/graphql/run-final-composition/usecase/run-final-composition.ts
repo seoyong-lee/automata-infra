@@ -15,6 +15,11 @@ import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 
 import type { SceneJson } from "../../../../../types/render/scene-json";
+import type {
+  RenderPlan,
+  RenderPlanOutput,
+  RenderPlanSubtitleStyle,
+} from "../../../../../types/render/render-plan";
 
 type RenderPipelineContext = {
   jobId: string;
@@ -31,75 +36,183 @@ type RenderPipelineContext = {
 
 export type FinalCompositionScope = {
   burnInSubtitles?: boolean;
-  renderProvider?: "SHOTSTACK" | "FARGATE";
 };
 
 type RenderPlanResult = {
-  renderPlan?: Record<string, unknown> & {
-    totalDurationSec?: number;
-    scenes?: Array<{
-      startSec?: number;
-      endSec?: number;
-      subtitle?: string;
-    }>;
-  };
+  renderPlan?: RenderPlan;
 };
 
 const noopCallback = (() => undefined) as never;
 const noopContext = {} as never;
-const SUBTITLE_SRT_CONTENT_TYPE = "application/x-subrip";
+const SUBTITLE_ASS_CONTENT_TYPE = "text/x-ass";
+const DEFAULT_RENDER_OUTPUT: RenderPlanOutput = {
+  format: "mp4",
+  size: {
+    width: 1080,
+    height: 1920,
+  },
+  fps: 30,
+};
 const pipelineAsyncEnabled = (): boolean =>
   (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
     process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
   Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
-const formatSrtTimestamp = (seconds: number): string => {
-  const safeMs = Math.max(0, Math.round(seconds * 1000));
-  const hours = Math.floor(safeMs / 3_600_000);
-  const minutes = Math.floor((safeMs % 3_600_000) / 60_000);
-  const secs = Math.floor((safeMs % 60_000) / 1000);
-  const millis = safeMs % 1000;
-  return [hours, minutes, secs].map((value) => String(value).padStart(2, "0")).join(":") +
-    `,${String(millis).padStart(3, "0")}`;
+const formatAssTimestamp = (seconds: number): string => {
+  const safeCs = Math.max(0, Math.round(seconds * 100));
+  const hours = Math.floor(safeCs / 360_000);
+  const minutes = Math.floor((safeCs % 360_000) / 6_000);
+  const secs = Math.floor((safeCs % 6_000) / 100);
+  const centis = safeCs % 100;
+  return `${hours}:${String(minutes).padStart(2, "0")}:${String(secs).padStart(2, "0")}.${String(centis).padStart(2, "0")}`;
 };
 
-const buildSubtitleSrt = (
-  scenes: Array<{ startSec?: number; endSec?: number; subtitle?: string }>,
+const clamp = (value: number, min: number, max: number): number => {
+  return Math.min(max, Math.max(min, value));
+};
+
+const stripHashPrefix = (value: string): string => {
+  return value.startsWith("#") ? value.slice(1) : value;
+};
+
+const toAssColor = (value: string, opacity = 1): string => {
+  const normalized = stripHashPrefix(value).padStart(6, "0").slice(0, 6);
+  const red = normalized.slice(0, 2);
+  const green = normalized.slice(2, 4);
+  const blue = normalized.slice(4, 6);
+  const alpha = Math.round((1 - clamp(opacity, 0, 1)) * 255);
+  return `&H${alpha.toString(16).toUpperCase().padStart(2, "0")}${blue}${green}${red}&`;
+};
+
+const escapeAssText = (value: string): string => {
+  return value
+    .replace(/\\/g, "\\\\")
+    .replace(/\r\n|\r|\n/g, "\\N")
+    .replace(/[{}]/g, "")
+    .trim();
+};
+
+const resolveSubtitleAlignment = (
+  position: RenderPlanSubtitleStyle["position"],
+): number => {
+  if (position === "top") {
+    return 8;
+  }
+  if (position === "center") {
+    return 5;
+  }
+  return 2;
+};
+
+const resolveSubtitleBasePosition = (
+  style: RenderPlanSubtitleStyle,
+  output: RenderPlanOutput,
+) => {
+  const baseYRatio =
+    style.position === "top" ? 0.14 : style.position === "center" ? 0.5 : 0.86;
+  const x = Math.round(output.size.width * (0.5 + style.offset.x));
+  const y = Math.round(output.size.height * (baseYRatio + style.offset.y));
+  return {
+    x: clamp(x, 0, output.size.width),
+    y: clamp(y, 0, output.size.height),
+    alignment: resolveSubtitleAlignment(style.position),
+  };
+};
+
+const buildAssStyleLine = (
+  style: RenderPlanSubtitleStyle,
+  output: RenderPlanOutput,
 ): string => {
-  const entries = scenes
+  return [
+    "Style: Default",
+    style.fontFamily.replace(/,/g, " "),
+    Math.round(style.fontSize),
+    toAssColor(style.color, style.opacity),
+    toAssColor(style.color, style.opacity),
+    toAssColor(style.strokeColor, 1),
+    "&H00000000&",
+    0,
+    0,
+    0,
+    0,
+    100,
+    100,
+    0,
+    0,
+    1,
+    Math.max(0, style.strokeWidth),
+    0,
+    resolveSubtitleAlignment(style.position),
+    Math.round(output.size.width * 0.06),
+    Math.round(output.size.width * 0.06),
+    Math.round(output.size.height * 0.06),
+    1,
+  ].join(",");
+};
+
+const buildSubtitleAss = (
+  renderPlan: Pick<RenderPlan, "output" | "scenes" | "subtitles">,
+): string => {
+  const output = renderPlan.output ?? DEFAULT_RENDER_OUTPUT;
+  const style = renderPlan.subtitles.style;
+  const basePosition = resolveSubtitleBasePosition(style, output);
+  const events = renderPlan.scenes
     .map((scene) => ({
-      startSec: typeof scene.startSec === "number" ? scene.startSec : 0,
-      endSec: typeof scene.endSec === "number" ? scene.endSec : 0,
-      subtitle:
-        typeof scene.subtitle === "string" ? scene.subtitle.trim() : "",
+      startSec: scene.startSec,
+      endSec: scene.endSec,
+      subtitle: typeof scene.subtitle === "string" ? scene.subtitle.trim() : "",
     }))
     .filter(
       (scene) =>
-        scene.subtitle.length > 0 && scene.endSec > scene.startSec,
+        scene.subtitle.length > 0 &&
+        typeof scene.startSec === "number" &&
+        typeof scene.endSec === "number" &&
+        scene.endSec > scene.startSec,
+    )
+    .map(
+      (scene) =>
+        `Dialogue: 0,${formatAssTimestamp(scene.startSec)},${formatAssTimestamp(scene.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(scene.subtitle)}`,
     );
 
-  return entries
-    .map(
-      (scene, index) =>
-        `${index + 1}\n${formatSrtTimestamp(scene.startSec)} --> ${formatSrtTimestamp(scene.endSec)}\n${scene.subtitle}`,
-    )
-    .join("\n\n");
+  return [
+    "[Script Info]",
+    "ScriptType: v4.00+",
+    "WrapStyle: 2",
+    "ScaledBorderAndShadow: yes",
+    `PlayResX: ${output.size.width}`,
+    `PlayResY: ${output.size.height}`,
+    "",
+    "[V4+ Styles]",
+    "Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding",
+    buildAssStyleLine(style, output),
+    "",
+    "[Events]",
+    "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
+    ...events,
+    "",
+  ].join("\n");
 };
 
-const maybePersistSubtitleSrt = async (
+const maybePersistSubtitleAss = async (
   jobId: string,
-  renderPlan: RenderPlanResult["renderPlan"],
+  renderPlan: RenderPlan,
   burnInSubtitles: boolean | undefined,
 ): Promise<string | undefined> => {
-  if (!burnInSubtitles || !renderPlan?.scenes) {
+  if (!burnInSubtitles) {
     return undefined;
   }
-  const srt = buildSubtitleSrt(renderPlan.scenes);
-  if (!srt.trim()) {
+  const hasSubtitleEntries = renderPlan.scenes.some(
+    (scene) => typeof scene.subtitle === "string" && scene.subtitle.trim().length > 0,
+  );
+  if (!hasSubtitleEntries) {
     return undefined;
   }
-  const key = `rendered/${jobId}/subtitles/latest.srt`;
-  await putBufferToS3(key, srt, SUBTITLE_SRT_CONTENT_TYPE);
+  const ass = buildSubtitleAss(renderPlan);
+  if (!ass.trim()) {
+    return undefined;
+  }
+  const key = `rendered/${jobId}/subtitles/latest.ass`;
+  await putBufferToS3(key, ass, SUBTITLE_ASS_CONTENT_TYPE);
   return key;
 };
 
@@ -184,7 +297,7 @@ export const runFinalCompositionCore = async (
   if (!renderPlan || typeof renderPlan !== "object") {
     throw new Error("render plan not created");
   }
-  const subtitleSrtS3Key = await maybePersistSubtitleSrt(
+  const subtitleAssS3Key = await maybePersistSubtitleAss(
     jobId,
     renderPlan,
     scope?.burnInSubtitles,
@@ -194,28 +307,22 @@ export const runFinalCompositionCore = async (
     {
       jobId,
       renderPlan: {
-        ...(renderPlan as Record<string, unknown> & {
-          totalDurationSec: number;
-          subtitles?: Record<string, unknown>;
-        }),
+        ...renderPlan,
         ...(scope?.burnInSubtitles !== undefined
           ? { burnInSubtitles: scope.burnInSubtitles }
           : {}),
         ...(scope?.burnInSubtitles !== undefined
           ? {
               subtitles: {
-                ...(((renderPlan as { subtitles?: Record<string, unknown> })
-                  .subtitles ?? {}) as Record<string, unknown>),
+                ...renderPlan.subtitles,
                 burnIn: scope.burnInSubtitles,
+                ...(subtitleAssS3Key ? { assS3Key: subtitleAssS3Key } : {}),
               },
             }
           : {}),
-        ...(subtitleSrtS3Key ? { subtitleSrtS3Key } : {}),
+        ...(subtitleAssS3Key ? { subtitleAssS3Key } : {}),
         ...(context.backgroundMusicS3Key
           ? { soundtrackSrc: context.backgroundMusicS3Key }
-          : {}),
-        ...(scope?.renderProvider
-          ? { renderProvider: scope.renderProvider }
           : {}),
       },
     },

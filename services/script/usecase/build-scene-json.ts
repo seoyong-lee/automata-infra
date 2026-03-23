@@ -6,6 +6,7 @@ import {
   expectArray,
   expectNullableString,
   expectNumberCoerced,
+  expectOptionalBoolean,
   expectOptionalString,
   expectRecord,
   expectString,
@@ -84,6 +85,10 @@ const validateSceneJson = (payload: unknown): SceneJson => {
         narration: expectNullableString(
           record.narration,
           `sceneJson.scenes[${index}].narration`,
+        ),
+        disableNarration: expectOptionalBoolean(
+          record.disableNarration,
+          `sceneJson.scenes[${index}].disableNarration`,
         ),
         imagePrompt: expectString(
           record.imagePrompt,

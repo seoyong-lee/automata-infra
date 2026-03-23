@@ -1,0 +1,123 @@
+import { z } from "zod";
+
+const normalizedScalarSchema = z.number().finite();
+const normalizedSizeSchema = z.number().positive().max(1);
+
+export const renderPlanOutputSchema = z.object({
+  format: z.literal("mp4"),
+  size: z.object({
+    width: z.number().int().positive(),
+    height: z.number().int().positive(),
+  }),
+  fps: z.number().int().positive(),
+});
+
+export const renderPlanSubtitleStyleSchema = z.object({
+  fontFamily: z.string().trim().min(1),
+  fontSize: z.number().positive(),
+  lineHeight: z.number().positive(),
+  opacity: z.number().min(0).max(1),
+  color: z.string().trim().min(1),
+  strokeColor: z.string().trim().min(1),
+  strokeWidth: z.number().min(0),
+  position: z.enum(["top", "center", "bottom"]),
+  offset: z.object({
+    x: normalizedScalarSchema,
+    y: normalizedScalarSchema,
+  }),
+});
+
+export const renderPlanSubtitleSchema = z.object({
+  burnIn: z.boolean(),
+  format: z.literal("ass"),
+  style: renderPlanSubtitleStyleSchema,
+  assS3Key: z.string().trim().min(1).optional(),
+});
+
+export const renderPlanSceneSchema = z.object({
+  sceneId: z.number().int().positive(),
+  startSec: z.number().min(0),
+  endSec: z.number().min(0),
+  durationSec: z.number().positive(),
+  gapAfterSec: z.number().min(0),
+  imageS3Key: z.string().trim().min(1).optional(),
+  videoClipS3Key: z.string().trim().min(1).optional(),
+  voiceS3Key: z.string().trim().min(1).optional(),
+  voiceDurationSec: z.number().positive().optional(),
+  disableNarration: z.boolean().optional(),
+  subtitle: z.string(),
+  bgmMood: z.string().trim().min(1).optional(),
+  sfx: z.array(z.string()).optional(),
+});
+
+export const renderPlanOverlayPlacementSchema = z.object({
+  x: normalizedScalarSchema,
+  y: normalizedScalarSchema,
+  width: normalizedSizeSchema,
+  height: normalizedSizeSchema,
+});
+
+export const renderPlanOverlayTimingSchema = z.object({
+  startSec: z.number().min(0).optional(),
+  endSec: z.number().min(0).optional(),
+});
+
+export const renderPlanImageOverlaySchema = z.object({
+  overlayId: z.string().trim().min(1),
+  type: z.literal("image"),
+  src: z.string().trim().min(1),
+  placement: renderPlanOverlayPlacementSchema,
+  opacity: z.number().min(0).max(1).optional(),
+  zIndex: z.number().int().optional(),
+  fit: z.enum(["contain", "cover", "stretch"]).optional(),
+}).merge(renderPlanOverlayTimingSchema);
+
+export const renderPlanTextOverlayStyleSchema = z.object({
+  fontFamily: z.string().trim().min(1),
+  fontSize: z.number().positive(),
+  color: z.string().trim().min(1),
+  opacity: z.number().min(0).max(1).optional(),
+  strokeColor: z.string().trim().min(1).optional(),
+  strokeWidth: z.number().min(0).optional(),
+  align: z.enum(["left", "center", "right"]).optional(),
+});
+
+export const renderPlanTextOverlaySchema = z.object({
+  overlayId: z.string().trim().min(1),
+  type: z.literal("text"),
+  text: z.string(),
+  placement: renderPlanOverlayPlacementSchema,
+  style: renderPlanTextOverlayStyleSchema,
+  zIndex: z.number().int().optional(),
+}).merge(renderPlanOverlayTimingSchema);
+
+export const renderPlanOverlaySchema = z.discriminatedUnion("type", [
+  renderPlanImageOverlaySchema,
+  renderPlanTextOverlaySchema,
+]);
+
+export const renderPlanSchema = z.object({
+  renderEngine: z.literal("ffmpeg-fargate"),
+  videoTitle: z.string(),
+  language: z.string(),
+  output: renderPlanOutputSchema,
+  preview: z.object({
+    enabled: z.boolean(),
+    maxDurationSec: z.number().positive(),
+  }),
+  subtitles: renderPlanSubtitleSchema,
+  totalDurationSec: z.number().positive(),
+  scenes: z.array(renderPlanSceneSchema),
+  overlays: z.array(renderPlanOverlaySchema).default([]),
+  soundtrackMood: z.string().trim().min(1).optional(),
+  soundtrackSrc: z.string().trim().min(1).optional(),
+  outputKey: z.string().trim().min(1),
+  subtitleAssS3Key: z.string().trim().min(1).optional(),
+});
+
+export type RenderPlanOutput = z.infer<typeof renderPlanOutputSchema>;
+export type RenderPlanSubtitleStyle = z.infer<typeof renderPlanSubtitleStyleSchema>;
+export type RenderPlanSubtitle = z.infer<typeof renderPlanSubtitleSchema>;
+export type RenderPlanScene = z.infer<typeof renderPlanSceneSchema>;
+export type RenderPlanOverlay = z.infer<typeof renderPlanOverlaySchema>;
+export type RenderPlan = z.infer<typeof renderPlanSchema>;

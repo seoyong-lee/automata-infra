@@ -40,6 +40,19 @@ export const expectOptionalString = (
   return expectString(value, label);
 };
 
+export const expectOptionalBoolean = (
+  value: unknown,
+  label: string,
+): boolean | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    return fail(`${label} must be a boolean`);
+  }
+  return value;
+};
+
 export const expectNumber = (value: unknown, label: string): number => {
   if (typeof value !== "number" || Number.isNaN(value)) {
     return fail(`${label} must be a valid number`);

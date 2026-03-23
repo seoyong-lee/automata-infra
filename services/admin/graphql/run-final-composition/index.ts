@@ -30,7 +30,6 @@ export const run: Handler<
     });
     const result = await runAdminFinalComposition(parsed.jobId, actor, {
       burnInSubtitles: parsed.burnInSubtitles,
-      renderProvider: parsed.renderProvider,
     });
     logResolverAudit({
       operation: "runFinalComposition",

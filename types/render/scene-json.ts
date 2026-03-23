@@ -2,6 +2,7 @@ export type SceneDefinition = {
   sceneId: number;
   durationSec: number;
   narration: string;
+  disableNarration?: boolean;
   imagePrompt: string;
   videoPrompt?: string;
   subtitle: string;

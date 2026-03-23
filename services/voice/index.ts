@@ -12,6 +12,7 @@ type SceneJsonEvent = {
   scene?: {
     sceneId: number;
     narration: string;
+    disableNarration?: boolean;
     durationSec: number;
   };
   sceneJson?: SceneJson;
@@ -37,6 +38,7 @@ const getScenes = (event: SceneJsonEvent) => {
         sceneId: event.sceneId,
         narration: event.narration,
         durationSec: event.durationSec,
+        disableNarration: false,
       },
     ];
   }
@@ -53,6 +55,7 @@ const getScenes = (event: SceneJsonEvent) => {
         sceneId: picked.sceneId,
         narration: picked.narration,
         durationSec: picked.durationSec,
+        disableNarration: picked.disableNarration,
       },
     ];
   }

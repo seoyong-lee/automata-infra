@@ -29,6 +29,18 @@ export const mapGeneratedVideoFields = (
   if (typeof raw.mocked === "boolean") {
     out.videoMocked = raw.mocked;
   }
+  if (
+    typeof raw.targetDurationSec === "number" &&
+    Number.isFinite(raw.targetDurationSec)
+  ) {
+    out.videoTargetDurationSec = raw.targetDurationSec;
+  }
+  if (
+    typeof raw.resolvedDurationSec === "number" &&
+    Number.isFinite(raw.resolvedDurationSec)
+  ) {
+    out.videoResolvedDurationSec = raw.resolvedDurationSec;
+  }
 
   return out;
 };

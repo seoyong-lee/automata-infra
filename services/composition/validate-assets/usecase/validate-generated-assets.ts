@@ -89,7 +89,7 @@ const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
 };
 
 const validateVoiceAsset = async (scene: SceneRef, errors: string[]) => {
-  if (!hasNarration(scene.narration)) {
+  if (scene.disableNarration || !hasNarration(scene.narration)) {
     return;
   }
   if (!scene.voiceS3Key) {

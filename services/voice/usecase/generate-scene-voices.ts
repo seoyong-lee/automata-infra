@@ -13,6 +13,7 @@ export const generateSceneVoices = async (
     scenes: Array<{
       sceneId: number;
       narration: string;
+      disableNarration?: boolean;
       durationSec: number;
       voiceProfileId?: string;
       voiceId?: string;
@@ -28,7 +29,7 @@ export const generateSceneVoices = async (
   const voiceAssets: VoiceAsset[] = [];
   const requestSceneVoice = deps.generateSceneVoice ?? generateSceneVoice;
   const scenesWithNarration = input.scenes.filter(
-    (scene) => scene.narration.trim().length > 0,
+    (scene) => !scene.disableNarration && scene.narration.trim().length > 0,
   );
 
   for (const scene of scenesWithNarration) {

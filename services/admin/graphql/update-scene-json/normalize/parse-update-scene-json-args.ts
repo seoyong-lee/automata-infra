@@ -22,6 +22,16 @@ const expectNumber = (value: unknown, field: string): number => {
   return value;
 };
 
+const expectOptionalBoolean = (value: unknown, field: string): boolean | undefined => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  if (typeof value !== "boolean") {
+    throw badUserInput(`${field} is invalid`);
+  }
+  return value;
+};
+
 const parseSceneJson = (value: unknown): SceneJson => {
   const root =
     typeof value === "string"
@@ -60,6 +70,10 @@ const parseSceneJson = (value: unknown): SceneJson => {
         narration: expectNullableString(
           scene.narration,
           `sceneJson.scenes[${index}].narration`,
+        ),
+        disableNarration: expectOptionalBoolean(
+          scene.disableNarration,
+          `sceneJson.scenes[${index}].disableNarration`,
         ),
         imagePrompt: expectString(
           scene.imagePrompt,

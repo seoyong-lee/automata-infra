@@ -6,11 +6,7 @@ import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import { cn } from '@packages/ui';
 import { getErrorMessage } from '@packages/utils';
-import type {
-  AssetUploadCategory,
-  FinalCompositionProvider,
-  PipelineExecution,
-} from '@packages/graphql';
+import type { AssetUploadCategory, PipelineExecution } from '@packages/graphql';
 import Link from 'next/link';
 
 import { uploadFileToPresignedUrl } from '@/shared/lib/upload-file-to-presigned-url';
@@ -43,7 +39,6 @@ type ContentJobDetailRenderPreviewViewProps = {
   onSetJobBackgroundMusic: (s3Key?: string) => Promise<unknown>;
   onRunFinalComposition: (opts?: {
     burnInSubtitles?: boolean;
-    renderProvider?: FinalCompositionProvider;
   }) => void;
   latestRenderExecution?: PipelineExecution;
 };
@@ -125,7 +120,6 @@ export function ContentJobDetailRenderPreviewView({
   latestRenderExecution,
 }: ContentJobDetailRenderPreviewViewProps) {
   const [burnInSubtitles, setBurnInSubtitles] = useState(false);
-  const [renderProvider, setRenderProvider] = useState<FinalCompositionProvider>('FARGATE');
   const [selectedUploadFile, setSelectedUploadFile] = useState<File | null>(null);
   const [uploadError, setUploadError] = useState<string | null>(null);
   const totalScenes = detail?.sceneJson?.scenes.length ?? detail?.assets.length ?? 0;
@@ -172,8 +166,7 @@ export function ContentJobDetailRenderPreviewView({
         <CardHeader>
           <CardTitle>렌더·미리보기</CardTitle>
           <CardDescription>
-            에셋 준비가 끝나면 선택한 렌더 엔진으로 최종 합성을 실행하고, 결과 영상을 바로
-            확인합니다.
+            에셋 준비가 끝나면 FFmpeg 기반 렌더러로 최종 합성을 실행하고, 결과 영상을 바로 확인합니다.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-4">
@@ -200,7 +193,7 @@ export function ContentJobDetailRenderPreviewView({
                 {imageReady ? '준비됨' : '일부 또는 전체 미준비'}
               </p>
               <p className="mt-1 text-xs leading-5 text-muted-foreground">
-                Shotstack 템플릿에 사용할 씬 대표 이미지 상태를 점검합니다.
+                씬 대표 이미지와 오버레이 소스로 쓸 비주얼 상태를 점검합니다.
               </p>
             </div>
             <div className="rounded-xl border border-border bg-background p-4">
@@ -340,28 +333,9 @@ export function ContentJobDetailRenderPreviewView({
               </p>
             </div>
           </label>
-          <div className="space-y-2 rounded-xl border border-border bg-muted/30 p-3">
-            <div className="space-y-1">
-              <p className="text-sm font-medium text-foreground">렌더 엔진</p>
-              <p className="text-xs leading-5 text-muted-foreground">
-                이번 최종 렌더를 `FFmpeg(Fargate)`로 돌릴지, `Shotstack`으로 돌릴지 직접 선택합니다.
-              </p>
-            </div>
-            <select
-              className="w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-              value={renderProvider}
-              onChange={(event) =>
-                setRenderProvider(event.target.value as FinalCompositionProvider)
-              }
-              disabled={isRunningFinalComposition}
-            >
-              <option value="FARGATE">FFmpeg (Fargate)</option>
-              <option value="SHOTSTACK">Shotstack</option>
-            </select>
-          </div>
           <div className="flex flex-wrap items-center gap-2 border-t pt-4">
             <Button
-              onClick={() => onRunFinalComposition({ burnInSubtitles, renderProvider })}
+              onClick={() => onRunFinalComposition({ burnInSubtitles })}
               disabled={!renderReady || isRunningFinalComposition}
             >
               {isRunningFinalComposition ? '렌더링 중…' : '최종 렌더 실행'}

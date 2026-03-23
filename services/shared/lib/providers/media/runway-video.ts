@@ -80,6 +80,7 @@ type RunwayVideoInput = {
   jobId: string;
   sceneId: number;
   prompt: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
   secretId: string;
@@ -168,6 +169,7 @@ const persistRunwayVideoResult = async (input: {
   model: string;
   imageField?: string;
   sourceVideoUrl?: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
 }): Promise<void> => {
@@ -178,6 +180,7 @@ const persistRunwayVideoResult = async (input: {
     model: input.model,
     imageField: input.imageField,
     sourceVideoUrl: input.sourceVideoUrl,
+    targetDurationSec: input.targetDurationSec,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageAttached: Boolean(input.selectedImageDataUri),
   });
@@ -187,11 +190,13 @@ const putMockRunwayVideo = async (input: {
   videoKey: string;
   rawKey: string;
   prompt: string;
+  targetDurationSec?: number;
 }): Promise<Record<string, unknown>> => {
   const mocked = {
     mocked: true,
     prompt: input.prompt,
     clipManifest: true,
+    targetDurationSec: input.targetDurationSec,
   };
   await putJsonToS3(input.videoKey, mocked);
   await putJsonToS3(input.rawKey, mocked);
@@ -201,6 +206,7 @@ const putMockRunwayVideo = async (input: {
     providerLogS3Key: input.rawKey,
     promptHash: hashPrompt(input.prompt),
     mocked: true,
+    targetDurationSec: input.targetDurationSec,
   };
 };
 
@@ -209,6 +215,7 @@ const failRunwayVideo = async (input: {
   endpoint: string;
   model: string;
   imageField?: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
   prompt: string;
@@ -221,6 +228,7 @@ const failRunwayVideo = async (input: {
     endpoint: input.endpoint,
     model: input.model,
     imageField: input.imageField,
+    targetDurationSec: input.targetDurationSec,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageAttached: Boolean(input.selectedImageDataUri),
     promptPreview: input.prompt.slice(0, 300),
@@ -234,6 +242,7 @@ const failRunwayVideo = async (input: {
 const completeRunwayVideo = async (input: {
   context: RunwayVideoContext;
   prompt: string;
+  targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
 }): Promise<Record<string, unknown>> => {
@@ -273,6 +282,7 @@ const completeRunwayVideo = async (input: {
     model: input.context.model,
     imageField: input.context.imageField,
     sourceVideoUrl,
+    targetDurationSec: input.targetDurationSec,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageDataUri: input.selectedImageDataUri,
   });
@@ -283,6 +293,7 @@ const completeRunwayVideo = async (input: {
     providerLogS3Key: input.context.rawKey,
     promptHash: hashPrompt(input.prompt),
     mocked: false,
+    targetDurationSec: input.targetDurationSec,
   };
 };
 
@@ -300,6 +311,7 @@ export const generateSceneVideo = async (
       videoKey: fallbackContext.videoKey,
       rawKey: fallbackContext.rawKey,
       prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
     });
   }
 
@@ -308,6 +320,7 @@ export const generateSceneVideo = async (
     return await completeRunwayVideo({
       context,
       prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
     });
@@ -317,6 +330,7 @@ export const generateSceneVideo = async (
       endpoint: context.endpoint,
       model: context.model,
       imageField: context.imageField,
+      targetDurationSec: input.targetDurationSec,
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
       prompt: input.prompt,

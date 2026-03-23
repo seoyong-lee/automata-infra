@@ -38,6 +38,7 @@ const mapScene = (scene: SceneJson["scenes"][number]): SceneJsonSceneDto => {
     sceneId: scene.sceneId,
     durationSec: scene.durationSec,
     narration: scene.narration,
+    disableNarration: scene.disableNarration,
     imagePrompt: scene.imagePrompt,
     videoPrompt: scene.videoPrompt,
     subtitle: scene.subtitle,

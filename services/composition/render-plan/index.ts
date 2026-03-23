@@ -8,6 +8,12 @@ import {
   putRenderArtifact,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
+import type {
+  RenderPlan,
+  RenderPlanOverlay,
+  RenderPlanScene,
+  RenderPlanSubtitleStyle,
+} from "../../../types/render/render-plan";
 
 type RenderPlanEvent = {
   jobId: string;
@@ -18,6 +24,7 @@ type RenderPlanEvent = {
       sceneId: number;
       durationSec: number;
       narration: string;
+      disableNarration?: boolean;
       subtitle: string;
       bgmMood?: string;
       sfx?: string[];
@@ -36,6 +43,7 @@ type RenderPlanEvent = {
     voiceS3Key?: string;
     voiceDurationSec?: number;
   }>;
+  overlays?: RenderPlanOverlay[];
 };
 
 const SCENE_GAP_SEC = 0.5;
@@ -47,7 +55,7 @@ const DEFAULT_OUTPUT = {
   },
   fps: 30,
 } as const;
-const DEFAULT_SUBTITLE_STYLE = {
+const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   fontFamily: "Clear Sans",
   fontSize: 32,
   lineHeight: 1,
@@ -69,6 +77,9 @@ const resolveSceneDurationSec = (
   voiceAsset?: RenderPlanVoiceAsset,
 ): number => {
   const plannedDurationSec = Math.max(0.1, scene.durationSec);
+  if (scene.disableNarration) {
+    return plannedDurationSec;
+  }
   const actualVoiceDurationSec =
     typeof voiceAsset?.voiceDurationSec === "number" &&
     Number.isFinite(voiceAsset.voiceDurationSec)
@@ -82,7 +93,7 @@ const resolveSceneDurationSec = (
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
-): { totalDurationSec: number; scenes: Array<Record<string, unknown>> } => {
+): { totalDurationSec: number; scenes: RenderPlanScene[] } => {
   let cursorSec = 0;
   const imageAssets = event.imageAssets ?? [];
   const videoAssets = event.videoAssets ?? [];
@@ -115,6 +126,7 @@ export const buildRenderPlanScenes = (
       videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
       voiceDurationSec: voiceAsset?.voiceDurationSec,
+      disableNarration: scene.disableNarration,
       subtitle: scene.subtitle,
       bgmMood: scene.bgmMood,
       sfx: scene.sfx,
@@ -225,8 +237,9 @@ const resolveSoundtrackMood = (event: RenderPlanEvent): string | undefined => {
 export const buildRenderPlan = (
   event: RenderPlanEvent,
   builtScenes: ReturnType<typeof buildRenderPlanScenes>,
-) => {
+): RenderPlan => {
   return {
+    renderEngine: "ffmpeg-fargate",
     videoTitle: event.sceneJson.videoTitle,
     language: event.sceneJson.language,
     output: DEFAULT_OUTPUT,
@@ -241,6 +254,7 @@ export const buildRenderPlan = (
     },
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
+    overlays: event.overlays ?? [],
     soundtrackMood: resolveSoundtrackMood(event),
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };

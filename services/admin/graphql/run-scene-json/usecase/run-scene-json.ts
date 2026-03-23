@@ -9,6 +9,7 @@ import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { buildSceneJson } from "../../../../script/usecase/build-scene-json";
+import { clearSceneAssets } from "../../../../script/repo/clear-scene-assets";
 import type { TopicPlanResult } from "../../../../topic/usecase/create-topic-plan";
 import { getSceneJsonKey } from "../../../../script/normalize/get-scene-json-key";
 import { persistSceneAssets } from "../../../../script/repo/persist-scene-assets";
@@ -46,6 +47,7 @@ export const runSceneJsonCore = async (jobId: string) => {
   const sceneJson = await buildSceneJson(sceneJsonInput);
   const sceneJsonS3Key = getSceneJsonKey(jobId);
   await putJsonToS3(sceneJsonS3Key, sceneJson);
+  await clearSceneAssets(jobId);
   await persistSceneAssets(jobId, sceneJson);
   await updateJobMeta(
     jobId,

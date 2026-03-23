@@ -248,6 +248,7 @@ type SceneJsonScene {
   sceneId: Int!
   durationSec: Int!
   narration: String!
+  disableNarration: Boolean
   imagePrompt: String!
   videoPrompt: String
   subtitle: String!

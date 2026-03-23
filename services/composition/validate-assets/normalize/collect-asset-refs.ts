@@ -2,6 +2,7 @@ type SceneInput = {
   sceneId: number;
   durationSec?: number;
   narration?: string;
+  disableNarration?: boolean;
   subtitle?: string;
 };
 
@@ -28,6 +29,7 @@ export const collectAssetRefs = (input: {
       sceneId: scene.sceneId,
       durationSec: scene.durationSec ?? 0,
       narration: scene.narration ?? "",
+      disableNarration: scene.disableNarration ?? false,
       subtitle: scene.subtitle ?? "",
       imageS3Key: pickKey(imageAssets[index], "imageS3Key"),
       voiceS3Key: pickKey(voiceAssets[index], "voiceS3Key"),

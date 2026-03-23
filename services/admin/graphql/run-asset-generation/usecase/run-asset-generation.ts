@@ -151,6 +151,23 @@ const runImageModalityForScenes = async (
   });
 };
 
+export const resolveTargetVideoDurationSec = (input: {
+  scene: SceneDefinition;
+  voiceDurationSec?: number;
+}): number => {
+  const plannedDurationSec =
+    typeof input.scene.durationSec === "number" &&
+    Number.isFinite(input.scene.durationSec)
+      ? input.scene.durationSec
+      : 0;
+  const voiceDurationSec =
+    typeof input.voiceDurationSec === "number" &&
+    Number.isFinite(input.voiceDurationSec)
+      ? input.voiceDurationSec
+      : 0;
+  return Math.max(0.1, plannedDurationSec, voiceDurationSec);
+};
+
 const runVideoModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
@@ -167,9 +184,17 @@ const runVideoModalityForScenes = async (
         selectedImageS3Key !== undefined
           ? await getBufferFromS3(selectedImageS3Key)
           : null;
+      const voiceDurationSec =
+        typeof sceneAsset?.voiceDurationSec === "number"
+          ? sceneAsset.voiceDurationSec
+          : undefined;
       return {
         sceneId: scene.sceneId,
         videoPrompt: scene.videoPrompt,
+        targetDurationSec: resolveTargetVideoDurationSec({
+          scene,
+          voiceDurationSec,
+        }),
         selectedImageS3Key,
         selectedImageDataUri: selectedImage
           ? toDataUri(selectedImage)
@@ -239,6 +264,7 @@ const runVoiceModalityForScenes = async (
     return {
       sceneId: scene.sceneId,
       narration: scene.narration,
+      disableNarration: scene.disableNarration,
       durationSec: scene.durationSec,
       voiceProfileId: selectedProfile?.profileId,
       voiceId: selectedProfile?.voiceId,
@@ -273,11 +299,11 @@ export const runAssetGenerationCore = async (
   if (modality === "all" || modality === "image") {
     await runImageModalityForScenes(jobId, scenes, scope);
   }
-  if (modality === "all" || modality === "video") {
-    await runVideoModalityForScenes(jobId, scenes);
-  }
   if (modality === "all" || modality === "voice") {
     await runVoiceModalityForScenes(jobId, scenes);
+  }
+  if (modality === "all" || modality === "video") {
+    await runVideoModalityForScenes(jobId, scenes);
   }
 
   await persistAssetManifestForJob({

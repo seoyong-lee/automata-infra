@@ -26,7 +26,6 @@ export const run: Handler<
   const composition = (await composeFinalVideo({
     jobId: event.jobId,
     renderPlan: event.renderPlan,
-    secretId: process.env.SHOTSTACK_SECRET_ID ?? "",
   })) as CompositionResult;
 
   await persistComposition(event.jobId, composition);

@@ -22,6 +22,7 @@ export const generateSceneVideos = async (
     scenes: Array<{
       sceneId: number;
       videoPrompt?: string;
+      targetDurationSec?: number;
       selectedImageS3Key?: string;
       selectedImageDataUri?: string;
     }>;
@@ -45,6 +46,7 @@ export const generateSceneVideos = async (
       jobId: input.jobId,
       sceneId: scene.sceneId,
       prompt: scene.videoPrompt,
+      targetDurationSec: scene.targetDurationSec,
       selectedImageS3Key: scene.selectedImageS3Key,
       selectedImageDataUri: scene.selectedImageDataUri,
       secretId: input.secretId,

@@ -169,6 +169,7 @@ export type SceneJsonScene = {
   sceneId: number;
   durationSec: number;
   narration: string;
+  disableNarration?: boolean | null;
   imagePrompt: string;
   videoPrompt?: string | null;
   subtitle: string;
@@ -599,6 +600,7 @@ const jobDraftQuery = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
@@ -895,6 +897,7 @@ const updateSceneJsonMutation = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
@@ -1000,6 +1003,7 @@ const selectSceneImageCandidateMutation = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
@@ -1087,6 +1091,7 @@ const selectSceneVoiceCandidateMutation = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
@@ -1175,6 +1180,7 @@ const setJobDefaultVoiceProfileMutation = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
@@ -1264,6 +1270,7 @@ const setJobBackgroundMusicMutation = `
           sceneId
           durationSec
           narration
+          disableNarration
           imagePrompt
           videoPrompt
           subtitle
