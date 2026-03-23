@@ -19,10 +19,10 @@ export function SettingsSectionTabsCard({
     <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
       <CardHeader className="space-y-2">
         <div className="text-[10px] font-semibold uppercase tracking-[0.24em] text-admin-primary">
-          Global Configuration
+          Console
         </div>
         <CardTitle className="font-admin-display text-2xl font-extrabold tracking-tight text-admin-primary">
-          Settings
+          설정
         </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -44,7 +44,7 @@ export function SettingsSectionTabsCard({
         </div>
         <div className="rounded-xl border border-admin-outline-ghost bg-admin-surface-section p-4">
           <p className="text-xs font-semibold uppercase tracking-[0.2em] text-admin-primary">
-            Active Section
+            현재 섹션
           </p>
           <p className="mt-2 text-sm leading-relaxed text-admin-text-muted">{activeDescription}</p>
         </div>

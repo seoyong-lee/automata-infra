@@ -6,11 +6,7 @@ import { getErrorMessage } from '@packages/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import type { ChangeEvent } from 'react';
 import { useEffect, useState } from 'react';
-import {
-  stepTitle,
-  type LlmStepSettings,
-  useUpdateLlmStepSettings,
-} from '@/entities/llm-step';
+import { stepTitle, type LlmStepSettings, useUpdateLlmStepSettings } from '@/entities/llm-step';
 
 import { toStepFormState } from '../lib/step';
 import { type StepFormState } from '../model/form';
@@ -54,18 +50,23 @@ export function StepSettingsCard({ settings }: StepSettingsCardProps) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{stepTitle(settings.stepKey)}</CardTitle>
+    <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
+      <CardHeader className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-admin-primary">
+          Defaults
+        </p>
+        <CardTitle className="text-base text-admin-text-strong">
+          {stepTitle(settings.stepKey)}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <StepSettingsFormFields form={form} onInput={onInput} />
-        <div className="flex items-center justify-between gap-4 text-xs text-muted-foreground">
+        <div className="flex items-center justify-between gap-4 text-xs text-admin-text-muted">
           <span>
-            Last updated: {settings.updatedAt} by {settings.updatedBy}
+            마지막 반영: {settings.updatedAt} · {settings.updatedBy}
           </span>
           <Button onClick={onSave} disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving...' : 'Save'}
+            {mutation.isPending ? '저장 중…' : '저장'}
           </Button>
         </div>
         {mutation.error ? (

@@ -71,29 +71,44 @@ export function ContentChannelSettingsCard({ content }: Props) {
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle className="text-base">{content.label}</CardTitle>
-        <p className="text-xs text-muted-foreground font-mono">{content.contentId}</p>
+    <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
+      <CardHeader className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-admin-primary">
+          Channel Defaults
+        </p>
+        <CardTitle className="text-base text-admin-text-strong">{content.label}</CardTitle>
+        <p className="font-mono text-xs text-admin-text-muted">{content.contentId}</p>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-4 md:grid-cols-2">
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm text-admin-text-strong">
             <span className="font-medium">표시 이름</span>
-            <Input value={form.label} onChange={onInput('label')} />
+            <Input
+              className="border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted"
+              value={form.label}
+              onChange={onInput('label')}
+            />
           </label>
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm text-admin-text-strong">
             <span className="font-medium">YouTube OAuth 시크릿 이름</span>
-            <Input value={form.youtubeSecretName} onChange={onInput('youtubeSecretName')} />
+            <Input
+              className="border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted"
+              value={form.youtubeSecretName}
+              onChange={onInput('youtubeSecretName')}
+            />
           </label>
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm text-admin-text-strong">
             <span className="font-medium">Account type</span>
-            <Input value={form.youtubeAccountType} onChange={onInput('youtubeAccountType')} />
+            <Input
+              className="border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted"
+              value={form.youtubeAccountType}
+              onChange={onInput('youtubeAccountType')}
+            />
           </label>
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm text-admin-text-strong">
             <span className="font-medium">기본 공개 범위</span>
             <select
-              className="flex h-9 w-full rounded-md border border-input bg-background px-3 py-1 text-sm"
+              className="flex h-9 w-full rounded-md border border-admin-outline-ghost bg-admin-surface-field px-3 py-1 text-sm text-admin-text-strong"
               value={form.defaultVisibility}
               onChange={onInput('defaultVisibility')}
             >
@@ -102,19 +117,24 @@ export function ContentChannelSettingsCard({ content }: Props) {
               <option value="public">public</option>
             </select>
           </label>
-          <label className="space-y-2 text-sm">
+          <label className="space-y-2 text-sm text-admin-text-strong">
             <span className="font-medium">카테고리 ID</span>
             <Input
+              className="border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted"
               type="number"
               value={form.defaultCategoryId}
               onChange={onInput('defaultCategoryId')}
             />
           </label>
-          <label className="space-y-2 text-sm md:col-span-2">
+          <label className="space-y-2 text-sm text-admin-text-strong md:col-span-2">
             <span className="font-medium">Playlist ID</span>
-            <Input value={form.playlistId} onChange={onInput('playlistId')} />
+            <Input
+              className="border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted"
+              value={form.playlistId}
+              onChange={onInput('playlistId')}
+            />
           </label>
-          <label className="flex items-center gap-3 rounded-md border px-3 py-2 text-sm md:col-span-2">
+          <label className="flex items-center gap-3 rounded-md border border-admin-outline-ghost bg-admin-surface-section/70 px-3 py-2 text-sm text-admin-text-strong md:col-span-2">
             <input
               type="checkbox"
               checked={form.autoPublishEnabled}
@@ -123,14 +143,14 @@ export function ContentChannelSettingsCard({ content }: Props) {
             <span className="font-medium">렌더 후 자동 게시</span>
           </label>
         </div>
-        <p className="text-xs text-muted-foreground">
+        <p className="text-xs text-admin-text-muted">
           마지막 반영: {content.youtubeUpdatedAt ?? content.updatedAt ?? '—'} ·{' '}
           {content.youtubeUpdatedBy ?? '—'}
         </p>
         <div className="flex flex-wrap gap-2">
           <button
             type="button"
-            className="inline-flex h-9 items-center justify-center rounded-md bg-primary px-4 text-sm font-medium text-primary-foreground disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-4 text-sm font-medium text-white disabled:opacity-50"
             disabled={update.isPending}
             onClick={onSave}
           >
@@ -138,7 +158,7 @@ export function ContentChannelSettingsCard({ content }: Props) {
           </button>
           <button
             type="button"
-            className="inline-flex h-9 items-center justify-center rounded-md border border-input bg-background px-4 text-sm disabled:opacity-50"
+            className="inline-flex h-9 items-center justify-center rounded-md border border-admin-outline-ghost bg-admin-surface-section px-4 text-sm text-admin-text-strong disabled:opacity-50"
             disabled={update.isPending}
             onClick={onClearYoutube}
           >

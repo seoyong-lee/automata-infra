@@ -47,10 +47,13 @@ export function ContentJobDetailStagePanelSidebar({
   nextStageMeta,
 }: ContentJobDetailStagePanelSidebarProps) {
   return (
-    <aside>
+    <aside className="xl:sticky xl:top-6 xl:self-start">
       <div className="rounded-xl border border-admin-outline-ghost bg-admin-surface-section p-5">
         <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-admin-primary">
           Next Step
+        </p>
+        <p className="mt-2 text-sm leading-6 text-admin-text-muted">
+          현재 단계가 끝나면 어디로 이어지는지와 다음 확인 포인트를 보여줍니다.
         </p>
         {renderNextStep(currentStageMeta, nextStage, nextStageMeta)}
       </div>

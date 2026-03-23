@@ -21,15 +21,15 @@ export function DashboardResumeCard({
   children,
 }: DashboardResumeCardProps) {
   return (
-    <Card>
+    <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
       <CardHeader>
-        <CardTitle className="text-base">{title}</CardTitle>
-        <CardDescription>{description}</CardDescription>
+        <CardTitle className="text-base text-admin-text-strong">{title}</CardTitle>
+        <CardDescription className="text-admin-text-muted">{description}</CardDescription>
       </CardHeader>
       <CardContent className="space-y-2">
-        {loading ? <p className="text-sm text-muted-foreground">불러오는 중…</p> : null}
+        {loading ? <p className="text-sm text-admin-text-muted">불러오는 중…</p> : null}
         {!loading && isEmpty ? (
-          <p className="text-sm text-muted-foreground">{emptyMessage}</p>
+          <p className="text-sm text-admin-text-muted">{emptyMessage}</p>
         ) : null}
         {children}
       </CardContent>

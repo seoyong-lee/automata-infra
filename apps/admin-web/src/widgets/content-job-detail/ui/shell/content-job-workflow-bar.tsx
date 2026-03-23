@@ -115,16 +115,16 @@ export function ContentJobWorkflowBar({ stages }: ContentJobWorkflowBarProps) {
   );
 
   return (
-    <div className="space-y-4">
-      <div className="space-y-1 px-1">
+    <div className="admin-section-shell space-y-4 p-5">
+      <div className="space-y-1">
         <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-primary">
           Workflow
         </p>
         <p className="text-sm text-admin-text-muted">
-          필요한 단계만 골라 아래에서 바로 작업합니다.
+          현재 필요한 단계만 빠르게 이동해 작업할 수 있도록 상단 경로를 묶었습니다.
         </p>
       </div>
-      <div className="-mx-1 overflow-x-auto px-1 pb-1 [scrollbar-width:thin]">
+      <div className="overflow-x-auto pb-1 [scrollbar-width:thin]">
         <div className="flex min-w-max items-stretch gap-0">
           {groupedStages.map((stage, index) => {
             return (

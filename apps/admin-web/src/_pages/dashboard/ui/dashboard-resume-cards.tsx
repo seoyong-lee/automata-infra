@@ -15,8 +15,8 @@ function ResumeItem({ children, danger = false }: { children: ReactNode; danger?
     <div
       className={
         danger
-          ? 'flex flex-col gap-1 rounded-md border border-destructive/25 bg-destructive/5 px-3 py-2'
-          : 'flex flex-col gap-1 rounded-md border border-border/80 px-3 py-2'
+          ? 'flex flex-col gap-1 rounded-xl border border-admin-status-error/20 bg-admin-status-error-surface px-3 py-3'
+          : 'flex flex-col gap-1 rounded-xl border border-admin-outline-ghost bg-admin-surface-section/70 px-3 py-3'
       }
     >
       {children}
@@ -42,15 +42,20 @@ export function DashboardResumeRecentJobsCard({
       {jobs.map((job) => (
         <ResumeItem key={job.jobId}>
           <div className="flex flex-wrap items-center gap-2">
-            <Badge variant="outline" className="font-normal">
+            <Badge
+              variant="outline"
+              className="border-admin-outline-ghost bg-admin-surface-card font-normal"
+            >
               {getJobPhaseLabelKo(job.status)}
             </Badge>
-            <span className="text-xs text-muted-foreground">{formatRelativeKo(job.updatedAt)}</span>
+            <span className="text-xs text-admin-text-muted">{formatRelativeKo(job.updatedAt)}</span>
           </div>
-          <p className="line-clamp-2 text-sm font-medium leading-snug">{job.videoTitle}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-snug text-admin-text-strong">
+            {job.videoTitle}
+          </p>
           <Link
             href={`/jobs/${job.jobId}/overview`}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-admin-primary hover:underline"
           >
             이어하기 →
           </Link>
@@ -77,13 +82,15 @@ export function DashboardResumeRecentReviewsCard({
     >
       {rows.map((row) => (
         <ResumeItem key={row.jobId}>
-          <p className="line-clamp-2 text-sm font-medium leading-snug">{row.title}</p>
-          <p className="text-xs text-muted-foreground">
+          <p className="line-clamp-2 text-sm font-medium leading-snug text-admin-text-strong">
+            {row.title}
+          </p>
+          <p className="text-xs text-admin-text-muted">
             {row.reviewRequestedAt ? formatRelativeKo(row.reviewRequestedAt) : '요청 시각 없음'}
           </p>
           <Link
             href={`/jobs/${row.jobId}/overview`}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-admin-primary hover:underline"
           >
             검수 화면으로 →
           </Link>
@@ -110,14 +117,19 @@ export function DashboardResumeRecentFailuresCard({
     >
       {jobs.map((job) => (
         <ResumeItem key={job.jobId} danger>
-          <Badge variant="outline" className="w-fit border-destructive/40 font-normal">
+          <Badge
+            variant="outline"
+            className="w-fit border-admin-status-error/35 bg-white/40 font-normal"
+          >
             {getJobStatusLabelKo(job.status)}
           </Badge>
-          <p className="line-clamp-2 text-sm font-medium leading-snug">{job.videoTitle}</p>
-          <p className="text-xs text-muted-foreground">{formatRelativeKo(job.updatedAt)}</p>
+          <p className="line-clamp-2 text-sm font-medium leading-snug text-admin-text-strong">
+            {job.videoTitle}
+          </p>
+          <p className="text-xs text-admin-text-muted">{formatRelativeKo(job.updatedAt)}</p>
           <Link
             href={`/jobs/${job.jobId}/overview`}
-            className="text-xs font-medium text-primary hover:underline"
+            className="text-xs font-medium text-admin-primary hover:underline"
           >
             원인 확인 →
           </Link>

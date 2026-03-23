@@ -78,7 +78,7 @@ export function SettingsPage() {
             onSectionChange={setActiveSection}
           />
           {settingsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">Loading settings...</p>
+            <p className="text-sm text-admin-text-muted">설정 기본값을 불러오는 중…</p>
           ) : null}
           {settingsQuery.error ? (
             <p className="text-sm text-destructive">
@@ -88,7 +88,7 @@ export function SettingsPage() {
             </p>
           ) : null}
           {contentsQuery.isLoading ? (
-            <p className="text-sm text-muted-foreground">채널 목록을 불러오는 중…</p>
+            <p className="text-sm text-admin-text-muted">채널 목록을 불러오는 중…</p>
           ) : null}
           {contentsQuery.error ? (
             <p className="text-sm text-destructive">

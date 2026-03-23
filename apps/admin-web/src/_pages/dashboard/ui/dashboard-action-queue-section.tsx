@@ -1,79 +1,99 @@
 'use client';
 
-import { cn } from '@packages/ui';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
-import Link from 'next/link';
-
-import type { DashboardActionQueue } from '../lib/dashboard-model';
+import { CloudUpload, Bolt, CircleAlert, MessageSquareMore } from 'lucide-react';
 
 type Props = {
-  actionQueue: DashboardActionQueue;
+  reviewNeeded: number;
+  activeJobs: number;
+  uploadPending: number;
+  failedExecutions: number;
 };
 
-export function DashboardActionQueueSection({ actionQueue }: Props) {
+const metrics = [
+  {
+    key: 'review',
+    label: 'Pending Reviews',
+    badge: '+12.5%',
+    badgeClassName: 'bg-emerald-50 text-emerald-600',
+    barClassName: 'bg-indigo-500',
+    iconClassName: 'bg-indigo-50 text-indigo-500',
+    Icon: MessageSquareMore,
+  },
+  {
+    key: 'active',
+    label: 'Active Jobs',
+    badge: 'Stable',
+    badgeClassName: 'bg-slate-50 text-slate-400',
+    barClassName: 'bg-blue-500',
+    iconClassName: 'bg-blue-50 text-blue-500',
+    Icon: Bolt,
+  },
+  {
+    key: 'upload',
+    label: 'Upload Queue',
+    badge: '85% Cap',
+    badgeClassName: 'bg-amber-50 text-amber-600',
+    barClassName: 'bg-amber-500',
+    iconClassName: 'bg-amber-50 text-amber-500',
+    Icon: CloudUpload,
+  },
+  {
+    key: 'failed',
+    label: 'Failed Executions',
+    badge: 'High Alert',
+    badgeClassName: 'bg-rose-50 text-rose-600',
+    barClassName: 'bg-rose-500',
+    iconClassName: 'bg-rose-50 text-rose-500',
+    Icon: CircleAlert,
+  },
+] as const;
+
+export function DashboardActionQueueSection({
+  reviewNeeded,
+  activeJobs,
+  uploadPending,
+  failedExecutions,
+}: Props) {
+  const metricValues = {
+    review: reviewNeeded,
+    active: activeJobs,
+    upload: uploadPending,
+    failed: failedExecutions,
+  } as const;
+
+  const maxValue = Math.max(reviewNeeded, activeJobs, uploadPending, failedExecutions, 1);
+
   return (
-    <section className="space-y-3" aria-labelledby="dash-action-heading">
-      <div className="flex flex-wrap items-end justify-between gap-2">
-        <h2 id="dash-action-heading" className="text-lg font-semibold tracking-tight">
-          오늘 처리할 일
-        </h2>
-        <p className="text-xs text-muted-foreground">
-          먼저 숫자가 큰 항목부터 확인하는 것을 권장합니다.
-        </p>
-      </div>
-      <div className="grid gap-4 md:grid-cols-3">
-        <Card className="border-primary/25 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">검수 필요</CardTitle>
-            <CardDescription>검수함·상태 기준 중 큰 값</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-4xl font-semibold tabular-nums">{actionQueue.reviewNeeded}</p>
-            <Link
-              href="/reviews"
-              className={cn(
-                'inline-flex h-8 w-full items-center justify-center rounded-md bg-primary px-3 text-sm font-medium text-primary-foreground hover:bg-primary/90 sm:w-auto',
-              )}
-            >
-              검수함에서 처리
-            </Link>
-          </CardContent>
-        </Card>
-        <Card className="border-amber-500/25 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">실패·막힘</CardTitle>
-            <CardDescription>FAILED + 파이프라인 장기 체류</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-4xl font-semibold tabular-nums">{actionQueue.failedOrBlocked}</p>
-            <Link
-              href="/jobs"
-              className={cn(
-                'inline-flex h-8 w-full items-center justify-center rounded-md bg-secondary px-3 text-sm font-medium text-secondary-foreground hover:bg-secondary/80 sm:w-auto',
-              )}
-            >
-              전체 제작 아이템에서 보기
-            </Link>
-          </CardContent>
-        </Card>
-        <Card className="border-blue-500/20 shadow-sm">
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base">업로드 대기</CardTitle>
-            <CardDescription>예약·큐 직전 상태</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <p className="text-4xl font-semibold tabular-nums">{actionQueue.uploadPending}</p>
-            <Link
-              href="/jobs"
-              className={cn(
-                'inline-flex h-8 w-full items-center justify-center rounded-md border border-border bg-transparent px-3 text-sm font-medium hover:bg-accent hover:text-accent-foreground sm:w-auto',
-              )}
-            >
-              해당 작업 찾기
-            </Link>
-          </CardContent>
-        </Card>
-      </div>
+    <section className="grid grid-cols-1 gap-6 md:grid-cols-2 lg:grid-cols-4" aria-label="System metrics">
+      {metrics.map((metric) => {
+        const value = metricValues[metric.key];
+        const percent = Math.max(8, Math.round((value / maxValue) * 100));
+        const Icon = metric.Icon;
+        return (
+          <article
+            key={metric.key}
+            className="rounded-xl border border-slate-100 bg-white p-6 shadow-sm transition-shadow hover:shadow-md"
+          >
+            <div className="mb-4 flex items-start justify-between">
+              <div className={`rounded-lg p-2 ${metric.iconClassName}`}>
+                <Icon className="size-4" />
+              </div>
+              <span className={`rounded-full px-2 py-0.5 text-[10px] font-bold ${metric.badgeClassName}`}>
+                {metric.badge}
+              </span>
+            </div>
+            <p className="mb-1 text-[10px] font-bold uppercase tracking-[0.24em] text-slate-400">
+              {metric.label}
+            </p>
+            <h3 className="font-admin-display text-4xl leading-none font-extrabold tabular-nums text-slate-900">
+              {metric.key === 'failed' ? String(value).padStart(2, '0') : value.toLocaleString()}
+            </h3>
+            <div className="mt-4 h-1 w-full overflow-hidden rounded-full bg-slate-100">
+              <div className={`h-full ${metric.barClassName}`} style={{ width: `${percent}%` }} />
+            </div>
+          </article>
+        );
+      })}
     </section>
   );
 }

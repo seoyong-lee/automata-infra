@@ -49,11 +49,11 @@ export function DashboardSidebar() {
     );
 
   return (
-    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden bg-admin-sidebar text-sidebar-foreground shadow-2xl shadow-slate-950/15 lg:flex">
+    <aside className="sticky top-0 hidden h-screen w-72 shrink-0 overflow-hidden border-r border-white/6 bg-admin-sidebar text-sidebar-foreground shadow-2xl shadow-slate-950/20 lg:flex">
       <div className="flex h-full w-full flex-col">
-        <div className="px-5 py-6">
+        <div className="border-b border-white/6 px-5 py-6">
           <Link href="/" className="flex items-center gap-3 rounded-md px-2 py-2">
-            <div className="flex size-9 items-center justify-center rounded-lg bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-indigo-950/20">
+            <div className="flex size-10 items-center justify-center rounded-xl bg-sidebar-primary text-sidebar-primary-foreground shadow-lg shadow-indigo-950/30">
               <Cog className="size-4" />
             </div>
             <div className="min-w-0">
@@ -67,7 +67,7 @@ export function DashboardSidebar() {
           </Link>
         </div>
 
-        <nav className="flex flex-1 flex-col gap-5 overflow-y-auto px-4 py-2">
+        <nav className="flex flex-1 flex-col gap-6 overflow-y-auto px-4 py-4">
           <div className="space-y-1">
             <p className="px-4 pb-2 text-[10px] font-semibold uppercase tracking-[0.24em] text-slate-500">
               제작
@@ -133,8 +133,8 @@ export function DashboardSidebar() {
           </div>
         </nav>
 
-        <div className="mt-auto px-5 pb-5 pt-4">
-          <div className="rounded-xl bg-white/5 p-4">
+        <div className="mt-auto border-t border-white/6 px-5 pb-5 pt-4">
+          <div className="rounded-2xl border border-white/8 bg-white/5 p-4">
             <div className="flex items-center gap-3">
               <div className="flex size-9 items-center justify-center rounded-full bg-slate-700 text-xs font-bold text-white">
                 AU
@@ -170,7 +170,10 @@ export function DashboardMobileBar() {
     );
 
   return (
-    <div className="admin-page-shell flex flex-wrap items-center justify-between gap-2 p-4 lg:hidden">
+    <div className="rounded-2xl border border-admin-outline-ghost bg-[var(--admin-topbar)] p-4 shadow-sm backdrop-blur lg:hidden">
+      <div className="mb-3 text-[10px] font-semibold uppercase tracking-[0.24em] text-admin-primary">
+        Console Navigation
+      </div>
       <div className="flex flex-wrap items-center gap-2 text-sm font-medium">
         <Link href="/" className={linkClass(pathname === '/')}>
           대시보드
@@ -194,7 +197,7 @@ export function DashboardMobileBar() {
           설정
         </Link>
       </div>
-      <Button variant="outline" size="sm" onClick={() => logout()}>
+      <Button variant="outline" size="sm" className="mt-3" onClick={() => logout()}>
         Logout
       </Button>
     </div>

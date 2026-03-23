@@ -9,12 +9,12 @@ type ContentJobDetailStagePanelHeaderProps = {
 
 function statusLabel(state: WorkflowNavItem['state']): string {
   if (state === 'complete') {
-    return '??';
+    return '완료';
   }
   if (state === 'blocked') {
-    return '??';
+    return '막힘';
   }
-  return '?? ?';
+  return '진행 중';
 }
 
 export function ContentJobDetailStagePanelHeader({
@@ -22,7 +22,7 @@ export function ContentJobDetailStagePanelHeader({
   currentStageMeta,
 }: ContentJobDetailStagePanelHeaderProps) {
   return (
-    <div className="space-y-3 border-b border-admin-outline-ghost pb-5">
+    <div className="space-y-4 border-b border-admin-outline-ghost pb-5">
       <div className="flex flex-wrap items-center gap-2">
         <span className="rounded-full bg-admin-surface-section px-2.5 py-1 text-[10px] font-semibold uppercase tracking-[0.18em] text-admin-primary">
           Current Stage
@@ -35,11 +35,11 @@ export function ContentJobDetailStagePanelHeader({
       </div>
       <div className="space-y-1">
         <h2 className="font-admin-display text-2xl font-extrabold tracking-tight text-admin-primary">
-          {currentStageMeta?.title ?? currentStage?.label ?? '?? ??'}
+          {currentStageMeta?.title ?? currentStage?.label ?? '현재 단계'}
         </h2>
         <p className="text-sm leading-6 text-admin-text-muted">
           {currentStageMeta?.description ??
-            '??? ??? ??? ?? ??? ???? ?? ???? ??? ? ????.'}
+            '현재 선택된 단계에서 필요한 작업과 다음 이동 경로를 이 영역에서 확인합니다.'}
         </p>
       </div>
     </div>

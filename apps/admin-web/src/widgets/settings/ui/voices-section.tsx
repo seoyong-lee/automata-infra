@@ -7,10 +7,8 @@ import { getErrorMessage } from '@packages/utils';
 import { useQueryClient } from '@tanstack/react-query';
 import { useEffect, useState } from 'react';
 
-import {
-  type VoiceProfile,
-  useUpsertVoiceProfile,
-} from '@/entities/voice-profile';
+import { type VoiceProfile, useUpsertVoiceProfile } from '@/entities/voice-profile';
+import { SettingsSectionIntro, SettingsStatCard } from './settings-section-primitives';
 
 type VoicesSectionProps = {
   voiceProfiles: VoiceProfile[];
@@ -50,11 +48,9 @@ const toFormState = (profile?: VoiceProfile): VoiceProfileFormState => ({
   isActive: profile?.isActive ?? true,
 });
 
-function VoiceProfileEditorCard({
-  profile,
-}: {
-  profile?: VoiceProfile;
-}) {
+function VoiceProfileEditorCard({ profile }: { profile?: VoiceProfile }) {
+  const fieldClassName =
+    'border-admin-outline-ghost bg-admin-surface-field text-admin-text-strong placeholder:text-admin-text-muted';
   const queryClient = useQueryClient();
   const [form, setForm] = useState<VoiceProfileFormState>(() => toFormState(profile));
   const mutation = useUpsertVoiceProfile({
@@ -75,8 +71,7 @@ function VoiceProfileEditorCard({
     };
 
   const onBool =
-    (key: 'useSpeakerBoost' | 'isActive') =>
-    (event: React.ChangeEvent<HTMLInputElement>) => {
+    (key: 'useSpeakerBoost' | 'isActive') => (event: React.ChangeEvent<HTMLInputElement>) => {
       setForm((current) => ({ ...current, [key]: event.target.checked }));
     };
 
@@ -100,42 +95,93 @@ function VoiceProfileEditorCard({
   };
 
   return (
-    <Card>
-      <CardHeader>
-        <CardTitle>{profile ? profile.label : '새 보이스 프로필'}</CardTitle>
+    <Card className="border-admin-outline-ghost bg-admin-surface-card shadow-sm">
+      <CardHeader className="space-y-2">
+        <p className="text-[10px] font-semibold uppercase tracking-[0.2em] text-admin-primary">
+          {profile ? 'Profile' : 'New'}
+        </p>
+        <CardTitle className="text-base text-admin-text-strong">
+          {profile ? profile.label : '새 보이스 프로필'}
+        </CardTitle>
       </CardHeader>
       <CardContent className="space-y-4">
         <div className="grid gap-3 md:grid-cols-2">
-          <Input value={form.label} onChange={onText('label')} placeholder="프로필 이름" />
-          <Input value={form.provider} onChange={onText('provider')} placeholder="provider" />
-          <Input value={form.voiceId} onChange={onText('voiceId')} placeholder="voiceId" />
-          <Input value={form.modelId} onChange={onText('modelId')} placeholder="modelId" />
-          <Input value={form.language} onChange={onText('language')} placeholder="language" />
           <Input
+            className={fieldClassName}
+            value={form.label}
+            onChange={onText('label')}
+            placeholder="프로필 이름"
+          />
+          <Input
+            className={fieldClassName}
+            value={form.provider}
+            onChange={onText('provider')}
+            placeholder="provider 이름"
+          />
+          <Input
+            className={fieldClassName}
+            value={form.voiceId}
+            onChange={onText('voiceId')}
+            placeholder="voice ID"
+          />
+          <Input
+            className={fieldClassName}
+            value={form.modelId}
+            onChange={onText('modelId')}
+            placeholder="model ID"
+          />
+          <Input
+            className={fieldClassName}
+            value={form.language}
+            onChange={onText('language')}
+            placeholder="language"
+          />
+          <Input
+            className={fieldClassName}
             value={form.sampleAudioUrl}
             onChange={onText('sampleAudioUrl')}
-            placeholder="sample audio url"
+            placeholder="샘플 오디오 URL"
           />
-          <Input value={form.speed} onChange={onText('speed')} placeholder="speed" />
-          <Input value={form.stability} onChange={onText('stability')} placeholder="stability" />
           <Input
+            className={fieldClassName}
+            value={form.speed}
+            onChange={onText('speed')}
+            placeholder="speed"
+          />
+          <Input
+            className={fieldClassName}
+            value={form.stability}
+            onChange={onText('stability')}
+            placeholder="stability"
+          />
+          <Input
+            className={fieldClassName}
             value={form.similarityBoost}
             onChange={onText('similarityBoost')}
             placeholder="similarity boost"
           />
-          <Input value={form.style} onChange={onText('style')} placeholder="style" />
+          <Input
+            className={fieldClassName}
+            value={form.style}
+            onChange={onText('style')}
+            placeholder="style"
+          />
         </div>
         <textarea
-          className="min-h-24 w-full rounded-md border border-input bg-background px-3 py-2 text-sm"
+          className="min-h-24 w-full rounded-md border border-admin-outline-ghost bg-admin-surface-field px-3 py-2 text-sm text-admin-text-strong"
           value={form.description}
           onChange={onText('description')}
           placeholder="설명"
         />
-        <label className="flex items-center gap-2 text-sm">
-          <input type="checkbox" checked={form.useSpeakerBoost} onChange={onBool('useSpeakerBoost')} />
+        <label className="flex items-center gap-2 rounded-md border border-admin-outline-ghost bg-admin-surface-section/70 px-3 py-2 text-sm text-admin-text-strong">
+          <input
+            type="checkbox"
+            checked={form.useSpeakerBoost}
+            onChange={onBool('useSpeakerBoost')}
+          />
           <span>speaker boost 사용</span>
         </label>
-        <label className="flex items-center gap-2 text-sm">
+        <label className="flex items-center gap-2 rounded-md border border-admin-outline-ghost bg-admin-surface-section/70 px-3 py-2 text-sm text-admin-text-strong">
           <input type="checkbox" checked={form.isActive} onChange={onBool('isActive')} />
           <span>활성 상태</span>
         </label>
@@ -143,11 +189,13 @@ function VoiceProfileEditorCard({
           <audio controls src={form.sampleAudioUrl} className="w-full" />
         ) : null}
         <div className="flex items-center justify-between gap-4">
-          <p className="text-xs text-muted-foreground">
-            {profile ? `Last updated: ${profile.updatedAt} by ${profile.updatedBy}` : '새 프로필은 저장 시 생성됩니다.'}
+          <p className="text-xs text-admin-text-muted">
+            {profile
+              ? `마지막 반영: ${profile.updatedAt} · ${profile.updatedBy}`
+              : '새 프로필은 저장 시 생성됩니다.'}
           </p>
           <Button onClick={onSave} disabled={mutation.isPending}>
-            {mutation.isPending ? 'Saving...' : 'Save'}
+            {mutation.isPending ? '저장 중…' : '저장'}
           </Button>
         </div>
         {mutation.error ? (
@@ -162,19 +210,35 @@ export function VoicesSection({ voiceProfiles }: VoicesSectionProps) {
   const [showNew, setShowNew] = useState(false);
 
   return (
-    <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Voice Library</CardTitle>
-        </CardHeader>
-        <CardContent className="space-y-2 text-sm text-muted-foreground">
-          <p>ElevenLabs 보이스 ID와 샘플 오디오, 속도/안정성 파라미터를 라이브러리로 관리합니다.</p>
-          <p>에셋 화면에서는 이 프로필을 잡 기본값 또는 씬별 오버라이드로 선택합니다.</p>
+    <div className="space-y-4">
+      <SettingsSectionIntro
+        eyebrow="보이스"
+        title="TTS 보이스 라이브러리"
+        description="보이스 ID, 샘플 오디오, 속도와 안정성 파라미터를 전역 라이브러리로 관리합니다. 에셋 화면에서는 이 프로필을 잡 기본값 또는 씬별 오버라이드로 선택합니다."
+        aside={
           <Button variant="outline" onClick={() => setShowNew((current) => !current)}>
             {showNew ? '새 프로필 입력 닫기' : '새 보이스 프로필 추가'}
           </Button>
-        </CardContent>
-      </Card>
+        }
+      />
+
+      <div className="grid gap-4 md:grid-cols-3">
+        <SettingsStatCard
+          label="프로필 수"
+          value={voiceProfiles.length}
+          hint="등록된 보이스 프로필 수"
+        />
+        <SettingsStatCard
+          label="기본 공급자"
+          value="ElevenLabs"
+          hint="현재 기본 보이스 라이브러리 공급자"
+        />
+        <SettingsStatCard
+          label="선택 방식"
+          value="재사용"
+          hint="잡 기본값 또는 씬별 override로 재사용"
+        />
+      </div>
 
       {showNew ? <VoiceProfileEditorCard /> : null}
 

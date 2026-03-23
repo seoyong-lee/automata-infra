@@ -1,17 +1,20 @@
 'use client';
 
 import { getErrorMessage } from '@packages/utils';
+import Link from 'next/link';
 import { useMemo } from 'react';
 
 import { useAdminContents } from '@/entities/admin-content';
 import { useAdminJobs, usePendingReviews } from '@/entities/admin-job';
-import { AdminPageHeader } from '@/shared/ui/admin-page-header';
 
 import { buildDashboardSnapshot, DASHBOARD_JOBS_QUERY_LIMIT } from '../lib/dashboard-model';
 import { DashboardActionQueueSection } from './dashboard-action-queue-section';
 import { DashboardBottlenecksSection } from './dashboard-bottlenecks-section';
 import { DashboardChannelSummarySection } from './dashboard-channel-summary-section';
 import type { DashboardChannelRow } from './dashboard-channel-summary-section';
+import { DashboardOptimizationCard } from './dashboard-optimization-card';
+import { DashboardResumeSection } from './dashboard-resume-section';
+import { DashboardTopAppBar } from './dashboard-top-app-bar';
 
 export function DashboardPage() {
   const jobsQuery = useAdminJobs({ limit: DASHBOARD_JOBS_QUERY_LIMIT });
@@ -56,15 +59,54 @@ export function DashboardPage() {
     });
   }, [jobs, catalog]);
 
-  const loading = jobsQuery.isLoading;
   const { actionQueue, bottlenecks, resume } = snapshot;
+  const activeChannels = channelRows.filter((row) => row.totalJobs > 0).length;
+  const activeJobs = jobs.filter(
+    (job) =>
+      !['UPLOADED', 'METRICS_COLLECTED', 'APPROVED', 'FAILED', 'REJECTED'].includes(job.status),
+  ).length;
+  const overallLoadPercent = Math.max(
+    8,
+    Math.min(
+      100,
+      Math.round(
+        ((activeJobs + actionQueue.reviewNeeded + actionQueue.uploadPending) /
+          Math.max(jobs.length || 1, 1)) *
+          40 +
+          (activeChannels / Math.max(channelRows.length || 1, 1)) * 35,
+      ),
+    ),
+  );
+  const optimizationCount =
+    Number(bottlenecks.sceneJsonLongDwell > 0) +
+    Number(bottlenecks.assetGenLongDwell > 0) +
+    Number(bottlenecks.failedJobs > 0);
+  const savingsPercent = Math.max(
+    8,
+    Math.min(24, 8 + bottlenecks.assetGenLongDwell * 2 + bottlenecks.sceneJsonLongDwell),
+  );
 
   return (
-    <div className="space-y-10">
-      <AdminPageHeader
-        title="대시보드"
-        subtitle="오늘 처리할 일·병목·이어서 작업 순으로 우선순위를 보여 줍니다. 숫자는 최근 표본(제작 아이템 목록 한도) 기준입니다."
-      />
+    <div className="space-y-8 pb-8 pt-10">
+      <DashboardTopAppBar />
+
+      <div className="space-y-10">
+        <div>
+          <h2 className="font-admin-display text-3xl font-extrabold tracking-tight text-slate-900">
+            System Snapshot
+          </h2>
+          <p className="mt-1 text-sm text-slate-500">
+            Real-time health and throughput metrics across the Automata Studio pipeline.
+          </p>
+        </div>
+
+        <DashboardActionQueueSection
+          reviewNeeded={actionQueue.reviewNeeded}
+          activeJobs={activeJobs}
+          uploadPending={actionQueue.uploadPending}
+          failedExecutions={bottlenecks.failedJobs}
+        />
+      </div>
 
       {jobsQuery.error ? (
         <p className="text-sm text-destructive">{getErrorMessage(jobsQuery.error)}</p>
@@ -76,9 +118,31 @@ export function DashboardPage() {
         <p className="text-sm text-destructive">{getErrorMessage(contentsQuery.error)}</p>
       ) : null}
 
-      <DashboardActionQueueSection actionQueue={actionQueue} />
-      <DashboardBottlenecksSection bottlenecks={bottlenecks} />
-      <DashboardChannelSummarySection channelRows={channelRows} />
+      <div className="grid grid-cols-12 gap-6 items-start">
+        <div className="col-span-12 space-y-6 lg:col-span-7">
+          <DashboardBottlenecksSection bottlenecks={bottlenecks} />
+          <DashboardResumeSection jobs={resume.recentUpdatedJobs} />
+        </div>
+        <div className="col-span-12 lg:col-span-5">
+          <DashboardChannelSummarySection
+            channelRows={channelRows}
+            overallLoadPercent={overallLoadPercent}
+          />
+          <div className="mt-6">
+            <DashboardOptimizationCard
+              suggestionCount={Math.max(1, optimizationCount)}
+              savingsPercent={savingsPercent}
+            />
+          </div>
+        </div>
+      </div>
+
+      <Link
+        href="/jobs/new"
+        className="fixed bottom-8 right-8 z-30 flex size-14 items-center justify-center rounded-full bg-indigo-600 text-white shadow-2xl transition-transform hover:scale-105 active:scale-95"
+      >
+        <span className="text-2xl leading-none">+</span>
+      </Link>
     </div>
   );
 }

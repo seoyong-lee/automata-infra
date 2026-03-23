@@ -23,22 +23,22 @@ export function AdminPageHeader({
   className,
 }: AdminPageHeaderProps) {
   return (
-    <div className={cn('space-y-4', className)}>
+    <div className={cn('space-y-5', className)}>
       {eyebrow ? <div className="text-sm text-admin-text-muted">{eyebrow}</div> : null}
-      <div className="flex flex-wrap items-end justify-between gap-5">
-        <div className="min-w-0 space-y-2">
+      <div className="flex flex-col gap-5 xl:flex-row xl:items-end xl:justify-between">
+        <div className="min-w-0 space-y-3">
           {backHref ? <AdminPageBack href={backHref} label={backLabel} /> : null}
-          <h1 className="font-admin-display text-3xl font-extrabold tracking-tight text-admin-primary md:text-4xl">
+          <h1 className="font-admin-display text-4xl font-extrabold tracking-tight text-admin-primary md:text-5xl">
             {title}
           </h1>
           {subtitle ? (
-            <div className="max-w-3xl text-sm leading-relaxed text-admin-text-muted">
+            <div className="max-w-4xl text-sm leading-7 text-admin-text-muted md:text-[15px]">
               {subtitle}
             </div>
           ) : null}
         </div>
         {actions ? (
-          <div className="flex shrink-0 flex-wrap items-center gap-2">{actions}</div>
+          <div className="flex shrink-0 flex-wrap items-center gap-2 xl:justify-end">{actions}</div>
         ) : null}
       </div>
     </div>

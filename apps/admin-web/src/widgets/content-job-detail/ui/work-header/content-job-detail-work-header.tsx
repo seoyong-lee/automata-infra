@@ -22,13 +22,17 @@ export function ContentJobDetailWorkHeader({
   onAction,
 }: ContentJobDetailWorkHeaderProps) {
   return (
-    <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
-      <ContentJobDetailWorkHeaderMeta detail={detail} resolution={resolution} />
-      <ContentJobDetailWorkHeaderActions
-        jobId={jobId}
-        resolution={resolution}
-        onAction={onAction}
-      />
+    <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
+      <div className="admin-section-shell p-5">
+        <ContentJobDetailWorkHeaderMeta detail={detail} resolution={resolution} />
+      </div>
+      <div className="admin-section-shell p-5">
+        <ContentJobDetailWorkHeaderActions
+          jobId={jobId}
+          resolution={resolution}
+          onAction={onAction}
+        />
+      </div>
     </div>
   );
 }
