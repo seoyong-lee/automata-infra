@@ -1,18 +1,17 @@
 'use client';
 
+import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type {
   JobWorkActionResolution,
   JobWorkPrimaryAction,
 } from '../../lib/resolve-job-work-action';
-import type { AssetsViewMode } from '../../lib/detail-workspace-tabs';
 import type { AssetStage, JobDetailRouteTabKey } from '../../model';
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
-import { ContentJobDetailAssetsHubView } from '../assets/content-job-detail-assets-hub-view';
-import { ContentJobDetailOverviewView } from '../overview/content-job-detail-overview-view';
-import { ContentJobDetailPublishView } from '../publish/content-job-detail-publish-view';
-import { ContentJobDetailIdeationTab } from '../tabs/content-job-detail-ideation-tab';
-import { ContentJobDetailSceneTab } from '../tabs/content-job-detail-scene-tab';
-import { ContentJobDetailTimelineView } from '../timeline/content-job-detail-timeline-view';
+import { ContentJobDetailAssetsHubView } from '../assets';
+import { ContentJobDetailOverviewView } from '../overview';
+import { ContentJobDetailPublishView } from '../publish';
+import { contentJobDetailTabs } from '../tabs';
+import { ContentJobDetailTimelineView } from '../timeline';
 
 type ContentJobDetailViewContentProps = {
   jobId: string;
@@ -33,6 +32,8 @@ export function ContentJobDetailViewContent({
   workActionResolution,
   onWorkAction,
 }: ContentJobDetailViewContentProps) {
+  const { ContentJobDetailIdeationTab, ContentJobDetailSceneTab } = contentJobDetailTabs;
+
   if (activeTab === 'overview') {
     return (
       <ContentJobDetailOverviewView

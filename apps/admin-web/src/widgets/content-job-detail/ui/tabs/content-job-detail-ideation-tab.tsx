@@ -3,7 +3,7 @@
 import { ContentJobDetailSeedFormPanel } from '@/features/content-job-detail';
 
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
-import { ContentJobDetailStageApprovalWorkbench } from '../stage/content-job-detail-stage-approval-workbench';
+import { ContentJobDetailStageApprovalWorkbench } from '../stage';
 import { ContentJobDetailScriptWorkspaceTabs } from './content-job-detail-script-workspace-tabs';
 
 type Props = {

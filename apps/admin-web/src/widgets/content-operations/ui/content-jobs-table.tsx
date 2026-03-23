@@ -1,13 +1,14 @@
 'use client';
 
-import type { AdminJob } from '@/entities/admin-job';
-import { AdminDataTable, type AdminDataTableColumnClassName } from '@/shared/ui/admin-data-table';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import type { KeyboardEvent, ReactNode } from 'react';
 import { useMemo } from 'react';
 
 import type { ColumnDef } from '@tanstack/react-table';
+
+import type { AdminJob } from '@/entities/admin-job';
+import { AdminDataTable, type AdminDataTableColumnClassName } from '@/shared/ui/admin-data-table';
 
 import { createContentJobsColumns, type ContentJobsColumnsOptions } from './content-jobs-columns';
 
@@ -46,6 +47,24 @@ function getJobColumnClassName(columnId: string): AdminDataTableColumnClassName 
   }
 }
 
+function buildJobHref(contentId?: string, newJobHrefOverride?: string) {
+  return (
+    newJobHrefOverride ??
+    (contentId ? `/content/${encodeURIComponent(contentId)}/jobs/new` : '/content/new')
+  );
+}
+
+function JobCreateLink({ href }: { href: string }) {
+  return (
+    <Link
+      href={href}
+      className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:opacity-95"
+    >
+      새 제작 아이템
+    </Link>
+  );
+}
+
 export function ContentJobsTable({
   jobs,
   isLoading,
@@ -78,10 +97,6 @@ export function ContentJobsTable({
     ];
   }, [renderJobAction, channelLabelById, contentId]);
 
-  const newJobHref =
-    newJobHrefOverride ??
-    (contentId ? `/content/${encodeURIComponent(contentId)}/jobs/new` : '/content/new');
-
   const goToJob = (jobId: string) => {
     router.push(`/jobs/${jobId}/overview`);
   };
@@ -92,6 +107,8 @@ export function ContentJobsTable({
       goToJob(jobId);
     }
   };
+
+  const defaultToolbarEnd = <JobCreateLink href={buildJobHref(contentId, newJobHrefOverride)} />;
 
   return (
     <div className="space-y-4">
@@ -109,18 +126,7 @@ export function ContentJobsTable({
           initialSorting={[{ id: 'updatedAt', desc: true }]}
           filterColumnId="videoTitle"
           filterPlaceholder="제목 검색…"
-          toolbarEnd={
-            toolbarEnd === undefined ? (
-              <Link
-                href={newJobHref}
-                className="inline-flex h-11 shrink-0 items-center justify-center rounded-md bg-linear-to-br from-admin-primary to-admin-primary-container px-5 text-sm font-semibold text-white shadow-lg shadow-slate-900/10 transition-all hover:opacity-95"
-              >
-                새 제작 아이템
-              </Link>
-            ) : (
-              toolbarEnd
-            )
-          }
+          toolbarEnd={toolbarEnd === undefined ? defaultToolbarEnd : toolbarEnd}
           getColumnClassName={getJobColumnClassName}
           tableBodyClassName="[&_td]:py-2.5"
           rowProps={(row) => ({

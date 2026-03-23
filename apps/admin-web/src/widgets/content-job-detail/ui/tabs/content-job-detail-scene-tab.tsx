@@ -1,20 +1,77 @@
 'use client';
 
-import { useJobExecutionsQuery } from '@packages/graphql';
+import { type PipelineExecution, useJobExecutionsQuery } from '@packages/graphql';
 import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { useMemo } from 'react';
 
 import { ContentJobDetailSceneBuildPanel } from '@/features/content-job-detail';
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
-
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
-import { ContentJobDetailStageApprovalWorkbench } from '../stage/content-job-detail-stage-approval-workbench';
+import { ContentJobDetailStageApprovalWorkbench } from '../stage';
 import { ContentJobDetailScriptWorkspaceTabs } from './content-job-detail-script-workspace-tabs';
 
 type Props = {
   jobId: string;
   pageData: ContentJobDetailPageData;
 };
+
+function getSceneExecutionSummary(
+  executions?: PipelineExecution[],
+) {
+  const sceneExecutions = executions?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
+  const byRecent = (a: (typeof sceneExecutions)[number], b: (typeof sceneExecutions)[number]) =>
+    new Date(b.completedAt ?? b.startedAt).getTime() -
+    new Date(a.completedAt ?? a.startedAt).getTime();
+
+  const latestFailed = [...sceneExecutions]
+    .filter((execution) => execution.status === 'FAILED')
+    .sort(byRecent)[0];
+  const latestSucceeded = [...sceneExecutions]
+    .filter((execution) => execution.status === 'SUCCEEDED')
+    .sort(byRecent)[0];
+
+  return {
+    latestFailed,
+    collapseFailure:
+      Boolean(latestFailed && latestSucceeded) &&
+      new Date(latestSucceeded.completedAt ?? latestSucceeded.startedAt).getTime() >
+        new Date(latestFailed.completedAt ?? latestFailed.startedAt).getTime(),
+  };
+}
+
+function SceneFailureNotice({
+  latestFailed,
+  collapseFailure,
+}: {
+  latestFailed?: { errorMessage?: string | null } | null;
+  collapseFailure: boolean;
+}) {
+  if (!latestFailed?.errorMessage) {
+    return null;
+  }
+
+  return (
+    <details
+      open={!collapseFailure}
+      className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
+    >
+      <summary className="cursor-pointer list-none text-sm font-medium text-destructive">
+        최근 씬 생성 실패 이유
+        {collapseFailure ? (
+          <span className="ml-2 text-xs font-normal text-muted-foreground">
+            마지막 성공 이후 접힘
+          </span>
+        ) : null}
+      </summary>
+      <div className="mt-3 space-y-2">
+        <p className="text-sm text-destructive/90">{latestFailed.errorMessage}</p>
+        <p className="text-xs text-muted-foreground">
+          자세한 실행 기록은 `실행 이력` 탭에서 확인할 수 있습니다.
+        </p>
+      </div>
+    </details>
+  );
+}
 
 export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
   const { detailVm } = pageData;
@@ -28,46 +85,15 @@ export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
     [pageData.detail?.assets],
   );
   const executionsQuery = useJobExecutionsQuery({ jobId }, { enabled: Boolean(jobId) });
-  const sceneExecutions =
-    executionsQuery.data?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
-  const byRecent = (a: (typeof sceneExecutions)[number], b: (typeof sceneExecutions)[number]) =>
-    new Date(b.completedAt ?? b.startedAt).getTime() -
-    new Date(a.completedAt ?? a.startedAt).getTime();
-  const latestFailed = [...sceneExecutions]
-    .filter((execution) => execution.status === 'FAILED')
-    .sort(byRecent)[0];
-  const latestSucceeded = [...sceneExecutions]
-    .filter((execution) => execution.status === 'SUCCEEDED')
-    .sort(byRecent)[0];
-  const collapseFailure =
-    Boolean(latestFailed && latestSucceeded) &&
-    new Date(latestSucceeded.completedAt ?? latestSucceeded.startedAt).getTime() >
-      new Date(latestFailed.completedAt ?? latestFailed.startedAt).getTime();
+  const { latestFailed, collapseFailure } = useMemo(
+    () => getSceneExecutionSummary(executionsQuery.data),
+    [executionsQuery.data],
+  );
 
   return (
     <div className="space-y-6">
       <ContentJobDetailScriptWorkspaceTabs jobId={jobId} activeTab="scene" />
-      {latestFailed?.errorMessage ? (
-        <details
-          open={!collapseFailure}
-          className="rounded-lg border border-destructive/30 bg-destructive/5 p-4"
-        >
-          <summary className="cursor-pointer list-none text-sm font-medium text-destructive">
-            최근 씬 생성 실패 이유
-            {collapseFailure ? (
-              <span className="ml-2 text-xs font-normal text-muted-foreground">
-                마지막 성공 이후 접힘
-              </span>
-            ) : null}
-          </summary>
-          <div className="mt-3 space-y-2">
-            <p className="text-sm text-destructive/90">{latestFailed.errorMessage}</p>
-            <p className="text-xs text-muted-foreground">
-              자세한 실행 기록은 `실행 이력` 탭에서 확인할 수 있습니다.
-            </p>
-          </div>
-        </details>
-      ) : null}
+      <SceneFailureNotice latestFailed={latestFailed} collapseFailure={collapseFailure} />
       <Card>
         <CardHeader className="pb-3">
           <CardTitle className="text-base">씬 설계 진입</CardTitle>

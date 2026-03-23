@@ -1,5 +1,5 @@
-import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import type { AdminContent } from '@packages/graphql';
+import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 
 import { type ChannelSummary } from '../model';
 

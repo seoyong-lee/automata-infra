@@ -5,17 +5,20 @@ import { useMemo } from 'react';
 
 import { useContentJobDraft } from '@/entities/content-job';
 import { buildContentJobDetailViewModel } from '../../model';
-import { ContentJobDetailContext } from '../shared/content-job-detail-context';
-import { ContentJobDetailLogsView } from '../shared/content-job-detail-logs-view';
-import { ContentJobDetailMetricsCard } from '../shared/content-job-detail-metrics-card';
-import { ContentJobDetailOverviewView } from '../overview/content-job-detail-overview-view';
-import { ContentJobDetailTemplatesView } from '../shared/content-job-detail-templates-view';
+import { ContentJobDetailOverviewView } from '../overview';
+import { contentJobDetailShared } from '../shared';
 
 type ContentJobOperationsPanelProps = {
   jobId: string;
 };
 
 export function ContentJobOperationsPanel({ jobId }: ContentJobOperationsPanelProps) {
+  const {
+    ContentJobDetailContext,
+    ContentJobDetailLogsView,
+    ContentJobDetailMetricsCard,
+    ContentJobDetailTemplatesView,
+  } = contentJobDetailShared;
   const detailQuery = useContentJobDraft({ jobId }, { enabled: Boolean(jobId) });
   const detail = detailQuery.data ?? undefined;
   const detailVm = useMemo(() => buildContentJobDetailViewModel(detail), [detail]);

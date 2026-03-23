@@ -3,22 +3,17 @@
 import { useDeleteJobMutation } from '@packages/graphql';
 import { Button } from '@packages/ui/button';
 import { useQueryClient } from '@tanstack/react-query';
-import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 
-import type {
-  JobWorkActionResolution,
-  JobWorkPrimaryAction,
-} from '../../lib/resolve-job-work-action';
-import { JobWorkActionButtonGroup } from './job-work-action-button-group';
+import type { JobWorkPrimaryAction } from '../../lib/resolve-job-work-action';
 
 type Props = {
   jobId: string;
-  resolution: JobWorkActionResolution;
+  resolution: unknown;
   onAction: (action: JobWorkPrimaryAction) => void;
 };
 
-export function ContentJobDetailWorkHeaderActions({ jobId, resolution, onAction }: Props) {
+export function ContentJobDetailWorkHeaderActions({ jobId, resolution: _resolution, onAction: _onAction }: Props) {
   const router = useRouter();
   const queryClient = useQueryClient();
   const deleteJob = useDeleteJobMutation({
