@@ -1,24 +1,21 @@
 'use client';
 
 import { type PipelineExecution, useJobExecutionsQuery } from '@packages/graphql';
-import { Card, CardContent, CardHeader, CardTitle } from '@packages/ui/card';
 import { useMemo } from 'react';
 
 import { ContentJobDetailSceneBuildPanel } from '@/features/content-job-detail';
 import { buildAssetPreviewUrlFromS3Key } from '../../lib/build-asset-preview-url';
 import type { ContentJobDetailPageData } from '../../model/useContentJobDetailPageData';
 import { ContentJobDetailStageApprovalWorkbench } from '../stage';
-import { ContentJobDetailScriptWorkspaceTabs } from './content-job-detail-script-workspace-tabs';
 
 type Props = {
   jobId: string;
   pageData: ContentJobDetailPageData;
 };
 
-function getSceneExecutionSummary(
-  executions?: PipelineExecution[],
-) {
-  const sceneExecutions = executions?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
+function getSceneExecutionSummary(executions?: PipelineExecution[]) {
+  const sceneExecutions =
+    executions?.filter((execution) => execution.stageType === 'SCENE_JSON') ?? [];
   const byRecent = (a: (typeof sceneExecutions)[number], b: (typeof sceneExecutions)[number]) =>
     new Date(b.completedAt ?? b.startedAt).getTime() -
     new Date(a.completedAt ?? a.startedAt).getTime();
@@ -92,17 +89,7 @@ export function ContentJobDetailSceneTab({ jobId, pageData }: Props) {
 
   return (
     <div className="space-y-6">
-      <ContentJobDetailScriptWorkspaceTabs jobId={jobId} activeTab="scene" />
       <SceneFailureNotice latestFailed={latestFailed} collapseFailure={collapseFailure} />
-      <Card>
-        <CardHeader className="pb-3">
-          <CardTitle className="text-base">씬 설계 진입</CardTitle>
-        </CardHeader>
-        <CardContent className="text-sm text-muted-foreground">
-          토픽 시드를 조정하려면 `아이디어`, Scene JSON 결과를 직접 보정하려면 아래 `씬 설계` 패널을
-          사용하세요.
-        </CardContent>
-      </Card>
       <ContentJobDetailSceneBuildPanel
         key={detailVm.sceneJsonKey}
         initialValue={detailVm.sceneJsonInitialValue}

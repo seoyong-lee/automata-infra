@@ -22,36 +22,36 @@ export const jobDetailRouteTabs: Array<{
 }> = [
   {
     key: 'overview',
-    label: '개요',
+    label: 'Overview',
     description: '상태·채널·진행 단계·주요 지표와 다음 액션을 한눈에 봅니다.',
   },
   {
     key: 'ideation',
-    label: '아이데이션',
+    label: 'Ideation',
     description:
       '토픽·시드·플랜을 다룹니다. 하단에 토픽 플랜 단계 실행 기록이 표시됩니다. 후보 비교·채택은 도입 예정입니다.',
   },
   {
     key: 'scene',
-    label: '씬 설계',
+    label: 'Scene',
     description:
       '구조화 요약과 Raw JSON으로 씬 명세를 다룹니다. 씬 버전·채택 UI는 도입 예정입니다.',
   },
   {
     key: 'assets',
-    label: '에셋',
+    label: 'Assets',
     description:
       '씬 단위로 이미지·음성·영상 클립을 생성·보완하고, 준비가 끝나면 Shotstack 렌더를 시작합니다.',
   },
   {
     key: 'publish',
-    label: '검수·출고 준비',
+    label: 'Publish',
     description:
       '렌더 결과를 검수하고 출고를 준비합니다. 실제 업로드·예약은 채널의 출고 큐에서 진행합니다.',
   },
   {
     key: 'timeline',
-    label: '실행 이력',
+    label: 'Timeline',
     description:
       '파이프라인 단계별 실행(토픽·씬·에셋)과 원시 타임라인을 봅니다. 채택 스냅샷 연동은 추후 보강됩니다.',
   },

@@ -1,8 +1,10 @@
 'use client';
 
+import { cn } from '@packages/ui';
 import { Button } from '@packages/ui/button';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@packages/ui/card';
 import type { SceneJsonPayload } from '@packages/graphql';
+import { Input } from '@packages/ui/input';
 import { getErrorMessage } from '@packages/utils';
 import { useEffect, useMemo, useState } from 'react';
 
@@ -21,36 +23,30 @@ type ContentJobDetailSceneBuildPanelProps = {
   onSave: (value: string) => void;
 };
 
-function setSceneSubtitle(text: string, sceneId: number, subtitle: string): string {
+type ParsedScene = SceneJsonPayload['scenes'][number];
+
+function updateScene(
+  text: string,
+  sceneId: number,
+  updater: (scene: ParsedScene) => ParsedScene,
+): string {
   const parsed = JSON.parse(text) as SceneJsonPayload;
   return JSON.stringify(
     {
       ...parsed,
-      scenes: parsed.scenes.map((scene) =>
-        scene.sceneId === sceneId ? { ...scene, subtitle } : scene,
-      ),
+      scenes: parsed.scenes.map((scene) => (scene.sceneId === sceneId ? updater(scene) : scene)),
     },
     null,
     2,
   );
 }
 
-function setSceneDisableNarration(
-  text: string,
-  sceneId: number,
-  disableNarration: boolean,
-): string {
-  const parsed = JSON.parse(text) as SceneJsonPayload;
-  return JSON.stringify(
-    {
-      ...parsed,
-      scenes: parsed.scenes.map((scene) =>
-        scene.sceneId === sceneId ? { ...scene, disableNarration } : scene,
-      ),
-    },
-    null,
-    2,
-  );
+function parseSfx(value: string): string[] | undefined {
+  const tokens = value
+    .split(',')
+    .map((item) => item.trim())
+    .filter(Boolean);
+  return tokens.length > 0 ? tokens : undefined;
 }
 
 function tryParseSceneJson(text: string): { ok: true; data: SceneJsonPayload } | { ok: false } {
@@ -85,7 +81,7 @@ export function ContentJobDetailSceneBuildPanel({
   onSave,
 }: ContentJobDetailSceneBuildPanelProps) {
   const [sceneJsonText, setSceneJsonText] = useState<string>(() => initialValue);
-  const [previewSceneId, setPreviewSceneId] = useState<number | null>(null);
+  const [activeSceneId, setActiveSceneId] = useState<number | null>(null);
 
   useEffect(() => {
     setSceneJsonText(initialValue);
@@ -96,260 +92,359 @@ export function ContentJobDetailSceneBuildPanel({
     () => new Map(previewAssets.map((asset) => [asset.sceneId, asset])),
     [previewAssets],
   );
-  const previewScenes = parsed.ok
+  const scenes = parsed.ok
     ? parsed.data.scenes.map((scene) => ({
         ...scene,
         imagePreviewUrl: previewAssetBySceneId.get(scene.sceneId)?.imagePreviewUrl,
         videoPreviewUrl: previewAssetBySceneId.get(scene.sceneId)?.videoPreviewUrl,
       }))
     : [];
-  const activePreviewScene =
-    previewScenes.find((scene) => scene.sceneId === previewSceneId) ?? previewScenes[0];
+  const activeScene = scenes.find((scene) => scene.sceneId === activeSceneId) ?? scenes[0];
+  const totalDurationSec = scenes.reduce((sum, scene) => sum + Number(scene.durationSec || 0), 0);
 
   useEffect(() => {
-    if (!previewScenes.length) {
-      if (previewSceneId !== null) {
-        setPreviewSceneId(null);
+    if (!scenes.length) {
+      if (activeSceneId !== null) {
+        setActiveSceneId(null);
       }
       return;
     }
-    if (
-      previewSceneId === null ||
-      !previewScenes.some((scene) => scene.sceneId === previewSceneId)
-    ) {
-      setPreviewSceneId(previewScenes[0]?.sceneId ?? null);
+    if (activeSceneId === null || !scenes.some((scene) => scene.sceneId === activeSceneId)) {
+      setActiveSceneId(scenes[0]?.sceneId ?? null);
     }
-  }, [previewSceneId, previewScenes]);
+  }, [activeSceneId, scenes]);
+
+  const updateActiveScene = (updater: (scene: ParsedScene) => ParsedScene) => {
+    if (!activeScene) {
+      return;
+    }
+    setSceneJsonText((current) => updateScene(current, activeScene.sceneId, updater));
+  };
 
   return (
     <div className="space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>씬 설계</CardTitle>
-          <CardDescription>
-            기본은 구조화된 요약입니다. 세부 수정은{' '}
-            <strong className="text-foreground">고급 · Raw JSON</strong>에서 하세요. 후보·채택
-            모델은 추후 이 탭에 합류합니다. `나레이션 없음`을 체크하면 음성 생성과 렌더 길이
-            계산에서 제외됩니다.
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="flex flex-wrap gap-2">
-            <Button variant="secondary" disabled={isRunning} onClick={onRun}>
-              {isRunning ? '실행 중…' : 'Scene JSON 생성'}
-            </Button>
-            <Button
-              disabled={isSaving || sceneJsonText.trim().length === 0}
-              onClick={() => onSave(sceneJsonText)}
-            >
-              {isSaving ? '저장 중…' : '저장 (현재 JSON)'}
-            </Button>
-          </div>
-
-          {parsed.ok ? (
-            <div className="space-y-3 rounded-lg border bg-muted/30 p-4">
-              <div className="flex flex-wrap gap-x-6 gap-y-1 text-sm">
-                <p>
-                  <span className="text-muted-foreground">영상 제목</span>{' '}
-                  <span className="font-medium">{parsed.data.videoTitle}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">언어</span>{' '}
-                  <span className="font-medium">{parsed.data.language}</span>
-                </p>
-                <p>
-                  <span className="text-muted-foreground">씬 수</span>{' '}
-                  <span className="font-medium">{parsed.data.scenes.length}</span>
-                </p>
-              </div>
-              <div className="overflow-x-auto">
-                <table className="w-full min-w-[480px] border-collapse text-left text-sm">
-                  <thead>
-                    <tr className="border-b text-xs text-muted-foreground">
-                      <th className="py-2 pr-2 font-medium">#</th>
-                      <th className="py-2 pr-2 font-medium">길이(초)</th>
-                      <th className="py-2 pr-2 font-medium">나레이션 없음</th>
-                      <th className="py-2 pr-2 font-medium">나레이션</th>
-                      <th className="py-2 font-medium">이미지 프롬프트</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    {parsed.data.scenes.map((s) => (
-                      <tr key={s.sceneId} className="border-b border-border/60 align-top">
-                        <td className="py-2 pr-2 font-mono text-xs">{s.sceneId}</td>
-                        <td className="py-2 pr-2 tabular-nums">{s.durationSec}</td>
-                        <td className="py-2 pr-2 text-xs">
-                          <label className="inline-flex items-center gap-2">
-                            <input
-                              type="checkbox"
-                              checked={Boolean(s.disableNarration)}
-                              onChange={(event) =>
-                                setSceneJsonText(
-                                  setSceneDisableNarration(
-                                    sceneJsonText,
-                                    s.sceneId,
-                                    event.target.checked,
-                                  ),
-                                )
-                              }
-                            />
-                            <span>없음</span>
-                          </label>
-                        </td>
-                        <td className="max-w-56 py-2 pr-2 text-xs leading-snug">
-                          {s.disableNarration ? (
-                            <span className="text-muted-foreground">
-                              렌더 시 나레이션 미포함
-                            </span>
-                          ) : (
-                            <span className="line-clamp-3">{s.narration}</span>
-                          )}
-                        </td>
-                        <td className="max-w-[18rem] py-2 text-xs leading-snug text-muted-foreground">
-                          <span className="line-clamp-2">{s.imagePrompt}</span>
-                        </td>
-                      </tr>
-                    ))}
-                  </tbody>
-                </table>
-              </div>
-            </div>
-          ) : (
-            <p className="rounded-md border border-dashed px-3 py-6 text-center text-sm text-muted-foreground">
-              {sceneJsonText.trim()
-                ? '유효한 Scene JSON이 아닙니다. 생성을 실행하거나 고급 편집에서 형식을 맞춰 주세요.'
-                : '아직 Scene JSON이 없습니다. 생성을 실행하세요.'}
-            </p>
-          )}
-
-          {parsed.ok ? (
-            <div className="space-y-4 rounded-lg border bg-muted/20 p-4">
+      <Card className="border-admin-outline-ghost shadow-none">
+        <CardHeader className="space-y-4">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div className="space-y-2">
               <div className="space-y-1">
-                <h3 className="text-sm font-semibold text-foreground">자막 편집</h3>
-                <p className="text-xs leading-5 text-muted-foreground">
-                  씬별 `subtitle`을 바로 수정하고 오른쪽 프리뷰에서 번인 느낌을 미리 확인할 수
-                  있습니다.
+                <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-primary">
+                  Scene Design
                 </p>
+                <CardTitle className="text-xl">씬 목록과 활성 씬 편집기</CardTitle>
               </div>
-              <div className="grid gap-4 xl:grid-cols-[minmax(0,1fr)_320px]">
-                <div className="space-y-3">
-                  {previewScenes.map((scene) => {
-                    const isActive = scene.sceneId === activePreviewScene?.sceneId;
-                    return (
-                      <div
-                        key={scene.sceneId}
-                        onClick={() => setPreviewSceneId(scene.sceneId)}
-                        onKeyDown={(event) => {
-                          if (event.key === 'Enter' || event.key === ' ') {
-                            event.preventDefault();
-                            setPreviewSceneId(scene.sceneId);
-                          }
-                        }}
-                        role="button"
-                        tabIndex={0}
-                        className={`w-full rounded-lg border p-3 text-left transition ${
-                          isActive
-                            ? 'border-foreground bg-background shadow-sm'
-                            : 'border-border bg-background/70 hover:bg-background'
-                        }`}
-                      >
-                        <div className="flex items-center justify-between gap-3">
-                          <p className="text-sm font-medium text-foreground">Scene {scene.sceneId}</p>
-                          <span className="text-xs text-muted-foreground">
-                            {scene.durationSec}s
-                          </span>
-                        </div>
-                        <p className="mt-2 line-clamp-2 text-xs leading-5 text-muted-foreground">
-                          {scene.disableNarration
-                            ? '나레이션 없음'
-                            : scene.narration || '나레이션이 없습니다.'}
+              <CardDescription className="max-w-3xl leading-6">
+                Scene JSON을 바로 표처럼 보는 대신, 활성 씬을 선택해 프롬프트·나레이션·자막·사운드
+                메모를 편집하는 방식으로 재구성했습니다. 세부 JSON 보정은 아래 고급 편집에서 계속 할
+                수 있습니다.
+              </CardDescription>
+            </div>
+            <div className="flex flex-wrap gap-2">
+              <Button variant="secondary" disabled={isRunning} onClick={onRun}>
+                {isRunning ? '실행 중…' : 'Scene JSON 생성'}
+              </Button>
+              <Button
+                disabled={isSaving || sceneJsonText.trim().length === 0}
+                onClick={() => onSave(sceneJsonText)}
+              >
+                {isSaving ? '저장 중…' : '저장'}
+              </Button>
+            </div>
+          </div>
+        </CardHeader>
+        <CardContent className="space-y-6">
+          {parsed.ok ? (
+            <div className="grid gap-6 xl:grid-cols-[280px_minmax(0,1fr)]">
+              <div className="space-y-4">
+                <div className="rounded-2xl border border-admin-outline-ghost bg-admin-surface-section p-4">
+                  <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                    Sequence Overview
+                  </p>
+                  <div className="mt-4 grid gap-3">
+                    <div>
+                      <p className="text-xs text-admin-text-muted">Video Title</p>
+                      <p className="mt-1 text-sm font-semibold text-admin-text-strong">
+                        {parsed.data.videoTitle || '제목 없음'}
+                      </p>
+                    </div>
+                    <div className="grid grid-cols-2 gap-3">
+                      <div className="rounded-xl border border-admin-outline-ghost bg-admin-surface-card px-3 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                          Language
                         </p>
-                        <textarea
-                          className="mt-3 min-h-[82px] w-full rounded-md border border-input bg-background px-3 py-2 text-sm text-foreground"
-                          value={scene.subtitle}
-                          onClick={(event) => event.stopPropagation()}
-                          onChange={(event) =>
-                            setSceneJsonText(
-                              setSceneSubtitle(
-                                sceneJsonText,
-                                scene.sceneId,
-                                event.target.value,
-                              ),
-                            )
-                          }
-                          placeholder="씬 자막을 입력하세요"
-                        />
-                        <div className="mt-2 flex items-center justify-between text-xs text-muted-foreground">
-                          <span>{scene.subtitle.trim().length || 0} chars</span>
-                          <span>
-                            {scene.videoPreviewUrl || scene.imagePreviewUrl
-                              ? '에셋 프리뷰 사용'
-                              : '배경 프리뷰 없음'}
+                        <p className="mt-1 text-sm font-semibold text-admin-text-strong">
+                          {parsed.data.language}
+                        </p>
+                      </div>
+                      <div className="rounded-xl border border-admin-outline-ghost bg-admin-surface-card px-3 py-3">
+                        <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                          Duration
+                        </p>
+                        <p className="mt-1 text-sm font-semibold text-admin-text-strong">
+                          {totalDurationSec}s
+                        </p>
+                      </div>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  {scenes.map((scene) => {
+                    const isActive = scene.sceneId === activeScene?.sceneId;
+                    const hasPreview = Boolean(scene.videoPreviewUrl || scene.imagePreviewUrl);
+                    return (
+                      <button
+                        key={scene.sceneId}
+                        type="button"
+                        onClick={() => setActiveSceneId(scene.sceneId)}
+                        className={cn(
+                          'w-full rounded-2xl border p-4 text-left transition-colors',
+                          isActive
+                            ? 'border-admin-primary bg-admin-surface-card shadow-sm'
+                            : 'border-admin-outline-ghost bg-admin-surface-section hover:bg-admin-surface-card',
+                        )}
+                      >
+                        <div className="flex items-start justify-between gap-3">
+                          <div>
+                            <p className="text-sm font-semibold text-admin-text-strong">
+                              Scene {scene.sceneId}
+                            </p>
+                            <p className="mt-1 text-xs text-admin-text-muted">
+                              {scene.durationSec}s
+                            </p>
+                          </div>
+                          <span
+                            className={cn(
+                              'rounded-full px-2.5 py-1 text-[11px] font-semibold',
+                              hasPreview
+                                ? 'bg-admin-status-success-surface text-admin-status-success'
+                                : 'bg-admin-surface-field text-admin-text-muted',
+                            )}
+                          >
+                            {hasPreview ? 'Preview' : 'Draft'}
                           </span>
                         </div>
-                      </div>
+                        <p className="mt-3 line-clamp-2 text-xs leading-5 text-admin-text-muted">
+                          {scene.narration?.trim() || scene.imagePrompt || '아직 설명이 없습니다.'}
+                        </p>
+                      </button>
                     );
                   })}
                 </div>
+              </div>
 
-                <div className="space-y-3 rounded-lg border bg-background p-3">
-                  <div className="flex items-center justify-between gap-2">
-                    <div>
-                      <p className="text-sm font-medium text-foreground">
-                        {activePreviewScene
-                          ? `Scene ${activePreviewScene.sceneId} 프리뷰`
-                          : '프리뷰'}
-                      </p>
-                      <p className="text-xs text-muted-foreground">
-                        실제 렌더 전 레이아웃만 빠르게 확인합니다.
-                      </p>
-                    </div>
-                    {activePreviewScene ? (
-                      <span className="text-xs text-muted-foreground">
-                        {activePreviewScene.durationSec}s
-                      </span>
-                    ) : null}
-                  </div>
-                  <div className="relative mx-auto aspect-9/16 w-full max-w-[280px] overflow-hidden rounded-[28px] border bg-black shadow-sm">
-                    {activePreviewScene?.videoPreviewUrl ? (
-                      <video
-                        key={activePreviewScene.videoPreviewUrl}
-                        src={activePreviewScene.videoPreviewUrl}
-                        className="h-full w-full object-cover"
-                        autoPlay
-                        muted
-                        loop
-                        playsInline
-                      />
-                    ) : activePreviewScene?.imagePreviewUrl ? (
-                      <img
-                        src={activePreviewScene.imagePreviewUrl}
-                        alt={`Scene ${activePreviewScene.sceneId} preview`}
-                        className="h-full w-full object-cover"
-                      />
-                    ) : (
-                      <div className="flex h-full w-full items-center justify-center bg-linear-to-b from-zinc-800 to-zinc-950 px-6 text-center text-xs text-zinc-400">
-                        비주얼 에셋이 없으면 자막 레이아웃만 미리 볼 수 있습니다.
+              <div className="space-y-6">
+                {activeScene ? (
+                  <div className="rounded-2xl border border-admin-outline-ghost bg-admin-surface-card p-5">
+                    <div className="flex flex-wrap items-end justify-between gap-4">
+                      <div className="space-y-2">
+                        <p className="text-[10px] font-semibold uppercase tracking-[0.22em] text-admin-primary">
+                          Active Scene
+                        </p>
+                        <h3 className="text-2xl font-semibold text-admin-text-strong">
+                          Scene {activeScene.sceneId}
+                        </h3>
                       </div>
-                    )}
-                    <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/20 to-transparent px-5 pb-10 pt-20">
-                      <p className="text-center text-[22px] font-semibold leading-tight text-black [text-shadow:0_0_3px_#fff,0_0_6px_#fff,0_1px_0_#fff]">
-                        {activePreviewScene?.subtitle?.trim() || '자막 미리보기'}
-                      </p>
+                      <label className="space-y-1 text-sm">
+                        <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                          Duration
+                        </span>
+                        <Input
+                          type="number"
+                          min={1}
+                          value={String(activeScene.durationSec ?? '')}
+                          onChange={(event) =>
+                            updateActiveScene((scene) => ({
+                              ...scene,
+                              durationSec: Number(event.target.value || 0),
+                            }))
+                          }
+                          className="w-28 border-admin-outline-ghost bg-admin-surface-field"
+                        />
+                      </label>
+                    </div>
+
+                    <div className="mt-6 grid gap-6 lg:grid-cols-[minmax(0,1fr)_320px]">
+                      <div className="space-y-4">
+                        <label className="block space-y-2">
+                          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                            Visual Prompt
+                          </span>
+                          <textarea
+                            className="min-h-[180px] w-full rounded-xl border border-admin-outline-ghost bg-admin-surface-field px-4 py-3 text-sm leading-7 text-admin-text-strong outline-none transition focus:border-admin-primary"
+                            value={activeScene.imagePrompt}
+                            onChange={(event) =>
+                              updateActiveScene((scene) => ({
+                                ...scene,
+                                imagePrompt: event.target.value,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <label className="block space-y-2">
+                          <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                            Motion / Video Prompt
+                          </span>
+                          <textarea
+                            className="min-h-[120px] w-full rounded-xl border border-admin-outline-ghost bg-admin-surface-field px-4 py-3 text-sm leading-7 text-admin-text-strong outline-none transition focus:border-admin-primary"
+                            value={activeScene.videoPrompt ?? ''}
+                            placeholder="카메라 움직임이나 영상 프롬프트 메모를 입력하세요."
+                            onChange={(event) =>
+                              updateActiveScene((scene) => ({
+                                ...scene,
+                                videoPrompt: event.target.value || undefined,
+                              }))
+                            }
+                          />
+                        </label>
+
+                        <div className="grid gap-4 xl:grid-cols-2">
+                          <label className="block space-y-2">
+                            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                              Narration
+                            </span>
+                            <textarea
+                              className="min-h-[150px] w-full rounded-xl border border-admin-outline-ghost bg-admin-surface-field px-4 py-3 text-sm leading-7 text-admin-text-strong outline-none transition focus:border-admin-primary"
+                              value={activeScene.narration}
+                              onChange={(event) =>
+                                updateActiveScene((scene) => ({
+                                  ...scene,
+                                  narration: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+
+                          <label className="block space-y-2">
+                            <span className="block text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                              Subtitle
+                            </span>
+                            <textarea
+                              className="min-h-[150px] w-full rounded-xl border border-admin-outline-ghost bg-admin-surface-field px-4 py-3 text-sm leading-7 text-admin-text-strong outline-none transition focus:border-admin-primary"
+                              value={activeScene.subtitle}
+                              onChange={(event) =>
+                                updateActiveScene((scene) => ({
+                                  ...scene,
+                                  subtitle: event.target.value,
+                                }))
+                              }
+                            />
+                          </label>
+                        </div>
+
+                        <label className="flex items-center gap-3 rounded-xl border border-admin-outline-ghost bg-admin-surface-section px-4 py-3 text-sm text-admin-text-strong">
+                          <input
+                            type="checkbox"
+                            checked={Boolean(activeScene.disableNarration)}
+                            onChange={(event) =>
+                              updateActiveScene((scene) => ({
+                                ...scene,
+                                disableNarration: event.target.checked,
+                              }))
+                            }
+                          />
+                          <span>나레이션 생성에서 이 씬을 제외합니다.</span>
+                        </label>
+                      </div>
+
+                      <div className="space-y-4">
+                        <div className="rounded-2xl border border-admin-outline-ghost bg-admin-surface-section p-4">
+                          <div className="flex items-center justify-between gap-2">
+                            <div>
+                              <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                                Scene Preview
+                              </p>
+                              <p className="mt-1 text-xs text-admin-text-muted">
+                                저장된 에셋이 있으면 프리뷰를 보여주고, 없으면 자막 레이아웃만
+                                확인합니다.
+                              </p>
+                            </div>
+                          </div>
+                          <div className="relative mt-4 aspect-4/5 overflow-hidden rounded-[24px] border bg-black shadow-sm">
+                            {activeScene.videoPreviewUrl ? (
+                              <video
+                                key={activeScene.videoPreviewUrl}
+                                src={activeScene.videoPreviewUrl}
+                                className="h-full w-full object-cover"
+                                autoPlay
+                                muted
+                                loop
+                                playsInline
+                              />
+                            ) : activeScene.imagePreviewUrl ? (
+                              <img
+                                src={activeScene.imagePreviewUrl}
+                                alt={`Scene ${activeScene.sceneId} preview`}
+                                className="h-full w-full object-cover"
+                              />
+                            ) : (
+                              <div className="flex h-full w-full items-center justify-center bg-linear-to-b from-zinc-800 to-zinc-950 px-6 text-center text-xs text-zinc-400">
+                                아직 생성된 프리뷰가 없습니다.
+                              </div>
+                            )}
+                            <div className="pointer-events-none absolute inset-x-0 bottom-0 bg-linear-to-t from-black/85 via-black/20 to-transparent px-5 pb-8 pt-20">
+                              <p className="text-center text-xl font-semibold leading-tight text-black [text-shadow:0_0_3px_#fff,0_0_6px_#fff,0_1px_0_#fff]">
+                                {activeScene.subtitle?.trim() || '자막 미리보기'}
+                              </p>
+                            </div>
+                          </div>
+                        </div>
+
+                        <div className="rounded-2xl border border-admin-outline-ghost bg-admin-surface-section p-4 space-y-4">
+                          <div>
+                            <p className="text-[11px] font-semibold uppercase tracking-[0.18em] text-admin-text-muted">
+                              Audio / Mood
+                            </p>
+                            <p className="mt-1 text-xs text-admin-text-muted">
+                              현재 스키마에 있는 보조 메타데이터만 편집합니다.
+                            </p>
+                          </div>
+                          <label className="block space-y-2">
+                            <span className="block text-xs font-medium text-admin-text-muted">
+                              Background Mood
+                            </span>
+                            <Input
+                              value={activeScene.bgmMood ?? ''}
+                              onChange={(event) =>
+                                updateActiveScene((scene) => ({
+                                  ...scene,
+                                  bgmMood: event.target.value || undefined,
+                                }))
+                              }
+                              className="border-admin-outline-ghost bg-admin-surface-field"
+                            />
+                          </label>
+                          <label className="block space-y-2">
+                            <span className="block text-xs font-medium text-admin-text-muted">
+                              SFX
+                            </span>
+                            <Input
+                              value={(activeScene.sfx ?? []).join(', ')}
+                              onChange={(event) =>
+                                updateActiveScene((scene) => ({
+                                  ...scene,
+                                  sfx: parseSfx(event.target.value),
+                                }))
+                              }
+                              placeholder="pulse, click, whoosh"
+                              className="border-admin-outline-ghost bg-admin-surface-field"
+                            />
+                          </label>
+                        </div>
+                      </div>
                     </div>
                   </div>
-                  {activePreviewScene ? (
-                    <div className="rounded-md bg-muted/40 p-3 text-xs text-muted-foreground">
-                      <p className="font-medium text-foreground">현재 프리뷰 자막</p>
-                      <p className="mt-1 whitespace-pre-wrap leading-5">
-                        {activePreviewScene.subtitle || '입력된 자막이 없습니다.'}
-                      </p>
-                    </div>
-                  ) : null}
-                </div>
+                ) : null}
               </div>
             </div>
-          ) : null}
+          ) : (
+            <p className="rounded-xl border border-dashed border-admin-outline-ghost px-4 py-8 text-center text-sm text-admin-text-muted">
+              {sceneJsonText.trim()
+                ? '유효한 Scene JSON이 아닙니다. 생성을 다시 실행하거나 아래 고급 편집에서 형식을 맞춰 주세요.'
+                : '아직 Scene JSON이 없습니다. 생성 버튼으로 초안을 만드세요.'}
+            </p>
+          )}
 
           {runError ? (
             <p className="text-sm text-destructive">{getErrorMessage(runError)}</p>
@@ -360,16 +455,17 @@ export function ContentJobDetailSceneBuildPanel({
         </CardContent>
       </Card>
 
-      <Card>
+      <Card className="border-admin-outline-ghost shadow-none">
         <CardHeader className="pb-2">
           <CardTitle className="text-base">고급 · Raw JSON</CardTitle>
           <CardDescription>
-            구조화 뷰와 동일한 내용입니다. 직접 편집 후 위의 &quot;저장&quot;을 누르세요.
+            위 편집기와 동일한 내용을 직접 수정할 수 있습니다. 복잡한 필드 보정이 필요할 때만
+            사용하세요.
           </CardDescription>
         </CardHeader>
         <CardContent>
           <textarea
-            className="min-h-[280px] w-full rounded-md border border-input bg-background px-3 py-2 font-mono text-xs"
+            className="min-h-[300px] w-full rounded-xl border border-admin-outline-ghost bg-admin-surface-section px-4 py-3 font-mono text-xs text-admin-text-strong outline-none transition focus:border-admin-primary"
             value={sceneJsonText}
             onChange={(event) => setSceneJsonText(event.target.value)}
             spellCheck={false}

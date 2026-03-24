@@ -9,7 +9,7 @@ type ContentJobDetailScriptWorkspaceTabsProps = {
 };
 
 const tabClassName =
-  'inline-flex h-9 shrink-0 items-center justify-center rounded-md px-3 py-2 text-sm font-medium transition-colors';
+  'inline-flex min-h-11 shrink-0 items-center justify-center rounded-xl px-4 py-3 text-sm font-semibold transition-colors';
 
 const scriptWorkspaceTabs: Array<{
   key: 'ideation' | 'scene';
@@ -18,13 +18,13 @@ const scriptWorkspaceTabs: Array<{
 }> = [
   {
     key: 'ideation',
-    label: '아이디어',
-    description: '토픽 시드와 기획 메모를 다듬고 토픽 플랜을 다시 실행합니다.',
+    label: 'Ideation',
+    description: 'Refine the topic seed and creative brief, then rerun the topic plan.',
   },
   {
     key: 'scene',
-    label: '씬 설계',
-    description: 'Scene JSON 생성 결과를 검토하고 씬 구조를 직접 보정합니다.',
+    label: 'Scene',
+    description: 'Review the generated scene payload and refine the active scene directly.',
   },
 ];
 
@@ -36,23 +36,25 @@ export function ContentJobDetailScriptWorkspaceTabs({
 
   return (
     <div className="space-y-2">
-      <div className="-mx-1 flex flex-wrap gap-2 px-1">
-        {scriptWorkspaceTabs.map((tab) => (
-          <Link
-            key={tab.key}
-            href={`/jobs/${jobId}/${tab.key}`}
-            className={cn(
-              tabClassName,
-              activeTab === tab.key
-                ? 'bg-primary text-primary-foreground'
-                : 'border border-border bg-background hover:bg-accent hover:text-accent-foreground',
-            )}
-          >
-            {tab.label}
-          </Link>
-        ))}
+      <div className="rounded-2xl border border-admin-outline-ghost bg-admin-surface-section p-2">
+        <div className="grid gap-2 md:grid-cols-2">
+          {scriptWorkspaceTabs.map((tab) => (
+            <Link
+              key={tab.key}
+              href={`/jobs/${jobId}/${tab.key}`}
+              className={cn(
+                tabClassName,
+                activeTab === tab.key
+                  ? 'bg-admin-surface-card text-admin-text-strong shadow-sm ring-1 ring-admin-outline-ghost'
+                  : 'text-admin-text-muted hover:bg-admin-surface-card hover:text-admin-text-strong',
+              )}
+            >
+              {tab.label}
+            </Link>
+          ))}
+        </div>
       </div>
-      <p className="text-xs text-muted-foreground">{activeMeta?.description}</p>
+      <p className="text-xs text-admin-text-muted">{activeMeta?.description}</p>
     </div>
   );
 }

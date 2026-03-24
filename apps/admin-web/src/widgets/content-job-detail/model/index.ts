@@ -24,3 +24,8 @@ export {
   parseJobDetailRouteTabParam,
   toSeedForm,
 } from './view-model';
+export { buildContentJobDetailShellViewModel } from './content-job-detail-shell';
+export type {
+  ContentJobDetailShellAction,
+  ContentJobDetailShellViewModel,
+} from './content-job-detail-shell';
