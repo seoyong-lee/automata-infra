@@ -58,3 +58,5 @@ apps/**/node_modules/
 apps/**/.env
 apps/**/.env.*
 !apps/**/.env.example
+
+*.tsbuildinfo
