@@ -61,3 +61,32 @@ void test("scene video generation forwards target duration", async () => {
   assert.equal(videoAssets.length, 1);
   assert.equal(received[0]?.targetDurationSec, 7.2);
 });
+
+void test("scene video generation falls back to durationSec alias", async () => {
+  const received: Array<Record<string, unknown>> = [];
+
+  await generateSceneVideos(
+    {
+      jobId: "job_test",
+      secretId: "secret",
+      scenes: [
+        {
+          sceneId: 2,
+          videoPrompt: "steady tracking shot",
+          durationSec: 6.4,
+        },
+      ],
+    },
+    {
+      generateSceneVideo: async (input) => {
+        received.push(input as Record<string, unknown>);
+        return {
+          sceneId: input.sceneId,
+          videoClipS3Key: `assets/${input.jobId}/videos/scene-${input.sceneId}.mp4`,
+        };
+      },
+    },
+  );
+
+  assert.equal(received[0]?.targetDurationSec, 6.4);
+});

@@ -23,6 +23,7 @@ export const generateSceneVideos = async (
       sceneId: number;
       videoPrompt?: string;
       targetDurationSec?: number;
+      durationSec?: number;
       selectedImageS3Key?: string;
       selectedImageDataUri?: string;
     }>;
@@ -41,12 +42,16 @@ export const generateSceneVideos = async (
     if (!scene.videoPrompt) {
       continue;
     }
+    const targetDurationSec =
+      typeof scene.targetDurationSec === "number"
+        ? scene.targetDurationSec
+        : scene.durationSec;
 
     const asset = await requestSceneVideo({
       jobId: input.jobId,
       sceneId: scene.sceneId,
       prompt: scene.videoPrompt,
-      targetDurationSec: scene.targetDurationSec,
+      targetDurationSec,
       selectedImageS3Key: scene.selectedImageS3Key,
       selectedImageDataUri: scene.selectedImageDataUri,
       secretId: input.secretId,

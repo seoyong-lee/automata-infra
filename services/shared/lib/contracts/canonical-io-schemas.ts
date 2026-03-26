@@ -108,6 +108,44 @@ export const runJobPlanInputSchema = z
   })
   .strict();
 
+export const sceneDefinitionSchema = z.object({
+  sceneId: z.number().finite().int().positive(),
+  durationSec: z.number().finite().positive(),
+  narration: z.string(),
+  disableNarration: z.boolean().optional(),
+  imagePrompt: nonEmpty,
+  videoPrompt: z.string().optional(),
+  subtitle: nonEmpty,
+  bgmMood: z.string().optional(),
+  sfx: z.array(nonEmpty).optional(),
+});
+
+export const sceneJsonSchema = z
+  .object({
+    videoTitle: nonEmpty,
+    language: nonEmpty,
+    scenes: z.array(sceneDefinitionSchema).min(1),
+  })
+  .superRefine((value, ctx) => {
+    const seenSceneIds = new Set<number>();
+    value.scenes.forEach((scene, index) => {
+      if (seenSceneIds.has(scene.sceneId)) {
+        ctx.addIssue({
+          code: "custom",
+          message: "sceneJson sceneId must be unique",
+          path: ["scenes", index, "sceneId"],
+        });
+        return;
+      }
+      seenSceneIds.add(scene.sceneId);
+    });
+  });
+
+export const updateSceneJsonInputSchema = z.object({
+  jobId: nonEmpty,
+  sceneJson: sceneJsonSchema,
+});
+
 export const contentBriefSchema = z
   .object({
     jobId: nonEmpty,
@@ -205,6 +243,9 @@ export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
 export type CreateContentInput = z.infer<typeof createContentInputSchema>;
 export type UpdateContentInput = z.infer<typeof updateContentInputSchema>;
 export type RunJobPlanInput = z.infer<typeof runJobPlanInputSchema>;
+export type SceneDefinitionInput = z.infer<typeof sceneDefinitionSchema>;
+export type SceneJsonInput = z.infer<typeof sceneJsonSchema>;
+export type UpdateSceneJsonInput = z.infer<typeof updateSceneJsonInputSchema>;
 
 export const parseContentBrief = (payload: unknown): ContentBrief => {
   return contentBriefSchema.parse(payload);
@@ -248,4 +289,10 @@ export const parseUpdateContentInput = (
 
 export const parseRunJobPlanInput = (payload: unknown): RunJobPlanInput => {
   return runJobPlanInputSchema.parse(payload);
+};
+
+export const parseUpdateSceneJsonInput = (
+  payload: unknown,
+): UpdateSceneJsonInput => {
+  return updateSceneJsonInputSchema.parse(payload);
 };

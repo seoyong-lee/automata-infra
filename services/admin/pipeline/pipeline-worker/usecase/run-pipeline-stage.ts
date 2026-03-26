@@ -85,5 +85,6 @@ export const runPipelineStage = async (input: {
       status: "FAILED",
       errorMessage: msg,
     });
+    throw e;
   }
 };

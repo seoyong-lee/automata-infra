@@ -9,10 +9,12 @@ type SceneJsonEvent = {
   sceneId?: number;
   videoPrompt?: string;
   durationSec?: number;
+  targetDurationSec?: number;
   scene?: {
     sceneId: number;
     videoPrompt?: string;
     durationSec?: number;
+    targetDurationSec?: number;
   };
   sceneJson?: SceneJson;
   reviewDecision?: {
@@ -32,7 +34,7 @@ const getScenes = (event: SceneJsonEvent) => {
       {
         sceneId: event.sceneId,
         videoPrompt: event.videoPrompt,
-        durationSec: event.durationSec,
+        targetDurationSec: event.targetDurationSec ?? event.durationSec,
       },
     ];
   }
@@ -48,7 +50,7 @@ const getScenes = (event: SceneJsonEvent) => {
       {
         sceneId: picked.sceneId,
         videoPrompt: picked.videoPrompt,
-        durationSec: picked.durationSec,
+        targetDurationSec: picked.durationSec,
       },
     ];
   }
