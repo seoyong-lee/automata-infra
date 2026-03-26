@@ -1,11 +1,7 @@
 {
-  "name": "ai-pipeline-studio",
+  "name": "automata-infra",
   "version": "1.0.0",
   "private": true,
-  "workspaces": [
-    "apps/*",
-    "packages/*"
-  ],
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "build": "tsc",
@@ -18,17 +14,6 @@
     "smoke:admin:graphql": "ts-node scripts/admin-graphql-smoke.ts",
     "test:generation": "node --test -r ts-node/register scripts/generation.test.ts",
     "test:fargate-render": "node --test -r ts-node/register scripts/fargate-render-smoke.test.ts",
-    "admin:dev": "yarn workspace @apps/admin-web dev",
-    "admin:v2:dev": "yarn workspace @apps/admin-v2 dev",
-    "admin:build": "yarn workspace @apps/admin-web build",
-    "admin:v2:build": "yarn workspace @apps/admin-v2 build",
-    "admin:start": "yarn workspace @apps/admin-web start",
-    "admin:v2:start": "yarn workspace @apps/admin-v2 start",
-    "admin:lint": "yarn workspace @apps/admin-web lint",
-    "admin:v2:lint": "yarn workspace @apps/admin-v2 lint",
-    "admin:lint:fix": "yarn workspace @apps/admin-web lint:fix",
-    "admin:typecheck": "yarn workspace @apps/admin-web typecheck",
-    "admin:v2:typecheck": "yarn workspace @apps/admin-v2 typecheck",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
   "dependencies": {
