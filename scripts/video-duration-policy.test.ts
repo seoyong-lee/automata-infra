@@ -1,7 +1,7 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
-import { resolveTargetVideoDurationSec } from "../services/admin/graphql/run-asset-generation/usecase/run-asset-generation";
+import { resolveTargetVideoDurationSec } from "../services/admin/generations/run-asset-generation/usecase/run-asset-generation";
 import { resolveRequestedBytePlusDurationSec } from "../services/shared/lib/providers/media/byteplus-video";
 import { generateSceneVideos } from "../services/video-generation/usecase/generate-scene-videos";
 

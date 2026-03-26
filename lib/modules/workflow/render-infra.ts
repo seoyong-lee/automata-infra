@@ -2,6 +2,7 @@ import * as path from "path";
 import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecrassets from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
+import * as logs from "aws-cdk-lib/aws-logs";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
@@ -12,6 +13,7 @@ export type WorkflowRenderInfrastructure = {
   taskDefinitionFamily: string;
   securityGroup: ec2.SecurityGroup;
   containerName: string;
+  logGroup: logs.LogGroup;
 };
 
 type CreateWorkflowRenderInfrastructureProps = {
@@ -61,6 +63,9 @@ export const createWorkflowRenderInfrastructure = (
     },
   );
   const containerName = "renderer";
+  const logGroup = new logs.LogGroup(scope, "FargateRenderLogGroup", {
+    logGroupName: `/aws/ecs/${props.projectPrefix}-fargate-renderer`,
+  });
   taskDefinition.addContainer("RendererContainer", {
     containerName,
     image: ecs.ContainerImage.fromAsset(process.cwd(), {
@@ -73,6 +78,7 @@ export const createWorkflowRenderInfrastructure = (
       platform: ecrassets.Platform.LINUX_AMD64,
     }),
     logging: ecs.LogDrivers.awsLogs({
+      logGroup,
       streamPrefix: "ffmpeg-renderer",
     }),
     environment: {
@@ -87,5 +93,6 @@ export const createWorkflowRenderInfrastructure = (
     taskDefinitionFamily: `${props.projectPrefix}-fargate-renderer`,
     securityGroup,
     containerName,
+    logGroup,
   };
 };

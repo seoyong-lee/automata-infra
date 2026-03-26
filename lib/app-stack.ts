@@ -34,13 +34,14 @@ const createLambda = (
   functionName: string,
   entry: string,
   environment: Record<string, string>,
+  timeout: Duration = Duration.seconds(30),
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
     functionName,
     entry,
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
-    timeout: Duration.seconds(30),
+    timeout,
     bundling: {
       target: "node20",
       format: nodejs.OutputFormat.CJS,
@@ -85,15 +86,15 @@ const resolveFargateConfig = (
 
   const fargateEnabled = props.envConfig.enableFargateComposition;
   const subnetIds = fargateEnabled
-    ? props.envConfig.fargateRenderSubnetIds?.map((value) => value.trim()).filter(Boolean) ?? []
+    ? (props.envConfig.fargateRenderSubnetIds
+        ?.map((value) => value.trim())
+        .filter(Boolean) ?? [])
     : (props.envConfig.fargateRenderSubnetIds ?? [])
         .map((value) => value.trim())
         .filter(Boolean);
 
   if (fargateEnabled && subnetIds.length === 0) {
-    throw new Error(
-      "Missing required Fargate config: fargateRenderSubnetIds",
-    );
+    throw new Error("Missing required Fargate config: fargateRenderSubnetIds");
   }
 
   return {
@@ -126,6 +127,7 @@ export class AppStack extends Stack {
   public readonly renderSecurityGroupId: string;
   public readonly renderSubnetIds: string[];
   public readonly renderContainerName: string;
+  public readonly renderLogGroupName?: string;
 
   constructor(scope: Construct, id: string, props: AppStackProps) {
     super(scope, id, {
@@ -180,35 +182,24 @@ export class AppStack extends Stack {
         this.previewDistribution.distributionDomainName,
     };
 
-    const pipelineWorker = new nodejs.NodejsFunction(
+    const pipelineHandler = createLambda(
       this,
-      "AdminPipelineWorkerLambda",
-      {
-        functionName: `${props.projectPrefix}-admin-pipeline-worker`,
-        entry: path.join(
-          process.cwd(),
-          "services/admin/pipeline-worker/handler.ts",
-        ),
-        handler: "handler",
-        runtime: lambda.Runtime.NODEJS_20_X,
-        timeout: Duration.minutes(15),
-        bundling: {
-          target: "node20",
-          format: nodejs.OutputFormat.CJS,
-        },
-        environment,
-      },
+      "AdminPipelineLambda",
+      `${props.projectPrefix}-admin-pipeline`,
+      path.join(process.cwd(), "services/admin/pipeline/handler.ts"),
+      environment,
+      Duration.minutes(15),
     );
-    this.jobsTable.grantReadWriteData(pipelineWorker);
-    this.assetsBucket.grantReadWrite(pipelineWorker);
-    this.llmConfigTable.grantReadData(pipelineWorker);
-    pipelineWorker.addToRolePolicy(
+    this.jobsTable.grantReadWriteData(pipelineHandler);
+    this.assetsBucket.grantReadWrite(pipelineHandler);
+    this.llmConfigTable.grantReadData(pipelineHandler);
+    pipelineHandler.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
         resources: ["*"],
       }),
     );
-    pipelineWorker.addToRolePolicy(
+    pipelineHandler.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "bedrock:InvokeModel",
@@ -237,317 +228,100 @@ export class AppStack extends Stack {
         }),
       );
     };
-    grantFargateRunPermissions(pipelineWorker);
+    grantFargateRunPermissions(pipelineHandler);
 
     const pipelineTriggerEnv = {
       ...environment,
-      PIPELINE_WORKER_FUNCTION_NAME: pipelineWorker.functionName,
+      PIPELINE_WORKER_FUNCTION_NAME: pipelineHandler.functionName,
       PIPELINE_ASYNC_INVOCATION: "1",
     };
 
-    const uploadHandler = createLambda(
+    const uploadGroupHandler = createLambda(
       this,
-      "UploadLambda",
-      `${props.projectPrefix}-publish-upload`,
-      path.join(process.cwd(), "services/publish/upload/handler.ts"),
+      "AdminUploadLambda",
+      `${props.projectPrefix}-admin-upload`,
+      path.join(process.cwd(), "services/publish/grouped-upload/handler.ts"),
       environment,
     );
 
-    const listJobsResolver = createLambda(
+    const jobsHandler = createLambda(
       this,
-      "AdminListJobsResolverLambda",
-      `${props.projectPrefix}-admin-list-jobs`,
-      path.join(process.cwd(), "services/admin/graphql/list-jobs/handler.ts"),
-      environment,
-    );
-    const getJobResolver = createLambda(
-      this,
-      "AdminGetJobResolverLambda",
-      `${props.projectPrefix}-admin-get-job`,
-      path.join(process.cwd(), "services/admin/graphql/get-job/handler.ts"),
-      environment,
-    );
-    const jobTimelineResolver = createLambda(
-      this,
-      "AdminJobTimelineResolverLambda",
-      `${props.projectPrefix}-admin-job-timeline`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/job-timeline/handler.ts",
-      ),
-      environment,
-    );
-    const jobExecutionsResolver = createLambda(
-      this,
-      "AdminJobExecutionsResolverLambda",
-      `${props.projectPrefix}-admin-job-executions`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/job-executions/handler.ts",
-      ),
-      environment,
-    );
-    const requestUploadResolver = createLambda(
-      this,
-      "AdminRequestUploadResolverLambda",
-      `${props.projectPrefix}-admin-request-upload`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/request-upload/handler.ts",
-      ),
-      environment,
-    );
-    const requestAssetUploadResolver = createLambda(
-      this,
-      "AdminRequestAssetUploadResolverLambda",
-      `${props.projectPrefix}-admin-request-asset-upload`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/request-asset-upload/handler.ts",
-      ),
-      environment,
-    );
-    const getLlmSettingsResolver = createLambda(
-      this,
-      "AdminGetLlmSettingsResolverLambda",
-      `${props.projectPrefix}-admin-get-llm-settings`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/get-llm-settings/handler.ts",
-      ),
-      environment,
-    );
-    const updateLlmSettingsResolver = createLambda(
-      this,
-      "AdminUpdateLlmSettingsResolverLambda",
-      `${props.projectPrefix}-admin-update-llm-settings`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/update-llm-settings/handler.ts",
-      ),
-      environment,
-    );
-    const listVoiceProfilesResolver = createLambda(
-      this,
-      "AdminListVoiceProfilesResolverLambda",
-      `${props.projectPrefix}-admin-list-voice-profiles`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/list-voice-profiles/handler.ts",
-      ),
-      environment,
-    );
-    const upsertVoiceProfileResolver = createLambda(
-      this,
-      "AdminUpsertVoiceProfileResolverLambda",
-      `${props.projectPrefix}-admin-upsert-voice-profile`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/upsert-voice-profile/handler.ts",
-      ),
-      environment,
-    );
-    const getJobDraftResolver = createLambda(
-      this,
-      "AdminGetJobDraftResolverLambda",
-      `${props.projectPrefix}-admin-get-job-draft`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/get-job-draft/handler.ts",
-      ),
-      environment,
-    );
-    const createDraftJobResolver = createLambda(
-      this,
-      "AdminCreateDraftJobResolverLambda",
-      `${props.projectPrefix}-admin-create-draft-job`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/create-draft-job/handler.ts",
-      ),
+      "AdminJobsLambda",
+      `${props.projectPrefix}-admin-jobs`,
+      path.join(process.cwd(), "services/admin/jobs/handler.ts"),
       pipelineTriggerEnv,
     );
-    const updateJobBriefResolver = createLambda(
+    const generationsHandler = createLambda(
       this,
-      "AdminUpdateJobBriefResolverLambda",
-      `${props.projectPrefix}-admin-update-job-brief`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/update-job-brief/handler.ts",
-      ),
-      environment,
-    );
-    const runJobPlanResolver = createLambda(
-      this,
-      "AdminRunJobPlanResolverLambda",
-      `${props.projectPrefix}-admin-run-job-plan`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/run-job-plan/handler.ts",
-      ),
+      "AdminGenerationsLambda",
+      `${props.projectPrefix}-admin-generations`,
+      path.join(process.cwd(), "services/admin/generations/handler.ts"),
       pipelineTriggerEnv,
     );
-    const runSceneJsonResolver = createLambda(
+    const contentHandler = createLambda(
       this,
-      "AdminRunSceneJsonResolverLambda",
-      `${props.projectPrefix}-admin-run-scene-json`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/run-scene-json/handler.ts",
-      ),
-      pipelineTriggerEnv,
-    );
-    const updateSceneJsonResolver = createLambda(
-      this,
-      "AdminUpdateSceneJsonResolverLambda",
-      `${props.projectPrefix}-admin-update-scene-json`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/update-scene-json/handler.ts",
-      ),
+      "AdminContentLambda",
+      `${props.projectPrefix}-admin-content`,
+      path.join(process.cwd(), "services/admin/content/handler.ts"),
       environment,
     );
-    const runAssetGenerationResolver = createLambda(
+    const settingsHandler = createLambda(
       this,
-      "AdminRunAssetGenerationResolverLambda",
-      `${props.projectPrefix}-admin-run-asset-generation`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/run-asset-generation/handler.ts",
-      ),
-      pipelineTriggerEnv,
-    );
-    const selectSceneImageCandidateResolver = createLambda(
-      this,
-      "AdminSelectSceneImageCandidateResolverLambda",
-      `${props.projectPrefix}-admin-select-scene-image-candidate`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/select-scene-image-candidate/handler.ts",
-      ),
+      "AdminSettingsLambda",
+      `${props.projectPrefix}-admin-settings`,
+      path.join(process.cwd(), "services/admin/settings/handler.ts"),
       environment,
     );
-    const selectSceneVoiceCandidateResolver = createLambda(
+    const finalHandler = createLambda(
       this,
-      "AdminSelectSceneVoiceCandidateResolverLambda",
-      `${props.projectPrefix}-admin-select-scene-voice-candidate`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/select-scene-voice-candidate/handler.ts",
-      ),
-      environment,
-    );
-    const setJobDefaultVoiceProfileResolver = createLambda(
-      this,
-      "AdminSetJobDefaultVoiceProfileResolverLambda",
-      `${props.projectPrefix}-admin-set-job-default-voice-profile`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/set-job-default-voice-profile/handler.ts",
-      ),
-      environment,
-    );
-    const setJobBackgroundMusicResolver = createLambda(
-      this,
-      "AdminSetJobBackgroundMusicResolverLambda",
-      `${props.projectPrefix}-admin-set-job-background-music`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/set-job-background-music/handler.ts",
-      ),
-      environment,
-    );
-    const setSceneVoiceProfileResolver = createLambda(
-      this,
-      "AdminSetSceneVoiceProfileResolverLambda",
-      `${props.projectPrefix}-admin-set-scene-voice-profile`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/set-scene-voice-profile/handler.ts",
-      ),
-      environment,
-    );
-    const runFinalCompositionResolver = createLambda(
-      this,
-      "AdminRunFinalCompositionResolverLambda",
-      `${props.projectPrefix}-admin-run-final-composition`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/run-final-composition/handler.ts",
-      ),
+      "AdminFinalLambda",
+      `${props.projectPrefix}-admin-final`,
+      path.join(process.cwd(), "services/admin/final/handler.ts"),
       {
         ...pipelineTriggerEnv,
         SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
       },
     );
-    grantFargateRunPermissions(runFinalCompositionResolver);
-    const deleteJobResolver = createLambda(
-      this,
-      "AdminDeleteJobResolverLambda",
-      `${props.projectPrefix}-admin-delete-job`,
-      path.join(process.cwd(), "services/admin/graphql/delete-job/handler.ts"),
-      environment,
-    );
-    const attachJobToContentResolver = createLambda(
-      this,
-      "AdminAttachJobToContentResolverLambda",
-      `${props.projectPrefix}-admin-attach-job-to-content`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/attach-job-to-content/handler.ts",
-      ),
-      environment,
-    );
-    const approvePipelineExecutionResolver = createLambda(
-      this,
-      "AdminApprovePipelineExecutionResolverLambda",
-      `${props.projectPrefix}-admin-approve-pipeline-execution`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/approve-pipeline-execution/handler.ts",
-      ),
-      environment,
-    );
-    const listContentsResolver = createLambda(
-      this,
-      "AdminListContentsResolverLambda",
-      `${props.projectPrefix}-admin-list-contents`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/list-contents/handler.ts",
-      ),
-      environment,
-    );
-    const createContentResolver = createLambda(
-      this,
-      "AdminCreateContentResolverLambda",
-      `${props.projectPrefix}-admin-create-content`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/create-content/handler.ts",
-      ),
-      environment,
-    );
-    const deleteContentResolver = createLambda(
-      this,
-      "AdminDeleteContentResolverLambda",
-      `${props.projectPrefix}-admin-delete-content`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/delete-content/handler.ts",
-      ),
-      environment,
-    );
-    const updateContentResolver = createLambda(
-      this,
-      "AdminUpdateContentResolverLambda",
-      `${props.projectPrefix}-admin-update-content`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/update-content/handler.ts",
-      ),
-      environment,
-    );
+    grantFargateRunPermissions(finalHandler);
+
+    const listJobsResolver = jobsHandler;
+    const getJobResolver = jobsHandler;
+    const jobTimelineResolver = jobsHandler;
+    const jobExecutionsResolver = jobsHandler;
+    const getJobDraftResolver = jobsHandler;
+    const createDraftJobResolver = jobsHandler;
+    const updateJobBriefResolver = jobsHandler;
+    const deleteJobResolver = jobsHandler;
+
+    const requestUploadResolver = uploadGroupHandler;
+    const requestAssetUploadResolver = uploadGroupHandler;
+
+    const getLlmSettingsResolver = settingsHandler;
+    const updateLlmSettingsResolver = settingsHandler;
+    const listVoiceProfilesResolver = settingsHandler;
+    const upsertVoiceProfileResolver = settingsHandler;
+
+    const runJobPlanResolver = generationsHandler;
+    const runSceneJsonResolver = generationsHandler;
+    const updateSceneJsonResolver = generationsHandler;
+    const runAssetGenerationResolver = generationsHandler;
+    const selectSceneImageCandidateResolver = generationsHandler;
+    const selectSceneVoiceCandidateResolver = generationsHandler;
+    const setJobDefaultVoiceProfileResolver = generationsHandler;
+    const setJobBackgroundMusicResolver = generationsHandler;
+    const setSceneVoiceProfileResolver = generationsHandler;
+
+    const runFinalCompositionResolver = finalHandler;
+
+    const approvePipelineExecutionResolver = pipelineHandler;
+
+    const listContentsResolver = contentHandler;
+    const createContentResolver = contentHandler;
+    const deleteContentResolver = contentHandler;
+    const updateContentResolver = contentHandler;
+    const attachJobToContentResolver = contentHandler;
+
+    const uploadHandler = uploadGroupHandler;
 
     this.assetsBucket.grantRead(uploadHandler);
     this.assetsBucket.grantRead(requestUploadResolver);
@@ -674,11 +448,11 @@ export class AppStack extends Stack {
       }),
     );
 
-    pipelineWorker.grantInvoke(createDraftJobResolver);
-    pipelineWorker.grantInvoke(runJobPlanResolver);
-    pipelineWorker.grantInvoke(runSceneJsonResolver);
-    pipelineWorker.grantInvoke(runAssetGenerationResolver);
-    pipelineWorker.grantInvoke(runFinalCompositionResolver);
+    pipelineHandler.grantInvoke(createDraftJobResolver);
+    pipelineHandler.grantInvoke(runJobPlanResolver);
+    pipelineHandler.grantInvoke(runSceneJsonResolver);
+    pipelineHandler.grantInvoke(runAssetGenerationResolver);
+    pipelineHandler.grantInvoke(runFinalCompositionResolver);
 
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,
@@ -743,11 +517,19 @@ export class AppStack extends Stack {
     new CfnOutput(this, "RenderClusterArn", {
       value: this.renderClusterArn,
     });
+    if (props.envConfig.manageFargateInfra) {
+      new CfnOutput(this, "RenderLogGroupName", {
+        value: `/aws/ecs/${props.projectPrefix}-fargate-renderer`,
+      });
+    }
     new CfnOutput(this, "PublishApiUrl", {
       value: publishApi.api.url,
     });
     new CfnOutput(this, "AdminGraphqlUrl", {
       value: adminGraphql.graphqlApi.graphqlUrl,
+    });
+    new CfnOutput(this, "AdminGraphqlLogGroupName", {
+      value: `/aws/appsync/apis/${adminGraphql.graphqlApi.apiId}`,
     });
     new CfnOutput(this, "AdminUserPoolId", {
       value: auth.userPool.userPoolId,
