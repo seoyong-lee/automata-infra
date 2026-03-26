@@ -2,7 +2,9 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { parseUpdateSceneJsonArgs } from "../services/admin/generations/update-scene-json/normalize/parse-update-scene-json-args";
+import { updateLlmStepSettings } from "../services/admin/settings/update-llm-settings/repo/update-llm-step-settings";
 import { collectAssetRefs } from "../services/composition/validate-assets/normalize/collect-asset-refs";
+import { generateStructuredDataWithProvider } from "../services/shared/lib/providers/llm";
 
 void test("collectAssetRefs matches assets by sceneId before array position", () => {
   const refs = collectAssetRefs({
@@ -147,5 +149,50 @@ void test("parseUpdateSceneJsonArgs rejects non-integer scene ids", () => {
         },
       }),
     /integer|Invalid input/i,
+  );
+});
+
+void test("updateLlmStepSettings rejects GEMINI until runtime support exists", async () => {
+  await assert.rejects(
+    () =>
+      updateLlmStepSettings({
+        actor: "tester",
+        stepKey: "job-plan",
+        provider: "GEMINI",
+        model: "gemini-2.5-pro",
+        temperature: 0.2,
+        secretIdEnvVar: "GEMINI_SECRET_ID",
+        promptVersion: "v1",
+        systemPrompt: "system",
+        userPrompt: "user",
+      }),
+    /not supported by runtime yet/,
+  );
+});
+
+void test("generateStructuredDataWithProvider does not fallback unsupported providers", async () => {
+  await assert.rejects(
+    () =>
+      generateStructuredDataWithProvider({
+        jobId: "job_123",
+        stepKey: "job-plan",
+        prompt: "prompt",
+        template: {
+          stepKey: "job-plan",
+          version: "v1",
+          systemPrompt: "system",
+          userPrompt: "user",
+        },
+        config: {
+          stepKey: "job-plan",
+          provider: "gemini",
+          model: "gemini-2.5-pro",
+          temperature: 0.2,
+          secretIdEnvVar: "GEMINI_SECRET_ID",
+        },
+        validate: (payload) => payload,
+        buildMockResult: () => ({ mocked: true }),
+      }),
+    /Unsupported LLM provider: gemini/,
   );
 });

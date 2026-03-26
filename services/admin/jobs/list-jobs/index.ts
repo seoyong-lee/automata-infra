@@ -1,5 +1,8 @@
 import { Handler } from "aws-lambda";
-import { getActor } from "../../../shared/lib/auth/admin-claims";
+import {
+  assertAdminGroup,
+  getActor,
+} from "../../../shared/lib/auth/admin-claims";
 import { logResolverAudit } from "../../shared/audit-log";
 import { toGraphqlResolverError } from "../../shared/errors";
 import { parseListJobsArgs } from "./normalize/parse-list-jobs-args";
@@ -12,6 +15,7 @@ export const run: Handler<
 > = async (event) => {
   const actor = getActor(event.identity);
   try {
+    assertAdminGroup(event.identity);
     logResolverAudit({
       operation: "adminJobs",
       operationType: "query",

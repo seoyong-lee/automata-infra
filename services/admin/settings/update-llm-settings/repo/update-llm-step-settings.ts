@@ -1,6 +1,7 @@
 import { putLlmStepSettings } from "../../../../shared/lib/store/llm-config";
 import type { LlmProvider } from "../../../shared/types";
 import type { LlmStepSettings } from "../../../../shared/lib/llm";
+import { badUserInput } from "../../../shared/errors";
 
 const mapProvider = (
   provider: LlmProvider,
@@ -9,7 +10,7 @@ const mapProvider = (
     case "OPENAI":
       return "openai";
     case "GEMINI":
-      return "gemini";
+      throw badUserInput("provider GEMINI is not supported by runtime yet");
     case "BEDROCK":
       return "bedrock";
   }

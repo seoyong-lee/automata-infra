@@ -27,6 +27,8 @@ export const generateStructuredDataWithProvider = async <T>(input: {
   validate: (payload: unknown) => T;
   buildMockResult: () => T;
 }): Promise<GenerateStructuredDataResult<T>> => {
+  const supportsOpenAiFallback =
+    input.config.provider === "openai" || input.config.provider === "bedrock";
   try {
     switch (input.config.provider) {
       case "openai":
@@ -41,7 +43,7 @@ export const generateStructuredDataWithProvider = async <T>(input: {
       input.config.provider === "openai" &&
       input.config.model === FALLBACK_MODEL &&
       input.config.secretIdEnvVar === FALLBACK_SECRET_ENV;
-    if (skipFallback) {
+    if (skipFallback || !supportsOpenAiFallback) {
       throw error;
     }
 

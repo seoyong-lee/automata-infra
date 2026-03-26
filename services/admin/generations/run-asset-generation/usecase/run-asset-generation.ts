@@ -168,6 +168,78 @@ export const resolveTargetVideoDurationSec = (input: {
   return Math.max(0.1, plannedDurationSec, voiceDurationSec);
 };
 
+type ListedSceneAsset = Awaited<ReturnType<typeof listSceneAssets>>[number];
+type VoiceProfile = Awaited<ReturnType<typeof getVoiceProfile>>;
+
+const resolveNonEmptyString = (value: unknown): string | undefined => {
+  return typeof value === "string" && value.trim().length > 0
+    ? value
+    : undefined;
+};
+
+const buildSceneAssetMap = (
+  sceneAssets: ListedSceneAsset[],
+): Map<number, ListedSceneAsset> => {
+  return new Map(sceneAssets.map((asset) => [asset.sceneId, asset]));
+};
+
+const resolveVoiceProfileId = (input: {
+  sceneId: number;
+  sceneAssetMap: Map<number, ListedSceneAsset>;
+  defaultVoiceProfileId?: string;
+}): string | undefined => {
+  const sceneProfileId = resolveNonEmptyString(
+    input.sceneAssetMap.get(input.sceneId)?.voiceProfileId,
+  );
+  if (sceneProfileId) {
+    return sceneProfileId;
+  }
+  return resolveNonEmptyString(input.defaultVoiceProfileId);
+};
+
+const buildVoiceSettings = (profile: VoiceProfile) => ({
+  ...(typeof profile?.speed === "number" ? { speed: profile.speed } : {}),
+  ...(typeof profile?.stability === "number"
+    ? { stability: profile.stability }
+    : {}),
+  ...(typeof profile?.similarityBoost === "number"
+    ? { similarityBoost: profile.similarityBoost }
+    : {}),
+  ...(typeof profile?.style === "number" ? { style: profile.style } : {}),
+  ...(typeof profile?.useSpeakerBoost === "boolean"
+    ? { useSpeakerBoost: profile.useSpeakerBoost }
+    : {}),
+});
+
+const buildVoiceScene = async (input: {
+  scene: SceneDefinition;
+  sceneAssetMap: Map<number, ListedSceneAsset>;
+  defaultVoiceProfileId?: string;
+}) => {
+  const selectedProfileId = resolveVoiceProfileId({
+    sceneId: input.scene.sceneId,
+    sceneAssetMap: input.sceneAssetMap,
+    defaultVoiceProfileId: input.defaultVoiceProfileId,
+  });
+  const selectedProfile = selectedProfileId
+    ? await getVoiceProfile(selectedProfileId)
+    : null;
+  if (selectedProfileId && !selectedProfile) {
+    throw notFound(`voice profile not found: ${selectedProfileId}`);
+  }
+
+  return {
+    sceneId: input.scene.sceneId,
+    narration: input.scene.narration,
+    disableNarration: input.scene.disableNarration,
+    durationSec: input.scene.durationSec,
+    voiceProfileId: selectedProfile?.profileId,
+    voiceId: selectedProfile?.voiceId,
+    modelId: selectedProfile?.modelId,
+    voiceSettings: buildVoiceSettings(selectedProfile),
+  };
+};
+
 const runVideoModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
@@ -220,61 +292,16 @@ const runVoiceModalityForScenes = async (
   scenes: SceneDefinition[],
 ) => {
   const job = await getJobOrThrow(jobId);
-  const sceneAssets = await listSceneAssets(jobId);
-  const sceneAssetMap = new Map(
-    sceneAssets.map((asset) => [asset.sceneId, asset]),
+  const sceneAssetMap = buildSceneAssetMap(await listSceneAssets(jobId));
+  const voiceScenes = await Promise.all(
+    scenes.map((scene) =>
+      buildVoiceScene({
+        scene,
+        sceneAssetMap,
+        defaultVoiceProfileId: job.defaultVoiceProfileId,
+      }),
+    ),
   );
-  const pickProfileId = (sceneId: number): string | undefined => {
-    const sceneAsset = sceneAssetMap.get(sceneId);
-    if (
-      typeof sceneAsset?.voiceProfileId === "string" &&
-      sceneAsset.voiceProfileId.trim().length > 0
-    ) {
-      return sceneAsset.voiceProfileId;
-    }
-    if (
-      typeof job.defaultVoiceProfileId === "string" &&
-      job.defaultVoiceProfileId.trim().length > 0
-    ) {
-      return job.defaultVoiceProfileId;
-    }
-    return undefined;
-  };
-  const buildVoiceSettings = (
-    profile: Awaited<ReturnType<typeof getVoiceProfile>>,
-  ) => ({
-    ...(typeof profile?.speed === "number" ? { speed: profile.speed } : {}),
-    ...(typeof profile?.stability === "number"
-      ? { stability: profile.stability }
-      : {}),
-    ...(typeof profile?.similarityBoost === "number"
-      ? { similarityBoost: profile.similarityBoost }
-      : {}),
-    ...(typeof profile?.style === "number" ? { style: profile.style } : {}),
-    ...(typeof profile?.useSpeakerBoost === "boolean"
-      ? { useSpeakerBoost: profile.useSpeakerBoost }
-      : {}),
-  });
-  const buildVoiceScene = async (scene: SceneDefinition) => {
-    const selectedProfileId = pickProfileId(scene.sceneId);
-    const selectedProfile = selectedProfileId
-      ? await getVoiceProfile(selectedProfileId)
-      : null;
-    if (selectedProfileId && !selectedProfile) {
-      throw notFound(`voice profile not found: ${selectedProfileId}`);
-    }
-    return {
-      sceneId: scene.sceneId,
-      narration: scene.narration,
-      disableNarration: scene.disableNarration,
-      durationSec: scene.durationSec,
-      voiceProfileId: selectedProfile?.profileId,
-      voiceId: selectedProfile?.voiceId,
-      modelId: selectedProfile?.modelId,
-      voiceSettings: buildVoiceSettings(selectedProfile),
-    };
-  };
-  const voiceScenes = await Promise.all(scenes.map(buildVoiceScene));
   const voiceAssets = await generateSceneVoices({
     jobId,
     scenes: voiceScenes,

@@ -40,6 +40,7 @@ export const runJobPlanCore = async (jobId: string) => {
       language: planned.targetLanguage,
       targetDurationSec: planned.targetDurationSec,
       videoTitle: planned.titleIdea,
+      lastError: null,
     },
     "PLANNED",
   );
@@ -67,6 +68,7 @@ export const runAdminJobPlan = async (jobId: string, triggeredBy?: string) => {
       });
     } catch (e) {
       const msg = e instanceof Error ? e.message : String(e);
+      await updateJobMeta(jobId, { lastError: msg }, "FAILED");
       await finish("FAILED", msg);
       throw e;
     }
@@ -86,6 +88,7 @@ export const runAdminJobPlan = async (jobId: string, triggeredBy?: string) => {
     return result;
   } catch (e) {
     const msg = e instanceof Error ? e.message : String(e);
+    await updateJobMeta(jobId, { lastError: msg }, "FAILED");
     await finish("FAILED", msg);
     throw e;
   }
