@@ -13,6 +13,8 @@ type BytePlusVideoSecret = {
   queryEndpoint?: string;
   promptField?: string;
   imageField?: string;
+  pollIntervalMs?: number;
+  pollTimeoutMs?: number;
   ratio?: string;
   duration?: number;
   supportedDurations?: number[];
@@ -28,6 +30,8 @@ const DEFAULT_CREATE_ENDPOINT =
   "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks";
 const DEFAULT_QUERY_ENDPOINT =
   "https://ark.ap-southeast.bytepluses.com/api/v3/contents/generations/tasks/{id}";
+const DEFAULT_POLL_INTERVAL_MS = 3000;
+const DEFAULT_POLL_TIMEOUT_MS = 600000;
 
 const hashPrompt = (prompt: string): string => {
   return createHash("sha256").update(prompt).digest("hex").slice(0, 12);
@@ -112,23 +116,24 @@ const resolveRatio = (
 
 const DEFAULT_SUPPORTED_DURATIONS_SEC = [5, 8, 10] as const;
 
-const resolveSupportedDurations = (
-  secret: BytePlusVideoSecret,
-): number[] => {
+const resolveSupportedDurations = (secret: BytePlusVideoSecret): number[] => {
   const configured = Array.isArray(secret.supportedDurations)
     ? secret.supportedDurations.filter(
         (value): value is number =>
-          typeof value === "number" &&
-          Number.isFinite(value) &&
-          value > 0,
+          typeof value === "number" && Number.isFinite(value) && value > 0,
       )
     : [];
   const fallback =
     typeof secret.duration === "number" && Number.isFinite(secret.duration)
       ? [Math.ceil(secret.duration)]
       : [];
-  return [...new Set([...configured, ...fallback, ...DEFAULT_SUPPORTED_DURATIONS_SEC])]
-    .sort((left, right) => left - right);
+  return [
+    ...new Set([
+      ...configured,
+      ...fallback,
+      ...DEFAULT_SUPPORTED_DURATIONS_SEC,
+    ]),
+  ].sort((left, right) => left - right);
 };
 
 export const resolveRequestedBytePlusDurationSec = (input: {
@@ -137,9 +142,10 @@ export const resolveRequestedBytePlusDurationSec = (input: {
 }): number => {
   const supportedDurations = resolveSupportedDurations(input.secret);
   const preferredDuration =
-    typeof input.secret.duration === "number" && Number.isFinite(input.secret.duration)
+    typeof input.secret.duration === "number" &&
+    Number.isFinite(input.secret.duration)
       ? Math.ceil(input.secret.duration)
-      : supportedDurations[0] ?? 5;
+      : (supportedDurations[0] ?? 5);
   if (
     typeof input.targetDurationSec !== "number" ||
     !Number.isFinite(input.targetDurationSec) ||
@@ -159,6 +165,35 @@ const resolveResolution = (secret: BytePlusVideoSecret): string => {
   return secret.resolution?.trim() || "720p";
 };
 
+const resolvePositiveInteger = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value) && value > 0) {
+    return Math.floor(value);
+  }
+  if (typeof value === "string" && value.trim().length > 0) {
+    const parsed = Number.parseInt(value, 10);
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed;
+    }
+  }
+  return undefined;
+};
+
+const resolvePollIntervalMs = (secret: BytePlusVideoSecret): number => {
+  return (
+    resolvePositiveInteger(secret.pollIntervalMs) ??
+    resolvePositiveInteger(process.env.BYTEPLUS_VIDEO_POLL_INTERVAL_MS) ??
+    DEFAULT_POLL_INTERVAL_MS
+  );
+};
+
+const resolvePollTimeoutMs = (secret: BytePlusVideoSecret): number => {
+  return (
+    resolvePositiveInteger(secret.pollTimeoutMs) ??
+    resolvePositiveInteger(process.env.BYTEPLUS_VIDEO_POLL_TIMEOUT_MS) ??
+    DEFAULT_POLL_TIMEOUT_MS
+  );
+};
+
 const resolveGenerateAudio = (
   secret: BytePlusVideoSecret,
 ): boolean | undefined => {
@@ -169,6 +204,39 @@ const resolveGenerateAudio = (
 
 const resolveWatermark = (secret: BytePlusVideoSecret): boolean | undefined => {
   return typeof secret.watermark === "boolean" ? secret.watermark : false;
+};
+
+const buildBytePlusRequestMeta = (input: {
+  secret: BytePlusVideoSecret;
+  targetDurationSec?: number;
+  selectedImageDataUri?: string;
+}): Record<string, unknown> => {
+  const imageField = input.secret.imageField?.trim();
+  const promptField = resolvePromptField(input.secret);
+  const ratio = resolveRatio(input.secret, Boolean(input.selectedImageDataUri));
+  const duration = resolveRequestedBytePlusDurationSec({
+    secret: input.secret,
+    targetDurationSec: input.targetDurationSec,
+  });
+  const resolution = resolveResolution(input.secret);
+  const generateAudio = resolveGenerateAudio(input.secret);
+  const watermark = resolveWatermark(input.secret);
+  return {
+    promptField,
+    imageField,
+    ratio,
+    targetDurationSec: input.targetDurationSec,
+    supportedDurations: resolveSupportedDurations(input.secret),
+    duration,
+    resolution,
+    generateAudio,
+    watermark,
+    attachedAsContentRole: input.selectedImageDataUri ? "first_frame" : null,
+    selectedImageAttached: Boolean(input.selectedImageDataUri),
+    pollIntervalMs: resolvePollIntervalMs(input.secret),
+    pollTimeoutMs: resolvePollTimeoutMs(input.secret),
+    requestShape: "content",
+  };
 };
 
 const collectStringUrls = (value: unknown): string[] => {
@@ -355,6 +423,7 @@ const failBytePlusVideo = async (input: {
   resolvedDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
+  requestMeta?: Record<string, unknown>;
   prompt: string;
   error: unknown;
 }): Promise<never> => {
@@ -373,11 +442,12 @@ const failBytePlusVideo = async (input: {
     normalizedQueryEndpoint: input.queryEndpoint,
     selectedImageS3Key: input.selectedImageS3Key,
     selectedImageAttached: Boolean(input.selectedImageDataUri),
+    requestMeta: input.requestMeta,
     promptPreview: input.prompt.slice(0, 300),
     error: message,
   });
   throw new Error(
-    `BytePlus video generation failed: model=${input.model}, endpoint=${input.endpoint}, queryEndpoint=${input.queryEndpoint}, promptField=${input.promptField}, imageField=${input.imageField ?? "none"}, selectedImage=${input.selectedImageS3Key ?? "none"}, logKey=${input.rawKey}, error=${message}`,
+    `BytePlus video generation failed: model=${input.model}, endpoint=${input.endpoint}, queryEndpoint=${input.queryEndpoint}, promptField=${input.promptField}, imageField=${input.imageField ?? "none"}, selectedImage=${input.selectedImageS3Key ?? "none"}, selectedImageAttached=${Boolean(input.selectedImageDataUri)}, pollIntervalMs=${String(input.requestMeta?.pollIntervalMs ?? "unknown")}, pollTimeoutMs=${String(input.requestMeta?.pollTimeoutMs ?? "unknown")}, requestShape=${String(input.requestMeta?.requestShape ?? "unknown")}, logKey=${input.rawKey}, error=${message}`,
   );
 };
 
@@ -439,7 +509,9 @@ const completeBytePlusVideo = async (input: {
     mocked: false,
     targetDurationSec: input.targetDurationSec,
     resolvedDurationSec:
-      typeof requestMeta.duration === "number" ? requestMeta.duration : undefined,
+      typeof requestMeta.duration === "number"
+        ? requestMeta.duration
+        : undefined,
   };
 };
 
@@ -456,29 +528,40 @@ const executeBytePlusVideoTask = async (input: {
   resolvedQueryEndpoint?: string;
   requestMeta: Record<string, unknown>;
 }> => {
-  const imageField = input.secret.imageField?.trim();
-  const promptField = resolvePromptField(input.secret);
-  const ratio = resolveRatio(input.secret, Boolean(input.selectedImageDataUri));
-  const duration = resolveRequestedBytePlusDurationSec({
+  const requestMeta = buildBytePlusRequestMeta({
     secret: input.secret,
     targetDurationSec: input.targetDurationSec,
+    selectedImageDataUri: input.selectedImageDataUri,
   });
-  const resolution = resolveResolution(input.secret);
-  const generateAudio = resolveGenerateAudio(input.secret);
-  const watermark = resolveWatermark(input.secret);
   const submitted = await submitBytePlusVideoTask({
     endpoint: input.endpoint,
     apiKey: input.secret.apiKey,
     model: resolveVideoModel(input.secret),
     prompt: input.prompt,
-    promptField,
-    imageField,
+    promptField:
+      typeof requestMeta.promptField === "string"
+        ? requestMeta.promptField
+        : "",
+    imageField:
+      typeof requestMeta.imageField === "string"
+        ? requestMeta.imageField
+        : undefined,
     selectedImageDataUri: input.selectedImageDataUri,
-    ratio,
-    duration,
-    resolution,
-    generateAudio,
-    watermark,
+    ratio: typeof requestMeta.ratio === "string" ? requestMeta.ratio : "9:16",
+    duration:
+      typeof requestMeta.duration === "number" ? requestMeta.duration : 5,
+    resolution:
+      typeof requestMeta.resolution === "string"
+        ? requestMeta.resolution
+        : "720p",
+    generateAudio:
+      typeof requestMeta.generateAudio === "boolean"
+        ? requestMeta.generateAudio
+        : undefined,
+    watermark:
+      typeof requestMeta.watermark === "boolean"
+        ? requestMeta.watermark
+        : undefined,
     extraBody: input.secret.extraBody,
   });
   const taskId = getTaskId(submitted);
@@ -492,6 +575,14 @@ const executeBytePlusVideoTask = async (input: {
     payload = await pollBytePlusVideoTask({
       endpoint: resolvedQueryEndpoint,
       apiKey: input.secret.apiKey,
+      intervalMs:
+        typeof requestMeta.pollIntervalMs === "number"
+          ? requestMeta.pollIntervalMs
+          : DEFAULT_POLL_INTERVAL_MS,
+      timeoutMs:
+        typeof requestMeta.pollTimeoutMs === "number"
+          ? requestMeta.pollTimeoutMs
+          : DEFAULT_POLL_TIMEOUT_MS,
     });
   }
 
@@ -499,24 +590,15 @@ const executeBytePlusVideoTask = async (input: {
     submitted,
     payload,
     resolvedQueryEndpoint,
-    requestMeta: {
-      promptField,
-      imageField,
-      ratio,
-      targetDurationSec: input.targetDurationSec,
-      supportedDurations: resolveSupportedDurations(input.secret),
-      duration,
-      resolution,
-      generateAudio,
-      watermark,
-      attachedAsContentRole: input.selectedImageDataUri ? "first_frame" : null,
-    },
+    requestMeta,
   };
 };
 
 const pollBytePlusVideoTask = async (input: {
   endpoint: string;
   apiKey: string;
+  intervalMs: number;
+  timeoutMs: number;
 }): Promise<Record<string, unknown>> => {
   return pollUntil<Record<string, unknown>>({
     fetcher: () =>
@@ -537,8 +619,8 @@ const pollBytePlusVideoTask = async (input: {
           : typeof payload.task_status === "string"
             ? payload.task_status
             : "unknown",
-    intervalMs: 3000,
-    timeoutMs: 120000,
+    intervalMs: input.intervalMs,
+    timeoutMs: input.timeoutMs,
   });
 };
 
@@ -574,6 +656,11 @@ export const generateSceneBytePlusVideo = async (input: {
   const model = resolveVideoModel(secret);
   const promptField = resolvePromptField(secret);
   const imageField = secret.imageField?.trim();
+  const requestMeta = buildBytePlusRequestMeta({
+    secret,
+    targetDurationSec: input.targetDurationSec,
+    selectedImageDataUri: input.selectedImageDataUri,
+  });
 
   try {
     return await completeBytePlusVideo({
@@ -605,6 +692,7 @@ export const generateSceneBytePlusVideo = async (input: {
       }),
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
+      requestMeta,
       prompt: input.prompt,
       error,
     });
