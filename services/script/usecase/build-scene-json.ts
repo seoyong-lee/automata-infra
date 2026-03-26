@@ -13,9 +13,8 @@ import {
 } from "../../shared/lib/llm/validate";
 import { SceneJson } from "../../../types/render/scene-json";
 
-type TopicPlanResult = {
+type JobPlanResult = {
   jobId: string;
-  topicId: string;
   contentId: string;
   contentType?: string;
   variant?: string;
@@ -28,13 +27,13 @@ type TopicPlanResult = {
   publishAt?: string;
 };
 
-export type SceneJsonResult = TopicPlanResult & {
+export type SceneJsonResult = JobPlanResult & {
   status: string;
   sceneJsonS3Key: string;
   sceneJson: SceneJson;
 };
 
-const buildMockSceneJson = (event: TopicPlanResult): SceneJson => {
+const buildMockSceneJson = (event: JobPlanResult): SceneJson => {
   return {
     videoTitle: event.titleIdea,
     language: event.targetLanguage,
@@ -124,7 +123,7 @@ type BuildSceneJsonDeps = {
 };
 
 export const buildSceneJson = async (
-  event: TopicPlanResult,
+  event: JobPlanResult,
   deps: BuildSceneJsonDeps = {},
 ): Promise<SceneJson> => {
   const generateStructuredData =

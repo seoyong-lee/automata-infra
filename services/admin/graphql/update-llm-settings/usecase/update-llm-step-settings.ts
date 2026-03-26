@@ -4,7 +4,7 @@ import { updateLlmStepSettings } from "../repo/update-llm-step-settings";
 
 export const updateAdminLlmStepSettings = async (input: {
   actor: string;
-  stepKey: "topic-plan" | "scene-json" | "metadata";
+  stepKey: "job-plan" | "scene-json" | "metadata";
   provider: LlmProvider;
   model: string;
   temperature: number;

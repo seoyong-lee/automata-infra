@@ -1,4 +1,4 @@
-import { createHash, randomUUID } from "crypto";
+import { randomUUID } from "crypto";
 import { putJsonToS3 } from "../../../../shared/lib/aws/runtime";
 import {
   ADMIN_UNASSIGNED_CONTENT_ID,
@@ -12,22 +12,18 @@ import {
 } from "../../../../shared/lib/store/video-jobs";
 import {
   buildContentBriefKey,
-  buildTopicSeedKey,
+  buildJobBriefKey,
 } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import type {
   ContentBriefDto,
   CreateDraftJobInputDto,
-  TopicSeedDto,
+  JobBriefDto,
 } from "../../shared/types";
 import { notFound } from "../../shared/errors";
 
 const LEGACY_CONTENT_TYPE = "default";
 const LEGACY_VARIANT = "default";
-
-const buildTopicHash = (titleIdea: string): string => {
-  return createHash("sha256").update(titleIdea).digest("hex").slice(0, 16);
-};
 
 const normalizeSlug = (value: string): string => {
   const normalized = value
@@ -43,10 +39,10 @@ const buildJobId = (): string => {
   return `job_${randomUUID().replace(/-/g, "")}`;
 };
 
-const buildTopicSeed = (
+const buildJobBrief = (
   draft: CreateDraftJobInputDto,
   contentId: string,
-): TopicSeedDto => {
+): JobBriefDto => {
   return {
     contentId,
     targetLanguage: draft.targetLanguage,
@@ -85,7 +81,7 @@ const buildContentBrief = (input: {
       audience: input.contentLabel,
       style: input.draft.stylePreset,
       tone: "default",
-      topicKey: normalizeSlug(input.draft.titleIdea),
+      ideaKey: normalizeSlug(input.draft.titleIdea),
     },
     constraints: {
       maxScenes: 5,
@@ -113,7 +109,7 @@ export const createDraftJob = async (input: {
   const contentId = parent?.contentId ?? ADMIN_UNASSIGNED_CONTENT_ID;
   const contentLabel = parent?.label ?? "미연결";
   const jobId = buildJobId();
-  const topicSeed = buildTopicSeed(input.draft, contentId);
+  const jobBrief = buildJobBrief(input.draft, contentId);
   const contentBrief = buildContentBrief({
     draft: input.draft,
     jobId,
@@ -121,13 +117,12 @@ export const createDraftJob = async (input: {
     contentId,
     contentLabel,
   });
-  const topicSeedS3Key = buildTopicSeedKey(jobId);
+  const jobBriefS3Key = buildJobBriefKey(jobId);
   const contentBriefS3Key = buildContentBriefKey(jobId);
   await Promise.all([
-    putJsonToS3(topicSeedS3Key, topicSeed),
+    putJsonToS3(jobBriefS3Key, jobBrief),
     putJsonToS3(contentBriefS3Key, contentBrief),
   ]);
-  const topicHash = buildTopicHash(topicSeed.titleIdea);
 
   const item: JobMetaItem = {
     PK: `JOB#${jobId}`,
@@ -136,29 +131,25 @@ export const createDraftJob = async (input: {
     contentType: LEGACY_CONTENT_TYPE,
     variant: LEGACY_VARIANT,
     contentId,
-    topicId: `topic_${jobId}`,
-    topicHash,
     status: "DRAFT",
     autoPublish: input.draft.autoPublish ?? false,
     publishAt: input.draft.publishAt,
-    language: topicSeed.targetLanguage,
-    targetDurationSec: topicSeed.targetDurationSec,
-    videoTitle: topicSeed.titleIdea,
+    language: jobBrief.targetLanguage,
+    targetDurationSec: jobBrief.targetDurationSec,
+    videoTitle: jobBrief.titleIdea,
     estimatedCost: 0,
     providerCosts: {},
     reviewMode: true,
     retryCount: 0,
     lastError: null,
     contentBriefS3Key,
-    topicSeedS3Key,
+    jobBriefS3Key,
     createdAt: input.now,
     updatedAt: input.now,
     GSI1PK: "STATUS#DRAFT",
     GSI1SK: input.now,
     GSI2PK: gsi2PkForContentId(contentId),
     GSI2SK: `${input.now}#JOB#${jobId}`,
-    GSI3PK: `TOPIC#${topicHash}`,
-    GSI3SK: `${input.now}#JOB#${jobId}`,
     GSI4PK: `CONTENT#${LEGACY_CONTENT_TYPE}`,
     GSI4SK: `${input.now}#JOB#${jobId}`,
     GSI5PK: `CONTENT#${contentId}`,

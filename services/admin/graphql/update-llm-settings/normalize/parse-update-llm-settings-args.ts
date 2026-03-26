@@ -2,7 +2,7 @@ import { badUserInput } from "../../shared/errors";
 import type { LlmProvider } from "../../shared/types";
 
 type UpdateLlmStepSettingsInput = {
-  stepKey: "topic-plan" | "scene-json" | "metadata";
+  stepKey: "job-plan" | "scene-json" | "metadata";
   provider: LlmProvider;
   model: string;
   temperature: number;
@@ -33,9 +33,7 @@ const isSupportedStepKey = (
   stepKey: string,
 ): stepKey is UpdateLlmStepSettingsInput["stepKey"] => {
   return (
-    stepKey === "topic-plan" ||
-    stepKey === "scene-json" ||
-    stepKey === "metadata"
+    stepKey === "job-plan" || stepKey === "scene-json" || stepKey === "metadata"
   );
 };
 

@@ -2,7 +2,7 @@ import { RemovalPolicy } from "aws-cdk-lib";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
 import { Construct } from "constructs";
 
-const GSI_COUNT = 6;
+const GSI_COUNT = 5;
 
 /**
  * DynamoDB allows only one GSI create or delete per table update. If the stack
@@ -10,10 +10,11 @@ const GSI_COUNT = 6;
  * "Cannot perform more than one GSI creation or deletion in a single update".
  *
  * For an existing table, raise `videoJobsMaxGsiNumber` one step at a time and
- * deploy after each change (e.g. 5 → deploy → 6 → deploy).
- * Omit the context (default 6) once the table matches this definition.
+ * deploy after each change.
+ * Omit the context once the table matches this definition.
  *
- * Example: `cdk deploy -c videoJobsMaxGsiNumber=5 ...`
+ * Example: deleting the legacy topic index once:
+ * `cdk deploy -c videoJobsMaxGsiNumber=5 ...`
  */
 const parseVideoJobsMaxGsiNumber = (scope: Construct): number => {
   const raw = scope.node.tryGetContext("videoJobsMaxGsiNumber");
@@ -52,11 +53,6 @@ export const createJobsTable = (
       indexName: "GSI2",
       partitionKey: { name: "GSI2PK", type: dynamodb.AttributeType.STRING },
       sortKey: { name: "GSI2SK", type: dynamodb.AttributeType.STRING },
-    },
-    {
-      indexName: "GSI3",
-      partitionKey: { name: "GSI3PK", type: dynamodb.AttributeType.STRING },
-      sortKey: { name: "GSI3SK", type: dynamodb.AttributeType.STRING },
     },
     {
       indexName: "GSI4",

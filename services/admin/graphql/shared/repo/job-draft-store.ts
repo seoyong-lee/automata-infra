@@ -15,22 +15,22 @@ import {
 import type {
   BackgroundMusicAssetDto,
   ContentBriefDto,
+  JobBriefDto,
   SceneJsonDto,
   SceneJsonSceneDto,
-  TopicSeedDto,
 } from "../types";
 import type { SceneJson } from "../../../../../types/render/scene-json";
 
-export const buildTopicSeedKey = (jobId: string): string => {
-  return `drafts/${jobId}/topic-seed.json`;
+export const buildJobBriefKey = (jobId: string): string => {
+  return `drafts/${jobId}/job-brief.json`;
 };
 
 export const buildContentBriefKey = (jobId: string): string => {
   return `drafts/${jobId}/content-brief.json`;
 };
 
-export const buildTopicPlanKey = (jobId: string): string => {
-  return `topics/${jobId}/topic.json`;
+export const buildJobPlanKey = (jobId: string): string => {
+  return `plans/${jobId}/job-plan.json`;
 };
 
 const mapScene = (scene: SceneJson["scenes"][number]): SceneJsonSceneDto => {
@@ -86,14 +86,14 @@ const mapSceneAsset = (asset: SceneAssetItem) => {
   };
 };
 
-export const getStoredTopicSeed = async (
+export const getStoredJobBrief = async (
   job: JobMetaItem,
-): Promise<TopicSeedDto | undefined> => {
-  const key = job.topicSeedS3Key;
+): Promise<JobBriefDto | undefined> => {
+  const key = job.jobBriefS3Key;
   if (!key) {
     return undefined;
   }
-  return (await getJsonFromS3<TopicSeedDto>(key)) ?? undefined;
+  return (await getJsonFromS3<JobBriefDto>(key)) ?? undefined;
 };
 
 export const getStoredContentBrief = async (
@@ -106,14 +106,14 @@ export const getStoredContentBrief = async (
   return (await getJsonFromS3<ContentBriefDto>(key)) ?? undefined;
 };
 
-export const getStoredTopicPlan = async (
+export const getStoredJobPlan = async (
   job: JobMetaItem,
-): Promise<TopicSeedDto | undefined> => {
-  const key = job.topicS3Key;
+): Promise<JobBriefDto | undefined> => {
+  const key = job.jobPlanS3Key;
   if (!key) {
     return undefined;
   }
-  return (await getJsonFromS3<TopicSeedDto>(key)) ?? undefined;
+  return (await getJsonFromS3<JobBriefDto>(key)) ?? undefined;
 };
 
 export const getStoredSceneJson = async (
@@ -204,21 +204,21 @@ export const listStoredBackgroundMusicAssets = async (
     }));
 };
 
-export const saveTopicSeed = async (input: {
+export const saveJobBrief = async (input: {
   jobId: string;
-  topicSeed: TopicSeedDto;
+  jobBrief: JobBriefDto;
   status?: string;
 }): Promise<string> => {
-  const key = buildTopicSeedKey(input.jobId);
-  await putJsonToS3(key, input.topicSeed);
+  const key = buildJobBriefKey(input.jobId);
+  await putJsonToS3(key, input.jobBrief);
   await updateJobMeta(
     input.jobId,
     {
-      topicSeedS3Key: key,
-      contentId: input.topicSeed.contentId,
-      language: input.topicSeed.targetLanguage,
-      targetDurationSec: input.topicSeed.targetDurationSec,
-      videoTitle: input.topicSeed.titleIdea,
+      jobBriefS3Key: key,
+      contentId: input.jobBrief.contentId,
+      language: input.jobBrief.targetLanguage,
+      targetDurationSec: input.jobBrief.targetDurationSec,
+      videoTitle: input.jobBrief.titleIdea,
     },
     input.status,
   );
@@ -250,21 +250,21 @@ export const saveContentBrief = async (input: {
   return key;
 };
 
-export const saveTopicPlan = async (input: {
+export const saveJobPlan = async (input: {
   jobId: string;
-  topicPlan: TopicSeedDto;
+  jobPlan: JobBriefDto;
   status?: string;
 }): Promise<string> => {
-  const key = buildTopicPlanKey(input.jobId);
-  await putJsonToS3(key, input.topicPlan);
+  const key = buildJobPlanKey(input.jobId);
+  await putJsonToS3(key, input.jobPlan);
   await updateJobMeta(
     input.jobId,
     {
-      topicS3Key: key,
-      contentId: input.topicPlan.contentId,
-      language: input.topicPlan.targetLanguage,
-      targetDurationSec: input.topicPlan.targetDurationSec,
-      videoTitle: input.topicPlan.titleIdea,
+      jobPlanS3Key: key,
+      contentId: input.jobPlan.contentId,
+      language: input.jobPlan.targetLanguage,
+      targetDurationSec: input.jobPlan.targetDurationSec,
+      videoTitle: input.jobPlan.titleIdea,
     },
     input.status,
   );

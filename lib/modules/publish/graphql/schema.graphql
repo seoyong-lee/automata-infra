@@ -19,7 +19,6 @@ type Query {
     nextToken: String
   ): AdminJobConnection!
   adminJob(jobId: ID!): AdminJob
-  pendingReviews(limit: Int, nextToken: String): AdminReviewTaskConnection!
   jobTimeline(jobId: ID!): [JobTimelineItem!]!
   """
   파이프라인 단계 실행 이력(토픽 플랜·씬 JSON·에셋 생성 등). Dynamo `EXEC#` 아이템.
@@ -28,48 +27,9 @@ type Query {
   jobDraft(jobId: ID!): JobDraftDetail
   llmSettings: LlmSettings!
   voiceProfiles: [VoiceProfile!]!
-  """
-  채널(콘텐츠)별 출고 대기 큐. 제작 완료 후 편성·예약 발행 전 단계.
-  필드는 null 허용(리졸버 미배포·일시 실패 시) — 클라이언트는 빈 배열로 처리.
-  """
-  channelPublishQueue(contentId: ID!): [ChannelPublishQueueItem!]
-  """
-  채널에 연결된 외부 매체 계정(현재는 Content 메타 기반 synthetic 연결 포함).
-  """
-  platformConnections(contentId: ID!): [PlatformConnection!]!
-  sourceItem(id: ID!): SourceItem
-  sourceItemsForChannel(channelId: ID!): [SourceItem!]!
-  platformPublishProfile(
-    channelId: ID!
-    platformConnectionId: ID!
-  ): PlatformPublishProfile
-  contentPublishDraft(jobId: ID!): ContentPublishDraft
-  publishTargetsForJob(jobId: ID!): [PublishTarget!]!
-  """
-  에이전트 발굴 후보(채널별). 스카우트 파이프라인이 채운다.
-  """
-  ideaCandidatesForChannel(channelId: ID!): [IdeaCandidate!]!
-  trendSignalsForChannel(channelId: ID!): [TrendSignal!]!
-  agentRunsForChannel(channelId: ID!, limit: Int): [AgentRun!]!
-  performanceInsightsForJob(jobId: ID!): [PerformanceInsight!]!
-  """
-  채널별 스카우트 정책 + 자동화 플래그. 미저장 시 기본값을 반환한다.
-  """
-  channelAgentConfig(channelId: ID!): ChannelAgentConfig!
-  """
-  우리 채널이 추적 중인 외부 채널(워치리스트).
-  """
-  channelWatchlist(channelId: ID!): [ChannelWatchlistEntry!]!
-  """
-  워치리스트에 있는 외부 채널 각각에 대한 최신 점수 스냅샷(없으면 해당 항목 생략 가능 — 클라이언트는 빈 배열 허용).
-  """
-  latestChannelScoreSnapshotsForChannel(
-    channelId: ID!
-  ): [ChannelScoreSnapshot!]!
 }
 
 type Mutation {
-  submitReviewDecision(input: SubmitReviewDecisionInput!): ReviewDecisionResult!
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
@@ -79,12 +39,12 @@ type Mutation {
   deleteContent(contentId: ID!): DeleteContentResult!
   createDraftJob(input: CreateDraftJobInput!): AdminJob!
   attachJobToContent(input: AttachJobToContentInput!): AdminJob!
-  updateTopicSeed(input: UpdateTopicSeedInput!): TopicSeed!
+  updateJobBrief(input: UpdateJobBriefInput!): JobBrief!
   """
-  토픽 플랜 생성. 목표: 비동기 워크플로·Execution 레코드 기준(문서 `implementation-overview-external-review`).
+  잡 플랜 생성. 목표: 비동기 워크플로·Execution 레코드 기준(문서 `implementation-overview-external-review`).
   현재는 Resolver가 완료까지 동기 대기할 수 있음.
   """
-  runTopicPlan(input: RunTopicPlanInput!): AdminJob!
+  runJobPlan(input: RunJobPlanInput!): AdminJob!
   """
   씬 JSON 생성. 목표: 채택 스냅샷 입력·비동기 실행·상태 폴링.
   """
@@ -113,61 +73,12 @@ type Mutation {
   성공한 파이프라인 실행을 해당 단계의 채택본(승인 라인)으로 기록한다. 다음 단계 자동화는 추후 이 포인터를 소비하도록 확장한다.
   """
   approvePipelineExecution(input: ApprovePipelineExecutionInput!): AdminJob!
-  """
-  제작 아이템을 채널 출고 큐에 넣고, 잡 상태를 READY_TO_SCHEDULE 로 맞춘다.
-  """
-  enqueueToChannelPublishQueue(
-    input: EnqueueToChannelPublishQueueInput!
-  ): ChannelPublishQueueItem!
-  createSourceItem(input: CreateSourceItemInput!): SourceItem!
-  updateSourceItem(input: UpdateSourceItemInput!): SourceItem!
-  setJobSourceItem(input: SetJobSourceItemInput!): AdminJob!
-  upsertPlatformConnection(
-    input: UpsertPlatformConnectionInput!
-  ): PlatformConnection!
-  updatePlatformPublishProfile(
-    input: UpdatePlatformPublishProfileInput!
-  ): PlatformPublishProfile!
-  updateContentPublishDraft(
-    input: UpdateContentPublishDraftInput!
-  ): ContentPublishDraft!
-  """
-  채널 예약·발행 화면에서 대상별 예약 시각을 저장하거나 즉시 실행 대기 상태로 되돌린다.
-  """
-  updatePublishTargetSchedule(
-    input: UpdatePublishTargetScheduleInput!
-  ): PublishTarget!
-  runPublishOrchestration(
-    input: RunPublishOrchestrationInput!
-  ): PublishOrchestrationResult!
   deleteJob(jobId: ID!): DeleteJobResult!
-  promoteIdeaCandidateToSource(
-    input: PromoteIdeaCandidateInput!
-  ): IdeaCandidate!
-  rejectIdeaCandidate(input: RejectIdeaCandidateInput!): IdeaCandidate!
-  updateChannelAgentConfig(
-    input: UpdateChannelAgentConfigInput!
-  ): ChannelAgentConfig!
-  createChannelWatchlistEntry(
-    input: CreateChannelWatchlistEntryInput!
-  ): ChannelWatchlistEntry!
-  updateChannelWatchlistEntry(
-    input: UpdateChannelWatchlistEntryInput!
-  ): ChannelWatchlistEntry!
-  """
-  트렌드 스카우트 에이전트 1회 실행을 위해 SQS(`trend-scout-jobs`)에 메시지 1건을 넣는다.
-  비용·쿼터 절약을 위해 스케줄 없이 관리자가 명시적으로 호출할 때만 사용한다.
-  """
-  enqueueTrendScoutJob(
-    input: EnqueueTrendScoutJobInput!
-  ): EnqueueTrendScoutJobResult!
 }
 
 type AdminJob {
   jobId: ID!
   contentId: ID
-  sourceItemId: ID
-  topicId: String!
   status: JobStatus!
   contentType: String
   variant: String
@@ -190,9 +101,9 @@ type AdminJob {
   uploadStatus: UploadStatus
   uploadVideoId: String
   contentBriefS3Key: String
-  topicSeedS3Key: String
-  topicS3Key: String
-  approvedTopicExecutionId: String
+  jobBriefS3Key: String
+  jobPlanS3Key: String
+  approvedPlanExecutionId: String
   approvedSceneExecutionId: String
   approvedAssetExecutionId: String
   defaultVoiceProfileId: String
@@ -232,7 +143,7 @@ type ContentBrief {
   constraints: ContentBriefConstraints!
 }
 
-type TopicSeed {
+type JobBrief {
   contentId: String!
   targetLanguage: String!
   titleIdea: String!
@@ -307,8 +218,8 @@ type SceneVoiceCandidate {
 type JobDraftDetail {
   job: AdminJob!
   contentBrief: ContentBrief
-  topicSeed: TopicSeed
-  topicPlan: TopicSeed
+  jobBrief: JobBrief
+  jobPlan: JobBrief
   sceneJson: SceneJsonPayload
   assets: [SceneAsset!]!
   backgroundMusicOptions: [BackgroundMusicAsset!]!
@@ -365,7 +276,7 @@ type JobTimelineItem {
 }
 
 enum PipelineStageType {
-  TOPIC_PLAN
+  JOB_PLAN
   SCENE_JSON
   ASSET_GENERATION
   FINAL_COMPOSITION
@@ -536,9 +447,9 @@ input CreateDraftJobInput {
   autoPublish: Boolean
   publishAt: AWSDateTime
   """
-  false가 아니면 생성 직후 토픽 플랜까지 실행한다. 생략 시 true.
+  false가 아니면 생성 직후 잡 플랜까지 실행한다. 생략 시 true.
   """
-  runTopicPlan: Boolean
+  runJobPlan: Boolean
 }
 
 input AttachJobToContentInput {
@@ -546,7 +457,7 @@ input AttachJobToContentInput {
   contentId: ID!
 }
 
-input UpdateTopicSeedInput {
+input UpdateJobBriefInput {
   jobId: ID!
   contentId: String!
   targetLanguage: String!
@@ -556,7 +467,7 @@ input UpdateTopicSeedInput {
   creativeBrief: String
 }
 
-input RunTopicPlanInput {
+input RunJobPlanInput {
   jobId: ID!
 }
 

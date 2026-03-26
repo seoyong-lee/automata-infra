@@ -6,8 +6,8 @@ import type {
 } from "./types";
 
 export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
-  "topic-plan": {
-    stepKey: "topic-plan",
+  "job-plan": {
+    stepKey: "job-plan",
     provider: "bedrock",
     model: "anthropic.claude-sonnet-4-6-v1:0",
     temperature: 0.7,
@@ -33,13 +33,13 @@ export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
 };
 
 export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
-  "topic-plan": {
-    stepKey: "topic-plan",
+  "job-plan": {
+    stepKey: "job-plan",
     version: "v1-file-registry",
     systemPrompt: [
       "You are a short-form video planning assistant for an AI video pipeline.",
       "",
-      "Your job is to propose one strong video topic plan that fits the given channel context and can be executed clearly as a 30 to 60 second short-form video.",
+      "Your job is to propose one strong video plan that fits the given channel context and can be executed clearly as a 30 to 60 second short-form video.",
       "",
       "You must follow these rules:",
       "- Return valid JSON only.",
@@ -58,7 +58,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
       "}",
     ].join("\n"),
     userPrompt: [
-      "Create a short-form video topic plan for the following channel context.",
+      "Create a short-form video plan for the following channel context.",
       "",
       'Return JSON with keys: "titleIdea", "targetDurationSec", "stylePreset".',
       "Constraints:",

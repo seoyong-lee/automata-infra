@@ -13,7 +13,7 @@ import {
   type FinalCompositionScope,
 } from "../../graphql/run-final-composition/usecase/run-final-composition";
 import { runSceneJsonCore } from "../../graphql/run-scene-json/usecase/run-scene-json";
-import { runTopicPlanCore } from "../../graphql/run-topic-plan/usecase/run-topic-plan";
+import { runJobPlanCore } from "../../graphql/run-job-plan/usecase/run-job-plan";
 
 const DEFAULT_ASSET_GENERATION_SCOPE: AssetGenerationScope = {
   modality: "all",
@@ -25,8 +25,8 @@ const executeStage = async (input: {
   assetGenScope?: AssetGenerationScope;
   finalCompositionScope?: FinalCompositionScope;
 }): Promise<void> => {
-  if (input.stage === "TOPIC_PLAN") {
-    await runTopicPlanCore(input.jobId);
+  if (input.stage === "JOB_PLAN") {
+    await runJobPlanCore(input.jobId);
     return;
   }
   if (input.stage === "SCENE_JSON") {
@@ -47,8 +47,8 @@ const resolveOutputArtifactS3Key = (
   stage: JobExecutionStageType,
   job: Awaited<ReturnType<typeof getJobOrThrow>>,
 ): string | undefined => {
-  if (stage === "TOPIC_PLAN") {
-    return job.topicS3Key;
+  if (stage === "JOB_PLAN") {
+    return job.jobPlanS3Key;
   }
   if (stage === "SCENE_JSON") {
     return job.sceneJsonS3Key;

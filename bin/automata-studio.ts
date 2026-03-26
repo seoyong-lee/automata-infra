@@ -97,8 +97,6 @@ new PublishStack(app, `${projectPrefix}-publish`, {
   previewDistribution: sharedStack.previewDistribution,
   jobsTable: workflowStack.jobsTable,
   llmConfigTable: sharedStack.llmConfigTable,
-  reviewQueue: workflowStack.reviewQueue,
-  stateMachine: workflowStack.stateMachine,
   renderClusterArn: workflowStack.renderClusterArn,
   renderTaskDefinitionFamily: workflowStack.renderTaskDefinitionFamily,
   renderSecurityGroupId: workflowStack.renderSecurityGroupId,

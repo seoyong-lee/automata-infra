@@ -1,4 +1,4 @@
-import { runAdminTopicPlan } from "../../run-topic-plan/usecase/run-topic-plan";
+import { runAdminJobPlan } from "../../run-job-plan/usecase/run-job-plan";
 import { createDraftJob } from "../repo/create-draft-job";
 import type { CreateDraftJobInputDto } from "../../shared/types";
 
@@ -11,10 +11,10 @@ export const createAdminDraftJob = async (input: {
     now: new Date().toISOString(),
   });
 
-  const shouldRunTopicPlan = input.draft.runTopicPlan !== false;
-  if (!shouldRunTopicPlan) {
+  const shouldRunJobPlan = input.draft.runJobPlan !== false;
+  if (!shouldRunJobPlan) {
     return created;
   }
 
-  return runAdminTopicPlan(created.jobId, input.triggeredBy);
+  return runAdminJobPlan(created.jobId, input.triggeredBy);
 };

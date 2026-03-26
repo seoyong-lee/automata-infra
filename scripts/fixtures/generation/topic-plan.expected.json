@@ -1,12 +1,11 @@
 {
   "jobId": "job_20260319120000",
-  "topicId": "topic_job_20260319120000",
   "contentId": "history-en",
   "targetLanguage": "en",
   "targetDurationSec": 42,
   "titleIdea": "Why watchtowers stayed awake after midnight",
   "stylePreset": "dark_ambient_story",
   "status": "PLANNED",
-  "topicS3Key": "topics/job_20260319120000/topic.json",
+  "jobPlanS3Key": "plans/job_20260319120000/job-plan.json",
   "createdAt": "2026-03-19T12:00:00.000Z"
 }

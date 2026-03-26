@@ -13,7 +13,6 @@ export type VideoJobStatus =
 export type VideoJob = {
   jobId: string;
   contentId: string;
-  topicId: string;
   status: VideoJobStatus;
   language: string;
   targetDurationSec: number;

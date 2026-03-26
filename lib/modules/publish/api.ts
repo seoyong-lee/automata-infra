@@ -8,7 +8,6 @@ export type PublishApiResources = {
 
 export const createPublishApi = (
   scope: Construct,
-  reviewHandler: lambda.IFunction,
   uploadHandler: lambda.IFunction,
 ): PublishApiResources => {
   const api = new apigateway.RestApi(scope, "PublishApi", {
@@ -17,9 +16,6 @@ export const createPublishApi = (
       stageName: "api",
     },
   });
-
-  const review = api.root.addResource("review");
-  review.addMethod("POST", new apigateway.LambdaIntegration(reviewHandler));
 
   const upload = api.root.addResource("upload");
   upload.addMethod("POST", new apigateway.LambdaIntegration(uploadHandler));

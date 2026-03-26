@@ -12,11 +12,10 @@ export type JobMetaItem = {
   PK: string;
   SK: "META";
   jobId: string;
+  /** 사실상 채널 ID. 미연결 draft는 비어 있거나 reserved ID를 쓸 수 있다. */
   contentId?: string;
   contentType?: string;
   variant?: string;
-  topicId: string;
-  topicHash: string;
   status: string;
   autoPublish?: boolean;
   publishAt?: string;
@@ -28,8 +27,8 @@ export type JobMetaItem = {
   reviewMode: boolean;
   retryCount: number;
   lastError: string | null;
-  topicSeedS3Key?: string;
-  topicS3Key?: string;
+  jobBriefS3Key?: string;
+  jobPlanS3Key?: string;
   sceneJsonS3Key?: string;
   /** Admin 에셋 생성 완료 시 `listSceneAssets` 스냅샷 JSON S3 키. */
   assetManifestS3Key?: string;
@@ -44,24 +43,20 @@ export type JobMetaItem = {
   uploadStatus?: string;
   uploadVideoId?: string;
   contentBriefS3Key?: string;
-  /** 문서상 채택본: 토픽 플랜 단계에서 승인한 실행 ID. */
-  approvedTopicExecutionId?: string;
+  /** 문서상 채택본: 플랜 단계에서 승인한 실행 ID. */
+  approvedPlanExecutionId?: string;
   /** 씬 JSON 단계에서 승인한 실행 ID. */
   approvedSceneExecutionId?: string;
   /** 에셋 생성 단계에서 승인한 실행 ID. */
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
   backgroundMusicS3Key?: string;
-  /** 소재(SourceItem) id. 멀티 채널 배포 모델. */
-  sourceItemId?: string;
   createdAt: string;
   updatedAt: string;
   GSI1PK: string;
   GSI1SK: string;
   GSI2PK: string;
   GSI2SK: string;
-  GSI3PK: string;
-  GSI3SK: string;
   GSI4PK?: string;
   GSI4SK?: string;
   GSI5PK?: string;

@@ -2,25 +2,25 @@ import { getJobExecutionByExecutionId } from "../../../../shared/lib/store/job-e
 import type { JobMetaItem } from "../../../../shared/lib/store/video-jobs";
 
 /**
- * 씬 JSON 생성 시 읽을 토픽 플랜 S3 키.
- * `approvedTopicExecutionId`가 있고 해당 실행이 성공·산출 키가 있으면 그것을 우선한다.
+ * 씬 JSON 생성 시 읽을 job plan S3 키.
+ * `approvedPlanExecutionId`가 있고 해당 실행이 성공·산출 키가 있으면 그것을 우선한다.
  */
-export const resolveTopicS3KeyForSceneBuild = async (
+export const resolveJobPlanS3KeyForSceneBuild = async (
   jobId: string,
-  job: Pick<JobMetaItem, "approvedTopicExecutionId" | "topicS3Key">,
-): Promise<{ topicS3Key: string; fromApprovedExecution: boolean } | null> => {
-  const approvedId = job.approvedTopicExecutionId;
+  job: Pick<JobMetaItem, "approvedPlanExecutionId" | "jobPlanS3Key">,
+): Promise<{ jobPlanS3Key: string; fromApprovedExecution: boolean } | null> => {
+  const approvedId = job.approvedPlanExecutionId;
   if (approvedId) {
     const exec = await getJobExecutionByExecutionId(jobId, approvedId);
     if (exec?.status === "SUCCEEDED" && exec.outputArtifactS3Key) {
       return {
-        topicS3Key: exec.outputArtifactS3Key,
+        jobPlanS3Key: exec.outputArtifactS3Key,
         fromApprovedExecution: true,
       };
     }
   }
-  if (job.topicS3Key) {
-    return { topicS3Key: job.topicS3Key, fromApprovedExecution: false };
+  if (job.jobPlanS3Key) {
+    return { jobPlanS3Key: job.jobPlanS3Key, fromApprovedExecution: false };
   }
   return null;
 };

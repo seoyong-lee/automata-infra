@@ -9,9 +9,9 @@ import { buildRenderPlanScenes } from "../services/composition/render-plan";
 import { generateSceneImages } from "../services/image/usecase/generate-scene-images";
 import { buildSceneJson } from "../services/script/usecase/build-scene-json";
 import {
-  createTopicPlan,
-  type TopicPlanResult,
-} from "../services/topic/usecase/create-topic-plan";
+  createJobPlan,
+  type JobPlanResult,
+} from "../services/plan/usecase/create-job-plan";
 import { generateSceneVideos } from "../services/video-generation/usecase/generate-scene-videos";
 import { generateSceneVoices } from "../services/voice/usecase/generate-scene-voices";
 import type {
@@ -58,11 +58,11 @@ const buildSceneJsonForScenario = (input: {
   };
 };
 
-void test("createTopicPlan uses shared LLM generation with deterministic output", async () => {
+void test("createJobPlan uses shared LLM generation with deterministic output", async () => {
   const generateStructuredData: GenerateStructuredData = async <T>(
     input: GenerateStructuredDataInput<T>,
   ) => {
-    assert.equal(input.stepKey, "topic-plan");
+    assert.equal(input.stepKey, "job-plan");
     assert.deepEqual(input.variables, {
       contentId: "history-en",
       targetLanguage: "en",
@@ -74,7 +74,7 @@ void test("createTopicPlan uses shared LLM generation with deterministic output"
     };
   };
 
-  const result = await createTopicPlan({
+  const result = await createJobPlan({
     now: () => "2026-03-19T12:00:00.000Z",
     loadConfig: () => ({
       contentId: "history-en",
@@ -110,7 +110,7 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
     };
   };
 
-  const result = await buildSceneJson(sceneJsonInput as TopicPlanResult, {
+  const result = await buildSceneJson(sceneJsonInput as JobPlanResult, {
     generateStructuredData,
   });
 
@@ -197,8 +197,8 @@ void test("sceneJson contract flows through asset usecases and render-plan build
 
 void test("smoke dataset scenarios remain compatible with scene generation contract", async () => {
   for (const scenario of smokeDataset) {
-    const topicPlan = {
-      ...(sceneJsonInput as TopicPlanResult),
+    const jobPlan = {
+      ...(sceneJsonInput as JobPlanResult),
       titleIdea: scenario.titleIdea,
       targetLanguage: scenario.targetLanguage,
       targetDurationSec: scenario.targetDurationSec,
@@ -219,7 +219,7 @@ void test("smoke dataset scenarios remain compatible with scene generation contr
       };
     };
 
-    const result = await buildSceneJson(topicPlan, {
+    const result = await buildSceneJson(jobPlan, {
       generateStructuredData,
     });
 

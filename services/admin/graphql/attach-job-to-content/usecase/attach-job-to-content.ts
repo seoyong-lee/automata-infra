@@ -5,14 +5,14 @@ import {
   getJobMeta,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
-import type { TopicPlanResult } from "../../../../topic/usecase/create-topic-plan";
+import type { JobPlanResult } from "../../../../plan/usecase/create-job-plan";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { badUserInput, notFound } from "../../shared/errors";
 import type {
   AttachJobToContentInputDto,
   ContentBriefDto,
-  TopicSeedDto,
+  JobBriefDto,
 } from "../../shared/types";
 
 const isUnattached = (contentId: string | undefined): boolean => {
@@ -42,11 +42,11 @@ export const attachAdminJobToContent = async (
     );
   }
 
-  if (job.topicSeedS3Key) {
-    const seed = await getJsonFromS3<TopicSeedDto>(job.topicSeedS3Key);
-    if (seed) {
-      await putJsonToS3(job.topicSeedS3Key, {
-        ...seed,
+  if (job.jobBriefS3Key) {
+    const jobBrief = await getJsonFromS3<JobBriefDto>(job.jobBriefS3Key);
+    if (jobBrief) {
+      await putJsonToS3(job.jobBriefS3Key, {
+        ...jobBrief,
         contentId: parent.contentId,
       });
     }
@@ -66,11 +66,11 @@ export const attachAdminJobToContent = async (
     }
   }
 
-  if (job.topicS3Key) {
-    const plan = await getJsonFromS3<TopicPlanResult>(job.topicS3Key);
-    if (plan) {
-      await putJsonToS3(job.topicS3Key, {
-        ...plan,
+  if (job.jobPlanS3Key) {
+    const jobPlan = await getJsonFromS3<JobPlanResult>(job.jobPlanS3Key);
+    if (jobPlan) {
+      await putJsonToS3(job.jobPlanS3Key, {
+        ...jobPlan,
         contentId: parent.contentId,
       });
     }

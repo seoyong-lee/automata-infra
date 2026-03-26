@@ -92,11 +92,8 @@ export type LlmProvider = "OPENAI" | "GEMINI" | "BEDROCK";
 
 export type AdminJobDto = {
   jobId: string;
-  /** 카탈로그 콘텐츠 ID (레거시 잡은 비어 있을 수 있음) */
+  /** 사실상 채널 ID. 미연결 잡은 비어 있을 수 있다. */
   contentId?: string;
-  /** 소재(SourceItem) id */
-  sourceItemId?: string;
-  topicId: string;
   status: JobStatus;
   contentType?: string;
   variant?: string;
@@ -119,9 +116,9 @@ export type AdminJobDto = {
   uploadStatus?: UploadStatus;
   uploadVideoId?: string;
   contentBriefS3Key?: string;
-  topicSeedS3Key?: string;
-  topicS3Key?: string;
-  approvedTopicExecutionId?: string;
+  jobBriefS3Key?: string;
+  jobPlanS3Key?: string;
+  approvedPlanExecutionId?: string;
   approvedSceneExecutionId?: string;
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
@@ -151,7 +148,7 @@ export type LlmSettingsDto = {
   items: LlmStepSettingsDto[];
 };
 
-export type TopicSeedDto = {
+export type JobBriefDto = {
   contentId: string;
   targetLanguage: string;
   titleIdea: string;
@@ -179,7 +176,7 @@ export type ContentBriefDto = {
     audience: string;
     style: string;
     tone: string;
-    topicKey: string;
+    ideaKey: string;
   };
   constraints: {
     maxScenes: number;
@@ -201,9 +198,9 @@ export type CreateDraftJobInputDto = {
   autoPublish?: boolean;
   publishAt?: string;
   /**
-   * false가 아니면 잡 생성 직후 토픽 플랜까지 실행한다. 생략 시 true와 동일.
+   * false가 아니면 잡 생성 직후 플랜 생성까지 실행한다. 생략 시 true와 동일.
    */
-  runTopicPlan?: boolean;
+  runJobPlan?: boolean;
 };
 
 export type AttachJobToContentInputDto = {
@@ -337,8 +334,8 @@ export type SceneVoiceCandidateDto = {
 export type JobDraftDetailDto = {
   job: AdminJobDto;
   contentBrief?: ContentBriefDto;
-  topicSeed?: TopicSeedDto;
-  topicPlan?: TopicSeedDto;
+  jobBrief?: JobBriefDto;
+  jobPlan?: JobBriefDto;
   sceneJson?: SceneJsonDto;
   assets: SceneAssetDto[];
   backgroundMusicOptions: BackgroundMusicAssetDto[];

@@ -5,7 +5,7 @@ import { putItem, queryItems, updateItem } from "../aws/runtime";
 const jobPk = (jobId: string): string => `JOB#${jobId}`;
 
 export type JobExecutionStageType =
-  | "TOPIC_PLAN"
+  | "JOB_PLAN"
   | "SCENE_JSON"
   | "ASSET_GENERATION"
   | "FINAL_COMPOSITION";
@@ -23,9 +23,9 @@ export type JobExecutionRow = {
   startedAt: string;
   completedAt?: string;
   errorMessage?: string;
-  /** 해당 실행의 입력 기준(예: 시드·토픽·씬 JSON S3 키). 승인 스냅샷 ID로 확장 가능. */
+  /** 해당 실행의 입력 기준(예: 브리프·플랜·씬 JSON S3 키). 승인 스냅샷 ID로 확장 가능. */
   inputSnapshotId?: string;
-  /** 성공 시 산출물 기준(예: 토픽·씬 JSON S3 키). 채택 UI 연결용. */
+  /** 성공 시 산출물 기준(예: 플랜·씬 JSON S3 키). 채택 UI 연결용. */
   outputArtifactS3Key?: string;
 };
 

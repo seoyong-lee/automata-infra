@@ -2,15 +2,10 @@ import * as path from "path";
 import { CfnOutput, Duration, Stack, StackProps } from "aws-cdk-lib";
 import * as cloudfront from "aws-cdk-lib/aws-cloudfront";
 import * as dynamodb from "aws-cdk-lib/aws-dynamodb";
-import * as events from "aws-cdk-lib/aws-events";
-import * as targets from "aws-cdk-lib/aws-events-targets";
 import * as iam from "aws-cdk-lib/aws-iam";
 import * as lambda from "aws-cdk-lib/aws-lambda";
 import * as nodejs from "aws-cdk-lib/aws-lambda-nodejs";
 import * as s3 from "aws-cdk-lib/aws-s3";
-import * as sfn from "aws-cdk-lib/aws-stepfunctions";
-import * as lambdaEventSources from "aws-cdk-lib/aws-lambda-event-sources";
-import * as sqs from "aws-cdk-lib/aws-sqs";
 import { Construct } from "constructs";
 import { BaseStackProps } from "./config";
 import { createPublishApi } from "./modules/publish/api";
@@ -22,8 +17,6 @@ export type PublishStackProps = StackProps &
     assetsBucket: s3.Bucket;
     jobsTable: dynamodb.Table;
     llmConfigTable: dynamodb.Table;
-    reviewQueue: sqs.Queue;
-    stateMachine: sfn.StateMachine;
     previewDistribution: cloudfront.Distribution;
     renderClusterArn: string;
     renderTaskDefinitionFamily: string;
@@ -70,16 +63,12 @@ export class PublishStack extends Stack {
       ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
       JOBS_TABLE_NAME: props.jobsTable.tableName,
       CONFIG_TABLE_NAME: props.llmConfigTable.tableName,
-      REVIEW_QUEUE_URL: props.reviewQueue.queueUrl,
       BYTEPLUS_IMAGE_SECRET_ID: props.envConfig.byteplusImageSecretId ?? "",
       BYTEPLUS_VIDEO_SECRET_ID: props.envConfig.byteplusVideoSecretId ?? "",
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
       SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
-      ENABLE_FARGATE_COMPOSITION: props.envConfig.enableFargateComposition
-        ? "true"
-        : "false",
       FARGATE_RENDER_CLUSTER_ARN: props.renderClusterArn,
       FARGATE_RENDER_TASK_DEFINITION_FAMILY: props.renderTaskDefinitionFamily,
       FARGATE_RENDER_CONTAINER_NAME: props.renderContainerName,
@@ -160,14 +149,6 @@ export class PublishStack extends Stack {
       PIPELINE_ASYNC_INVOCATION: "1",
     };
 
-    const reviewHandler = createLambda(
-      this,
-      "ReviewDecisionLambda",
-      `${props.projectPrefix}-publish-review-decision`,
-      path.join(process.cwd(), "services/publish/review/handler.ts"),
-      environment,
-    );
-
     const uploadHandler = createLambda(
       this,
       "UploadLambda",
@@ -175,93 +156,6 @@ export class PublishStack extends Stack {
       path.join(process.cwd(), "services/publish/upload/handler.ts"),
       environment,
     );
-
-    const metricsCollector = createLambda(
-      this,
-      "MetricsCollectorLambda",
-      `${props.projectPrefix}-publish-metrics-collector`,
-      path.join(process.cwd(), "services/publish/metrics/handler.ts"),
-      environment,
-    );
-
-    const agentJobsDlq = new sqs.Queue(this, "AgentJobsDlq", {
-      queueName: `${props.projectPrefix}-agent-jobs-dlq`,
-      retentionPeriod: Duration.days(14),
-    });
-
-    const trendScoutJobsQueue = new sqs.Queue(this, "TrendScoutJobsQueue", {
-      queueName: `${props.projectPrefix}-trend-scout-jobs`,
-      visibilityTimeout: Duration.minutes(5),
-      deadLetterQueue: {
-        queue: agentJobsDlq,
-        maxReceiveCount: 3,
-      },
-    });
-
-    const trendScoutAgentLambda = new nodejs.NodejsFunction(
-      this,
-      "TrendScoutAgentLambda",
-      {
-        functionName: `${props.projectPrefix}-agent-trend-scout`,
-        entry: path.join(
-          process.cwd(),
-          "services/agents/trend-scout/handler.ts",
-        ),
-        handler: "handler",
-        runtime: lambda.Runtime.NODEJS_20_X,
-        timeout: Duration.minutes(2),
-        bundling: {
-          target: "node20",
-          format: nodejs.OutputFormat.CJS,
-        },
-        environment,
-      },
-    );
-    trendScoutAgentLambda.addEventSource(
-      new lambdaEventSources.SqsEventSource(trendScoutJobsQueue, {
-        batchSize: 1,
-      }),
-    );
-    props.jobsTable.grantReadWriteData(trendScoutAgentLambda);
-
-    const channelEvaluationJobsQueue = new sqs.Queue(
-      this,
-      "ChannelEvaluationJobsQueue",
-      {
-        queueName: `${props.projectPrefix}-channel-evaluation-jobs`,
-        visibilityTimeout: Duration.minutes(5),
-        deadLetterQueue: {
-          queue: agentJobsDlq,
-          maxReceiveCount: 3,
-        },
-      },
-    );
-
-    const channelEvaluatorAgentLambda = new nodejs.NodejsFunction(
-      this,
-      "ChannelEvaluatorAgentLambda",
-      {
-        functionName: `${props.projectPrefix}-agent-channel-evaluator`,
-        entry: path.join(
-          process.cwd(),
-          "services/agents/channel-evaluator/handler.ts",
-        ),
-        handler: "handler",
-        runtime: lambda.Runtime.NODEJS_20_X,
-        timeout: Duration.minutes(2),
-        bundling: {
-          target: "node20",
-          format: nodejs.OutputFormat.CJS,
-        },
-        environment,
-      },
-    );
-    channelEvaluatorAgentLambda.addEventSource(
-      new lambdaEventSources.SqsEventSource(channelEvaluationJobsQueue, {
-        batchSize: 1,
-      }),
-    );
-    props.jobsTable.grantReadWriteData(channelEvaluatorAgentLambda);
 
     const listJobsResolver = createLambda(
       this,
@@ -275,16 +169,6 @@ export class PublishStack extends Stack {
       "AdminGetJobResolverLambda",
       `${props.projectPrefix}-admin-get-job`,
       path.join(process.cwd(), "services/admin/graphql/get-job/handler.ts"),
-      environment,
-    );
-    const pendingReviewsResolver = createLambda(
-      this,
-      "AdminPendingReviewsResolverLambda",
-      `${props.projectPrefix}-admin-pending-reviews`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/pending-reviews/handler.ts",
-      ),
       environment,
     );
     const jobTimelineResolver = createLambda(
@@ -304,16 +188,6 @@ export class PublishStack extends Stack {
       path.join(
         process.cwd(),
         "services/admin/graphql/job-executions/handler.ts",
-      ),
-      environment,
-    );
-    const submitReviewDecisionResolver = createLambda(
-      this,
-      "AdminSubmitReviewDecisionResolverLambda",
-      `${props.projectPrefix}-admin-submit-review-decision`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/submit-review-decision/handler.ts",
       ),
       environment,
     );
@@ -397,23 +271,23 @@ export class PublishStack extends Stack {
       ),
       pipelineTriggerEnv,
     );
-    const updateTopicSeedResolver = createLambda(
+    const updateJobBriefResolver = createLambda(
       this,
-      "AdminUpdateTopicSeedResolverLambda",
-      `${props.projectPrefix}-admin-update-topic-seed`,
+      "AdminUpdateJobBriefResolverLambda",
+      `${props.projectPrefix}-admin-update-job-brief`,
       path.join(
         process.cwd(),
-        "services/admin/graphql/update-topic-seed/handler.ts",
+        "services/admin/graphql/update-job-brief/handler.ts",
       ),
       environment,
     );
-    const runTopicPlanResolver = createLambda(
+    const runJobPlanResolver = createLambda(
       this,
-      "AdminRunTopicPlanResolverLambda",
-      `${props.projectPrefix}-admin-run-topic-plan`,
+      "AdminRunJobPlanResolverLambda",
+      `${props.projectPrefix}-admin-run-job-plan`,
       path.join(
         process.cwd(),
-        "services/admin/graphql/run-topic-plan/handler.ts",
+        "services/admin/graphql/run-job-plan/handler.ts",
       ),
       pipelineTriggerEnv,
     );
@@ -538,60 +412,6 @@ export class PublishStack extends Stack {
       ),
       environment,
     );
-    const channelPublishQueueResolver = createLambda(
-      this,
-      "AdminChannelPublishQueueResolverLambda",
-      `${props.projectPrefix}-admin-channel-publish-queue`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/list-channel-publish-queue/handler.ts",
-      ),
-      environment,
-    );
-    const enqueueToChannelPublishQueueResolver = createLambda(
-      this,
-      "AdminEnqueueToChannelPublishQueueResolverLambda",
-      `${props.projectPrefix}-admin-enqueue-channel-publish-queue`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/enqueue-to-channel-publish-queue/handler.ts",
-      ),
-      environment,
-    );
-    const platformConnectionsResolver = createLambda(
-      this,
-      "AdminPlatformConnectionsResolverLambda",
-      `${props.projectPrefix}-admin-platform-connections`,
-      path.join(
-        process.cwd(),
-        "services/admin/graphql/list-platform-connections/handler.ts",
-      ),
-      environment,
-    );
-    /** Large bundle → slow cold start; extra memory speeds init. Dynamo list paths use BatchGet. */
-    const publishDomainResolver = new nodejs.NodejsFunction(
-      this,
-      "AdminPublishDomainResolverLambda",
-      {
-        functionName: `${props.projectPrefix}-admin-publish-domain-router`,
-        entry: path.join(
-          process.cwd(),
-          "services/admin/graphql/publish-domain-router/handler.ts",
-        ),
-        handler: "handler",
-        runtime: lambda.Runtime.NODEJS_20_X,
-        timeout: Duration.seconds(30),
-        memorySize: 1536,
-        bundling: {
-          target: "node20",
-          format: nodejs.OutputFormat.CJS,
-        },
-        environment: {
-          ...environment,
-          TREND_SCOUT_QUEUE_URL: trendScoutJobsQueue.queueUrl,
-        },
-      },
-    );
     const listContentsResolver = createLambda(
       this,
       "AdminListContentsResolverLambda",
@@ -633,15 +453,16 @@ export class PublishStack extends Stack {
       environment,
     );
 
-    props.assetsBucket.grantReadWrite(reviewHandler);
-    props.assetsBucket.grantReadWrite(uploadHandler);
-    props.assetsBucket.grantRead(metricsCollector);
-    props.jobsTable.grantReadWriteData(reviewHandler);
+    props.assetsBucket.grantRead(uploadHandler);
+    props.assetsBucket.grantRead(requestUploadResolver);
     props.jobsTable.grantReadWriteData(uploadHandler);
-    props.jobsTable.grantReadData(metricsCollector);
-    props.reviewQueue.grantConsumeMessages(reviewHandler);
-    props.stateMachine.grantTaskResponse(reviewHandler);
     uploadHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    requestUploadResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
         resources: ["*"],
@@ -650,16 +471,14 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadData(listContentsResolver);
     props.jobsTable.grantReadData(listJobsResolver);
     props.jobsTable.grantReadData(getJobResolver);
-    props.jobsTable.grantReadData(pendingReviewsResolver);
     props.jobsTable.grantReadData(jobTimelineResolver);
     props.jobsTable.grantReadData(jobExecutionsResolver);
-    props.jobsTable.grantReadWriteData(submitReviewDecisionResolver);
     props.jobsTable.grantReadWriteData(requestUploadResolver);
     props.jobsTable.grantReadWriteData(requestAssetUploadResolver);
     props.jobsTable.grantReadWriteData(getJobDraftResolver);
     props.jobsTable.grantReadWriteData(createDraftJobResolver);
-    props.jobsTable.grantReadWriteData(updateTopicSeedResolver);
-    props.jobsTable.grantReadWriteData(runTopicPlanResolver);
+    props.jobsTable.grantReadWriteData(updateJobBriefResolver);
+    props.jobsTable.grantReadWriteData(runJobPlanResolver);
     props.jobsTable.grantReadWriteData(runSceneJsonResolver);
     props.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     props.jobsTable.grantReadWriteData(runAssetGenerationResolver);
@@ -672,25 +491,13 @@ export class PublishStack extends Stack {
     props.jobsTable.grantReadWriteData(deleteJobResolver);
     props.jobsTable.grantReadWriteData(attachJobToContentResolver);
     props.jobsTable.grantReadWriteData(approvePipelineExecutionResolver);
-    props.jobsTable.grantReadData(channelPublishQueueResolver);
-    props.jobsTable.grantReadWriteData(enqueueToChannelPublishQueueResolver);
-    props.jobsTable.grantReadData(platformConnectionsResolver);
-    props.jobsTable.grantReadWriteData(publishDomainResolver);
-    props.assetsBucket.grantRead(publishDomainResolver);
-    trendScoutJobsQueue.grantSendMessages(publishDomainResolver);
-    publishDomainResolver.addToRolePolicy(
-      new iam.PolicyStatement({
-        actions: ["secretsmanager:GetSecretValue"],
-        resources: ["*"],
-      }),
-    );
     props.jobsTable.grantReadWriteData(createContentResolver);
     props.jobsTable.grantReadWriteData(updateContentResolver);
     props.jobsTable.grantReadWriteData(deleteContentResolver);
     props.assetsBucket.grantReadWrite(getJobDraftResolver);
     props.assetsBucket.grantReadWrite(createDraftJobResolver);
-    props.assetsBucket.grantReadWrite(updateTopicSeedResolver);
-    props.assetsBucket.grantReadWrite(runTopicPlanResolver);
+    props.assetsBucket.grantReadWrite(updateJobBriefResolver);
+    props.assetsBucket.grantReadWrite(runJobPlanResolver);
     props.assetsBucket.grantReadWrite(runSceneJsonResolver);
     props.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     props.assetsBucket.grantReadWrite(requestAssetUploadResolver);
@@ -712,10 +519,9 @@ export class PublishStack extends Stack {
     props.llmConfigTable.grantReadData(setSceneVoiceProfileResolver);
     /** generateStepStructuredData → getLlmStepSettings(GetItem) */
     props.llmConfigTable.grantReadData(createDraftJobResolver);
-    props.llmConfigTable.grantReadData(runTopicPlanResolver);
+    props.llmConfigTable.grantReadData(runJobPlanResolver);
     props.llmConfigTable.grantReadData(runSceneJsonResolver);
-    props.stateMachine.grantTaskResponse(submitReviewDecisionResolver);
-    runTopicPlanResolver.addToRolePolicy(
+    runJobPlanResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
         resources: ["*"],
@@ -739,7 +545,7 @@ export class PublishStack extends Stack {
         resources: ["*"],
       }),
     );
-    runTopicPlanResolver.addToRolePolicy(
+    runJobPlanResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: [
           "bedrock:InvokeModel",
@@ -774,7 +580,7 @@ export class PublishStack extends Stack {
     );
 
     pipelineWorker.grantInvoke(createDraftJobResolver);
-    pipelineWorker.grantInvoke(runTopicPlanResolver);
+    pipelineWorker.grantInvoke(runJobPlanResolver);
     pipelineWorker.grantInvoke(runSceneJsonResolver);
     pipelineWorker.grantInvoke(runAssetGenerationResolver);
     pipelineWorker.grantInvoke(runFinalCompositionResolver);
@@ -796,10 +602,8 @@ export class PublishStack extends Stack {
       listContentsResolver,
       listJobsResolver,
       getJobResolver,
-      pendingReviewsResolver,
       jobTimelineResolver,
       jobExecutionsResolver,
-      submitReviewDecisionResolver,
       requestUploadResolver,
       requestAssetUploadResolver,
       getLlmSettingsResolver,
@@ -811,8 +615,8 @@ export class PublishStack extends Stack {
       updateContentResolver,
       deleteContentResolver,
       createDraftJobResolver,
-      updateTopicSeedResolver,
-      runTopicPlanResolver,
+      updateJobBriefResolver,
+      runJobPlanResolver,
       runSceneJsonResolver,
       updateSceneJsonResolver,
       runAssetGenerationResolver,
@@ -825,18 +629,9 @@ export class PublishStack extends Stack {
       deleteJobResolver,
       attachJobToContentResolver,
       approvePipelineExecutionResolver,
-      channelPublishQueueResolver,
-      enqueueToChannelPublishQueueResolver,
-      platformConnectionsResolver,
-      publishDomainResolver,
     });
 
-    const publishApi = createPublishApi(this, reviewHandler, uploadHandler);
-
-    new events.Rule(this, "MetricsCollectionSchedule", {
-      schedule: events.Schedule.rate(Duration.hours(6)),
-      targets: [new targets.LambdaFunction(metricsCollector)],
-    });
+    const publishApi = createPublishApi(this, uploadHandler);
 
     new CfnOutput(this, "PublishApiUrl", {
       value: publishApi.api.url,

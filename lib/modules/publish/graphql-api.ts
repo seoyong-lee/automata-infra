@@ -13,10 +13,8 @@ type CreatePublishGraphqlApiProps = {
   listContentsResolver: lambda.IFunction;
   listJobsResolver: lambda.IFunction;
   getJobResolver: lambda.IFunction;
-  pendingReviewsResolver: lambda.IFunction;
   jobTimelineResolver: lambda.IFunction;
   jobExecutionsResolver: lambda.IFunction;
-  submitReviewDecisionResolver: lambda.IFunction;
   requestUploadResolver: lambda.IFunction;
   requestAssetUploadResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
@@ -28,8 +26,8 @@ type CreatePublishGraphqlApiProps = {
   updateContentResolver: lambda.IFunction;
   deleteContentResolver: lambda.IFunction;
   createDraftJobResolver: lambda.IFunction;
-  updateTopicSeedResolver: lambda.IFunction;
-  runTopicPlanResolver: lambda.IFunction;
+  updateJobBriefResolver: lambda.IFunction;
+  runJobPlanResolver: lambda.IFunction;
   runSceneJsonResolver: lambda.IFunction;
   updateSceneJsonResolver: lambda.IFunction;
   runAssetGenerationResolver: lambda.IFunction;
@@ -42,10 +40,6 @@ type CreatePublishGraphqlApiProps = {
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
   approvePipelineExecutionResolver: lambda.IFunction;
-  channelPublishQueueResolver: lambda.IFunction;
-  enqueueToChannelPublishQueueResolver: lambda.IFunction;
-  platformConnectionsResolver: lambda.IFunction;
-  publishDomainResolver: lambda.IFunction;
 };
 
 const addLambdaResolver = (
@@ -109,13 +103,6 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
-    "ListPendingReviews",
-    "pendingReviews",
-    "Query",
-    props.pendingReviewsResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
     "JobTimeline",
     "jobTimeline",
     "Query",
@@ -134,13 +121,6 @@ export const createPublishGraphqlApi = (
     "jobDraft",
     "Query",
     props.getJobDraftResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "SubmitReviewDecision",
-    "submitReviewDecision",
-    "Mutation",
-    props.submitReviewDecisionResolver,
   );
   addLambdaResolver(
     graphqlApi,
@@ -214,17 +194,17 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
-    "UpdateTopicSeed",
-    "updateTopicSeed",
+    "UpdateJobBrief",
+    "updateJobBrief",
     "Mutation",
-    props.updateTopicSeedResolver,
+    props.updateJobBriefResolver,
   );
   addLambdaResolver(
     graphqlApi,
-    "RunTopicPlan",
-    "runTopicPlan",
+    "RunJobPlan",
+    "runJobPlan",
     "Mutation",
-    props.runTopicPlanResolver,
+    props.runJobPlanResolver,
   );
   addLambdaResolver(
     graphqlApi,
@@ -309,210 +289,6 @@ export const createPublishGraphqlApi = (
     "approvePipelineExecution",
     "Mutation",
     props.approvePipelineExecutionResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "ChannelPublishQueue",
-    "channelPublishQueue",
-    "Query",
-    props.channelPublishQueueResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "EnqueueToChannelPublishQueue",
-    "enqueueToChannelPublishQueue",
-    "Mutation",
-    props.enqueueToChannelPublishQueueResolver,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "PlatformConnections",
-    "platformConnections",
-    "Query",
-    props.platformConnectionsResolver,
-  );
-  const publishDomain = props.publishDomainResolver;
-  addLambdaResolver(
-    graphqlApi,
-    "SourceItem",
-    "sourceItem",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "SourceItemsForChannel",
-    "sourceItemsForChannel",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "PlatformPublishProfileQuery",
-    "platformPublishProfile",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "ContentPublishDraftQuery",
-    "contentPublishDraft",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "PublishTargetsForJob",
-    "publishTargetsForJob",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "IdeaCandidatesForChannel",
-    "ideaCandidatesForChannel",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "TrendSignalsForChannel",
-    "trendSignalsForChannel",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "AgentRunsForChannel",
-    "agentRunsForChannel",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "PerformanceInsightsForJob",
-    "performanceInsightsForJob",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "ChannelAgentConfig",
-    "channelAgentConfig",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "ChannelWatchlist",
-    "channelWatchlist",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "LatestChannelScoreSnapshotsForChannel",
-    "latestChannelScoreSnapshotsForChannel",
-    "Query",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "CreateSourceItem",
-    "createSourceItem",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdateSourceItem",
-    "updateSourceItem",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "SetJobSourceItem",
-    "setJobSourceItem",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpsertPlatformConnection",
-    "upsertPlatformConnection",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdatePlatformPublishProfile",
-    "updatePlatformPublishProfile",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdateContentPublishDraft",
-    "updateContentPublishDraft",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdatePublishTargetSchedule",
-    "updatePublishTargetSchedule",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "RunPublishOrchestration",
-    "runPublishOrchestration",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "PromoteIdeaCandidateToSource",
-    "promoteIdeaCandidateToSource",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "RejectIdeaCandidate",
-    "rejectIdeaCandidate",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdateChannelAgentConfig",
-    "updateChannelAgentConfig",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "CreateChannelWatchlistEntry",
-    "createChannelWatchlistEntry",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "UpdateChannelWatchlistEntry",
-    "updateChannelWatchlistEntry",
-    "Mutation",
-    publishDomain,
-  );
-  addLambdaResolver(
-    graphqlApi,
-    "EnqueueTrendScoutJob",
-    "enqueueTrendScoutJob",
-    "Mutation",
-    publishDomain,
   );
 
   return {

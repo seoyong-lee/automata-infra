@@ -16,8 +16,8 @@ export const approvePipelineExecutionUsecase = async (input: {
     throw new Error("only succeeded executions can be approved");
   }
   const fields: Record<string, unknown> = {};
-  if (row.stageType === "TOPIC_PLAN") {
-    fields.approvedTopicExecutionId = input.executionId;
+  if (row.stageType === "JOB_PLAN") {
+    fields.approvedPlanExecutionId = input.executionId;
   } else if (row.stageType === "SCENE_JSON") {
     fields.approvedSceneExecutionId = input.executionId;
   } else if (row.stageType === "ASSET_GENERATION") {

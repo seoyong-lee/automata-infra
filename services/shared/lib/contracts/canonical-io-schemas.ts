@@ -22,7 +22,7 @@ const optionalCreativeBrief = z
     return t.length === 0 ? undefined : t;
   });
 
-export const topicSeedInputSchema = z
+export const jobBriefInputSchema = z
   .object({
     contentId: nonEmpty,
     targetLanguage: nonEmpty,
@@ -47,7 +47,7 @@ const optionalCatalogContentId = z.preprocess((v) => {
 
 /**
  * contentId 생략 시 미연결 잡(placeholder `ADMIN_UNASSIGNED_CONTENT_ID`)으로 생성.
- * `runTopicPlan` 생략 또는 true: 잡 생성 직후 토픽 플랜까지 한 번에 실행(기본 동작).
+ * `runJobPlan` 생략 또는 true: 잡 생성 직후 플랜 생성까지 한 번에 실행(기본 동작).
  */
 export const createDraftJobInputSchema = z
   .object({
@@ -59,8 +59,8 @@ export const createDraftJobInputSchema = z
     creativeBrief: optionalCreativeBrief,
     autoPublish: z.boolean().optional(),
     publishAt: publishAtSchema.optional(),
-    /** false일 때만 시드만 두고 DRAFT로 둔다. */
-    runTopicPlan: z.boolean().optional(),
+    /** false일 때만 브리프만 저장하고 DRAFT로 둔다. */
+    runJobPlan: z.boolean().optional(),
   })
   .strict();
 
@@ -102,7 +102,7 @@ export const updateContentInputSchema = z
   })
   .strict();
 
-export const runTopicPlanInputSchema = z
+export const runJobPlanInputSchema = z
   .object({
     jobId: nonEmpty,
   })
@@ -128,7 +128,7 @@ export const contentBriefSchema = z
         audience: nonEmpty,
         style: nonEmpty,
         tone: nonEmpty,
-        topicKey: nonEmpty,
+        ideaKey: nonEmpty,
       })
       .strict(),
     constraints: z
@@ -200,11 +200,11 @@ export type ContentBrief = z.infer<typeof contentBriefSchema>;
 export type SourcePack = z.infer<typeof sourcePackSchema>;
 export type ScriptSection = z.infer<typeof scriptSectionSchema>;
 export type ScriptStructure = z.infer<typeof scriptStructureSchema>;
-export type TopicSeedInput = z.infer<typeof topicSeedInputSchema>;
+export type JobBriefInput = z.infer<typeof jobBriefInputSchema>;
 export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
 export type CreateContentInput = z.infer<typeof createContentInputSchema>;
 export type UpdateContentInput = z.infer<typeof updateContentInputSchema>;
-export type RunTopicPlanInput = z.infer<typeof runTopicPlanInputSchema>;
+export type RunJobPlanInput = z.infer<typeof runJobPlanInputSchema>;
 
 export const parseContentBrief = (payload: unknown): ContentBrief => {
   return contentBriefSchema.parse(payload);
@@ -218,8 +218,8 @@ export const parseScriptStructure = (payload: unknown): ScriptStructure => {
   return scriptStructureSchema.parse(payload);
 };
 
-export const parseTopicSeedInput = (payload: unknown): TopicSeedInput => {
-  return topicSeedInputSchema.parse(payload);
+export const parseJobBriefInput = (payload: unknown): JobBriefInput => {
+  return jobBriefInputSchema.parse(payload);
 };
 
 export const parseCreateDraftJobInput = (
@@ -246,6 +246,6 @@ export const parseUpdateContentInput = (
   return updateContentInputSchema.parse(payload);
 };
 
-export const parseRunTopicPlanInput = (payload: unknown): RunTopicPlanInput => {
-  return runTopicPlanInputSchema.parse(payload);
+export const parseRunJobPlanInput = (payload: unknown): RunJobPlanInput => {
+  return runJobPlanInputSchema.parse(payload);
 };

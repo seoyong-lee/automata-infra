@@ -4,16 +4,16 @@ import {
   startJobExecution,
   startQueuedJobExecution,
 } from "../../../../shared/lib/store/job-execution";
-import { resolveTopicS3KeyForSceneBuild } from "../../shared/lib/resolve-approved-pipeline-input";
+import { resolveJobPlanS3KeyForSceneBuild } from "../../shared/lib/resolve-approved-pipeline-input";
 import { getJobOrThrow } from "../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../shared/mapper/map-job-meta-to-admin-job";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { buildSceneJson } from "../../../../script/usecase/build-scene-json";
 import { clearSceneAssets } from "../../../../script/repo/clear-scene-assets";
-import type { TopicPlanResult } from "../../../../topic/usecase/create-topic-plan";
+import type { JobPlanResult } from "../../../../plan/usecase/create-job-plan";
 import { getSceneJsonKey } from "../../../../script/normalize/get-scene-json-key";
 import { persistSceneAssets } from "../../../../script/repo/persist-scene-assets";
-import type { TopicSeedDto } from "../../shared/types";
+import type { JobBriefDto } from "../../shared/types";
 
 const pipelineAsyncEnabled = (): boolean =>
   (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
@@ -22,25 +22,23 @@ const pipelineAsyncEnabled = (): boolean =>
 
 export const runSceneJsonCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
-  const topicResolved = await resolveTopicS3KeyForSceneBuild(jobId, job);
-  if (!topicResolved) {
-    throw new Error("topic plan not found");
+  const planResolved = await resolveJobPlanS3KeyForSceneBuild(jobId, job);
+  if (!planResolved) {
+    throw new Error("job plan not found");
   }
 
-  const topicPlan = await getJsonFromS3<TopicPlanResult>(
-    topicResolved.topicS3Key,
-  );
-  if (!topicPlan) {
-    throw new Error("topic plan payload not found");
+  const jobPlan = await getJsonFromS3<JobPlanResult>(planResolved.jobPlanS3Key);
+  if (!jobPlan) {
+    throw new Error("job plan payload not found");
   }
 
-  const topicSeed = job.topicSeedS3Key
-    ? ((await getJsonFromS3<TopicSeedDto>(job.topicSeedS3Key)) ?? undefined)
+  const jobBrief = job.jobBriefS3Key
+    ? ((await getJsonFromS3<JobBriefDto>(job.jobBriefS3Key)) ?? undefined)
     : undefined;
 
-  const sceneJsonInput: TopicPlanResult = {
-    ...topicPlan,
-    creativeBrief: topicSeed?.creativeBrief ?? topicPlan.creativeBrief,
+  const sceneJsonInput: JobPlanResult = {
+    ...jobPlan,
+    creativeBrief: jobBrief?.creativeBrief ?? jobPlan.creativeBrief,
   };
 
   await updateJobMeta(jobId, {}, "SCENE_JSON_BUILDING");
@@ -67,11 +65,11 @@ export const runAdminSceneJson = async (
   triggeredBy?: string,
 ) => {
   const job = await getJobOrThrow(jobId);
-  const topicResolved = await resolveTopicS3KeyForSceneBuild(jobId, job);
-  if (!topicResolved) {
-    throw new Error("topic plan not found");
+  const planResolved = await resolveJobPlanS3KeyForSceneBuild(jobId, job);
+  if (!planResolved) {
+    throw new Error("job plan not found");
   }
-  const inputSnapshotId = topicResolved.topicS3Key;
+  const inputSnapshotId = planResolved.jobPlanS3Key;
 
   if (pipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({

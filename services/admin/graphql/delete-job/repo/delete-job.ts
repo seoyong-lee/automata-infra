@@ -18,9 +18,9 @@ const BLOCKED_DELETE_STATUSES = new Set<string>([
 ]);
 
 const META_S3_FIELDS: (keyof JobMetaItem)[] = [
-  "topicSeedS3Key",
+  "jobBriefS3Key",
   "contentBriefS3Key",
-  "topicS3Key",
+  "jobPlanS3Key",
   "sceneJsonS3Key",
   "assetManifestS3Key",
   "renderPlanS3Key",

@@ -3,9 +3,9 @@ import { getSceneJsonKey } from "./normalize/get-scene-json-key";
 import { persistSceneAssets } from "./repo/persist-scene-assets";
 import { persistSceneJson } from "./repo/persist-scene-json";
 import { buildSceneJson, SceneJsonResult } from "./usecase/build-scene-json";
-import { TopicPlanResult } from "../topic/usecase/create-topic-plan";
+import { JobPlanResult } from "../plan/usecase/create-job-plan";
 
-export const run: Handler<TopicPlanResult, SceneJsonResult> = async (event) => {
+export const run: Handler<JobPlanResult, SceneJsonResult> = async (event) => {
   const sceneJson = await buildSceneJson(event);
   const sceneJsonS3Key = getSceneJsonKey(event.jobId);
   await persistSceneJson({

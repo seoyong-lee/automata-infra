@@ -88,7 +88,7 @@ const buildItem = (
 
 export const listLlmStepSettings = async (): Promise<LlmStepSettings[]> => {
   const defaults: LlmStepSettings[] = [
-    loadDefaultLlmStepSettings("topic-plan"),
+    loadDefaultLlmStepSettings("job-plan"),
     loadDefaultLlmStepSettings("scene-json"),
     loadDefaultLlmStepSettings("metadata"),
   ];
