@@ -2,6 +2,12 @@ export type VideoFactoryEnvConfig = {
   region: string;
   projectPrefix: string;
   reviewUiDomain: string;
+  manageFargateInfra?: boolean;
+  fargateRenderClusterArn?: string;
+  fargateRenderTaskDefinitionFamily?: string;
+  fargateRenderSecurityGroupId?: string;
+  fargateRenderSubnetIds?: string[];
+  fargateRenderContainerName?: string;
   adminCallbackUrls?: string[];
   adminLogoutUrls?: string[];
   adminUserPoolDomainPrefix?: string;

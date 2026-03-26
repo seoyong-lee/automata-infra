@@ -2,10 +2,8 @@
 import "source-map-support/register";
 import { App } from "aws-cdk-lib";
 import * as fs from "fs";
+import { AppStack } from "../lib/app-stack";
 import { VideoFactoryEnvConfig } from "../lib/config";
-import { PublishStack } from "../lib/publish-stack";
-import { SharedStack } from "../lib/shared-stack";
-import { WorkflowStack } from "../lib/workflow-stack";
 
 const app = new App();
 
@@ -38,6 +36,15 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
   region,
   projectPrefix,
   reviewUiDomain,
+  manageFargateInfra: envConfig.manageFargateInfra ?? false,
+  fargateRenderClusterArn: envConfig.fargateRenderClusterArn,
+  fargateRenderTaskDefinitionFamily:
+    envConfig.fargateRenderTaskDefinitionFamily ??
+    `${projectPrefix}-fargate-renderer`,
+  fargateRenderSecurityGroupId: envConfig.fargateRenderSecurityGroupId,
+  fargateRenderSubnetIds: envConfig.fargateRenderSubnetIds ?? [],
+  fargateRenderContainerName:
+    envConfig.fargateRenderContainerName ?? "renderer",
   adminCallbackUrls: withDefaults([
     ...(envConfig.adminCallbackUrls ?? []),
     `https://${reviewUiDomain}/auth/callback`,
@@ -74,32 +81,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
   channelConfigs: envConfig.channelConfigs ?? {},
 };
 
-const sharedStack = new SharedStack(app, `${projectPrefix}-shared`, {
+new AppStack(app, projectPrefix, {
   projectPrefix,
   region,
   envConfig: resolvedEnvConfig,
-});
-
-const workflowStack = new WorkflowStack(app, `${projectPrefix}-workflow`, {
-  projectPrefix,
-  region,
-  envConfig: resolvedEnvConfig,
-  assetsBucket: sharedStack.assetsBucket,
-  llmConfigTable: sharedStack.llmConfigTable,
-  previewDistribution: sharedStack.previewDistribution,
-});
-
-new PublishStack(app, `${projectPrefix}-publish`, {
-  projectPrefix,
-  region,
-  envConfig: resolvedEnvConfig,
-  assetsBucket: sharedStack.assetsBucket,
-  previewDistribution: sharedStack.previewDistribution,
-  jobsTable: workflowStack.jobsTable,
-  llmConfigTable: sharedStack.llmConfigTable,
-  renderClusterArn: workflowStack.renderClusterArn,
-  renderTaskDefinitionFamily: workflowStack.renderTaskDefinitionFamily,
-  renderSecurityGroupId: workflowStack.renderSecurityGroupId,
-  renderSubnetIds: workflowStack.renderSubnetIds,
-  renderContainerName: workflowStack.renderContainerName,
 });

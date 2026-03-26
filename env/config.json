@@ -1,7 +1,8 @@
 {
   "region": "ap-northeast-2",
-  "projectPrefix": "automata-studio",
+  "projectPrefix": "automata-ai",
   "reviewUiDomain": "review.example.com",
+  "manageFargateInfra": true,
   "adminCallbackUrls": [
     "https://www.automata.studio/auth/callback",
     "http://localhost:3001/auth/callback"
@@ -10,7 +11,7 @@
     "https://www.automata.studio/login",
     "http://localhost:3001/login"
   ],
-  "adminUserPoolDomainPrefix": "automata-studio-admin-auth-v2",
+  "adminUserPoolDomainPrefix": "automata-ai-admin-auth-v2",
   "enableAdminSignup": false,
   "workflowScheduleExpression": "rate(6 hours)",
   "workflowScheduleEnabled": false,
@@ -23,23 +24,5 @@
   "openAiSecretId": "automata-studio/openai",
   "elevenLabsSecretId": "automata-studio/elevenlabs",
   "shotstackSecretId": "automata-studio/shotstack",
-  "googleOAuthSecretId": "automata-studio/google-oauth-admin",
-  "youtubeSecrets": {
-    "saju-shorts-ko": "youtube-oauth-saju-shorts-ko",
-    "tarot-ko": "youtube-oauth-tarot-ko"
-  },
-  "channelConfigs": {
-    "saju-shorts-ko": {
-      "youtubeAccountType": "personal",
-      "autoPublishEnabled": true,
-      "defaultVisibility": "public",
-      "defaultCategoryId": 22
-    },
-    "tarot-ko": {
-      "youtubeAccountType": "personal",
-      "autoPublishEnabled": false,
-      "defaultVisibility": "unlisted",
-      "defaultCategoryId": 22
-    }
-  }
+  "googleOAuthSecretId": "automata-studio/google-oauth-admin"
 }
