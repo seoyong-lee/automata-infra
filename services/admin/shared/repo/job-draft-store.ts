@@ -12,6 +12,10 @@ import {
   listSceneVoiceCandidates,
   updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
+import {
+  alignSceneJsonNarrationAndSubtitle,
+  alignSceneNarrationAndSubtitle,
+} from "../../../shared/lib/scene-text";
 import type {
   BackgroundMusicAssetDto,
   ContentBriefDto,
@@ -34,54 +38,57 @@ export const buildJobPlanKey = (jobId: string): string => {
 };
 
 const mapScene = (scene: SceneJson["scenes"][number]): SceneJsonSceneDto => {
+  const alignedScene = alignSceneNarrationAndSubtitle(scene);
   return {
-    sceneId: scene.sceneId,
-    durationSec: scene.durationSec,
-    narration: scene.narration,
-    disableNarration: scene.disableNarration,
-    imagePrompt: scene.imagePrompt,
-    videoPrompt: scene.videoPrompt,
-    subtitle: scene.subtitle,
-    bgmMood: scene.bgmMood,
-    sfx: scene.sfx,
+    sceneId: alignedScene.sceneId,
+    durationSec: alignedScene.durationSec,
+    narration: alignedScene.narration,
+    disableNarration: alignedScene.disableNarration,
+    imagePrompt: alignedScene.imagePrompt,
+    videoPrompt: alignedScene.videoPrompt,
+    subtitle: alignedScene.subtitle,
+    bgmMood: alignedScene.bgmMood,
+    sfx: alignedScene.sfx,
   };
 };
 
 const mapSceneJson = (sceneJson: SceneJson): SceneJsonDto => {
+  const alignedSceneJson = alignSceneJsonNarrationAndSubtitle(sceneJson);
   return {
-    videoTitle: sceneJson.videoTitle,
-    language: sceneJson.language,
-    scenes: sceneJson.scenes.map(mapScene),
+    videoTitle: alignedSceneJson.videoTitle,
+    language: alignedSceneJson.language,
+    scenes: alignedSceneJson.scenes.map(mapScene),
   };
 };
 
 const mapSceneAsset = (asset: SceneAssetItem) => {
+  const alignedAsset = alignSceneNarrationAndSubtitle(asset);
   return {
-    sceneId: asset.sceneId,
-    imageS3Key: asset.imageS3Key,
-    videoClipS3Key: asset.videoClipS3Key,
-    voiceS3Key: asset.voiceS3Key,
+    sceneId: alignedAsset.sceneId,
+    imageS3Key: alignedAsset.imageS3Key,
+    videoClipS3Key: alignedAsset.videoClipS3Key,
+    voiceS3Key: alignedAsset.voiceS3Key,
     voiceSelectedCandidateId:
-      typeof asset.voiceSelectedCandidateId === "string"
-        ? asset.voiceSelectedCandidateId
+      typeof alignedAsset.voiceSelectedCandidateId === "string"
+        ? alignedAsset.voiceSelectedCandidateId
         : undefined,
     voiceProfileId:
-      typeof asset.voiceProfileId === "string"
-        ? asset.voiceProfileId
+      typeof alignedAsset.voiceProfileId === "string"
+        ? alignedAsset.voiceProfileId
         : undefined,
     voiceDurationSec:
-      typeof asset.voiceDurationSec === "number"
-        ? asset.voiceDurationSec
+      typeof alignedAsset.voiceDurationSec === "number"
+        ? alignedAsset.voiceDurationSec
         : undefined,
-    durationSec: asset.durationSec,
-    narration: asset.narration,
-    subtitle: asset.subtitle,
-    imagePrompt: asset.imagePrompt,
-    videoPrompt: asset.videoPrompt,
-    validationStatus: asset.validationStatus,
+    durationSec: alignedAsset.durationSec,
+    narration: alignedAsset.narration,
+    subtitle: alignedAsset.subtitle,
+    imagePrompt: alignedAsset.imagePrompt,
+    videoPrompt: alignedAsset.videoPrompt,
+    validationStatus: alignedAsset.validationStatus,
     imageSelectedCandidateId:
-      typeof asset.imageSelectedCandidateId === "string"
-        ? asset.imageSelectedCandidateId
+      typeof alignedAsset.imageSelectedCandidateId === "string"
+        ? alignedAsset.imageSelectedCandidateId
         : undefined,
   };
 };

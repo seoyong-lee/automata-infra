@@ -12,6 +12,7 @@ import {
   createJobPlan,
   type JobPlanResult,
 } from "../services/plan/usecase/create-job-plan";
+import { estimateMinimumVoiceDurationSec } from "../services/shared/lib/providers/media/elevenlabs-voice";
 import { generateSceneVideos } from "../services/video-generation/usecase/generate-scene-videos";
 import { generateSceneVoices } from "../services/voice/usecase/generate-scene-voices";
 import type {
@@ -45,14 +46,14 @@ const buildSceneJsonForScenario = (input: {
         narration: `${input.titleIdea} begins with a quiet hook.`,
         imagePrompt: `${input.titleIdea}, cinematic still frame, moonlight`,
         videoPrompt: `${input.titleIdea}, slow cinematic camera move`,
-        subtitle: "A quiet hook opens the story.",
+        subtitle: `${input.titleIdea} begins with a quiet hook.`,
       },
       {
         sceneId: 2,
         durationSec: 6,
         narration: `${input.titleIdea} ends with a concise takeaway.`,
         imagePrompt: `${input.titleIdea}, final visual beat, cinematic close-up`,
-        subtitle: "The takeaway lands quickly.",
+        subtitle: `${input.titleIdea} ends with a concise takeaway.`,
       },
     ],
   };
@@ -66,6 +67,10 @@ void test("createJobPlan uses shared LLM generation with deterministic output", 
     assert.deepEqual(input.variables, {
       contentId: "history-en",
       targetLanguage: "en",
+      channelLabel: "history-en",
+      contentType: "",
+      variant: "",
+      creativeBrief: "",
     });
 
     return {
@@ -85,6 +90,7 @@ void test("createJobPlan uses shared LLM generation with deterministic output", 
 
   assert.deepEqual(result, {
     ...topicPlanExpected,
+    creativeBrief: undefined,
     contentType: undefined,
     variant: undefined,
     autoPublish: undefined,
@@ -102,6 +108,7 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
       targetLanguage: sceneJsonInput.targetLanguage,
       targetDurationSec: sceneJsonInput.targetDurationSec,
       stylePreset: sceneJsonInput.stylePreset,
+      creativeBrief: "",
     });
 
     return {
@@ -114,7 +121,7 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
     generateStructuredData,
   });
 
-  assert.deepEqual(result, sceneJsonExpected);
+  assert.deepEqual(JSON.parse(JSON.stringify(result)), sceneJsonExpected);
 });
 
 void test("sceneJson contract flows through asset usecases and render-plan builder", async () => {
@@ -192,7 +199,21 @@ void test("sceneJson contract flows through asset usecases and render-plan build
   assert.equal(videoAssets.length, 3);
   assert.equal(voiceAssets.length, sceneJsonExpected.scenes.length);
   assert.equal(renderPlan.scenes.length, sceneJsonExpected.scenes.length);
-  assert.equal(renderPlan.totalDurationSec, 22);
+  const expectedTotalDurationSec = sceneJsonExpected.scenes.reduce(
+    (sum, scene, index) => {
+      const gapAfterSec = index < sceneJsonExpected.scenes.length - 1 ? 0.5 : 0;
+      return (
+        sum +
+        Math.max(
+          scene.durationSec,
+          estimateMinimumVoiceDurationSec(scene.narration),
+        ) +
+        gapAfterSec
+      );
+    },
+    0,
+  );
+  assert.equal(renderPlan.totalDurationSec, expectedTotalDurationSec);
 });
 
 void test("smoke dataset scenarios remain compatible with scene generation contract", async () => {
@@ -227,6 +248,9 @@ void test("smoke dataset scenarios remain compatible with scene generation contr
     assert.equal(result.language, scenario.targetLanguage);
     assert.equal(result.scenes.length, 2);
     assert.ok(result.scenes.every((scene) => scene.narration.length > 0));
+    assert.ok(
+      result.scenes.every((scene) => scene.subtitle === scene.narration),
+    );
     assert.ok(result.scenes.every((scene) => scene.imagePrompt.length > 0));
   }
 });

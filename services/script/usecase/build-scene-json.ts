@@ -11,6 +11,7 @@ import {
   expectRecord,
   expectString,
 } from "../../shared/lib/llm/validate";
+import { alignSceneJsonNarrationAndSubtitle } from "../../shared/lib/scene-text";
 import { SceneJson } from "../../../types/render/scene-json";
 
 type JobPlanResult = {
@@ -46,7 +47,7 @@ const buildMockSceneJson = (event: JobPlanResult): SceneJson => {
           "moonlit Korean fortress, quiet courtyard, cinematic, mist",
         videoPrompt:
           "slow cinematic push-in, moonlit Korean fortress courtyard, mist",
-        subtitle: "The fortress did not sleep.",
+        subtitle: "At night, the fortress did not sleep. It listened.",
         bgmMood: "dark_ambient",
       },
       {
@@ -56,7 +57,7 @@ const buildMockSceneJson = (event: JobPlanResult): SceneJson => {
         imagePrompt:
           "ancient Korean stone path at night, fog, moonlight, cinematic",
         videoPrompt: "slow dolly across moonlit Korean stone path, subtle mist",
-        subtitle: "Every footstep carried farther.",
+        subtitle: "Every footstep carried farther in the cold air.",
         bgmMood: "dark_ambient",
       },
     ],
@@ -143,5 +144,5 @@ export const buildSceneJson = async (
     buildMockResult: () => buildMockSceneJson(event),
   });
 
-  return result.output;
+  return alignSceneJsonNarrationAndSubtitle(result.output);
 };

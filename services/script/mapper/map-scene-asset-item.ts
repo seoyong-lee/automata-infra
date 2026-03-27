@@ -1,16 +1,18 @@
 import { SceneJson } from "../../../types/render/scene-json";
+import { alignSceneNarrationAndSubtitle } from "../../shared/lib/scene-text";
 
 export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {
+  const alignedScene = alignSceneNarrationAndSubtitle(scene);
   const hasNarration =
-    !scene.disableNarration && scene.narration.trim().length > 0;
+    !alignedScene.disableNarration && alignedScene.narration.trim().length > 0;
   return {
-    visualType: scene.videoPrompt ? "image+motion" : "image",
-    durationSec: scene.durationSec,
-    narration: scene.narration,
-    disableNarration: scene.disableNarration,
-    subtitle: scene.subtitle,
-    imagePrompt: scene.imagePrompt,
-    videoPrompt: scene.videoPrompt,
+    visualType: alignedScene.videoPrompt ? "image+motion" : "image",
+    durationSec: alignedScene.durationSec,
+    narration: alignedScene.narration,
+    disableNarration: alignedScene.disableNarration,
+    subtitle: alignedScene.subtitle,
+    imagePrompt: alignedScene.imagePrompt,
+    videoPrompt: alignedScene.videoPrompt,
     voiceS3Key: hasNarration ? undefined : null,
     voiceSelectedCandidateId: hasNarration ? undefined : null,
     voiceDurationSec: hasNarration ? undefined : null,

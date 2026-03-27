@@ -1,3 +1,5 @@
+import { alignSceneNarrationAndSubtitle } from "../../../shared/lib/scene-text";
+
 type SceneInput = {
   sceneId: number;
   durationSec?: number;
@@ -52,22 +54,23 @@ export const collectAssetRefs = (input: {
   const videoLookup = buildAssetLookup(videoAssets);
 
   return input.scenes.map((scene, index) => {
+    const alignedScene = alignSceneNarrationAndSubtitle(scene);
     const imageAsset =
-      imageLookup.bySceneId.get(scene.sceneId) ??
+      imageLookup.bySceneId.get(alignedScene.sceneId) ??
       imageLookup.unscopedAssets[index];
     const voiceAsset =
-      voiceLookup.bySceneId.get(scene.sceneId) ??
+      voiceLookup.bySceneId.get(alignedScene.sceneId) ??
       voiceLookup.unscopedAssets[index];
     const videoAsset =
-      videoLookup.bySceneId.get(scene.sceneId) ??
+      videoLookup.bySceneId.get(alignedScene.sceneId) ??
       videoLookup.unscopedAssets[index];
 
     return {
-      sceneId: scene.sceneId,
-      durationSec: scene.durationSec ?? 0,
-      narration: scene.narration ?? "",
-      disableNarration: scene.disableNarration ?? false,
-      subtitle: scene.subtitle ?? "",
+      sceneId: alignedScene.sceneId,
+      durationSec: alignedScene.durationSec ?? 0,
+      narration: alignedScene.narration ?? "",
+      disableNarration: alignedScene.disableNarration ?? false,
+      subtitle: alignedScene.subtitle ?? "",
       imageS3Key: pickKey(imageAsset, "imageS3Key"),
       voiceS3Key: pickKey(voiceAsset, "voiceS3Key"),
       videoClipS3Key: pickKey(videoAsset, "videoClipS3Key"),

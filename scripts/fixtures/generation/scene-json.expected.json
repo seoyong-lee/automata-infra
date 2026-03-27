@@ -8,7 +8,7 @@
       "narration": "After midnight, the outer wall sounded louder than the city itself.",
       "imagePrompt": "moonlit Joseon watchtower above a silent city wall, cold blue haze, cinematic detail",
       "videoPrompt": "slow push toward a moonlit Joseon watchtower, drifting night fog, cinematic",
-      "subtitle": "The wall sounded louder at midnight.",
+      "subtitle": "After midnight, the outer wall sounded louder than the city itself.",
       "bgmMood": "dark_ambient",
       "sfx": ["night_wind"]
     },
@@ -18,7 +18,7 @@
       "narration": "Guards listened for footsteps, bells, and anything that moved against the dark.",
       "imagePrompt": "Korean night guard listening from a high wooden watchtower, lantern glow, tense atmosphere",
       "videoPrompt": "gentle pan across a lantern-lit watchtower with a guard scanning the darkness",
-      "subtitle": "Guards listened for the dark to move.",
+      "subtitle": "Guards listened for footsteps, bells, and anything that moved against the dark.",
       "bgmMood": "dark_ambient",
       "sfx": ["distant_bell", "soft_steps"]
     },
@@ -28,7 +28,7 @@
       "narration": "That silence was not empty. It was the sound of waiting for trouble first.",
       "imagePrompt": "silent fortress wall before dawn, tense stillness, faint lantern light, cinematic realism",
       "videoPrompt": "slow dolly along a silent fortress wall before dawn, subtle lantern flicker",
-      "subtitle": "Silence meant waiting for trouble.",
+      "subtitle": "That silence was not empty. It was the sound of waiting for trouble first.",
       "bgmMood": "dark_ambient",
       "sfx": ["low_rumble"]
     }

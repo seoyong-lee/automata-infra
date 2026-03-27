@@ -1,5 +1,7 @@
 import { z } from "zod";
 
+import { alignSceneNarrationAndSubtitle } from "../scene-text";
+
 const isoDateSchema = z
   .string()
   .regex(/^\d{4}-\d{2}-\d{2}$/, "Expected YYYY-MM-DD");
@@ -108,17 +110,19 @@ export const runJobPlanInputSchema = z
   })
   .strict();
 
-export const sceneDefinitionSchema = z.object({
-  sceneId: z.number().finite().int().positive(),
-  durationSec: z.number().finite().positive(),
-  narration: z.string(),
-  disableNarration: z.boolean().optional(),
-  imagePrompt: nonEmpty,
-  videoPrompt: z.string().optional(),
-  subtitle: nonEmpty,
-  bgmMood: z.string().optional(),
-  sfx: z.array(nonEmpty).optional(),
-});
+export const sceneDefinitionSchema = z
+  .object({
+    sceneId: z.number().finite().int().positive(),
+    durationSec: z.number().finite().positive(),
+    narration: z.string(),
+    disableNarration: z.boolean().optional(),
+    imagePrompt: nonEmpty,
+    videoPrompt: z.string().optional(),
+    subtitle: nonEmpty,
+    bgmMood: z.string().optional(),
+    sfx: z.array(nonEmpty).optional(),
+  })
+  .transform((scene) => alignSceneNarrationAndSubtitle(scene));
 
 export const sceneJsonSchema = z
   .object({

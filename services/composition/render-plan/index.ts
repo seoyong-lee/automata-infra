@@ -3,6 +3,7 @@ import { Handler } from "aws-lambda";
 import { parseBuffer } from "music-metadata";
 import { getBufferFromS3, putJsonToS3 } from "../../shared/lib/aws/runtime";
 import { estimateMinimumVoiceDurationSec } from "../../shared/lib/providers/media/elevenlabs-voice";
+import { alignSceneNarrationAndSubtitle } from "../../shared/lib/scene-text";
 import {
   listSceneAssets,
   putRenderArtifact,
@@ -100,16 +101,17 @@ export const buildRenderPlanScenes = (
   const voiceAssets = event.voiceAssets ?? [];
 
   const scenes = event.sceneJson.scenes.map((scene, index) => {
+    const alignedScene = alignSceneNarrationAndSubtitle(scene);
     const imageAsset = imageAssets.find(
-      (asset) => asset.sceneId === scene.sceneId,
+      (asset) => asset.sceneId === alignedScene.sceneId,
     );
     const voiceAsset = voiceAssets.find(
-      (asset) => asset.sceneId === scene.sceneId,
+      (asset) => asset.sceneId === alignedScene.sceneId,
     );
     const videoAsset = videoAssets.find(
-      (asset) => asset.sceneId === scene.sceneId,
+      (asset) => asset.sceneId === alignedScene.sceneId,
     );
-    const sceneDurationSec = resolveSceneDurationSec(scene, voiceAsset);
+    const sceneDurationSec = resolveSceneDurationSec(alignedScene, voiceAsset);
     const startSec = cursorSec;
     const endSec = startSec + sceneDurationSec;
     const gapAfterSec =
@@ -117,7 +119,7 @@ export const buildRenderPlanScenes = (
     cursorSec = endSec + gapAfterSec;
 
     return {
-      sceneId: scene.sceneId,
+      sceneId: alignedScene.sceneId,
       startSec,
       endSec,
       durationSec: sceneDurationSec,
@@ -126,10 +128,10 @@ export const buildRenderPlanScenes = (
       videoClipS3Key: videoAsset?.videoClipS3Key,
       voiceS3Key: voiceAsset?.voiceS3Key,
       voiceDurationSec: voiceAsset?.voiceDurationSec,
-      disableNarration: scene.disableNarration,
-      subtitle: scene.subtitle,
-      bgmMood: scene.bgmMood,
-      sfx: scene.sfx,
+      disableNarration: alignedScene.disableNarration,
+      subtitle: alignedScene.subtitle,
+      bgmMood: alignedScene.bgmMood,
+      sfx: alignedScene.sfx,
     };
   });
 
