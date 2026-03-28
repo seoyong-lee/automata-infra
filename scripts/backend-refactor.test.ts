@@ -4,6 +4,7 @@ import test from "node:test";
 import { parseUpdateSceneJsonArgs } from "../services/admin/generations/update-scene-json/normalize/parse-update-scene-json-args";
 import { updateLlmStepSettings } from "../services/admin/settings/update-llm-settings/repo/update-llm-step-settings";
 import { collectAssetRefs } from "../services/composition/validate-assets/normalize/collect-asset-refs";
+import { hasRenderableVisualAsset } from "../services/composition/validate-assets/usecase/validate-generated-assets";
 import { generateStructuredDataWithProvider } from "../services/shared/lib/providers/llm";
 
 void test("collectAssetRefs matches assets by sceneId before array position", () => {
@@ -68,6 +69,30 @@ void test("collectAssetRefs matches assets by sceneId before array position", ()
         videoClipS3Key: null,
       },
     ],
+  );
+});
+
+void test("hasRenderableVisualAsset accepts either image or video assets", () => {
+  assert.equal(
+    hasRenderableVisualAsset({
+      imageS3Key: "assets/job/images/scene-1.png",
+      videoClipS3Key: null,
+    }),
+    true,
+  );
+  assert.equal(
+    hasRenderableVisualAsset({
+      imageS3Key: null,
+      videoClipS3Key: "assets/job/videos/scene-1.mp4",
+    }),
+    true,
+  );
+  assert.equal(
+    hasRenderableVisualAsset({
+      imageS3Key: null,
+      videoClipS3Key: null,
+    }),
+    false,
   );
 });
 

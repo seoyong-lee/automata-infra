@@ -36,6 +36,12 @@ const isVideoOrJsonMime = (value: string | undefined): boolean => {
 
 type SceneRef = ReturnType<typeof collectAssetRefs>[number];
 
+export const hasRenderableVisualAsset = (
+  scene: Pick<SceneRef, "imageS3Key" | "videoClipS3Key">,
+): boolean => {
+  return Boolean(scene.imageS3Key || scene.videoClipS3Key);
+};
+
 const createValidationContext = (input: ValidateInput) => {
   const errors: string[] = [];
   const warnings: string[] = [];
@@ -71,7 +77,6 @@ const validateSceneBasics = (
 
 const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
   if (!scene.imageS3Key) {
-    errors.push(`scene ${scene.sceneId}: imageS3Key is missing`);
     return;
   }
 
@@ -84,6 +89,14 @@ const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
   if (!isImageMime(meta.contentType)) {
     errors.push(
       `scene ${scene.sceneId}: image content-type invalid (${meta.contentType ?? "unknown"})`,
+    );
+  }
+};
+
+const validateVisualAssetPresence = (scene: SceneRef, errors: string[]) => {
+  if (!hasRenderableVisualAsset(scene)) {
+    errors.push(
+      `scene ${scene.sceneId}: either imageS3Key or videoClipS3Key is required`,
     );
   }
 };
@@ -144,6 +157,7 @@ const validateSceneAssets = async (
 ) => {
   for (const scene of sceneRefs) {
     validateSceneBasics(scene, errors, warnings);
+    validateVisualAssetPresence(scene, errors);
     await validateImageAsset(scene, errors);
     await validateVoiceAsset(scene, errors);
     await validateVideoAsset(scene, errors, warnings);
