@@ -25,7 +25,7 @@ type Query {
   """
   jobExecutions(jobId: ID!): [PipelineExecution!]!
   jobDraft(jobId: ID!): JobDraftDetail
-  contentPresets: [ContentPreset!]!
+  contentPresets(includeInactive: Boolean): [ContentPreset!]!
   llmSettings: LlmSettings!
   voiceProfiles: [VoiceProfile!]!
 }
@@ -35,6 +35,7 @@ type Mutation {
   requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
   upsertContentPreset(input: UpsertContentPresetInput!): ContentPreset!
+  deleteContentPreset(presetId: ID!): DeleteContentPresetResult!
   upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
   updateContent(input: UpdateContentInput!): Content!
@@ -443,6 +444,11 @@ type DeleteContentResult {
 type DeleteJobResult {
   ok: Boolean!
   jobId: ID!
+}
+
+type DeleteContentPresetResult {
+  ok: Boolean!
+  presetId: ID!
 }
 
 type LlmStepSettings {

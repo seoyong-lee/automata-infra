@@ -253,9 +253,13 @@ const mapPresetItem = (item: ContentPresetItem): ContentPreset => {
   });
 };
 
-export const listContentPresets = async (): Promise<ContentPreset[]> => {
+export const listContentPresets = async (input?: {
+  includeInactive?: boolean;
+}): Promise<ContentPreset[]> => {
   if (!hasConfigTable()) {
-    return BUILTIN_CONTENT_PRESETS;
+    return input?.includeInactive
+      ? BUILTIN_CONTENT_PRESETS
+      : BUILTIN_CONTENT_PRESETS.filter((preset) => preset.isActive);
   }
 
   const configured = await queryItemsFromTable<ContentPresetItem>(
@@ -277,7 +281,7 @@ export const listContentPresets = async (): Promise<ContentPreset[]> => {
   }
 
   return Array.from(merged.values())
-    .filter((preset) => preset.isActive)
+    .filter((preset) => input?.includeInactive || preset.isActive)
     .sort((left, right) => left.name.localeCompare(right.name));
 };
 
@@ -333,4 +337,25 @@ export const putContentPreset = async (input: {
   }
 
   return mapPresetItem(item);
+};
+
+export const softDeleteContentPreset = async (
+  presetId: string,
+): Promise<ContentPreset> => {
+  const existing = await getContentPresetOrThrow(presetId);
+  return putContentPreset({
+    preset: {
+      presetId: existing.presetId,
+      name: existing.name,
+      description: existing.description,
+      isActive: false,
+      format: existing.format,
+      duration: existing.duration,
+      platformPresets: existing.platformPresets,
+      styleTags: existing.styleTags,
+      assetStrategy: existing.assetStrategy,
+      capabilities: existing.capabilities,
+      defaultPolicy: existing.defaultPolicy,
+    },
+  });
 };

@@ -368,3 +368,8 @@ export type ContentPresetDto = ContentPreset;
 export type PresetSnapshotDto = PresetSnapshot;
 export type ResolvedPolicyDto = ResolvedPolicy;
 export type AssetMenuModelDto = AssetMenuModel;
+
+export type DeleteContentPresetResultDto = {
+  ok: boolean;
+  presetId: string;
+};

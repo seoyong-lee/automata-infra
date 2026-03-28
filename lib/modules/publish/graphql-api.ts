@@ -18,6 +18,7 @@ type CreatePublishGraphqlApiProps = {
   requestUploadResolver: lambda.IFunction;
   requestAssetUploadResolver: lambda.IFunction;
   listContentPresetsResolver: lambda.IFunction;
+  deleteContentPresetResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
   upsertContentPresetResolver: lambda.IFunction;
@@ -165,6 +166,13 @@ export const createPublishGraphqlApi = (
     "updateLlmStepSettings",
     "Mutation",
     props.updateLlmSettingsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "DeleteContentPreset",
+    "deleteContentPreset",
+    "Mutation",
+    props.deleteContentPresetResolver,
   );
   addLambdaResolver(
     graphqlApi,
