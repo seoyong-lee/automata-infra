@@ -35,6 +35,7 @@ const createLambda = (
   entry: string,
   environment: Record<string, string>,
   timeout: Duration = Duration.seconds(30),
+  memorySize: number = 512,
 ): nodejs.NodejsFunction => {
   return new nodejs.NodejsFunction(scope, id, {
     functionName,
@@ -42,6 +43,7 @@ const createLambda = (
     handler: "handler",
     runtime: lambda.Runtime.NODEJS_20_X,
     timeout,
+    memorySize,
     bundling: {
       target: "node20",
       format: nodejs.OutputFormat.CJS,
@@ -258,6 +260,8 @@ export class AppStack extends Stack {
       `${props.projectPrefix}-admin-generations`,
       path.join(process.cwd(), "services/admin/generations/handler.ts"),
       pipelineTriggerEnv,
+      Duration.seconds(60),
+      1024,
     );
     const contentHandler = createLambda(
       this,

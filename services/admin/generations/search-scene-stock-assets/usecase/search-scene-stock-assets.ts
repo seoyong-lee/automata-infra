@@ -47,6 +47,32 @@ const asNumber = (value: unknown): number | undefined => {
   return typeof value === "number" ? value : undefined;
 };
 
+const runWithConcurrency = async <T>(
+  items: T[],
+  concurrency: number,
+  worker: (item: T) => Promise<void>,
+): Promise<void> => {
+  if (items.length === 0) {
+    return;
+  }
+  const runnerCount = Math.max(
+    1,
+    Math.min(items.length, Math.floor(concurrency)),
+  );
+  let nextIndex = 0;
+  await Promise.all(
+    Array.from({ length: runnerCount }, async () => {
+      while (nextIndex < items.length) {
+        const item = items[nextIndex];
+        nextIndex += 1;
+        if (item !== undefined) {
+          await worker(item);
+        }
+      }
+    }),
+  );
+};
+
 const toStockSearchScope = (
   parsed: SearchSceneStockAssetsInputDto,
 ): StockSearchScope => {
@@ -142,12 +168,11 @@ const persistImageCandidates = async (
 ): Promise<void> => {
   for (const asset of assets) {
     const candidateId = asString(asset.candidateId);
-    const imageS3Key = asString(asset.imageS3Key);
-    if (!candidateId || !imageS3Key) {
+    if (!candidateId) {
       continue;
     }
     await putSceneImageCandidate(jobId, sceneId, candidateId, {
-      imageS3Key,
+      imageS3Key: asString(asset.imageS3Key),
       createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
       provider: asString(asset.provider),
       providerLogS3Key: asString(asset.providerLogS3Key),
@@ -170,12 +195,11 @@ const persistVideoCandidates = async (
 ): Promise<void> => {
   for (const asset of assets) {
     const candidateId = asString(asset.candidateId);
-    const videoClipS3Key = asString(asset.videoClipS3Key);
-    if (!candidateId || !videoClipS3Key) {
+    if (!candidateId) {
       continue;
     }
     await putSceneVideoCandidate(jobId, sceneId, candidateId, {
-      videoClipS3Key,
+      videoClipS3Key: asString(asset.videoClipS3Key),
       createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
       provider: asString(asset.provider),
       providerLogS3Key: asString(asset.providerLogS3Key),
@@ -199,15 +223,15 @@ const searchImageCandidatesAcrossScenes = async (input: {
   secretId: string;
   searchStockImages: SearchStockImageFn;
 }): Promise<void> => {
-  for (const scene of input.scenes) {
-    await searchImageCandidatesForScene({
+  await runWithConcurrency(input.scenes, 2, (scene) =>
+    searchImageCandidatesForScene({
       jobId: input.jobId,
       scene,
       language: input.language,
       secretId: input.secretId,
       searchStockImages: input.searchStockImages,
-    });
-  }
+    }),
+  );
 };
 
 const searchVideoCandidatesAcrossScenes = async (input: {
@@ -217,15 +241,16 @@ const searchVideoCandidatesAcrossScenes = async (input: {
   secretId: string;
   searchStockVideos: SearchStockVideoFn;
 }): Promise<void> => {
-  for (const scene of input.scenes) {
-    await searchVideoCandidatesForScene({
+  // Video downloads hold large buffers in memory, so keep scene processing serial.
+  await runWithConcurrency(input.scenes, 1, (scene) =>
+    searchVideoCandidatesForScene({
       jobId: input.jobId,
       scene,
       language: input.language,
       secretId: input.secretId,
       searchStockVideos: input.searchStockVideos,
-    });
-  }
+    }),
+  );
 };
 
 const searchImageCandidatesForScene = async (input: {

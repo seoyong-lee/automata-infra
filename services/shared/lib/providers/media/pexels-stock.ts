@@ -1,6 +1,6 @@
 import { createHash } from "crypto";
-import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
-import { fetchArrayBufferWithRetry, fetchJsonWithRetry } from "../http/retry";
+import { getSecretJson, putJsonToS3 } from "../../aws/runtime";
+import { fetchJsonWithRetry } from "../http/retry";
 
 type PexelsSecret = {
   apiKey: string;
@@ -46,8 +46,9 @@ type PexelsVideo = {
 };
 
 const DEFAULT_PEXELS_ENDPOINT = "https://api.pexels.com";
-const DEFAULT_IMAGE_CANDIDATE_COUNT = 3;
-const DEFAULT_VIDEO_CANDIDATE_COUNT = 3;
+const DEFAULT_IMAGE_CANDIDATE_COUNT = 2;
+const DEFAULT_VIDEO_CANDIDATE_COUNT = 2;
+const PEXELS_SEARCH_TIMEOUT_MS = 8000;
 
 const QUERY_STOP_WORDS = new Set([
   "a",
@@ -166,27 +167,6 @@ const resolvePexelsLocale = (language?: string): string | undefined => {
   return undefined;
 };
 
-const resolveImageContentType = (url: string): string => {
-  const normalized = url.toLowerCase();
-  if (normalized.includes(".png")) {
-    return "image/png";
-  }
-  if (normalized.includes(".webp")) {
-    return "image/webp";
-  }
-  return "image/jpeg";
-};
-
-const resolveImageExtension = (contentType: string): string => {
-  if (contentType === "image/png") {
-    return "png";
-  }
-  if (contentType === "image/webp") {
-    return "webp";
-  }
-  return "jpg";
-};
-
 const resolvePhotoDownloadUrl = (photo: PexelsPhoto): string | undefined => {
   return (
     photo.src?.large2x ??
@@ -296,25 +276,15 @@ const downloadPhotoCandidate = async (input: {
   if (!downloadUrl) {
     return undefined;
   }
-  const contentType = resolveImageContentType(downloadUrl);
-  const extension = resolveImageExtension(contentType);
   const candidateId = `pexels-photo-${input.photo.id}`;
-  const imageS3Key = `assets/${input.jobId}/stock/images/scene-${input.sceneId}/${candidateId}.${extension}`;
-  const arrayBuffer = await fetchArrayBufferWithRetry(
-    downloadUrl,
-    { method: "GET" },
-    { maxAttempts: 3 },
-  );
-  await putBufferToS3(imageS3Key, Buffer.from(arrayBuffer), contentType);
   return {
     candidateId,
     createdAt: input.createdAt,
     provider: "pexels-photo",
-    imageS3Key,
     providerLogS3Key: input.providerLogS3Key,
     promptHash: input.promptHash,
     mocked: false,
-    sourceUrl: input.photo.url,
+    sourceUrl: downloadUrl,
     thumbnailUrl: input.photo.src?.medium ?? input.photo.src?.small,
     authorName: input.photo.photographer,
     sourceAssetId: String(input.photo.id),
@@ -336,22 +306,14 @@ const downloadVideoCandidate = async (input: {
     return undefined;
   }
   const candidateId = `pexels-video-${input.video.id}`;
-  const videoClipS3Key = `assets/${input.jobId}/stock/videos/scene-${input.sceneId}/${candidateId}.mp4`;
-  const arrayBuffer = await fetchArrayBufferWithRetry(
-    bestFile.link,
-    { method: "GET" },
-    { maxAttempts: 3 },
-  );
-  await putBufferToS3(videoClipS3Key, Buffer.from(arrayBuffer), "video/mp4");
   return {
     candidateId,
     createdAt: input.createdAt,
     provider: "pexels-video",
-    videoClipS3Key,
     providerLogS3Key: input.providerLogS3Key,
     promptHash: input.promptHash,
     mocked: false,
-    sourceUrl: input.video.url,
+    sourceUrl: bestFile.link,
     thumbnailUrl: input.video.image,
     authorName: input.video.user?.name,
     sourceAssetId: String(input.video.id),
@@ -363,6 +325,56 @@ const downloadVideoCandidate = async (input: {
         : input.video.height,
     durationSec: input.video.duration,
   };
+};
+
+const mapPhotoCandidatesSequentially = async (input: {
+  jobId: string;
+  sceneId: number;
+  createdAt: string;
+  promptHash: string;
+  providerLogS3Key: string;
+  photos: PexelsPhoto[];
+}): Promise<Record<string, unknown>[]> => {
+  const assets: Record<string, unknown>[] = [];
+  for (const photo of input.photos) {
+    const asset = await downloadPhotoCandidate({
+      jobId: input.jobId,
+      sceneId: input.sceneId,
+      createdAt: input.createdAt,
+      promptHash: input.promptHash,
+      providerLogS3Key: input.providerLogS3Key,
+      photo,
+    });
+    if (asset) {
+      assets.push(asset);
+    }
+  }
+  return assets;
+};
+
+const mapVideoCandidatesSequentially = async (input: {
+  jobId: string;
+  sceneId: number;
+  createdAt: string;
+  promptHash: string;
+  providerLogS3Key: string;
+  videos: PexelsVideo[];
+}): Promise<Record<string, unknown>[]> => {
+  const assets: Record<string, unknown>[] = [];
+  for (const video of input.videos) {
+    const asset = await downloadVideoCandidate({
+      jobId: input.jobId,
+      sceneId: input.sceneId,
+      createdAt: input.createdAt,
+      promptHash: input.promptHash,
+      providerLogS3Key: input.providerLogS3Key,
+      video,
+    });
+    if (asset) {
+      assets.push(asset);
+    }
+  }
+  return assets;
 };
 
 export const pickBestPexelsVideoFile = (
@@ -423,6 +435,7 @@ export const searchPexelsPhotoCandidates = async (input: {
   const payload = (await fetchJsonWithRetry(requestUrl, {
     method: "GET",
     headers: buildPexelsHeaders(secret.apiKey),
+    signal: AbortSignal.timeout(PEXELS_SEARCH_TIMEOUT_MS),
   })) as {
     photos?: PexelsPhoto[];
     total_results?: number;
@@ -438,21 +451,14 @@ export const searchPexelsPhotoCandidates = async (input: {
 
   const createdAt = new Date().toISOString();
   const promptHash = hashText(input.prompt);
-  const assets = await Promise.all(
-    (payload.photos ?? []).map((photo) =>
-      downloadPhotoCandidate({
-        jobId: input.jobId,
-        sceneId: input.sceneId,
-        createdAt,
-        promptHash,
-        providerLogS3Key,
-        photo,
-      }),
-    ),
-  );
-  return assets.filter((asset): asset is Record<string, unknown> =>
-    Boolean(asset),
-  );
+  return mapPhotoCandidatesSequentially({
+    jobId: input.jobId,
+    sceneId: input.sceneId,
+    createdAt,
+    promptHash,
+    providerLogS3Key,
+    photos: payload.photos ?? [],
+  });
 };
 
 export const searchPexelsVideoCandidates = async (input: {
@@ -476,6 +482,7 @@ export const searchPexelsVideoCandidates = async (input: {
   const payload = (await fetchJsonWithRetry(requestUrl, {
     method: "GET",
     headers: buildPexelsHeaders(secret.apiKey),
+    signal: AbortSignal.timeout(PEXELS_SEARCH_TIMEOUT_MS),
   })) as {
     videos?: PexelsVideo[];
     total_results?: number;
@@ -492,19 +499,12 @@ export const searchPexelsVideoCandidates = async (input: {
 
   const createdAt = new Date().toISOString();
   const promptHash = hashText(input.prompt);
-  const assets = await Promise.all(
-    (payload.videos ?? []).map((video) =>
-      downloadVideoCandidate({
-        jobId: input.jobId,
-        sceneId: input.sceneId,
-        createdAt,
-        promptHash,
-        providerLogS3Key,
-        video,
-      }),
-    ),
-  );
-  return assets.filter((asset): asset is Record<string, unknown> =>
-    Boolean(asset),
-  );
+  return mapVideoCandidatesSequentially({
+    jobId: input.jobId,
+    sceneId: input.sceneId,
+    createdAt,
+    promptHash,
+    providerLogS3Key,
+    videos: payload.videos ?? [],
+  });
 };

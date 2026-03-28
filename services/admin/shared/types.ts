@@ -338,7 +338,7 @@ export type BackgroundMusicAssetDto = {
 
 export type SceneImageCandidateDto = {
   candidateId: string;
-  imageS3Key: string;
+  imageS3Key?: string;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -355,7 +355,7 @@ export type SceneImageCandidateDto = {
 
 export type SceneVideoCandidateDto = {
   candidateId: string;
-  videoClipS3Key: string;
+  videoClipS3Key?: string;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;

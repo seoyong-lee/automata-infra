@@ -6,6 +6,10 @@ export {
   searchPexelsPhotoCandidates,
   searchPexelsVideoCandidates,
 } from "./media/pexels-stock";
+export {
+  materializeRemoteImageAsset,
+  materializeRemoteVideoAsset,
+} from "./media/stock-asset";
 export { generateSceneVideo } from "./media/runway-video";
 export { generateSceneBytePlusVideo } from "./media/byteplus-video";
 export { generateSceneVoice } from "./media/elevenlabs-voice";

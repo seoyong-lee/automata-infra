@@ -9,12 +9,16 @@ import { alignSceneNarrationAndSubtitle } from "../../../shared/lib/scene-text";
 const asSelected = (input: {
   selectedCandidateId?: string;
   candidateId: string;
-  candidateAssetKey: string;
+  candidateAssetKey?: string;
   sceneAssetKey?: string;
 }): boolean => {
-  return input.selectedCandidateId !== undefined
-    ? input.candidateId === input.selectedCandidateId
-    : input.candidateAssetKey === input.sceneAssetKey;
+  if (input.selectedCandidateId !== undefined) {
+    return input.candidateId === input.selectedCandidateId;
+  }
+  if (!input.candidateAssetKey || !input.sceneAssetKey) {
+    return false;
+  }
+  return input.candidateAssetKey === input.sceneAssetKey;
 };
 
 export const mapSceneAssetDraft = (asset: SceneAssetItem) => {

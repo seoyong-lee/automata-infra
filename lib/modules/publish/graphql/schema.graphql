@@ -316,7 +316,7 @@ type SceneAsset {
 
 type SceneImageCandidate {
   candidateId: ID!
-  imageS3Key: String!
+  imageS3Key: String
   provider: String
   providerLogS3Key: String
   promptHash: String
@@ -333,7 +333,7 @@ type SceneImageCandidate {
 
 type SceneVideoCandidate {
   candidateId: ID!
-  videoClipS3Key: String!
+  videoClipS3Key: String
   provider: String
   providerLogS3Key: String
   promptHash: String

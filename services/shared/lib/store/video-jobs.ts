@@ -157,7 +157,7 @@ export type SceneImageCandidateItem = {
   SK: string;
   sceneId: number;
   candidateId: string;
-  imageS3Key: string;
+  imageS3Key?: string;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -176,7 +176,7 @@ export type SceneVideoCandidateItem = {
   SK: string;
   sceneId: number;
   candidateId: string;
-  videoClipS3Key: string;
+  videoClipS3Key?: string;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
