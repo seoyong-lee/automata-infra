@@ -1,5 +1,5 @@
 import { badUserInput } from "../../../shared/errors";
-import type { JobBriefDto } from "../../../shared/types";
+import type { UpdateJobBriefInputDto } from "../../../shared/types";
 
 const asString = (value: unknown, field: string): string => {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -37,9 +37,20 @@ const asOptionalCreativeBrief = (value: unknown): string | undefined => {
   return trimmed;
 };
 
+const asOptionalString = (value: unknown): string | undefined => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  if (typeof value !== "string") {
+    throw badUserInput("optional string field is invalid");
+  }
+  const trimmed = value.trim();
+  return trimmed.length > 0 ? trimmed : undefined;
+};
+
 export const parseUpdateJobBriefArgs = (
   args: Record<string, unknown>,
-): { jobId: string; jobBrief: JobBriefDto } => {
+): { jobId: string; jobBrief: UpdateJobBriefInputDto } => {
   const input =
     args.input && typeof args.input === "object"
       ? (args.input as Record<string, unknown>)
@@ -52,10 +63,13 @@ export const parseUpdateJobBriefArgs = (
     jobId,
     jobBrief: {
       contentId: asString(input.contentId, "contentId"),
+      presetId: asOptionalString(input.presetId),
       targetLanguage: asString(input.targetLanguage, "targetLanguage"),
       titleIdea: asString(input.titleIdea, "titleIdea"),
       targetDurationSec: asDuration(input.targetDurationSec),
-      stylePreset: asString(input.stylePreset, "stylePreset"),
+      ...(asOptionalString(input.stylePreset)
+        ? { stylePreset: asOptionalString(input.stylePreset) }
+        : {}),
       creativeBrief: asOptionalCreativeBrief(input.creativeBrief),
     },
   };

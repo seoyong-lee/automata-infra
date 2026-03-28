@@ -223,6 +223,11 @@ export const saveJobBrief = async (input: {
     {
       jobBriefS3Key: key,
       contentId: input.jobBrief.contentId,
+      presetId: input.jobBrief.presetId,
+      presetFormat: input.jobBrief.presetSnapshot?.format,
+      presetDuration: input.jobBrief.presetSnapshot?.duration,
+      presetPlatformPreset:
+        input.jobBrief.resolvedPolicy?.primaryPlatformPreset,
       language: input.jobBrief.targetLanguage,
       targetDurationSec: input.jobBrief.targetDurationSec,
       videoTitle: input.jobBrief.titleIdea,
@@ -246,6 +251,11 @@ export const saveContentBrief = async (input: {
       contentType: input.contentBrief.contentType,
       variant: input.contentBrief.variant,
       contentId: input.contentBrief.contentId,
+      presetId: input.contentBrief.presetId,
+      presetFormat: input.contentBrief.presetSnapshot?.format,
+      presetDuration: input.contentBrief.presetSnapshot?.duration,
+      presetPlatformPreset:
+        input.contentBrief.resolvedPolicy?.primaryPlatformPreset,
       language: input.contentBrief.language,
       targetDurationSec: input.contentBrief.targetDurationSec,
       videoTitle: input.contentBrief.titleIdea,

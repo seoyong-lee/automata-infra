@@ -1,3 +1,10 @@
+import type {
+  AssetMenuModel,
+  ContentPreset,
+  PresetSnapshot,
+  ResolvedPolicy,
+} from "../../shared/lib/contracts/content-presets";
+
 export type GraphqlResolverEvent<TArgs> = {
   arguments: TArgs;
   identity?: unknown;
@@ -97,6 +104,10 @@ export type AdminJobDto = {
   status: JobStatus;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  presetFormat?: string;
+  presetDuration?: string;
+  presetPlatformPreset?: string;
   autoPublish?: boolean;
   publishAt?: string;
   language: string;
@@ -150,12 +161,15 @@ export type LlmSettingsDto = {
 
 export type JobBriefDto = {
   contentId: string;
+  presetId?: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
   stylePreset: string;
   /** 자유 서술 기획 메모. Scene JSON 프롬프트에 반영. */
   creativeBrief?: string;
+  presetSnapshot?: PresetSnapshot;
+  resolvedPolicy?: ResolvedPolicy;
 };
 
 export type ContentBriefDto = {
@@ -163,6 +177,7 @@ export type ContentBriefDto = {
   contentType: string;
   variant: string;
   contentId: string;
+  presetId?: string;
   language: string;
   targetPlatform: string;
   targetDurationSec: number;
@@ -185,15 +200,18 @@ export type ContentBriefDto = {
     safetyLevel: "default" | "strict" | "relaxed";
     noMedicalOrLegalClaims: boolean;
   };
+  presetSnapshot?: PresetSnapshot;
+  resolvedPolicy?: ResolvedPolicy;
 };
 
 export type CreateDraftJobInputDto = {
   /** 생략 시 미연결 잡(`ADMIN_UNASSIGNED_CONTENT_ID`)으로 생성 */
   contentId?: string;
+  presetId: string;
   targetLanguage: string;
   titleIdea: string;
   targetDurationSec: number;
-  stylePreset: string;
+  stylePreset?: string;
   creativeBrief?: string;
   autoPublish?: boolean;
   publishAt?: string;
@@ -201,6 +219,10 @@ export type CreateDraftJobInputDto = {
    * false가 아니면 잡 생성 직후 플랜 생성까지 실행한다. 생략 시 true와 동일.
    */
   runJobPlan?: boolean;
+};
+
+export type UpdateJobBriefInputDto = Omit<JobBriefDto, "stylePreset"> & {
+  stylePreset?: string;
 };
 
 export type AttachJobToContentInputDto = {
@@ -339,4 +361,10 @@ export type JobDraftDetailDto = {
   sceneJson?: SceneJsonDto;
   assets: SceneAssetDto[];
   backgroundMusicOptions: BackgroundMusicAssetDto[];
+  assetMenuModel?: AssetMenuModel;
 };
+
+export type ContentPresetDto = ContentPreset;
+export type PresetSnapshotDto = PresetSnapshot;
+export type ResolvedPolicyDto = ResolvedPolicy;
+export type AssetMenuModelDto = AssetMenuModel;

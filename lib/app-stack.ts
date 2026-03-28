@@ -298,6 +298,8 @@ export class AppStack extends Stack {
 
     const getLlmSettingsResolver = settingsHandler;
     const updateLlmSettingsResolver = settingsHandler;
+    const listContentPresetsResolver = settingsHandler;
+    const upsertContentPresetResolver = settingsHandler;
     const listVoiceProfilesResolver = settingsHandler;
     const upsertVoiceProfileResolver = settingsHandler;
 
@@ -381,7 +383,9 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(deleteJobResolver);
     this.assetsBucket.grantReadWrite(attachJobToContentResolver);
     this.llmConfigTable.grantReadData(getLlmSettingsResolver);
+    this.llmConfigTable.grantReadData(listContentPresetsResolver);
     this.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
+    this.llmConfigTable.grantReadWriteData(upsertContentPresetResolver);
     this.llmConfigTable.grantReadData(listVoiceProfilesResolver);
     this.llmConfigTable.grantReadWriteData(upsertVoiceProfileResolver);
     this.llmConfigTable.grantReadData(runAssetGenerationResolver);
@@ -475,8 +479,10 @@ export class AppStack extends Stack {
       jobExecutionsResolver,
       requestUploadResolver,
       requestAssetUploadResolver,
+      listContentPresetsResolver,
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
+      upsertContentPresetResolver,
       listVoiceProfilesResolver,
       upsertVoiceProfileResolver,
       getJobDraftResolver,

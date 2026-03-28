@@ -20,6 +20,19 @@ const pipelineAsyncEnabled = (): boolean =>
     process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
   Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
+const mergeSceneJsonInput = (
+  jobPlan: JobPlanResult,
+  jobBrief?: JobBriefDto,
+): JobPlanResult => {
+  return {
+    ...jobPlan,
+    creativeBrief: jobBrief?.creativeBrief ?? jobPlan.creativeBrief,
+    presetId: jobBrief?.presetId ?? jobPlan.presetId,
+    presetSnapshot: jobBrief?.presetSnapshot ?? jobPlan.presetSnapshot,
+    resolvedPolicy: jobBrief?.resolvedPolicy ?? jobPlan.resolvedPolicy,
+  };
+};
+
 export const runSceneJsonCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
   const planResolved = await resolveJobPlanS3KeyForSceneBuild(jobId, job);
@@ -36,10 +49,7 @@ export const runSceneJsonCore = async (jobId: string) => {
     ? ((await getJsonFromS3<JobBriefDto>(job.jobBriefS3Key)) ?? undefined)
     : undefined;
 
-  const sceneJsonInput: JobPlanResult = {
-    ...jobPlan,
-    creativeBrief: jobBrief?.creativeBrief ?? jobPlan.creativeBrief,
-  };
+  const sceneJsonInput = mergeSceneJsonInput(jobPlan, jobBrief);
 
   await updateJobMeta(jobId, {}, "SCENE_JSON_BUILDING");
   const sceneJson = await buildSceneJson(sceneJsonInput);

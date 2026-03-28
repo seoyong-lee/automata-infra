@@ -1,6 +1,7 @@
 import { mapJobMetaToAdminJob } from "./map-job-meta-to-admin-job";
 import type { JobMetaItem } from "../../../shared/lib/store/video-jobs";
 import type {
+  AssetMenuModelDto,
   BackgroundMusicAssetDto,
   ContentBriefDto,
   JobBriefDto,
@@ -17,6 +18,7 @@ export const mapJobDraftDetail = (input: {
   sceneJson?: SceneJsonDto;
   assets: SceneAssetDto[];
   backgroundMusicOptions: BackgroundMusicAssetDto[];
+  assetMenuModel?: AssetMenuModelDto;
 }): JobDraftDetailDto => {
   return {
     job: mapJobMetaToAdminJob(input.job),
@@ -26,5 +28,6 @@ export const mapJobDraftDetail = (input: {
     sceneJson: input.sceneJson,
     assets: input.assets,
     backgroundMusicOptions: input.backgroundMusicOptions,
+    assetMenuModel: input.assetMenuModel,
   };
 };

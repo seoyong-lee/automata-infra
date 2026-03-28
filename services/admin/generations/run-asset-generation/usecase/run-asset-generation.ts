@@ -20,7 +20,11 @@ import { saveVideoAssets } from "../../../../video-generation/repo/save-video-as
 import { generateSceneVoices } from "../../../../voice/usecase/generate-scene-voices";
 import { saveVoiceAssets } from "../../../../voice/repo/save-voice-assets";
 import { resolveSceneJsonS3KeyForAssetGeneration } from "../../../shared/lib/resolve-approved-pipeline-input";
-import { getJobOrThrow } from "../../../shared/repo/job-draft-store";
+import {
+  getJobOrThrow,
+  getStoredContentBrief,
+  getStoredJobBrief,
+} from "../../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
 import { persistAssetManifestForJob } from "../repo/persist-asset-manifest";
 import { notFound } from "../../../shared/errors";
@@ -78,6 +82,13 @@ type AssetGenerationContext = {
   sceneJsonS3Key: string;
 };
 
+type AssetGenerationPolicy = {
+  allowImage: boolean;
+  allowVoice: boolean;
+  allowVideo: boolean;
+  preferredImageProvider?: "openai" | "byteplus";
+};
+
 const toDataUri = (input: { buffer: Buffer; contentType?: string }): string => {
   return `data:${input.contentType ?? "image/png"};base64,${input.buffer.toString("base64")}`;
 };
@@ -116,10 +127,70 @@ const loadAssetGenerationContext = async (
   };
 };
 
+const resolvePreferredImageProvider = (
+  value?: string,
+): "openai" | "byteplus" | undefined => {
+  if (value === "openai") {
+    return "openai";
+  }
+  if (value === "byteplus") {
+    return "byteplus";
+  }
+  return undefined;
+};
+
+const loadAssetGenerationPolicy = async (
+  jobId: string,
+): Promise<AssetGenerationPolicy> => {
+  const job = await getJobOrThrow(jobId);
+  const [jobBrief, contentBrief] = await Promise.all([
+    getStoredJobBrief(job),
+    getStoredContentBrief(job),
+  ]);
+  const resolvedPolicy =
+    jobBrief?.resolvedPolicy ?? contentBrief?.resolvedPolicy ?? undefined;
+  if (!resolvedPolicy) {
+    return {
+      allowImage: true,
+      allowVoice: true,
+      allowVideo: true,
+    };
+  }
+
+  return {
+    allowImage:
+      resolvedPolicy.capabilities.supportsAiImage ||
+      resolvedPolicy.capabilities.supportsStockImage,
+    allowVoice: resolvedPolicy.capabilities.voiceMode !== "disabled",
+    allowVideo:
+      resolvedPolicy.capabilities.supportsAiVideo ||
+      resolvedPolicy.capabilities.supportsStockVideo,
+    preferredImageProvider: resolvePreferredImageProvider(
+      resolvedPolicy.preferredImageProvider,
+    ),
+  };
+};
+
+const assertModalityAllowed = (
+  scope: AssetGenerationScope,
+  policy: AssetGenerationPolicy,
+): void => {
+  if (scope.modality === "image" && !policy.allowImage) {
+    throw new Error("image generation is disabled for this preset");
+  }
+  if (scope.modality === "voice" && !policy.allowVoice) {
+    throw new Error("voice generation is disabled for this preset");
+  }
+  if (scope.modality === "video" && !policy.allowVideo) {
+    throw new Error("video generation is disabled for this preset");
+  }
+};
+
 const runImageModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
   scope: AssetGenerationScope,
+  policy?: AssetGenerationPolicy,
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_IMAGE_SECRET_ID?.trim();
   const openAiSecretId = process.env.OPENAI_SECRET_ID?.trim();
@@ -128,7 +199,9 @@ const runImageModalityForScenes = async (
     imagePrompt: scene.imagePrompt,
   }));
   const provider =
-    scope.imageProvider ?? (bytePlusSecretId ? "byteplus" : "openai");
+    scope.imageProvider ??
+    policy?.preferredImageProvider ??
+    (bytePlusSecretId ? "byteplus" : "openai");
   const secretId = provider === "byteplus" ? bytePlusSecretId : openAiSecretId;
   if (!secretId) {
     throw new Error(
@@ -321,17 +394,19 @@ export const runAssetGenerationCore = async (
 ) => {
   const { sceneJson, scenes, sceneJsonS3Key } =
     await loadAssetGenerationContext(jobId, scope);
+  const policy = await loadAssetGenerationPolicy(jobId);
 
   await updateJobMeta(jobId, {}, "ASSET_GENERATING");
   const modality = scope.modality;
+  assertModalityAllowed(scope, policy);
 
-  if (modality === "all" || modality === "image") {
-    await runImageModalityForScenes(jobId, scenes, scope);
+  if ((modality === "all" && policy.allowImage) || modality === "image") {
+    await runImageModalityForScenes(jobId, scenes, scope, policy);
   }
-  if (modality === "all" || modality === "voice") {
+  if ((modality === "all" && policy.allowVoice) || modality === "voice") {
     await runVoiceModalityForScenes(jobId, scenes);
   }
-  if (modality === "all" || modality === "video") {
+  if ((modality === "all" && policy.allowVideo) || modality === "video") {
     await runVideoModalityForScenes(jobId, scenes);
   }
 

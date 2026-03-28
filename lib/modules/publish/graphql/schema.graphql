@@ -25,6 +25,7 @@ type Query {
   """
   jobExecutions(jobId: ID!): [PipelineExecution!]!
   jobDraft(jobId: ID!): JobDraftDetail
+  contentPresets: [ContentPreset!]!
   llmSettings: LlmSettings!
   voiceProfiles: [VoiceProfile!]!
 }
@@ -33,6 +34,7 @@ type Mutation {
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
+  upsertContentPreset(input: UpsertContentPresetInput!): ContentPreset!
   upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
   updateContent(input: UpdateContentInput!): Content!
@@ -82,6 +84,10 @@ type AdminJob {
   status: JobStatus!
   contentType: String
   variant: String
+  presetId: String
+  presetFormat: String
+  presetDuration: String
+  presetPlatformPreset: String
   autoPublish: Boolean
   publishAt: AWSDateTime
   language: String!
@@ -110,6 +116,91 @@ type AdminJob {
   backgroundMusicS3Key: String
 }
 
+type ContentPresetCapabilities {
+  voiceMode: String!
+  subtitleMode: String!
+  layoutMode: String!
+  supportsAiVideo: Boolean!
+  supportsAiImage: Boolean!
+  supportsStockVideo: Boolean!
+  supportsStockImage: Boolean!
+  supportsBgm: Boolean!
+  supportsSfx: Boolean!
+  supportsVoiceProfile: Boolean!
+  supportsOverlayTemplate: Boolean!
+}
+
+type AssetMenuModel {
+  showScript: Boolean!
+  showNarration: Boolean!
+  showSubtitles: Boolean!
+  showImageAssets: Boolean!
+  showVideoAssets: Boolean!
+  showStockPicker: Boolean!
+  showBgm: Boolean!
+  showSfx: Boolean!
+  showOverlayEditor: Boolean!
+  recommendedGenerationOrder: [String!]!
+}
+
+type ContentPresetDefaultPolicy {
+  stylePreset: String!
+  sceneCountMin: Int
+  sceneCountMax: Int
+  subtitleStylePreset: String
+  renderPreset: String
+  preferredImageProvider: String
+  preferredVideoProvider: String
+  preferredVoiceProfileId: String
+}
+
+type PresetSnapshot {
+  presetId: ID!
+  name: String!
+  format: String!
+  duration: String!
+  platformPresets: [String!]!
+  styleTags: [String!]!
+  assetStrategy: String!
+  capabilities: ContentPresetCapabilities!
+  defaultPolicy: ContentPresetDefaultPolicy!
+}
+
+type ResolvedPolicy {
+  presetId: ID!
+  format: String!
+  duration: String!
+  primaryPlatformPreset: String!
+  styleTags: [String!]!
+  assetStrategy: String!
+  stylePreset: String!
+  capabilities: ContentPresetCapabilities!
+  assetMenu: AssetMenuModel!
+  sceneCountMin: Int
+  sceneCountMax: Int
+  subtitleStylePreset: String
+  renderPreset: String
+  preferredImageProvider: String
+  preferredVideoProvider: String
+  preferredVoiceProfileId: String
+}
+
+type ContentPreset {
+  presetId: ID!
+  name: String!
+  description: String
+  isActive: Boolean!
+  format: String!
+  duration: String!
+  platformPresets: [String!]!
+  styleTags: [String!]!
+  assetStrategy: String!
+  capabilities: ContentPresetCapabilities!
+  defaultPolicy: ContentPresetDefaultPolicy!
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
 type ContentBriefSeed {
   date: AWSDate!
   fortuneType: String!
@@ -132,6 +223,7 @@ type ContentBrief {
   contentType: String!
   variant: String!
   contentId: String!
+  presetId: String
   language: String!
   targetPlatform: String!
   targetDurationSec: Int!
@@ -141,10 +233,13 @@ type ContentBrief {
   publishAt: AWSDateTime
   seed: ContentBriefSeed!
   constraints: ContentBriefConstraints!
+  presetSnapshot: PresetSnapshot
+  resolvedPolicy: ResolvedPolicy
 }
 
 type JobBrief {
   contentId: String!
+  presetId: String
   targetLanguage: String!
   titleIdea: String!
   targetDurationSec: Int!
@@ -153,6 +248,8 @@ type JobBrief {
   자유 서술 기획 메모. Scene JSON 생성 시 프롬프트에 반영된다.
   """
   creativeBrief: String
+  presetSnapshot: PresetSnapshot
+  resolvedPolicy: ResolvedPolicy
 }
 
 type SceneJsonScene {
@@ -223,6 +320,7 @@ type JobDraftDetail {
   sceneJson: SceneJsonPayload
   assets: [SceneAsset!]!
   backgroundMusicOptions: [BackgroundMusicAsset!]!
+  assetMenuModel: AssetMenuModel
 }
 
 type BackgroundMusicAsset {
@@ -439,10 +537,11 @@ input CreateDraftJobInput {
   생략 시 미연결 잡으로 생성된다.
   """
   contentId: ID
+  presetId: ID!
   targetLanguage: String!
   titleIdea: String!
   targetDurationSec: Int!
-  stylePreset: String!
+  stylePreset: String
   creativeBrief: String
   autoPublish: Boolean
   publishAt: AWSDateTime
@@ -450,6 +549,45 @@ input CreateDraftJobInput {
   false가 아니면 생성 직후 잡 플랜까지 실행한다. 생략 시 true.
   """
   runJobPlan: Boolean
+}
+
+input ContentPresetCapabilitiesInput {
+  voiceMode: String!
+  subtitleMode: String!
+  layoutMode: String!
+  supportsAiVideo: Boolean!
+  supportsAiImage: Boolean!
+  supportsStockVideo: Boolean!
+  supportsStockImage: Boolean!
+  supportsBgm: Boolean!
+  supportsSfx: Boolean!
+  supportsVoiceProfile: Boolean!
+  supportsOverlayTemplate: Boolean!
+}
+
+input ContentPresetDefaultPolicyInput {
+  stylePreset: String!
+  sceneCountMin: Int
+  sceneCountMax: Int
+  subtitleStylePreset: String
+  renderPreset: String
+  preferredImageProvider: String
+  preferredVideoProvider: String
+  preferredVoiceProfileId: String
+}
+
+input UpsertContentPresetInput {
+  presetId: ID
+  name: String!
+  description: String
+  isActive: Boolean
+  format: String!
+  duration: String!
+  platformPresets: [String!]!
+  styleTags: [String!]!
+  assetStrategy: String!
+  capabilities: ContentPresetCapabilitiesInput!
+  defaultPolicy: ContentPresetDefaultPolicyInput!
 }
 
 input AttachJobToContentInput {
@@ -460,10 +598,11 @@ input AttachJobToContentInput {
 input UpdateJobBriefInput {
   jobId: ID!
   contentId: String!
+  presetId: ID
   targetLanguage: String!
   titleIdea: String!
   targetDurationSec: Int!
-  stylePreset: String!
+  stylePreset: String
   creativeBrief: String
 }
 

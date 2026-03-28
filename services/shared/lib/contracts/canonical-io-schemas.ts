@@ -1,6 +1,11 @@
 import { z } from "zod";
 
 import { alignSceneNarrationAndSubtitle } from "../scene-text";
+import {
+  contentPresetRefSchema,
+  presetSnapshotSchema,
+  resolvedPolicySchema,
+} from "./content-presets";
 
 const isoDateSchema = z
   .string()
@@ -27,12 +32,15 @@ const optionalCreativeBrief = z
 export const jobBriefInputSchema = z
   .object({
     contentId: nonEmpty,
+    presetId: nonEmpty.optional(),
     targetLanguage: nonEmpty,
     titleIdea: nonEmpty,
     targetDurationSec: z.number().int().positive(),
     stylePreset: nonEmpty,
     /** 씬·내레이션 방향을 자유 서술로 적는 필드. Scene JSON 프롬프트에 포함된다. */
     creativeBrief: optionalCreativeBrief,
+    presetSnapshot: presetSnapshotSchema.optional(),
+    resolvedPolicy: resolvedPolicySchema.optional(),
   })
   .strict();
 
@@ -54,10 +62,11 @@ const optionalCatalogContentId = z.preprocess((v) => {
 export const createDraftJobInputSchema = z
   .object({
     contentId: optionalCatalogContentId,
+    presetId: contentPresetRefSchema.shape.presetId,
     targetLanguage: nonEmpty,
     titleIdea: nonEmpty,
     targetDurationSec: z.number().int().positive(),
-    stylePreset: nonEmpty,
+    stylePreset: nonEmpty.optional(),
     creativeBrief: optionalCreativeBrief,
     autoPublish: z.boolean().optional(),
     publishAt: publishAtSchema.optional(),
@@ -156,6 +165,7 @@ export const contentBriefSchema = z
     contentType: nonEmpty,
     variant: jobVariantSchema,
     contentId: nonEmpty,
+    presetId: nonEmpty.optional(),
     language: nonEmpty,
     targetPlatform: nonEmpty,
     targetDurationSec: z.number().int().positive(),
@@ -182,6 +192,8 @@ export const contentBriefSchema = z
         noMedicalOrLegalClaims: z.boolean(),
       })
       .strict(),
+    presetSnapshot: presetSnapshotSchema.optional(),
+    resolvedPolicy: resolvedPolicySchema.optional(),
   })
   .strict();
 

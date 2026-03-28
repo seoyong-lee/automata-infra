@@ -35,5 +35,8 @@ export const getJobDraft = async (jobId: string) => {
     sceneJson,
     assets,
     backgroundMusicOptions,
+    assetMenuModel:
+      jobBrief?.resolvedPolicy?.assetMenu ??
+      contentBrief?.resolvedPolicy?.assetMenu,
   });
 };

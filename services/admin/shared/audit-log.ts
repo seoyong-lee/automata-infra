@@ -25,6 +25,8 @@ type AuditOperation =
   | "jobTimeline"
   | "jobExecutions"
   | "jobDraft"
+  | "contentPresets"
+  | "upsertContentPreset"
   | "llmSettings"
   | "updateLlmStepSettings"
   | "createDraftJob"

@@ -1,10 +1,20 @@
 /* eslint-disable max-lines */
 import { Handler } from "aws-lambda";
 import { parseBuffer } from "music-metadata";
-import { getBufferFromS3, putJsonToS3 } from "../../shared/lib/aws/runtime";
+import {
+  getBufferFromS3,
+  getJsonFromS3,
+  putJsonToS3,
+} from "../../shared/lib/aws/runtime";
+import {
+  parseContentBrief,
+  parseJobBriefInput,
+} from "../../shared/lib/contracts/canonical-io-schemas";
+import type { ResolvedPolicy } from "../../shared/lib/contracts/content-presets";
 import { estimateMinimumVoiceDurationSec } from "../../shared/lib/providers/media/elevenlabs-voice";
 import { alignSceneNarrationAndSubtitle } from "../../shared/lib/scene-text";
 import {
+  getJobMeta,
   listSceneAssets,
   putRenderArtifact,
   updateJobMeta,
@@ -47,12 +57,35 @@ type RenderPlanEvent = {
   overlays?: RenderPlanOverlay[];
 };
 
-const SCENE_GAP_SEC = 0.5;
 const DEFAULT_OUTPUT = {
   format: "mp4",
   size: {
     width: 1080,
     height: 1920,
+  },
+  fps: 30,
+} as const;
+const SQUARE_OUTPUT = {
+  format: "mp4",
+  size: {
+    width: 1080,
+    height: 1080,
+  },
+  fps: 30,
+} as const;
+const PORTRAIT_4X5_OUTPUT = {
+  format: "mp4",
+  size: {
+    width: 1080,
+    height: 1350,
+  },
+  fps: 30,
+} as const;
+const LANDSCAPE_OUTPUT = {
+  format: "mp4",
+  size: {
+    width: 1920,
+    height: 1080,
   },
   fps: 30,
 } as const;
@@ -70,6 +103,45 @@ const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
     y: 0,
   },
 } as const;
+const BOLD_CAPTION_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
+  ...DEFAULT_SUBTITLE_STYLE,
+  fontSize: 42,
+  color: "#FFFFFF",
+  strokeColor: "#000000",
+  strokeWidth: 3,
+  position: "bottom",
+  offset: {
+    x: 0,
+    y: -0.02,
+  },
+};
+const MINIMAL_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
+  ...DEFAULT_SUBTITLE_STYLE,
+  fontSize: 26,
+  strokeWidth: 1,
+  position: "bottom",
+  offset: {
+    x: 0,
+    y: 0.01,
+  },
+};
+const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
+  ...DEFAULT_SUBTITLE_STYLE,
+  fontSize: 34,
+  color: "#FFFFFF",
+  strokeColor: "#111111",
+  strokeWidth: 2,
+  position: "bottom",
+};
+
+type RenderPolicyConfig = {
+  output: RenderPlan["output"];
+  previewMaxDurationSec: number;
+  subtitles: RenderPlan["subtitles"];
+  sceneGapSec: number;
+  defaultOverlays: RenderPlanOverlay[];
+};
+
 type RenderPlanSceneInput = RenderPlanEvent["sceneJson"]["scenes"][number];
 type RenderPlanVoiceAsset = NonNullable<RenderPlanEvent["voiceAssets"]>[number];
 
@@ -94,6 +166,7 @@ const resolveSceneDurationSec = (
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
+  sceneGapSec = 0.5,
 ): { totalDurationSec: number; scenes: RenderPlanScene[] } => {
   let cursorSec = 0;
   const imageAssets = event.imageAssets ?? [];
@@ -115,7 +188,7 @@ export const buildRenderPlanScenes = (
     const startSec = cursorSec;
     const endSec = startSec + sceneDurationSec;
     const gapAfterSec =
-      index < event.sceneJson.scenes.length - 1 ? SCENE_GAP_SEC : 0;
+      index < event.sceneJson.scenes.length - 1 ? sceneGapSec : 0;
     cursorSec = endSec + gapAfterSec;
 
     return {
@@ -138,6 +211,161 @@ export const buildRenderPlanScenes = (
   return {
     totalDurationSec: cursorSec,
     scenes,
+  };
+};
+
+const resolveStoredPolicy = async (
+  jobId: string,
+): Promise<ResolvedPolicy | undefined> => {
+  const job = await getJobMeta(jobId);
+  if (!job) {
+    return undefined;
+  }
+  if (job.jobBriefS3Key) {
+    const payload = await getJsonFromS3(job.jobBriefS3Key);
+    if (payload) {
+      const parsed = parseJobBriefInput(payload);
+      if (parsed.resolvedPolicy) {
+        return parsed.resolvedPolicy;
+      }
+    }
+  }
+  if (job.contentBriefS3Key) {
+    const payload = await getJsonFromS3(job.contentBriefS3Key);
+    if (payload) {
+      const parsed = parseContentBrief(payload);
+      if (parsed.resolvedPolicy) {
+        return parsed.resolvedPolicy;
+      }
+    }
+  }
+  return undefined;
+};
+
+const resolveOutputByPlatformPreset = (
+  platformPreset?: string,
+): RenderPlan["output"] => {
+  if (platformPreset === "1:1") {
+    return SQUARE_OUTPUT;
+  }
+  if (platformPreset === "4:5") {
+    return PORTRAIT_4X5_OUTPUT;
+  }
+  if (platformPreset === "16:9") {
+    return LANDSCAPE_OUTPUT;
+  }
+  return DEFAULT_OUTPUT;
+};
+
+const resolveSubtitleStyle = (
+  resolvedPolicy?: ResolvedPolicy,
+): RenderPlanSubtitleStyle => {
+  const preset = resolvedPolicy?.subtitleStylePreset;
+  if (preset === "bold-caption-news") {
+    return BOLD_CAPTION_SUBTITLE_STYLE;
+  }
+  if (preset === "minimal-quote") {
+    return MINIMAL_SUBTITLE_STYLE;
+  }
+  if (preset === "documentary-lower-third") {
+    return DOCUMENTARY_SUBTITLE_STYLE;
+  }
+  if (resolvedPolicy?.format === "cinematic-visual") {
+    return MINIMAL_SUBTITLE_STYLE;
+  }
+  if (resolvedPolicy?.format === "template-short") {
+    return BOLD_CAPTION_SUBTITLE_STYLE;
+  }
+  return DEFAULT_SUBTITLE_STYLE;
+};
+
+const resolveSceneGapSec = (resolvedPolicy?: ResolvedPolicy): number => {
+  const layoutMode = resolvedPolicy?.capabilities.layoutMode;
+  if (layoutMode === "template") {
+    return 0.2;
+  }
+  if (layoutMode === "still-motion") {
+    return 0.1;
+  }
+  if (layoutMode === "cinematic") {
+    return 0.35;
+  }
+  return 0.5;
+};
+
+const resolvePreviewMaxDurationSec = (
+  resolvedPolicy?: ResolvedPolicy,
+): number => {
+  if (resolvedPolicy?.duration === "long") {
+    return 20;
+  }
+  if (resolvedPolicy?.format === "cinematic-visual") {
+    return 8;
+  }
+  if (resolvedPolicy?.format === "template-short") {
+    return 10;
+  }
+  return 12;
+};
+
+const buildDefaultOverlays = (
+  event: RenderPlanEvent,
+  resolvedPolicy?: ResolvedPolicy,
+): RenderPlanOverlay[] => {
+  if (
+    !resolvedPolicy?.capabilities.supportsOverlayTemplate ||
+    resolvedPolicy.capabilities.layoutMode !== "template"
+  ) {
+    return [];
+  }
+
+  return [
+    {
+      overlayId: "title-template",
+      type: "text",
+      text: event.sceneJson.videoTitle,
+      placement: {
+        x: 0.06,
+        y: 0.05,
+        width: 0.88,
+        height: 0.12,
+      },
+      style: {
+        fontFamily: "Clear Sans",
+        fontSize: 28,
+        color: "#FFFFFF",
+        strokeColor: "#000000",
+        strokeWidth: 2,
+        align: "center",
+      },
+      startSec: 0,
+      endSec: 4,
+      zIndex: 5,
+    },
+  ];
+};
+
+const resolveRenderPolicyConfig = (
+  event: RenderPlanEvent,
+  resolvedPolicy?: ResolvedPolicy,
+): RenderPolicyConfig => {
+  const output = resolveOutputByPlatformPreset(
+    resolvedPolicy?.primaryPlatformPreset,
+  );
+  const subtitleStyle = resolveSubtitleStyle(resolvedPolicy);
+  const burnIn =
+    resolvedPolicy?.capabilities.layoutMode === "template" ||
+    resolvedPolicy?.capabilities.layoutMode === "still-motion";
+  return {
+    output,
+    previewMaxDurationSec: resolvePreviewMaxDurationSec(resolvedPolicy),
+    subtitles: {
+      burnIn,
+      format: "ass",
+      style: subtitleStyle,
+    },
+    sceneGapSec: resolveSceneGapSec(resolvedPolicy),
+    defaultOverlays: buildDefaultOverlays(event, resolvedPolicy),
   };
 };
 
@@ -239,24 +467,24 @@ const resolveSoundtrackMood = (event: RenderPlanEvent): string | undefined => {
 export const buildRenderPlan = (
   event: RenderPlanEvent,
   builtScenes: ReturnType<typeof buildRenderPlanScenes>,
+  config: RenderPolicyConfig = resolveRenderPolicyConfig(event),
 ): RenderPlan => {
   return {
     renderEngine: "ffmpeg-fargate",
     videoTitle: event.sceneJson.videoTitle,
     language: event.sceneJson.language,
-    output: DEFAULT_OUTPUT,
+    output: config.output,
     preview: {
       enabled: true,
-      maxDurationSec: 12,
+      maxDurationSec: config.previewMaxDurationSec,
     },
-    subtitles: {
-      burnIn: false,
-      format: "ass",
-      style: DEFAULT_SUBTITLE_STYLE,
-    },
+    subtitles: config.subtitles,
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
-    overlays: event.overlays ?? [],
+    overlays:
+      event.overlays && event.overlays.length > 0
+        ? event.overlays
+        : config.defaultOverlays,
     soundtrackMood: resolveSoundtrackMood(event),
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };
@@ -267,15 +495,20 @@ export const run: Handler<
   RenderPlanEvent & { renderPlan: unknown; status: string }
 > = async (event) => {
   const sceneAssets = await listSceneAssets(event.jobId);
+  const resolvedPolicy = await resolveStoredPolicy(event.jobId);
+  const config = resolveRenderPolicyConfig(event, resolvedPolicy);
   const { imageAssets, voiceAssets, videoAssets } =
     await resolveRenderPlanAssets(event, sceneAssets);
-  const builtScenes = buildRenderPlanScenes({
-    ...event,
-    imageAssets,
-    videoAssets,
-    voiceAssets,
-  });
-  const renderPlan = buildRenderPlan(event, builtScenes);
+  const builtScenes = buildRenderPlanScenes(
+    {
+      ...event,
+      imageAssets,
+      videoAssets,
+      voiceAssets,
+    },
+    config.sceneGapSec,
+  );
+  const renderPlan = buildRenderPlan(event, builtScenes, config);
 
   await persistRenderPlan(event.jobId, renderPlan);
 

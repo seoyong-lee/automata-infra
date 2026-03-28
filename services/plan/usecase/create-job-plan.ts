@@ -3,6 +3,10 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
+import type {
+  PresetSnapshot,
+  ResolvedPolicy,
+} from "../../shared/lib/contracts/content-presets";
 import {
   expectNumber,
   expectRecord,
@@ -14,6 +18,9 @@ export type JobPlanResult = {
   contentId: string;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  presetSnapshot?: PresetSnapshot;
+  resolvedPolicy?: ResolvedPolicy;
   targetLanguage: string;
   targetDurationSec: number;
   titleIdea: string;
@@ -38,6 +45,9 @@ type JobBriefOverrides = {
   targetLanguage?: string;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  presetSnapshot?: PresetSnapshot;
+  resolvedPolicy?: ResolvedPolicy;
   titleIdea?: string;
   targetDurationSec?: number;
   stylePreset?: string;
@@ -124,6 +134,23 @@ const getSeedFromOverrides = (seed: Required<JobPlanSeed>): JobPlanSeed => {
   };
 };
 
+const buildPresetPromptVariables = (
+  resolvedPolicy?: ResolvedPolicy,
+): Record<string, string> => {
+  if (!resolvedPolicy) {
+    return {};
+  }
+
+  return {
+    presetFormat: resolvedPolicy.format,
+    styleTags: resolvedPolicy.styleTags.join(", "),
+    voiceMode: resolvedPolicy.capabilities.voiceMode,
+    subtitleMode: resolvedPolicy.capabilities.subtitleMode,
+    layoutMode: resolvedPolicy.capabilities.layoutMode,
+    assetStrategy: resolvedPolicy.assetStrategy,
+  };
+};
+
 const generateSeed = async (input: {
   generateStructuredData: GenerateStructuredData;
   jobId: string;
@@ -131,8 +158,11 @@ const generateSeed = async (input: {
   targetLanguage: string;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  resolvedPolicy?: ResolvedPolicy;
   creativeBrief?: string;
 }): Promise<JobPlanSeed> => {
+  const presetVariables = buildPresetPromptVariables(input.resolvedPolicy);
   const generated = await input.generateStructuredData({
     jobId: input.jobId,
     stepKey: "job-plan",
@@ -142,6 +172,8 @@ const generateSeed = async (input: {
       channelLabel: input.contentId,
       contentType: input.contentType ?? "",
       variant: input.variant ?? "",
+      ...(input.presetId ? { presetId: input.presetId } : {}),
+      ...presetVariables,
       creativeBrief: input.creativeBrief ?? "",
     },
     validate: validateJobPlanSeed,
@@ -172,6 +204,13 @@ const jobBriefOptionalMeta = (jobBrief?: JobBriefOverrides) => {
   return {
     contentType: jobBrief?.contentType,
     variant: jobBrief?.variant,
+    ...(jobBrief?.presetId ? { presetId: jobBrief.presetId } : {}),
+    ...(jobBrief?.presetSnapshot
+      ? { presetSnapshot: jobBrief.presetSnapshot }
+      : {}),
+    ...(jobBrief?.resolvedPolicy
+      ? { resolvedPolicy: jobBrief.resolvedPolicy }
+      : {}),
     autoPublish: jobBrief?.autoPublish,
     publishAt: jobBrief?.publishAt,
   };
@@ -217,6 +256,8 @@ export const createJobPlan = async (
         targetLanguage,
         contentType: deps.jobBrief?.contentType,
         variant: deps.jobBrief?.variant,
+        presetId: deps.jobBrief?.presetId,
+        resolvedPolicy: deps.jobBrief?.resolvedPolicy,
         creativeBrief: deps.jobBrief?.creativeBrief,
       });
 

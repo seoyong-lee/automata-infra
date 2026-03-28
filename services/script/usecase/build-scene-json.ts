@@ -2,6 +2,10 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
+import type {
+  PresetSnapshot,
+  ResolvedPolicy,
+} from "../../shared/lib/contracts/content-presets";
 import {
   expectArray,
   expectNullableString,
@@ -19,6 +23,9 @@ type JobPlanResult = {
   contentId: string;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  presetSnapshot?: PresetSnapshot;
+  resolvedPolicy?: ResolvedPolicy;
   targetLanguage: string;
   targetDurationSec: number;
   titleIdea: string;
@@ -123,12 +130,30 @@ type BuildSceneJsonDeps = {
   generateStructuredData?: GenerateStructuredData;
 };
 
+const buildPresetPromptVariables = (
+  resolvedPolicy?: ResolvedPolicy,
+): Record<string, string> => {
+  if (!resolvedPolicy) {
+    return {};
+  }
+
+  return {
+    presetFormat: resolvedPolicy.format,
+    styleTags: resolvedPolicy.styleTags.join(", "),
+    voiceMode: resolvedPolicy.capabilities.voiceMode,
+    subtitleMode: resolvedPolicy.capabilities.subtitleMode,
+    layoutMode: resolvedPolicy.capabilities.layoutMode,
+    assetStrategy: resolvedPolicy.assetStrategy,
+  };
+};
+
 export const buildSceneJson = async (
   event: JobPlanResult,
   deps: BuildSceneJsonDeps = {},
 ): Promise<SceneJson> => {
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
+  const presetVariables = buildPresetPromptVariables(event.resolvedPolicy);
 
   const result = await generateStructuredData({
     jobId: event.jobId,
@@ -138,6 +163,8 @@ export const buildSceneJson = async (
       targetLanguage: event.targetLanguage,
       targetDurationSec: event.targetDurationSec,
       stylePreset: event.stylePreset,
+      ...(event.presetId ? { presetId: event.presetId } : {}),
+      ...presetVariables,
       creativeBrief: event.creativeBrief ?? "",
     },
     validate: validateSceneJson,

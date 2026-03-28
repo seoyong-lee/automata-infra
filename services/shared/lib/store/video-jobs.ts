@@ -16,6 +16,10 @@ export type JobMetaItem = {
   contentId?: string;
   contentType?: string;
   variant?: string;
+  presetId?: string;
+  presetFormat?: string;
+  presetDuration?: string;
+  presetPlatformPreset?: string;
   status: string;
   autoPublish?: boolean;
   publishAt?: string;
