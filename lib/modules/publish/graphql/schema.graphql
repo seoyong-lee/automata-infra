@@ -269,6 +269,15 @@ type JobBrief {
   creativeBrief: String
   presetSnapshot: PresetSnapshot
   resolvedPolicy: ResolvedPolicy
+  renderSettings: RenderSettings
+}
+
+type RenderSettings {
+  subtitleEnabled: Boolean
+  subtitleStylePreset: String
+  subtitlePosition: String
+  backgroundColor: String
+  videoScale: Float
 }
 
 type SceneJsonScene {
@@ -661,6 +670,14 @@ input AttachJobToContentInput {
   contentId: ID!
 }
 
+input RenderSettingsInput {
+  subtitleEnabled: Boolean
+  subtitleStylePreset: String
+  subtitlePosition: String
+  backgroundColor: String
+  videoScale: Float
+}
+
 input UpdateJobBriefInput {
   jobId: ID!
   contentId: String!
@@ -670,6 +687,7 @@ input UpdateJobBriefInput {
   targetDurationSec: Int!
   stylePreset: String
   creativeBrief: String
+  renderSettings: RenderSettingsInput
 }
 
 input RunJobPlanInput {

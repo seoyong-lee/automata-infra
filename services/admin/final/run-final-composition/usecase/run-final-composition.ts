@@ -196,7 +196,7 @@ const buildSubtitleAss = (
 const maybePersistSubtitleAss = async (
   jobId: string,
   renderPlan: RenderPlan,
-  burnInSubtitles: boolean | undefined,
+  burnInSubtitles: boolean,
 ): Promise<string | undefined> => {
   if (!burnInSubtitles) {
     return undefined;
@@ -298,10 +298,12 @@ export const runFinalCompositionCore = async (
   if (!renderPlan || typeof renderPlan !== "object") {
     throw new Error("render plan not created");
   }
+  const effectiveBurnInSubtitles =
+    scope?.burnInSubtitles ?? renderPlan.subtitles?.burnIn ?? false;
   const subtitleAssS3Key = await maybePersistSubtitleAss(
     jobId,
     renderPlan,
-    scope?.burnInSubtitles,
+    effectiveBurnInSubtitles,
   );
 
   await runFinalCompositionStage(
@@ -309,18 +311,12 @@ export const runFinalCompositionCore = async (
       jobId,
       renderPlan: {
         ...renderPlan,
-        ...(scope?.burnInSubtitles !== undefined
-          ? { burnInSubtitles: scope.burnInSubtitles }
-          : {}),
-        ...(scope?.burnInSubtitles !== undefined
-          ? {
-              subtitles: {
-                ...renderPlan.subtitles,
-                burnIn: scope.burnInSubtitles,
-                ...(subtitleAssS3Key ? { assS3Key: subtitleAssS3Key } : {}),
-              },
-            }
-          : {}),
+        burnInSubtitles: effectiveBurnInSubtitles,
+        subtitles: {
+          ...renderPlan.subtitles,
+          burnIn: effectiveBurnInSubtitles,
+          ...(subtitleAssS3Key ? { assS3Key: subtitleAssS3Key } : {}),
+        },
         ...(subtitleAssS3Key ? { subtitleAssS3Key } : {}),
         ...(context.backgroundMusicS3Key
           ? { soundtrackSrc: context.backgroundMusicS3Key }

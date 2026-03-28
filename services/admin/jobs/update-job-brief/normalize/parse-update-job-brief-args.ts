@@ -1,5 +1,6 @@
 import { badUserInput } from "../../../shared/errors";
 import type { UpdateJobBriefInputDto } from "../../../shared/types";
+import { jobRenderSettingsSchema } from "../../../../shared/lib/contracts/canonical-io-schemas";
 
 const asString = (value: unknown, field: string): string => {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -48,6 +49,21 @@ const asOptionalString = (value: unknown): string | undefined => {
   return trimmed.length > 0 ? trimmed : undefined;
 };
 
+const asOptionalRenderSettings = (
+  value: unknown,
+): UpdateJobBriefInputDto["renderSettings"] => {
+  if (value === null || value === undefined) {
+    return undefined;
+  }
+  const parsed = jobRenderSettingsSchema.safeParse(value);
+  if (!parsed.success) {
+    throw badUserInput(
+      parsed.error.issues[0]?.message ?? "renderSettings is invalid",
+    );
+  }
+  return parsed.data;
+};
+
 export const parseUpdateJobBriefArgs = (
   args: Record<string, unknown>,
 ): { jobId: string; jobBrief: UpdateJobBriefInputDto } => {
@@ -71,6 +87,9 @@ export const parseUpdateJobBriefArgs = (
         ? { stylePreset: asOptionalString(input.stylePreset) }
         : {}),
       creativeBrief: asOptionalCreativeBrief(input.creativeBrief),
+      ...(input.renderSettings !== undefined
+        ? { renderSettings: asOptionalRenderSettings(input.renderSettings) }
+        : {}),
     },
   };
 };

@@ -132,6 +132,15 @@ function resolveOutput(renderPlan) {
   };
 }
 
+function resolveCanvasSettings(renderPlan) {
+  return {
+    backgroundColor: normalizeHexColor(
+      renderPlan.canvas?.backgroundColor ?? "#000000",
+    ),
+    videoScale: clampNumber(renderPlan.canvas?.videoScale, 0.5, 1.25, 1),
+  };
+}
+
 function resolveSubtitleSettings(renderPlan) {
   const style = renderPlan.subtitles?.style ?? {};
   return {
@@ -147,10 +156,34 @@ function resolveSubtitleSettings(renderPlan) {
       color: style.color ?? "#000000",
       strokeColor: style.strokeColor ?? "#ffffff",
       strokeWidth: Number(style.strokeWidth ?? 2),
+      position: style.position ?? "center",
       offsetX: Number(style.offset?.x ?? -0.019),
       offsetY: Number(style.offset?.y ?? 0),
     },
   };
+}
+
+function clampNumber(value, min, max, fallback) {
+  const parsed = Number(value);
+  if (!Number.isFinite(parsed)) {
+    return fallback;
+  }
+  return Math.min(max, Math.max(min, parsed));
+}
+
+function normalizeHexColor(value) {
+  const raw = String(value ?? "")
+    .trim()
+    .replace(/^#/, "")
+    .slice(0, 6);
+  if (!/^[0-9A-Fa-f]{6}$/.test(raw)) {
+    return "#000000";
+  }
+  return `#${raw.toUpperCase()}`;
+}
+
+function toFfmpegColor(value) {
+  return `0x${normalizeHexColor(value).slice(1)}`;
 }
 
 function sceneDuration(scene) {
@@ -189,16 +222,39 @@ function escapeAssText(value) {
     .replace(/\r?\n/g, "\\N");
 }
 
+function resolveSubtitleAlignment(position) {
+  if (position === "top") {
+    return 8;
+  }
+  if (position === "bottom") {
+    return 2;
+  }
+  return 5;
+}
+
+function resolveSubtitleBaseYRatio(position) {
+  if (position === "top") {
+    return 0.14;
+  }
+  if (position === "bottom") {
+    return 0.86;
+  }
+  return 0.5;
+}
+
 async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
   const text = String(scene.subtitle ?? "").trim();
   if (!subtitleSettings.burnIn || !text) {
     return false;
   }
+  const alignment = resolveSubtitleAlignment(subtitleSettings.style.position);
   const posX = Math.round(
     outputSettings.width * (0.5 + subtitleSettings.style.offsetX),
   );
   const posY = Math.round(
-    outputSettings.height * (0.5 + subtitleSettings.style.offsetY),
+    outputSettings.height *
+      (resolveSubtitleBaseYRatio(subtitleSettings.style.position) +
+        subtitleSettings.style.offsetY),
   );
   const content = `[Script Info]
 ScriptType: v4.00+
@@ -209,7 +265,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,0,0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,5,40,40,48,1
+Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,0,0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},40,40,48,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
@@ -224,19 +280,36 @@ function subtitlesFilter(assPath) {
   return `subtitles='${escaped}'`;
 }
 
-function visualFilter(outputSettings, assPath) {
-  const filters = [
-    `scale=${outputSettings.width}:${outputSettings.height}:force_original_aspect_ratio=increase`,
-    `crop=${outputSettings.width}:${outputSettings.height}`,
-    `fps=${outputSettings.fps}`,
-  ];
+function visualFilter(outputSettings, canvasSettings, assPath) {
+  const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
+  const videoScale = clampNumber(canvasSettings.videoScale, 0.5, 1.25, 1);
+  const scaledWidth = Math.max(2, Math.round(outputSettings.width * videoScale));
+  const scaledHeight = Math.max(2, Math.round(outputSettings.height * videoScale));
+  const filters =
+    videoScale >= 1
+      ? [
+          `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
+          `crop=${outputSettings.width}:${outputSettings.height}`,
+          `fps=${outputSettings.fps}`,
+        ]
+      : [
+          `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
+          `pad=${outputSettings.width}:${outputSettings.height}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+          `fps=${outputSettings.fps}`,
+        ];
   if (assPath) {
     filters.push(subtitlesFilter(assPath));
   }
   return filters.join(",");
 }
 
-async function createSceneSegment(scene, workDir, outputSettings, subtitleSettings) {
+async function createSceneSegment(
+  scene,
+  workDir,
+  outputSettings,
+  subtitleSettings,
+  canvasSettings,
+) {
   const durationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
   const assPath = path.join(workDir, `scene-${scene.sceneId}.ass`);
@@ -246,7 +319,7 @@ async function createSceneSegment(scene, workDir, outputSettings, subtitleSettin
     outputSettings,
     assPath,
   );
-  const vf = visualFilter(outputSettings, hasAss ? assPath : "");
+  const vf = visualFilter(outputSettings, canvasSettings, hasAss ? assPath : "");
   const voiceKey = typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : "";
   const voicePath = path.join(
     workDir,
@@ -357,7 +430,7 @@ async function createSceneSegment(scene, workDir, outputSettings, subtitleSettin
     "-f",
     "lavfi",
     "-i",
-    `color=c=black:s=${outputSettings.width}x${outputSettings.height}:r=${outputSettings.fps}`,
+    `color=c=${toFfmpegColor(canvasSettings.backgroundColor)}:s=${outputSettings.width}x${outputSettings.height}:r=${outputSettings.fps}`,
     ...(hasVoice
       ? ["-i", voicePath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
@@ -391,14 +464,20 @@ async function createSceneSegment(scene, workDir, outputSettings, subtitleSettin
   return segmentPath;
 }
 
-async function createGapSegment(index, durationSec, workDir, outputSettings) {
+async function createGapSegment(
+  index,
+  durationSec,
+  workDir,
+  outputSettings,
+  canvasSettings,
+) {
   const gapPath = path.join(workDir, `gap-${index}.mp4`);
   await runCommand("ffmpeg", [
     "-y",
     "-f",
     "lavfi",
     "-i",
-    `color=c=black:s=${outputSettings.width}x${outputSettings.height}:r=${outputSettings.fps}`,
+    `color=c=${toFfmpegColor(canvasSettings.backgroundColor)}:s=${outputSettings.width}x${outputSettings.height}:r=${outputSettings.fps}`,
     "-f",
     "lavfi",
     "-i",
@@ -609,6 +688,7 @@ async function main() {
   const renderPlanS3Key = requireEnv("RENDER_PLAN_S3_KEY");
   const renderPlan = await getJsonFromS3(renderPlanS3Key);
   const outputSettings = resolveOutput(renderPlan);
+  const canvasSettings = resolveCanvasSettings(renderPlan);
   const subtitleSettings = resolveSubtitleSettings(renderPlan);
   const workDir = await fs.mkdtemp(path.join(tmpdir(), `render-${jobId}-`));
   const segmentPaths = [];
@@ -618,6 +698,7 @@ async function main() {
       workDir,
       outputSettings,
       subtitleSettings,
+      canvasSettings,
     );
     segmentPaths.push(segmentPath);
     if (Number(scene.gapAfterSec) > 0) {
@@ -627,6 +708,7 @@ async function main() {
           Number(scene.gapAfterSec),
           workDir,
           outputSettings,
+          canvasSettings,
         ),
       );
     }

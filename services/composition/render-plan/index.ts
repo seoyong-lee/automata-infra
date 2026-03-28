@@ -7,6 +7,7 @@ import {
   putJsonToS3,
 } from "../../shared/lib/aws/runtime";
 import {
+  type JobRenderSettings,
   parseContentBrief,
   parseJobBriefInput,
 } from "../../shared/lib/contracts/canonical-io-schemas";
@@ -21,6 +22,7 @@ import {
 } from "../../shared/lib/store/video-jobs";
 import type {
   RenderPlan,
+  RenderPlanCanvas,
   RenderPlanOverlay,
   RenderPlanScene,
   RenderPlanSubtitleStyle,
@@ -133,13 +135,28 @@ const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   strokeWidth: 2,
   position: "bottom",
 };
+const DEFAULT_CANVAS: RenderPlanCanvas = {
+  backgroundColor: "#000000",
+  videoScale: 1,
+};
+const subtitleStyleByPreset: Record<string, RenderPlanSubtitleStyle> = {
+  "bold-caption-news": BOLD_CAPTION_SUBTITLE_STYLE,
+  "minimal-quote": MINIMAL_SUBTITLE_STYLE,
+  "documentary-lower-third": DOCUMENTARY_SUBTITLE_STYLE,
+};
 
 type RenderPolicyConfig = {
   output: RenderPlan["output"];
+  canvas: RenderPlanCanvas;
   previewMaxDurationSec: number;
   subtitles: RenderPlan["subtitles"];
   sceneGapSec: number;
   defaultOverlays: RenderPlanOverlay[];
+};
+
+type StoredRenderInputs = {
+  resolvedPolicy?: ResolvedPolicy;
+  renderSettings?: JobRenderSettings;
 };
 
 type RenderPlanSceneInput = RenderPlanEvent["sceneJson"]["scenes"][number];
@@ -214,20 +231,21 @@ export const buildRenderPlanScenes = (
   };
 };
 
-const resolveStoredPolicy = async (
+const resolveStoredRenderInputs = async (
   jobId: string,
-): Promise<ResolvedPolicy | undefined> => {
+): Promise<StoredRenderInputs> => {
   const job = await getJobMeta(jobId);
   if (!job) {
-    return undefined;
+    return {};
   }
   if (job.jobBriefS3Key) {
     const payload = await getJsonFromS3(job.jobBriefS3Key);
     if (payload) {
       const parsed = parseJobBriefInput(payload);
-      if (parsed.resolvedPolicy) {
-        return parsed.resolvedPolicy;
-      }
+      return {
+        resolvedPolicy: parsed.resolvedPolicy,
+        renderSettings: parsed.renderSettings,
+      };
     }
   }
   if (job.contentBriefS3Key) {
@@ -235,11 +253,13 @@ const resolveStoredPolicy = async (
     if (payload) {
       const parsed = parseContentBrief(payload);
       if (parsed.resolvedPolicy) {
-        return parsed.resolvedPolicy;
+        return {
+          resolvedPolicy: parsed.resolvedPolicy,
+        };
       }
     }
   }
-  return undefined;
+  return {};
 };
 
 const resolveOutputByPlatformPreset = (
@@ -259,16 +279,12 @@ const resolveOutputByPlatformPreset = (
 
 const resolveSubtitleStyle = (
   resolvedPolicy?: ResolvedPolicy,
+  renderSettings?: JobRenderSettings,
 ): RenderPlanSubtitleStyle => {
-  const preset = resolvedPolicy?.subtitleStylePreset;
-  if (preset === "bold-caption-news") {
-    return BOLD_CAPTION_SUBTITLE_STYLE;
-  }
-  if (preset === "minimal-quote") {
-    return MINIMAL_SUBTITLE_STYLE;
-  }
-  if (preset === "documentary-lower-third") {
-    return DOCUMENTARY_SUBTITLE_STYLE;
+  const preset =
+    renderSettings?.subtitleStylePreset ?? resolvedPolicy?.subtitleStylePreset;
+  if (preset && subtitleStyleByPreset[preset]) {
+    return subtitleStyleByPreset[preset];
   }
   if (resolvedPolicy?.format === "cinematic-visual") {
     return MINIMAL_SUBTITLE_STYLE;
@@ -277,6 +293,19 @@ const resolveSubtitleStyle = (
     return BOLD_CAPTION_SUBTITLE_STYLE;
   }
   return DEFAULT_SUBTITLE_STYLE;
+};
+
+const resolveSubtitlePosition = (
+  style: RenderPlanSubtitleStyle,
+  renderSettings?: JobRenderSettings,
+): RenderPlanSubtitleStyle => {
+  if (!renderSettings?.subtitlePosition) {
+    return style;
+  }
+  return {
+    ...style,
+    position: renderSettings.subtitlePosition,
+  };
 };
 
 const resolveSceneGapSec = (resolvedPolicy?: ResolvedPolicy): number => {
@@ -345,22 +374,37 @@ const buildDefaultOverlays = (
   ];
 };
 
+const resolveCanvas = (
+  renderSettings?: JobRenderSettings,
+): RenderPlanCanvas => {
+  return {
+    backgroundColor:
+      renderSettings?.backgroundColor ?? DEFAULT_CANVAS.backgroundColor,
+    videoScale: renderSettings?.videoScale ?? DEFAULT_CANVAS.videoScale,
+  };
+};
+
 const resolveRenderPolicyConfig = (
   event: RenderPlanEvent,
-  resolvedPolicy?: ResolvedPolicy,
+  input: StoredRenderInputs = {},
 ): RenderPolicyConfig => {
+  const { resolvedPolicy, renderSettings } = input;
   const output = resolveOutputByPlatformPreset(
     resolvedPolicy?.primaryPlatformPreset,
   );
-  const subtitleStyle = resolveSubtitleStyle(resolvedPolicy);
-  const burnIn =
+  const subtitleStyle = resolveSubtitlePosition(
+    resolveSubtitleStyle(resolvedPolicy, renderSettings),
+    renderSettings,
+  );
+  const defaultBurnIn =
     resolvedPolicy?.capabilities.layoutMode === "template" ||
     resolvedPolicy?.capabilities.layoutMode === "still-motion";
   return {
     output,
+    canvas: resolveCanvas(renderSettings),
     previewMaxDurationSec: resolvePreviewMaxDurationSec(resolvedPolicy),
     subtitles: {
-      burnIn,
+      burnIn: renderSettings?.subtitleEnabled ?? defaultBurnIn,
       format: "ass",
       style: subtitleStyle,
     },
@@ -474,6 +518,7 @@ export const buildRenderPlan = (
     videoTitle: event.sceneJson.videoTitle,
     language: event.sceneJson.language,
     output: config.output,
+    canvas: config.canvas,
     preview: {
       enabled: true,
       maxDurationSec: config.previewMaxDurationSec,
@@ -495,8 +540,8 @@ export const run: Handler<
   RenderPlanEvent & { renderPlan: unknown; status: string }
 > = async (event) => {
   const sceneAssets = await listSceneAssets(event.jobId);
-  const resolvedPolicy = await resolveStoredPolicy(event.jobId);
-  const config = resolveRenderPolicyConfig(event, resolvedPolicy);
+  const storedInputs = await resolveStoredRenderInputs(event.jobId);
+  const config = resolveRenderPolicyConfig(event, storedInputs);
   const { imageAssets, voiceAssets, videoAssets } =
     await resolveRenderPlanAssets(event, sceneAssets);
   const builtScenes = buildRenderPlanScenes(

@@ -12,6 +12,14 @@ export const renderPlanOutputSchema = z.object({
   fps: z.number().int().positive(),
 });
 
+export const renderPlanCanvasSchema = z.object({
+  backgroundColor: z
+    .string()
+    .trim()
+    .regex(/^#?[0-9A-Fa-f]{6}$/),
+  videoScale: z.number().min(0.5).max(1.25),
+});
+
 export const renderPlanSubtitleStyleSchema = z.object({
   fontFamily: z.string().trim().min(1),
   fontSize: z.number().positive(),
@@ -62,15 +70,17 @@ export const renderPlanOverlayTimingSchema = z.object({
   endSec: z.number().min(0).optional(),
 });
 
-export const renderPlanImageOverlaySchema = z.object({
-  overlayId: z.string().trim().min(1),
-  type: z.literal("image"),
-  src: z.string().trim().min(1),
-  placement: renderPlanOverlayPlacementSchema,
-  opacity: z.number().min(0).max(1).optional(),
-  zIndex: z.number().int().optional(),
-  fit: z.enum(["contain", "cover", "stretch"]).optional(),
-}).merge(renderPlanOverlayTimingSchema);
+export const renderPlanImageOverlaySchema = z
+  .object({
+    overlayId: z.string().trim().min(1),
+    type: z.literal("image"),
+    src: z.string().trim().min(1),
+    placement: renderPlanOverlayPlacementSchema,
+    opacity: z.number().min(0).max(1).optional(),
+    zIndex: z.number().int().optional(),
+    fit: z.enum(["contain", "cover", "stretch"]).optional(),
+  })
+  .merge(renderPlanOverlayTimingSchema);
 
 export const renderPlanTextOverlayStyleSchema = z.object({
   fontFamily: z.string().trim().min(1),
@@ -82,14 +92,16 @@ export const renderPlanTextOverlayStyleSchema = z.object({
   align: z.enum(["left", "center", "right"]).optional(),
 });
 
-export const renderPlanTextOverlaySchema = z.object({
-  overlayId: z.string().trim().min(1),
-  type: z.literal("text"),
-  text: z.string(),
-  placement: renderPlanOverlayPlacementSchema,
-  style: renderPlanTextOverlayStyleSchema,
-  zIndex: z.number().int().optional(),
-}).merge(renderPlanOverlayTimingSchema);
+export const renderPlanTextOverlaySchema = z
+  .object({
+    overlayId: z.string().trim().min(1),
+    type: z.literal("text"),
+    text: z.string(),
+    placement: renderPlanOverlayPlacementSchema,
+    style: renderPlanTextOverlayStyleSchema,
+    zIndex: z.number().int().optional(),
+  })
+  .merge(renderPlanOverlayTimingSchema);
 
 export const renderPlanOverlaySchema = z.discriminatedUnion("type", [
   renderPlanImageOverlaySchema,
@@ -101,6 +113,7 @@ export const renderPlanSchema = z.object({
   videoTitle: z.string(),
   language: z.string(),
   output: renderPlanOutputSchema,
+  canvas: renderPlanCanvasSchema,
   preview: z.object({
     enabled: z.boolean(),
     maxDurationSec: z.number().positive(),
@@ -116,7 +129,10 @@ export const renderPlanSchema = z.object({
 });
 
 export type RenderPlanOutput = z.infer<typeof renderPlanOutputSchema>;
-export type RenderPlanSubtitleStyle = z.infer<typeof renderPlanSubtitleStyleSchema>;
+export type RenderPlanCanvas = z.infer<typeof renderPlanCanvasSchema>;
+export type RenderPlanSubtitleStyle = z.infer<
+  typeof renderPlanSubtitleStyleSchema
+>;
 export type RenderPlanSubtitle = z.infer<typeof renderPlanSubtitleSchema>;
 export type RenderPlanScene = z.infer<typeof renderPlanSceneSchema>;
 export type RenderPlanOverlay = z.infer<typeof renderPlanOverlaySchema>;

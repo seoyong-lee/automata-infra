@@ -4,6 +4,7 @@ import type {
   PresetSnapshot,
   ResolvedPolicy,
 } from "../../shared/lib/contracts/content-presets";
+import type { JobRenderSettings } from "../../shared/lib/contracts/canonical-io-schemas";
 
 export type GraphqlResolverEvent<TArgs> = {
   arguments: TArgs;
@@ -170,6 +171,7 @@ export type JobBriefDto = {
   creativeBrief?: string;
   presetSnapshot?: PresetSnapshot;
   resolvedPolicy?: ResolvedPolicy;
+  renderSettings?: JobRenderSettings;
 };
 
 export type ContentBriefDto = {

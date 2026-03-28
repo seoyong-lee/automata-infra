@@ -29,6 +29,24 @@ const optionalCreativeBrief = z
     return t.length === 0 ? undefined : t;
   });
 
+const hexColorSchema = z
+  .string()
+  .trim()
+  .regex(/^#?[0-9A-Fa-f]{6}$/, "Expected a 6-digit hex color")
+  .transform((value) =>
+    value.startsWith("#") ? value.toUpperCase() : `#${value.toUpperCase()}`,
+  );
+
+export const jobRenderSettingsSchema = z
+  .object({
+    subtitleEnabled: z.boolean().optional(),
+    subtitleStylePreset: nonEmpty.optional(),
+    subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
+    backgroundColor: hexColorSchema.optional(),
+    videoScale: z.number().min(0.5).max(1.25).optional(),
+  })
+  .strict();
+
 export const jobBriefInputSchema = z
   .object({
     contentId: nonEmpty,
@@ -41,6 +59,7 @@ export const jobBriefInputSchema = z
     creativeBrief: optionalCreativeBrief,
     presetSnapshot: presetSnapshotSchema.optional(),
     resolvedPolicy: resolvedPolicySchema.optional(),
+    renderSettings: jobRenderSettingsSchema.optional(),
   })
   .strict();
 
@@ -255,6 +274,7 @@ export type SourcePack = z.infer<typeof sourcePackSchema>;
 export type ScriptSection = z.infer<typeof scriptSectionSchema>;
 export type ScriptStructure = z.infer<typeof scriptStructureSchema>;
 export type JobBriefInput = z.infer<typeof jobBriefInputSchema>;
+export type JobRenderSettings = z.infer<typeof jobRenderSettingsSchema>;
 export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
 export type CreateContentInput = z.infer<typeof createContentInputSchema>;
 export type UpdateContentInput = z.infer<typeof updateContentInputSchema>;
