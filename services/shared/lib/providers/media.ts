@@ -13,4 +13,4 @@ export {
 export { generateSceneVideo } from "./media/runway-video";
 export { generateSceneBytePlusVideo } from "./media/byteplus-video";
 export { generateSceneVoice } from "./media/elevenlabs-voice";
-export { composeWithFargate } from "./media/fargate";
+export { adjustVoiceWithFargate, composeWithFargate } from "./media/fargate";

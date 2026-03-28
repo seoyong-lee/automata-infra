@@ -12,9 +12,9 @@ import {
 const execFileAsync = promisify(execFile);
 const region = process.env.AWS_REGION ?? "ap-northeast-2";
 const bucketName = requireEnv("ASSETS_BUCKET_NAME");
-const renderPlanS3Key = requireEnv("RENDER_PLAN_S3_KEY");
 const resultS3Key = requireEnv("RESULT_S3_KEY");
 const jobId = requireEnv("JOB_ID");
+const taskMode = process.env.TASK_MODE?.trim() || "RENDER";
 const s3 = new S3Client({ region });
 
 function requireEnv(name) {
@@ -81,6 +81,32 @@ async function uploadFile(key, filePath, contentType) {
       ContentType: contentType,
     }),
   );
+}
+
+async function getMediaDurationSec(filePath) {
+  try {
+    const { stdout } = await execFileAsync(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-show_entries",
+        "format=duration",
+        "-of",
+        "default=noprint_wrappers=1:nokey=1",
+        filePath,
+      ],
+      {
+        maxBuffer: 1024 * 1024 * 5,
+      },
+    );
+    const durationSec = Number(String(stdout).trim());
+    return Number.isFinite(durationSec) && durationSec > 0
+      ? durationSec
+      : undefined;
+  } catch {
+    return undefined;
+  }
 }
 
 async function runCommand(command, args) {
@@ -516,7 +542,71 @@ async function createThumbnail(finalVideoPath, renderPlan, thumbnailPath) {
   ]);
 }
 
+function buildAtempoFilter(tempo) {
+  const safeTempo = Math.max(0.5, tempo);
+  const filters = [];
+  let remaining = safeTempo;
+  while (remaining > 2) {
+    filters.push("atempo=2.0");
+    remaining /= 2;
+  }
+  while (remaining < 0.5) {
+    filters.push("atempo=0.5");
+    remaining /= 0.5;
+  }
+  filters.push(`atempo=${remaining.toFixed(4)}`);
+  return filters.join(",");
+}
+
+async function postProcessVoice() {
+  const inputAudioS3Key = requireEnv("INPUT_AUDIO_S3_KEY");
+  const outputAudioS3Key = requireEnv("OUTPUT_AUDIO_S3_KEY");
+  const targetDurationSec = Number(requireEnv("TARGET_DURATION_SEC"));
+  const inputDurationSec = Number(process.env.INPUT_DURATION_SEC ?? "0");
+  const workDir = await fs.mkdtemp(path.join(tmpdir(), `voice-${jobId}-`));
+  const inputPath = path.join(
+    workDir,
+    `input${path.extname(inputAudioS3Key) || ".mp3"}`,
+  );
+  const outputPath = path.join(workDir, "output.mp3");
+  await downloadS3Object(inputAudioS3Key, inputPath);
+
+  const safeInputDurationSec =
+    Number.isFinite(inputDurationSec) && inputDurationSec > 0
+      ? inputDurationSec
+      : (await getMediaDurationSec(inputPath)) ?? targetDurationSec;
+  const target = Math.max(0.1, targetDurationSec);
+  const tempo = Math.max(1, safeInputDurationSec / target);
+  await runCommand("ffmpeg", [
+    "-y",
+    "-i",
+    inputPath,
+    "-filter:a",
+    buildAtempoFilter(tempo),
+    "-vn",
+    "-c:a",
+    "libmp3lame",
+    "-q:a",
+    "2",
+    outputPath,
+  ]);
+  const resolvedDurationSec = (await getMediaDurationSec(outputPath)) ?? target;
+  await uploadFile(outputAudioS3Key, outputPath, "audio/mpeg");
+  await putJsonToS3(resultS3Key, {
+    voiceS3Key: outputAudioS3Key,
+    durationSec: resolvedDurationSec,
+    provider: "fargate-ffmpeg-atempo",
+    adjustedAt: new Date().toISOString(),
+    tempoApplied: tempo,
+  });
+}
+
 async function main() {
+  if (taskMode === "VOICE_POSTPROCESS") {
+    await postProcessVoice();
+    return;
+  }
+  const renderPlanS3Key = requireEnv("RENDER_PLAN_S3_KEY");
   const renderPlan = await getJsonFromS3(renderPlanS3Key);
   const outputSettings = resolveOutput(renderPlan);
   const subtitleSettings = resolveSubtitleSettings(renderPlan);

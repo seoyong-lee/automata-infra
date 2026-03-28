@@ -22,8 +22,23 @@ type FargateCompositionResult = Record<string, unknown> & {
   message?: string;
 };
 
-const RESULT_KEY = (jobId: string) => `logs/${jobId}/composition/fargate-result.json`;
-const REQUEST_KEY = (jobId: string) => `logs/${jobId}/composition/fargate-request.json`;
+type FargateVoiceAdjustmentResult = Record<string, unknown> & {
+  voiceS3Key: string;
+  durationSec: number;
+  provider: string;
+  providerRenderId?: string | null;
+  failed?: boolean;
+  message?: string;
+};
+
+const RESULT_KEY = (jobId: string) =>
+  `logs/${jobId}/composition/fargate-result.json`;
+const REQUEST_KEY = (jobId: string) =>
+  `logs/${jobId}/composition/fargate-request.json`;
+const VOICE_RESULT_KEY = (jobId: string, sceneId: number) =>
+  `logs/${jobId}/voice-postprocess/scene-${sceneId}-result.json`;
+const VOICE_REQUEST_KEY = (jobId: string, sceneId: number) =>
+  `logs/${jobId}/voice-postprocess/scene-${sceneId}-request.json`;
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -47,8 +62,12 @@ const getTaskConfig = () => {
   };
 };
 
-const getRenderPlanS3Key = (jobId: string, renderPlan: Record<string, unknown>) => {
-  return typeof renderPlan.outputKey === "string" && renderPlan.outputKey.trim().length > 0
+const getRenderPlanS3Key = (
+  jobId: string,
+  renderPlan: Record<string, unknown>,
+) => {
+  return typeof renderPlan.outputKey === "string" &&
+    renderPlan.outputKey.trim().length > 0
     ? renderPlan.outputKey
     : `render-plans/${jobId}/render-plan.json`;
 };
@@ -70,7 +89,8 @@ const describeTask = async (clusterArn: string, taskArn: string) => {
   );
 };
 
-const getStoppedTask = (payload: DescribeTasksCommandOutput) => payload.tasks?.[0];
+const getStoppedTask = (payload: DescribeTasksCommandOutput) =>
+  payload.tasks?.[0];
 
 const getStoppedContainer = (payload: DescribeTasksCommandOutput) =>
   getStoppedTask(payload)?.containers?.[0];
@@ -120,19 +140,19 @@ const waitForTask = async (
   });
 };
 
-export const composeWithFargate = async (input: {
+const getTaskFailureReason = (failures?: Array<{ reason?: string | null }>) => {
+  return failures
+    ?.map((failure) => failure.reason)
+    .filter(Boolean)
+    .join(", ");
+};
+
+const launchFargateTask = async (input: {
   jobId: string;
-  renderPlan: Record<string, unknown>;
-}): Promise<FargateCompositionResult> => {
+  resultS3Key: string;
+  containerEnvironment: Array<{ name: string; value: string }>;
+}) => {
   const config = getTaskConfig();
-  const renderPlanS3Key = getRenderPlanS3Key(input.jobId, input.renderPlan);
-  const resultS3Key = RESULT_KEY(input.jobId);
-  await putJsonToS3(renderPlanS3Key, input.renderPlan);
-  await putJsonToS3(REQUEST_KEY(input.jobId), {
-    renderPlanS3Key,
-    resultS3Key,
-    renderPlan: input.renderPlan,
-  });
   const launched = await ecsClient.send(
     new RunTaskCommand({
       cluster: config.clusterArn,
@@ -151,39 +171,143 @@ export const composeWithFargate = async (input: {
             name: config.containerName,
             environment: [
               { name: "JOB_ID", value: input.jobId },
-              { name: "RENDER_PLAN_S3_KEY", value: renderPlanS3Key },
-              { name: "RESULT_S3_KEY", value: resultS3Key },
+              { name: "RESULT_S3_KEY", value: input.resultS3Key },
+              ...input.containerEnvironment,
             ],
           },
         ],
       },
     }),
   );
-  if (launched.failures?.length) {
-    const reason = launched.failures.map((failure) => failure.reason).filter(Boolean).join(", ");
-    throw new Error(`Failed to run Fargate render task${reason ? `: ${reason}` : ""}`);
+  const reason = getTaskFailureReason(launched.failures);
+  if (reason) {
+    throw new Error(
+      `Failed to run Fargate render task${reason ? `: ${reason}` : ""}`,
+    );
   }
-  const taskArn = getTaskArn(launched);
-  const taskState = await waitForTask(config.clusterArn, taskArn, config.timeoutMs);
-  const result = await getJsonFromS3<FargateCompositionResult>(resultS3Key);
+  return {
+    config,
+    taskArn: getTaskArn(launched),
+  };
+};
+
+const assertTaskCompleted = (
+  taskState: DescribeTasksCommandOutput,
+  result: Record<string, unknown>,
+) => {
   const taskError = getTaskStopError(taskState);
   if (taskError) {
     const detail =
-      result?.message && result.message.trim().length > 0
+      typeof result.message === "string" && result.message.trim().length > 0
         ? result.message.trim()
         : taskError;
     throw new Error(`Fargate renderer failed: ${detail}`);
   }
-  if (!result) {
-    throw new Error("Fargate renderer completed without a result payload");
-  }
   if (result.failed) {
     throw new Error(
-      `Fargate renderer failed: ${result.message?.trim() || "unknown renderer error"}`,
+      `Fargate renderer failed: ${
+        typeof result.message === "string" && result.message.trim().length > 0
+          ? result.message.trim()
+          : "unknown renderer error"
+      }`,
+    );
+  }
+};
+
+const runFargateTask = async (input: {
+  jobId: string;
+  resultS3Key: string;
+  requestLogKey: string;
+  requestPayload: Record<string, unknown>;
+  containerEnvironment: Array<{ name: string; value: string }>;
+}): Promise<{ result: Record<string, unknown>; taskArn: string }> => {
+  await putJsonToS3(input.requestLogKey, input.requestPayload);
+  const { config, taskArn } = await launchFargateTask({
+    jobId: input.jobId,
+    resultS3Key: input.resultS3Key,
+    containerEnvironment: input.containerEnvironment,
+  });
+  const taskState = await waitForTask(
+    config.clusterArn,
+    taskArn,
+    config.timeoutMs,
+  );
+  const result =
+    (await getJsonFromS3<Record<string, unknown>>(input.resultS3Key)) ?? {};
+  assertTaskCompleted(taskState, result);
+  return {
+    result,
+    taskArn,
+  };
+};
+
+export const composeWithFargate = async (input: {
+  jobId: string;
+  renderPlan: Record<string, unknown>;
+}): Promise<FargateCompositionResult> => {
+  const renderPlanS3Key = getRenderPlanS3Key(input.jobId, input.renderPlan);
+  const resultS3Key = RESULT_KEY(input.jobId);
+  await putJsonToS3(renderPlanS3Key, input.renderPlan);
+  const { result, taskArn } = await runFargateTask({
+    jobId: input.jobId,
+    resultS3Key,
+    requestLogKey: REQUEST_KEY(input.jobId),
+    requestPayload: {
+      renderPlanS3Key,
+      resultS3Key,
+      renderPlan: input.renderPlan,
+    },
+    containerEnvironment: [
+      { name: "TASK_MODE", value: "RENDER" },
+      { name: "RENDER_PLAN_S3_KEY", value: renderPlanS3Key },
+    ],
+  });
+  const typedResult = result as FargateCompositionResult;
+  if (!typedResult.finalVideoS3Key) {
+    throw new Error("Fargate renderer completed without a result payload");
+  }
+  return {
+    ...typedResult,
+    providerRenderId: taskArn,
+  };
+};
+
+export const adjustVoiceWithFargate = async (input: {
+  jobId: string;
+  sceneId: number;
+  inputVoiceS3Key: string;
+  outputVoiceS3Key: string;
+  targetDurationSec: number;
+  inputDurationSec: number;
+}): Promise<FargateVoiceAdjustmentResult> => {
+  const resultS3Key = VOICE_RESULT_KEY(input.jobId, input.sceneId);
+  const { result, taskArn } = await runFargateTask({
+    jobId: input.jobId,
+    resultS3Key,
+    requestLogKey: VOICE_REQUEST_KEY(input.jobId, input.sceneId),
+    requestPayload: {
+      inputVoiceS3Key: input.inputVoiceS3Key,
+      outputVoiceS3Key: input.outputVoiceS3Key,
+      targetDurationSec: input.targetDurationSec,
+      inputDurationSec: input.inputDurationSec,
+      resultS3Key,
+    },
+    containerEnvironment: [
+      { name: "TASK_MODE", value: "VOICE_POSTPROCESS" },
+      { name: "INPUT_AUDIO_S3_KEY", value: input.inputVoiceS3Key },
+      { name: "OUTPUT_AUDIO_S3_KEY", value: input.outputVoiceS3Key },
+      { name: "TARGET_DURATION_SEC", value: String(input.targetDurationSec) },
+      { name: "INPUT_DURATION_SEC", value: String(input.inputDurationSec) },
+    ],
+  });
+  const typedResult = result as FargateVoiceAdjustmentResult;
+  if (!typedResult.voiceS3Key || typeof typedResult.durationSec !== "number") {
+    throw new Error(
+      "Fargate voice postprocess completed without a result payload",
     );
   }
   return {
-    ...result,
+    ...typedResult,
     providerRenderId: taskArn,
   };
 };

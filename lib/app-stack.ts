@@ -263,6 +263,7 @@ export class AppStack extends Stack {
       Duration.seconds(60),
       1024,
     );
+    grantFargateRunPermissions(generationsHandler);
     const contentHandler = createLambda(
       this,
       "AdminContentLambda",
