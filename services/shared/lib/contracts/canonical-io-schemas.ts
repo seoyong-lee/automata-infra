@@ -36,14 +36,24 @@ const hexColorSchema = z
   .transform((value) =>
     value.startsWith("#") ? value.toUpperCase() : `#${value.toUpperCase()}`,
   );
+const subtitleFontPresetSchema = z.enum([
+  "default",
+  "serif",
+  "sans",
+  "display",
+]);
+const videoCropModeSchema = z.enum(["contain", "cover", "smart-crop"]);
 
 export const jobRenderSettingsSchema = z
   .object({
     subtitleEnabled: z.boolean().optional(),
     subtitleStylePreset: nonEmpty.optional(),
     subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
+    subtitleFontPreset: subtitleFontPresetSchema.optional(),
+    subtitleFontSize: z.number().int().min(12).max(96).optional(),
     backgroundColor: hexColorSchema.optional(),
     videoScale: z.number().min(0.5).max(1.25).optional(),
+    videoCropMode: videoCropModeSchema.optional(),
   })
   .strict();
 

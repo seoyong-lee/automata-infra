@@ -138,6 +138,7 @@ function resolveCanvasSettings(renderPlan) {
       renderPlan.canvas?.backgroundColor ?? "#000000",
     ),
     videoScale: clampNumber(renderPlan.canvas?.videoScale, 0.5, 1.25, 1),
+    videoCropMode: resolveVideoCropMode(renderPlan.canvas?.videoCropMode),
   };
 }
 
@@ -184,6 +185,10 @@ function normalizeHexColor(value) {
 
 function toFfmpegColor(value) {
   return `0x${normalizeHexColor(value).slice(1)}`;
+}
+
+function resolveVideoCropMode(value) {
+  return value === "contain" ? "contain" : "cover";
 }
 
 function sceneDuration(scene) {
@@ -283,20 +288,41 @@ function subtitlesFilter(assPath) {
 function visualFilter(outputSettings, canvasSettings, assPath) {
   const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
   const videoScale = clampNumber(canvasSettings.videoScale, 0.5, 1.25, 1);
-  const scaledWidth = Math.max(2, Math.round(outputSettings.width * videoScale));
-  const scaledHeight = Math.max(2, Math.round(outputSettings.height * videoScale));
+  const cropMode = resolveVideoCropMode(canvasSettings.videoCropMode);
+  const containScale = Math.min(videoScale, 1);
+  const scaledWidth = Math.max(
+    2,
+    Math.round(
+      outputSettings.width *
+        (cropMode === "contain" ? containScale : videoScale),
+    ),
+  );
+  const scaledHeight = Math.max(
+    2,
+    Math.round(
+      outputSettings.height *
+        (cropMode === "contain" ? containScale : videoScale),
+    ),
+  );
   const filters =
-    videoScale >= 1
+    cropMode === "contain"
       ? [
-          `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
-          `crop=${outputSettings.width}:${outputSettings.height}`,
-          `fps=${outputSettings.fps}`,
-        ]
-      : [
           `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
           `pad=${outputSettings.width}:${outputSettings.height}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
           `fps=${outputSettings.fps}`,
-        ];
+        ]
+      : videoScale >= 1
+        ? [
+            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
+            `crop=${outputSettings.width}:${outputSettings.height}`,
+            `fps=${outputSettings.fps}`,
+          ]
+        : [
+            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
+            `crop=${scaledWidth}:${scaledHeight}`,
+            `pad=${outputSettings.width}:${outputSettings.height}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+            `fps=${outputSettings.fps}`,
+          ];
   if (assPath) {
     filters.push(subtitlesFilter(assPath));
   }

@@ -138,11 +138,17 @@ const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
 const DEFAULT_CANVAS: RenderPlanCanvas = {
   backgroundColor: "#000000",
   videoScale: 1,
+  videoCropMode: "cover",
 };
 const subtitleStyleByPreset: Record<string, RenderPlanSubtitleStyle> = {
   "bold-caption-news": BOLD_CAPTION_SUBTITLE_STYLE,
   "minimal-quote": MINIMAL_SUBTITLE_STYLE,
   "documentary-lower-third": DOCUMENTARY_SUBTITLE_STYLE,
+};
+const subtitleFontFamilyByPreset: Record<string, string> = {
+  serif: "DejaVu Serif",
+  sans: "DejaVu Sans",
+  display: "DejaVu Sans Condensed",
 };
 
 type RenderPolicyConfig = {
@@ -308,6 +314,23 @@ const resolveSubtitlePosition = (
   };
 };
 
+const resolveSubtitleFont = (
+  style: RenderPlanSubtitleStyle,
+  renderSettings?: JobRenderSettings,
+): RenderPlanSubtitleStyle => {
+  const resolvedFontFamily =
+    renderSettings?.subtitleFontPreset &&
+    renderSettings.subtitleFontPreset !== "default"
+      ? (subtitleFontFamilyByPreset[renderSettings.subtitleFontPreset] ??
+        style.fontFamily)
+      : style.fontFamily;
+  return {
+    ...style,
+    fontFamily: resolvedFontFamily,
+    fontSize: renderSettings?.subtitleFontSize ?? style.fontSize,
+  };
+};
+
 const resolveSceneGapSec = (resolvedPolicy?: ResolvedPolicy): number => {
   const layoutMode = resolvedPolicy?.capabilities.layoutMode;
   if (layoutMode === "template") {
@@ -381,6 +404,8 @@ const resolveCanvas = (
     backgroundColor:
       renderSettings?.backgroundColor ?? DEFAULT_CANVAS.backgroundColor,
     videoScale: renderSettings?.videoScale ?? DEFAULT_CANVAS.videoScale,
+    videoCropMode:
+      renderSettings?.videoCropMode ?? DEFAULT_CANVAS.videoCropMode,
   };
 };
 
@@ -392,8 +417,11 @@ const resolveRenderPolicyConfig = (
   const output = resolveOutputByPlatformPreset(
     resolvedPolicy?.primaryPlatformPreset,
   );
-  const subtitleStyle = resolveSubtitlePosition(
-    resolveSubtitleStyle(resolvedPolicy, renderSettings),
+  const subtitleStyle = resolveSubtitleFont(
+    resolveSubtitlePosition(
+      resolveSubtitleStyle(resolvedPolicy, renderSettings),
+      renderSettings,
+    ),
     renderSettings,
   );
   const defaultBurnIn =

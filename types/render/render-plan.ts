@@ -18,6 +18,7 @@ export const renderPlanCanvasSchema = z.object({
     .trim()
     .regex(/^#?[0-9A-Fa-f]{6}$/),
   videoScale: z.number().min(0.5).max(1.25),
+  videoCropMode: z.enum(["contain", "cover", "smart-crop"]),
 });
 
 export const renderPlanSubtitleStyleSchema = z.object({

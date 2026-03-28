@@ -69,6 +69,9 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
   assert.equal(renderPlan.output.size.height, 1920);
   assert.equal(renderPlan.output.fps, 30);
   assert.equal(renderPlan.renderEngine, "ffmpeg-fargate");
+  assert.equal(renderPlan.canvas.backgroundColor, "#000000");
+  assert.equal(renderPlan.canvas.videoScale, 1);
+  assert.equal(renderPlan.canvas.videoCropMode, "cover");
   assert.equal(renderPlan.subtitles.format, "ass");
   assert.equal(renderPlan.subtitles.style.fontFamily, "Clear Sans");
   assert.equal(renderPlan.preview.maxDurationSec, 12);
@@ -78,4 +81,60 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
   assert.equal(renderPlan.overlays.length, 1);
   assert.equal(renderPlan.overlays[0]?.type, "image");
   assert.equal(renderPlan.outputKey, "render-plans/job_test/render-plan.json");
+});
+
+void test("render plan preserves explicit subtitle font and crop settings", () => {
+  const event = {
+    jobId: "job_custom",
+    sceneJson: {
+      videoTitle: "Custom Story",
+      language: "ko",
+      scenes: [
+        {
+          sceneId: 1,
+          durationSec: 4,
+          narration: "커스텀 나레이션",
+          subtitle: "커스텀 자막",
+        },
+      ],
+    },
+  };
+
+  const builtScenes = buildRenderPlanScenes(event);
+  const renderPlan = buildRenderPlan(event, builtScenes, {
+    output: {
+      format: "mp4",
+      size: { width: 1080, height: 1920 },
+      fps: 30,
+    },
+    canvas: {
+      backgroundColor: "#112233",
+      videoScale: 0.8,
+      videoCropMode: "contain",
+    },
+    previewMaxDurationSec: 12,
+    subtitles: {
+      burnIn: true,
+      format: "ass",
+      style: {
+        fontFamily: "DejaVu Serif",
+        fontSize: 44,
+        lineHeight: 1,
+        opacity: 1,
+        color: "#FFFFFF",
+        strokeColor: "#000000",
+        strokeWidth: 2,
+        position: "center",
+        offset: { x: 0, y: 0 },
+      },
+    },
+    sceneGapSec: 0.5,
+    defaultOverlays: [],
+  });
+
+  assert.equal(renderPlan.canvas.backgroundColor, "#112233");
+  assert.equal(renderPlan.canvas.videoScale, 0.8);
+  assert.equal(renderPlan.canvas.videoCropMode, "contain");
+  assert.equal(renderPlan.subtitles.style.fontFamily, "DejaVu Serif");
+  assert.equal(renderPlan.subtitles.style.fontSize, 44);
 });
