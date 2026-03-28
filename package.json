@@ -14,6 +14,7 @@
     "smoke:admin:graphql": "ts-node scripts/admin-graphql-smoke.ts",
     "test:generation": "node --test -r ts-node/register scripts/generation.test.ts",
     "test:fargate-render": "node --test -r ts-node/register scripts/fargate-render-smoke.test.ts",
+    "migrate:scene-subtitles": "ts-node scripts/migrate-scene-subtitles.ts",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
   "dependencies": {
