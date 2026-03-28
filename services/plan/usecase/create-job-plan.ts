@@ -4,6 +4,7 @@ import {
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
 import type {
+  ContentPresetPromptOverride,
   PresetSnapshot,
   ResolvedPolicy,
 } from "../../shared/lib/contracts/content-presets";
@@ -151,6 +152,12 @@ const buildPresetPromptVariables = (
   };
 };
 
+const resolveJobPlanPromptAppend = (
+  resolvedPolicy?: ResolvedPolicy,
+): ContentPresetPromptOverride | undefined => {
+  return resolvedPolicy?.promptOverrides?.jobPlan;
+};
+
 const generateSeed = async (input: {
   generateStructuredData: GenerateStructuredData;
   jobId: string;
@@ -163,6 +170,7 @@ const generateSeed = async (input: {
   creativeBrief?: string;
 }): Promise<JobPlanSeed> => {
   const presetVariables = buildPresetPromptVariables(input.resolvedPolicy);
+  const promptTemplateAppend = resolveJobPlanPromptAppend(input.resolvedPolicy);
   const generated = await input.generateStructuredData({
     jobId: input.jobId,
     stepKey: "job-plan",
@@ -176,6 +184,7 @@ const generateSeed = async (input: {
       ...presetVariables,
       creativeBrief: input.creativeBrief ?? "",
     },
+    ...(promptTemplateAppend ? { promptTemplateAppend } : {}),
     validate: validateJobPlanSeed,
     buildMockResult: buildMockJobPlanSeed,
   });

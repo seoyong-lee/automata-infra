@@ -14,6 +14,7 @@ export const mapContentPreset = (preset: ContentPreset): ContentPresetDto => {
     assetStrategy: preset.assetStrategy,
     capabilities: preset.capabilities,
     defaultPolicy: preset.defaultPolicy,
+    promptOverrides: preset.promptOverrides,
     createdAt: preset.createdAt,
     updatedAt: preset.updatedAt,
   };

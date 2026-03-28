@@ -155,6 +155,17 @@ type ContentPresetDefaultPolicy {
   preferredVoiceProfileId: String
 }
 
+type ContentPresetPromptOverride {
+  systemAppend: String
+  userAppend: String
+}
+
+type ContentPresetPromptOverrides {
+  jobPlan: ContentPresetPromptOverride
+  sceneJson: ContentPresetPromptOverride
+  metadata: ContentPresetPromptOverride
+}
+
 type PresetSnapshot {
   presetId: ID!
   name: String!
@@ -165,6 +176,7 @@ type PresetSnapshot {
   assetStrategy: String!
   capabilities: ContentPresetCapabilities!
   defaultPolicy: ContentPresetDefaultPolicy!
+  promptOverrides: ContentPresetPromptOverrides
 }
 
 type ResolvedPolicy {
@@ -184,6 +196,7 @@ type ResolvedPolicy {
   preferredImageProvider: String
   preferredVideoProvider: String
   preferredVoiceProfileId: String
+  promptOverrides: ContentPresetPromptOverrides
 }
 
 type ContentPreset {
@@ -198,6 +211,7 @@ type ContentPreset {
   assetStrategy: String!
   capabilities: ContentPresetCapabilities!
   defaultPolicy: ContentPresetDefaultPolicy!
+  promptOverrides: ContentPresetPromptOverrides
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
 }
@@ -582,6 +596,17 @@ input ContentPresetDefaultPolicyInput {
   preferredVoiceProfileId: String
 }
 
+input ContentPresetPromptOverrideInput {
+  systemAppend: String
+  userAppend: String
+}
+
+input ContentPresetPromptOverridesInput {
+  jobPlan: ContentPresetPromptOverrideInput
+  sceneJson: ContentPresetPromptOverrideInput
+  metadata: ContentPresetPromptOverrideInput
+}
+
 input UpsertContentPresetInput {
   presetId: ID
   name: String!
@@ -594,6 +619,7 @@ input UpsertContentPresetInput {
   assetStrategy: String!
   capabilities: ContentPresetCapabilitiesInput!
   defaultPolicy: ContentPresetDefaultPolicyInput!
+  promptOverrides: ContentPresetPromptOverridesInput
 }
 
 input AttachJobToContentInput {

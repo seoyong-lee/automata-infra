@@ -18,6 +18,7 @@ export const upsertContentPreset = async (input: UpsertContentPresetArgs) => {
       assetStrategy: input.assetStrategy,
       capabilities: input.capabilities,
       defaultPolicy: input.defaultPolicy,
+      promptOverrides: input.promptOverrides,
     },
   });
 

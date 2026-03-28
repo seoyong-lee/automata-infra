@@ -108,6 +108,23 @@ export const contentPresetDefaultPolicySchema = z
   })
   .strict();
 
+const optionalPromptAppend = z.string().trim().min(1).max(4000).optional();
+
+export const contentPresetPromptOverrideSchema = z
+  .object({
+    systemAppend: optionalPromptAppend,
+    userAppend: optionalPromptAppend,
+  })
+  .strict();
+
+export const contentPresetPromptOverridesSchema = z
+  .object({
+    jobPlan: contentPresetPromptOverrideSchema.optional(),
+    sceneJson: contentPresetPromptOverrideSchema.optional(),
+    metadata: contentPresetPromptOverrideSchema.optional(),
+  })
+  .strict();
+
 export const contentPresetSchema = z
   .object({
     presetId: nonEmpty,
@@ -121,6 +138,7 @@ export const contentPresetSchema = z
     assetStrategy: contentPresetAssetStrategySchema,
     capabilities: contentPresetCapabilitiesSchema,
     defaultPolicy: contentPresetDefaultPolicySchema,
+    promptOverrides: contentPresetPromptOverridesSchema.optional(),
     createdAt: nonEmpty,
     updatedAt: nonEmpty,
   })
@@ -143,6 +161,7 @@ export const presetSnapshotSchema = z
     assetStrategy: contentPresetAssetStrategySchema,
     capabilities: contentPresetCapabilitiesSchema,
     defaultPolicy: contentPresetDefaultPolicySchema,
+    promptOverrides: contentPresetPromptOverridesSchema.optional(),
   })
   .strict();
 
@@ -164,6 +183,7 @@ export const resolvedPolicySchema = z
     preferredImageProvider: nonEmpty.optional(),
     preferredVideoProvider: nonEmpty.optional(),
     preferredVoiceProfileId: nonEmpty.optional(),
+    promptOverrides: contentPresetPromptOverridesSchema.optional(),
   })
   .strict();
 
@@ -180,6 +200,7 @@ export const upsertContentPresetInputSchema = z
     assetStrategy: contentPresetAssetStrategySchema,
     capabilities: contentPresetCapabilitiesSchema,
     defaultPolicy: contentPresetDefaultPolicySchema,
+    promptOverrides: contentPresetPromptOverridesSchema.optional(),
   })
   .strict();
 
@@ -197,6 +218,12 @@ export type ContentPresetCapabilities = z.infer<
 >;
 export type ContentPresetDefaultPolicy = z.infer<
   typeof contentPresetDefaultPolicySchema
+>;
+export type ContentPresetPromptOverride = z.infer<
+  typeof contentPresetPromptOverrideSchema
+>;
+export type ContentPresetPromptOverrides = z.infer<
+  typeof contentPresetPromptOverridesSchema
 >;
 export type AssetMenuModel = z.infer<typeof assetMenuModelSchema>;
 export type ContentPreset = z.infer<typeof contentPresetSchema>;
@@ -268,6 +295,9 @@ export const buildPresetSnapshot = (preset: ContentPreset): PresetSnapshot => {
     assetStrategy: preset.assetStrategy,
     capabilities: preset.capabilities,
     defaultPolicy: preset.defaultPolicy,
+    ...(preset.promptOverrides
+      ? { promptOverrides: preset.promptOverrides }
+      : {}),
   };
 };
 
@@ -293,6 +323,9 @@ export const buildResolvedPolicy = (
     preferredImageProvider: snapshot.defaultPolicy.preferredImageProvider,
     preferredVideoProvider: snapshot.defaultPolicy.preferredVideoProvider,
     preferredVoiceProfileId: snapshot.defaultPolicy.preferredVoiceProfileId,
+    ...(snapshot.promptOverrides
+      ? { promptOverrides: snapshot.promptOverrides }
+      : {}),
   };
 };
 

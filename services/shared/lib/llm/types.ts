@@ -22,6 +22,11 @@ export type LlmPromptTemplate = {
   userPrompt: string;
 };
 
+export type PromptTemplateAppend = {
+  systemAppend?: string;
+  userAppend?: string;
+};
+
 export type LlmStepSettings = {
   config: LlmStepConfig;
   promptTemplate: LlmPromptTemplate;
@@ -33,6 +38,7 @@ export type GenerateStructuredDataInput<T> = {
   jobId: string;
   stepKey: LlmStepKey;
   variables: PromptVariables;
+  promptTemplateAppend?: PromptTemplateAppend;
   validate: (payload: unknown) => T;
   buildMockResult: () => T;
 };

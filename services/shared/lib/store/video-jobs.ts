@@ -296,7 +296,11 @@ export const updateJobMeta = async (
     assignments.push("#gsi4pk = :gsi4pk", "#gsi4sk = :gsi4sk");
   }
 
+  // Skip undefined fields so optional inputs do not emit invalid placeholders.
   for (const [key, value] of Object.entries(fields)) {
+    if (value === undefined) {
+      continue;
+    }
     names[`#${key}`] = key;
     values[`:${key}`] = value;
     assignments.push(`#${key} = :${key}`);

@@ -3,6 +3,7 @@ import {
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
 import type {
+  ContentPresetPromptOverride,
   PresetSnapshot,
   ResolvedPolicy,
 } from "../../shared/lib/contracts/content-presets";
@@ -147,6 +148,12 @@ const buildPresetPromptVariables = (
   };
 };
 
+const resolveSceneJsonPromptAppend = (
+  resolvedPolicy?: ResolvedPolicy,
+): ContentPresetPromptOverride | undefined => {
+  return resolvedPolicy?.promptOverrides?.sceneJson;
+};
+
 export const buildSceneJson = async (
   event: JobPlanResult,
   deps: BuildSceneJsonDeps = {},
@@ -154,6 +161,9 @@ export const buildSceneJson = async (
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
   const presetVariables = buildPresetPromptVariables(event.resolvedPolicy);
+  const promptTemplateAppend = resolveSceneJsonPromptAppend(
+    event.resolvedPolicy,
+  );
 
   const result = await generateStructuredData({
     jobId: event.jobId,
@@ -167,6 +177,7 @@ export const buildSceneJson = async (
       ...presetVariables,
       creativeBrief: event.creativeBrief ?? "",
     },
+    ...(promptTemplateAppend ? { promptTemplateAppend } : {}),
     validate: validateSceneJson,
     buildMockResult: () => buildMockSceneJson(event),
   });

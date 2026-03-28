@@ -9,6 +9,7 @@ import {
   type ContentPreset,
   type ContentPresetAssetStrategy,
   type ContentPresetCapabilities,
+  type ContentPresetPromptOverrides,
   parseContentPreset,
 } from "../contracts/content-presets";
 
@@ -72,6 +73,7 @@ const createBuiltInPreset = (input: {
   platformPresets?: ContentPreset["platformPresets"];
   duration?: ContentPreset["duration"];
   defaultPolicy?: Partial<ContentPreset["defaultPolicy"]>;
+  promptOverrides?: ContentPresetPromptOverrides;
 }): ContentPreset =>
   withDefaults({
     presetId: input.presetId,
@@ -94,6 +96,9 @@ const createBuiltInPreset = (input: {
       preferredVideoProvider: input.defaultPolicy?.preferredVideoProvider,
       preferredVoiceProfileId: input.defaultPolicy?.preferredVoiceProfileId,
     },
+    ...(input.promptOverrides
+      ? { promptOverrides: input.promptOverrides }
+      : {}),
   });
 
 export const BUILTIN_CONTENT_PRESETS: ContentPreset[] = [
@@ -202,6 +207,16 @@ export const BUILTIN_CONTENT_PRESETS: ContentPreset[] = [
       preferredImageProvider: "openai",
       preferredVideoProvider: "runway",
     },
+    promptOverrides: {
+      jobPlan: {
+        userAppend:
+          "Prefer clear documentary framing with specific factual payoffs. Avoid sensational teaser phrasing and exaggerated curiosity bait.",
+      },
+      sceneJson: {
+        userAppend:
+          "Use restrained documentary narration. Favor concise factual sentences, calm explanatory tone, and observation-first wording over dramatic storytelling.",
+      },
+    },
   }),
   createBuiltInPreset({
     presetId: "cinematic-ambient-visual",
@@ -248,6 +263,7 @@ const mapPresetItem = (item: ContentPresetItem): ContentPreset => {
     assetStrategy: item.assetStrategy,
     capabilities: item.capabilities,
     defaultPolicy: item.defaultPolicy,
+    promptOverrides: item.promptOverrides,
     createdAt: item.createdAt,
     updatedAt: item.updatedAt,
   });
@@ -356,6 +372,7 @@ export const softDeleteContentPreset = async (
       assetStrategy: existing.assetStrategy,
       capabilities: existing.capabilities,
       defaultPolicy: existing.defaultPolicy,
+      promptOverrides: existing.promptOverrides,
     },
   });
 };
