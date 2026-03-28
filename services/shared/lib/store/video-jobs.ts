@@ -137,9 +137,15 @@ export type SceneAssetItem = {
   voiceDurationSec?: number;
   imagePrompt?: string;
   videoPrompt?: string;
+  stockImageSearchStatus?: string;
+  stockImageSearchQuery?: string;
+  stockVideoSearchStatus?: string;
+  stockVideoSearchQuery?: string;
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  imageSelectedCandidateId?: string;
+  videoSelectedCandidateId?: string;
   voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   validationStatus?: string;
@@ -156,6 +162,32 @@ export type SceneImageCandidateItem = {
   providerLogS3Key?: string;
   promptHash?: string;
   mocked?: boolean;
+  sourceUrl?: string;
+  thumbnailUrl?: string;
+  authorName?: string;
+  sourceAssetId?: string;
+  width?: number;
+  height?: number;
+  createdAt: string;
+};
+
+export type SceneVideoCandidateItem = {
+  PK: string;
+  SK: string;
+  sceneId: number;
+  candidateId: string;
+  videoClipS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  promptHash?: string;
+  mocked?: boolean;
+  sourceUrl?: string;
+  thumbnailUrl?: string;
+  authorName?: string;
+  sourceAssetId?: string;
+  width?: number;
+  height?: number;
+  durationSec?: number;
   createdAt: string;
 };
 
@@ -392,6 +424,53 @@ export const listSceneImageCandidates = async (
     expressionAttributeValues: {
       ":pk": jobPk(jobId),
       ":candidatePrefix": `SCENE#${sceneId}#IMAGE_CANDIDATE#`,
+    },
+    scanIndexForward: false,
+    limit: 100,
+  });
+
+  return items.sort((left, right) => {
+    const a = new Date(right.createdAt).getTime();
+    const b = new Date(left.createdAt).getTime();
+    return a - b;
+  });
+};
+
+export const putSceneVideoCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+  item: Omit<SceneVideoCandidateItem, "PK" | "SK" | "sceneId" | "candidateId">,
+): Promise<void> => {
+  await putItem({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#VIDEO_CANDIDATE#${candidateId}`,
+    sceneId,
+    candidateId,
+    ...item,
+  });
+};
+
+export const getSceneVideoCandidate = async (
+  jobId: string,
+  sceneId: number,
+  candidateId: string,
+): Promise<SceneVideoCandidateItem | null> => {
+  return getItem<SceneVideoCandidateItem>({
+    PK: jobPk(jobId),
+    SK: `SCENE#${sceneId}#VIDEO_CANDIDATE#${candidateId}`,
+  });
+};
+
+export const listSceneVideoCandidates = async (
+  jobId: string,
+  sceneId: number,
+): Promise<SceneVideoCandidateItem[]> => {
+  const items = await queryItems<SceneVideoCandidateItem>({
+    keyConditionExpression: "PK = :pk AND begins_with(SK, :candidatePrefix)",
+    expressionAttributeValues: {
+      ":pk": jobPk(jobId),
+      ":candidatePrefix": `SCENE#${sceneId}#VIDEO_CANDIDATE#`,
     },
     scanIndexForward: false,
     limit: 100,

@@ -22,6 +22,7 @@ export type VideoFactoryEnvConfig = {
   enableFargateComposition: boolean;
   byteplusImageSecretId?: string;
   byteplusVideoSecretId?: string;
+  pexelsSecretId?: string;
   runwaySecretId: string;
   openAiSecretId: string;
   elevenLabsSecretId: string;

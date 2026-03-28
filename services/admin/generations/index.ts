@@ -2,7 +2,9 @@ import { Handler } from "aws-lambda";
 import { run as runAssetGeneration } from "./run-asset-generation";
 import { run as runJobPlan } from "./run-job-plan";
 import { run as runSceneJson } from "./run-scene-json";
+import { run as searchSceneStockAssets } from "./search-scene-stock-assets";
 import { run as selectSceneImageCandidate } from "./select-scene-image-candidate";
+import { run as selectSceneVideoCandidate } from "./select-scene-video-candidate";
 import { run as selectSceneVoiceCandidate } from "./select-scene-voice-candidate";
 import { run as setJobBackgroundMusic } from "./set-job-background-music";
 import { run as setJobDefaultVoiceProfile } from "./set-job-default-voice-profile";
@@ -21,7 +23,9 @@ const handlers: Record<
   runSceneJson,
   updateSceneJson,
   runAssetGeneration,
+  searchSceneStockAssets,
   selectSceneImageCandidate,
+  selectSceneVideoCandidate,
   selectSceneVoiceCandidate,
   setJobDefaultVoiceProfile,
   setJobBackgroundMusic,

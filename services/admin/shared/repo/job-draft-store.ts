@@ -9,6 +9,7 @@ import {
   getJobMeta,
   listSceneImageCandidates,
   listSceneAssets,
+  listSceneVideoCandidates,
   listSceneVoiceCandidates,
   updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
@@ -16,6 +17,12 @@ import {
   alignSceneJsonNarrationAndSubtitle,
   alignSceneNarrationAndSubtitle,
 } from "../../../shared/lib/scene-text";
+import {
+  mapSceneAssetDraft,
+  mapSceneImageCandidateDraft,
+  mapSceneVideoCandidateDraft,
+  mapSceneVoiceCandidateDraft,
+} from "../mapper/map-scene-asset-draft";
 import type {
   BackgroundMusicAssetDto,
   ContentBriefDto,
@@ -58,38 +65,6 @@ const mapSceneJson = (sceneJson: SceneJson): SceneJsonDto => {
     videoTitle: alignedSceneJson.videoTitle,
     language: alignedSceneJson.language,
     scenes: alignedSceneJson.scenes.map(mapScene),
-  };
-};
-
-const mapSceneAsset = (asset: SceneAssetItem) => {
-  const alignedAsset = alignSceneNarrationAndSubtitle(asset);
-  return {
-    sceneId: alignedAsset.sceneId,
-    imageS3Key: alignedAsset.imageS3Key,
-    videoClipS3Key: alignedAsset.videoClipS3Key,
-    voiceS3Key: alignedAsset.voiceS3Key,
-    voiceSelectedCandidateId:
-      typeof alignedAsset.voiceSelectedCandidateId === "string"
-        ? alignedAsset.voiceSelectedCandidateId
-        : undefined,
-    voiceProfileId:
-      typeof alignedAsset.voiceProfileId === "string"
-        ? alignedAsset.voiceProfileId
-        : undefined,
-    voiceDurationSec:
-      typeof alignedAsset.voiceDurationSec === "number"
-        ? alignedAsset.voiceDurationSec
-        : undefined,
-    durationSec: alignedAsset.durationSec,
-    narration: alignedAsset.narration,
-    subtitle: alignedAsset.subtitle,
-    imagePrompt: alignedAsset.imagePrompt,
-    videoPrompt: alignedAsset.videoPrompt,
-    validationStatus: alignedAsset.validationStatus,
-    imageSelectedCandidateId:
-      typeof alignedAsset.imageSelectedCandidateId === "string"
-        ? alignedAsset.imageSelectedCandidateId
-        : undefined,
   };
 };
 
@@ -136,56 +111,51 @@ export const getStoredSceneJson = async (
 
 export const listStoredSceneAssets = async (jobId: string) => {
   const assets = await listSceneAssets(jobId);
-  return Promise.all(
-    assets.map(async (asset) => {
-      const imageCandidates = await listSceneImageCandidates(
-        jobId,
-        asset.sceneId,
-      );
-      const voiceCandidates = await listSceneVoiceCandidates(
-        jobId,
-        asset.sceneId,
-      );
-      const selectedCandidateId =
-        typeof asset.imageSelectedCandidateId === "string"
-          ? asset.imageSelectedCandidateId
-          : undefined;
-      const selectedVoiceCandidateId =
-        typeof asset.voiceSelectedCandidateId === "string"
-          ? asset.voiceSelectedCandidateId
-          : undefined;
-      return {
-        ...mapSceneAsset(asset),
-        imageCandidates: imageCandidates.map((candidate) => ({
-          candidateId: candidate.candidateId,
-          imageS3Key: candidate.imageS3Key,
-          provider: candidate.provider,
-          providerLogS3Key: candidate.providerLogS3Key,
-          promptHash: candidate.promptHash,
-          mocked: candidate.mocked,
-          createdAt: candidate.createdAt,
-          selected:
-            selectedCandidateId !== undefined
-              ? candidate.candidateId === selectedCandidateId
-              : candidate.imageS3Key === asset.imageS3Key,
-        })),
-        voiceCandidates: voiceCandidates.map((candidate) => ({
-          candidateId: candidate.candidateId,
-          voiceS3Key: candidate.voiceS3Key,
-          provider: candidate.provider,
-          providerLogS3Key: candidate.providerLogS3Key,
-          mocked: candidate.mocked,
-          voiceDurationSec: candidate.voiceDurationSec,
-          voiceProfileId: candidate.voiceProfileId,
-          createdAt: candidate.createdAt,
-          selected:
-            selectedVoiceCandidateId !== undefined
-              ? candidate.candidateId === selectedVoiceCandidateId
-              : candidate.voiceS3Key === asset.voiceS3Key,
-        })),
-      };
-    }),
+  return Promise.all(assets.map((asset) => mapStoredSceneAsset(jobId, asset)));
+};
+
+const mapStoredSceneAsset = async (jobId: string, asset: SceneAssetItem) => {
+  const [imageCandidates, videoCandidates, voiceCandidates] = await Promise.all(
+    [
+      listSceneImageCandidates(jobId, asset.sceneId),
+      listSceneVideoCandidates(jobId, asset.sceneId),
+      listSceneVoiceCandidates(jobId, asset.sceneId),
+    ],
   );
+  const selectedImageCandidateId =
+    typeof asset.imageSelectedCandidateId === "string"
+      ? asset.imageSelectedCandidateId
+      : undefined;
+  const selectedVideoCandidateId =
+    typeof asset.videoSelectedCandidateId === "string"
+      ? asset.videoSelectedCandidateId
+      : undefined;
+  const selectedVoiceCandidateId =
+    typeof asset.voiceSelectedCandidateId === "string"
+      ? asset.voiceSelectedCandidateId
+      : undefined;
+
+  return {
+    ...mapSceneAssetDraft(asset),
+    imageCandidates: imageCandidates.map((candidate) =>
+      mapSceneImageCandidateDraft(candidate, {
+        selectedCandidateId: selectedImageCandidateId,
+        sceneImageS3Key: asset.imageS3Key,
+      }),
+    ),
+    videoCandidates: videoCandidates.map((candidate) =>
+      mapSceneVideoCandidateDraft(candidate, {
+        selectedCandidateId: selectedVideoCandidateId,
+        sceneVideoClipS3Key: asset.videoClipS3Key,
+      }),
+    ),
+    voiceCandidates: voiceCandidates.map((candidate) =>
+      mapSceneVoiceCandidateDraft(candidate, {
+        selectedCandidateId: selectedVoiceCandidateId,
+        sceneVoiceS3Key: asset.voiceS3Key,
+      }),
+    ),
+  };
 };
 
 const BACKGROUND_MUSIC_PREFIX = (jobId: string) => `assets/${jobId}/bgm/`;

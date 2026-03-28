@@ -24,5 +24,6 @@
   "openAiSecretId": "automata-studio/openai",
   "elevenLabsSecretId": "automata-studio/elevenlabs",
   "shotstackSecretId": "automata-studio/shotstack",
-  "googleOAuthSecretId": "automata-studio/google-oauth-admin"
+  "googleOAuthSecretId": "automata-studio/google-oauth-admin",
+  "pexelsSecretId": "automata-studio/pexels"
 }

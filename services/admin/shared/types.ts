@@ -290,6 +290,12 @@ export type SceneAssetDto = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  stockImageSearchStatus?: string;
+  stockImageSearchQuery?: string;
+  stockVideoSearchStatus?: string;
+  stockVideoSearchQuery?: string;
+  imageSelectedCandidateId?: string;
+  videoSelectedCandidateId?: string;
   voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   voiceDurationSec?: number;
@@ -299,8 +305,8 @@ export type SceneAssetDto = {
   imagePrompt?: string;
   videoPrompt?: string;
   validationStatus?: string;
-  imageSelectedCandidateId?: string;
   imageCandidates?: SceneImageCandidateDto[];
+  videoCandidates?: SceneVideoCandidateDto[];
   voiceCandidates?: SceneVoiceCandidateDto[];
 };
 
@@ -337,6 +343,30 @@ export type SceneImageCandidateDto = {
   providerLogS3Key?: string;
   promptHash?: string;
   mocked?: boolean;
+  sourceUrl?: string;
+  thumbnailUrl?: string;
+  authorName?: string;
+  sourceAssetId?: string;
+  width?: number;
+  height?: number;
+  createdAt: string;
+  selected: boolean;
+};
+
+export type SceneVideoCandidateDto = {
+  candidateId: string;
+  videoClipS3Key: string;
+  provider?: string;
+  providerLogS3Key?: string;
+  promptHash?: string;
+  mocked?: boolean;
+  sourceUrl?: string;
+  thumbnailUrl?: string;
+  authorName?: string;
+  sourceAssetId?: string;
+  width?: number;
+  height?: number;
+  durationSec?: number;
   createdAt: string;
   selected: boolean;
 };

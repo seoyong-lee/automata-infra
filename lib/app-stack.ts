@@ -163,6 +163,7 @@ export class AppStack extends Stack {
       CONFIG_TABLE_NAME: this.llmConfigTable.tableName,
       BYTEPLUS_IMAGE_SECRET_ID: props.envConfig.byteplusImageSecretId ?? "",
       BYTEPLUS_VIDEO_SECRET_ID: props.envConfig.byteplusVideoSecretId ?? "",
+      PEXELS_SECRET_ID: props.envConfig.pexelsSecretId ?? "",
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
@@ -308,7 +309,9 @@ export class AppStack extends Stack {
     const runSceneJsonResolver = generationsHandler;
     const updateSceneJsonResolver = generationsHandler;
     const runAssetGenerationResolver = generationsHandler;
+    const searchSceneStockAssetsResolver = generationsHandler;
     const selectSceneImageCandidateResolver = generationsHandler;
+    const selectSceneVideoCandidateResolver = generationsHandler;
     const selectSceneVoiceCandidateResolver = generationsHandler;
     const setJobDefaultVoiceProfileResolver = generationsHandler;
     const setJobBackgroundMusicResolver = generationsHandler;
@@ -355,7 +358,9 @@ export class AppStack extends Stack {
     this.jobsTable.grantReadWriteData(runSceneJsonResolver);
     this.jobsTable.grantReadWriteData(updateSceneJsonResolver);
     this.jobsTable.grantReadWriteData(runAssetGenerationResolver);
+    this.jobsTable.grantReadWriteData(searchSceneStockAssetsResolver);
     this.jobsTable.grantReadWriteData(selectSceneImageCandidateResolver);
+    this.jobsTable.grantReadWriteData(selectSceneVideoCandidateResolver);
     this.jobsTable.grantReadWriteData(selectSceneVoiceCandidateResolver);
     this.jobsTable.grantReadWriteData(setJobDefaultVoiceProfileResolver);
     this.jobsTable.grantReadWriteData(setJobBackgroundMusicResolver);
@@ -375,7 +380,9 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     this.assetsBucket.grantReadWrite(requestAssetUploadResolver);
     this.assetsBucket.grantReadWrite(runAssetGenerationResolver);
+    this.assetsBucket.grantReadWrite(searchSceneStockAssetsResolver);
     this.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
+    this.assetsBucket.grantReadWrite(selectSceneVideoCandidateResolver);
     this.assetsBucket.grantReadWrite(selectSceneVoiceCandidateResolver);
     this.assetsBucket.grantReadWrite(setJobDefaultVoiceProfileResolver);
     this.assetsBucket.grantReadWrite(setJobBackgroundMusicResolver);
@@ -391,6 +398,7 @@ export class AppStack extends Stack {
     this.llmConfigTable.grantReadData(listVoiceProfilesResolver);
     this.llmConfigTable.grantReadWriteData(upsertVoiceProfileResolver);
     this.llmConfigTable.grantReadData(runAssetGenerationResolver);
+    this.llmConfigTable.grantReadData(searchSceneStockAssetsResolver);
     this.llmConfigTable.grantReadData(setJobDefaultVoiceProfileResolver);
     this.llmConfigTable.grantReadData(setSceneVoiceProfileResolver);
     this.llmConfigTable.grantReadData(createDraftJobResolver);
@@ -409,6 +417,12 @@ export class AppStack extends Stack {
       }),
     );
     runAssetGenerationResolver.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
+    searchSceneStockAssetsResolver.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
         resources: ["*"],
@@ -498,7 +512,9 @@ export class AppStack extends Stack {
       runSceneJsonResolver,
       updateSceneJsonResolver,
       runAssetGenerationResolver,
+      searchSceneStockAssetsResolver,
       selectSceneImageCandidateResolver,
+      selectSceneVideoCandidateResolver,
       selectSceneVoiceCandidateResolver,
       setJobDefaultVoiceProfileResolver,
       setJobBackgroundMusicResolver,

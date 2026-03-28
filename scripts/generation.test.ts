@@ -22,6 +22,10 @@ import {
   type GenerateStructuredDataResult,
   type LlmPromptTemplate,
 } from "../services/shared/lib/llm";
+import {
+  derivePexelsSearchQuery,
+  pickBestPexelsVideoFile,
+} from "../services/shared/lib/providers/media";
 import type { SceneJson } from "../types/render/scene-json";
 
 const buildMetadata = <T>(): GenerateStructuredDataResult<T>["metadata"] => {
@@ -356,4 +360,51 @@ void test("smoke dataset scenarios remain compatible with scene generation contr
     );
     assert.ok(result.scenes.every((scene) => scene.imagePrompt.length > 0));
   }
+});
+
+void test("derivePexelsSearchQuery strips cinematic filler from scene prompts", () => {
+  assert.equal(
+    derivePexelsSearchQuery(
+      "slow push toward a moonlit Joseon watchtower, drifting night fog, cinematic",
+    ),
+    "moonlit joseon watchtower",
+  );
+  assert.equal(
+    derivePexelsSearchQuery(
+      "Korean night guard listening from a high wooden watchtower, lantern glow, tense atmosphere",
+    ),
+    "korean guard listening from high wooden watchtower",
+  );
+  assert.equal(
+    derivePexelsSearchQuery("cinematic, moody, dramatic"),
+    undefined,
+  );
+});
+
+void test("pickBestPexelsVideoFile prefers highest resolution portrait mp4", () => {
+  const best = pickBestPexelsVideoFile({
+    id: 1,
+    video_files: [
+      {
+        link: "https://cdn.example.com/landscape.mp4",
+        file_type: "video/mp4",
+        width: 1920,
+        height: 1080,
+      },
+      {
+        link: "https://cdn.example.com/portrait-small.mp4",
+        file_type: "video/mp4",
+        width: 540,
+        height: 960,
+      },
+      {
+        link: "https://cdn.example.com/portrait-large.mp4",
+        file_type: "video/mp4",
+        width: 1080,
+        height: 1920,
+      },
+    ],
+  });
+
+  assert.equal(best?.link, "https://cdn.example.com/portrait-large.mp4");
 });

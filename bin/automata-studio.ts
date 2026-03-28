@@ -69,6 +69,7 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.byteplusImageSecretId ?? `${projectPrefix}/byteplus-image`,
   byteplusVideoSecretId:
     envConfig.byteplusVideoSecretId ?? `${projectPrefix}/byteplus-video`,
+  pexelsSecretId: envConfig.pexelsSecretId ?? `${projectPrefix}/pexels`,
   runwaySecretId: envConfig.runwaySecretId ?? `${projectPrefix}/runway`,
   openAiSecretId: envConfig.openAiSecretId ?? `${projectPrefix}/openai`,
   elevenLabsSecretId:

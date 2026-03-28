@@ -57,8 +57,12 @@ type Mutation {
   에셋 생성(팬아웃·큐 워커). 목표: 단계·씬 단위 부분 재실행.
   """
   runAssetGeneration(input: RunAssetGenerationInput!): AdminJob!
+  searchSceneStockAssets(input: SearchSceneStockAssetsInput!): JobDraftDetail!
   selectSceneImageCandidate(
     input: SelectSceneImageCandidateInput!
+  ): JobDraftDetail!
+  selectSceneVideoCandidate(
+    input: SelectSceneVideoCandidateInput!
   ): JobDraftDetail!
   selectSceneVoiceCandidate(
     input: SelectSceneVoiceCandidateInput!
@@ -290,6 +294,12 @@ type SceneAsset {
   imageS3Key: String
   videoClipS3Key: String
   voiceS3Key: String
+  stockImageSearchStatus: StockSearchStatus
+  stockImageSearchQuery: String
+  stockVideoSearchStatus: StockSearchStatus
+  stockVideoSearchQuery: String
+  imageSelectedCandidateId: String
+  videoSelectedCandidateId: String
   voiceSelectedCandidateId: String
   voiceProfileId: String
   voiceDurationSec: Float
@@ -299,8 +309,8 @@ type SceneAsset {
   imagePrompt: String
   videoPrompt: String
   validationStatus: String
-  imageSelectedCandidateId: String
   imageCandidates: [SceneImageCandidate!]!
+  videoCandidates: [SceneVideoCandidate!]!
   voiceCandidates: [SceneVoiceCandidate!]!
 }
 
@@ -311,6 +321,30 @@ type SceneImageCandidate {
   providerLogS3Key: String
   promptHash: String
   mocked: Boolean
+  sourceUrl: String
+  thumbnailUrl: String
+  authorName: String
+  sourceAssetId: String
+  width: Int
+  height: Int
+  createdAt: AWSDateTime!
+  selected: Boolean!
+}
+
+type SceneVideoCandidate {
+  candidateId: ID!
+  videoClipS3Key: String!
+  provider: String
+  providerLogS3Key: String
+  promptHash: String
+  mocked: Boolean
+  sourceUrl: String
+  thumbnailUrl: String
+  authorName: String
+  sourceAssetId: String
+  width: Int
+  height: Int
+  durationSec: Float
   createdAt: AWSDateTime!
   selected: Boolean!
 }
@@ -658,6 +692,18 @@ enum AssetGenerationModality {
   VIDEO
 }
 
+enum StockSearchModality {
+  ALL
+  IMAGE
+  VIDEO
+}
+
+enum StockSearchStatus {
+  FOUND
+  NO_RESULT
+  UNSUITABLE_PROMPT
+}
+
 enum FinalCompositionProvider {
   SHOTSTACK
   FARGATE
@@ -682,6 +728,12 @@ input RunAssetGenerationInput {
   이미지 생성 시 사용할 provider. IMAGE 또는 ALL 실행에서만 반영된다.
   """
   imageProvider: ImageGenerationProvider
+}
+
+input SearchSceneStockAssetsInput {
+  jobId: ID!
+  targetSceneId: Int
+  modality: StockSearchModality
 }
 
 input UpsertVoiceProfileInput {
@@ -718,6 +770,12 @@ input SetSceneVoiceProfileInput {
 }
 
 input SelectSceneImageCandidateInput {
+  jobId: ID!
+  sceneId: Int!
+  candidateId: ID!
+}
+
+input SelectSceneVideoCandidateInput {
   jobId: ID!
   sceneId: Int!
   candidateId: ID!
