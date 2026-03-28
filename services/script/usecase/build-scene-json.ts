@@ -148,7 +148,7 @@ const buildPresetPromptVariables = (
   };
 };
 
-const resolveSceneJsonPromptAppend = (
+const resolveSceneJsonPromptOverride = (
   resolvedPolicy?: ResolvedPolicy,
 ): ContentPresetPromptOverride | undefined => {
   return resolvedPolicy?.promptOverrides?.sceneJson;
@@ -161,7 +161,7 @@ export const buildSceneJson = async (
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
   const presetVariables = buildPresetPromptVariables(event.resolvedPolicy);
-  const promptTemplateAppend = resolveSceneJsonPromptAppend(
+  const promptTemplateOverride = resolveSceneJsonPromptOverride(
     event.resolvedPolicy,
   );
 
@@ -177,7 +177,7 @@ export const buildSceneJson = async (
       ...presetVariables,
       creativeBrief: event.creativeBrief ?? "",
     },
-    ...(promptTemplateAppend ? { promptTemplateAppend } : {}),
+    ...(promptTemplateOverride ? { promptTemplateOverride } : {}),
     validate: validateSceneJson,
     buildMockResult: () => buildMockSceneJson(event),
   });

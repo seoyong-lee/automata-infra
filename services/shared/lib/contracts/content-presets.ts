@@ -108,12 +108,12 @@ export const contentPresetDefaultPolicySchema = z
   })
   .strict();
 
-const optionalPromptAppend = z.string().trim().min(1).max(4000).optional();
+const promptTemplateBody = z.string().trim().min(1).max(12000);
 
 export const contentPresetPromptOverrideSchema = z
   .object({
-    systemAppend: optionalPromptAppend,
-    userAppend: optionalPromptAppend,
+    systemPrompt: promptTemplateBody,
+    userPrompt: promptTemplateBody,
   })
   .strict();
 

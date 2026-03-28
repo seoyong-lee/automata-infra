@@ -152,7 +152,7 @@ const buildPresetPromptVariables = (
   };
 };
 
-const resolveJobPlanPromptAppend = (
+const resolveJobPlanPromptOverride = (
   resolvedPolicy?: ResolvedPolicy,
 ): ContentPresetPromptOverride | undefined => {
   return resolvedPolicy?.promptOverrides?.jobPlan;
@@ -170,7 +170,9 @@ const generateSeed = async (input: {
   creativeBrief?: string;
 }): Promise<JobPlanSeed> => {
   const presetVariables = buildPresetPromptVariables(input.resolvedPolicy);
-  const promptTemplateAppend = resolveJobPlanPromptAppend(input.resolvedPolicy);
+  const promptTemplateOverride = resolveJobPlanPromptOverride(
+    input.resolvedPolicy,
+  );
   const generated = await input.generateStructuredData({
     jobId: input.jobId,
     stepKey: "job-plan",
@@ -184,7 +186,7 @@ const generateSeed = async (input: {
       ...presetVariables,
       creativeBrief: input.creativeBrief ?? "",
     },
-    ...(promptTemplateAppend ? { promptTemplateAppend } : {}),
+    ...(promptTemplateOverride ? { promptTemplateOverride } : {}),
     validate: validateJobPlanSeed,
     buildMockResult: buildMockJobPlanSeed,
   });

@@ -7,25 +7,18 @@ import type {
 import { generateStructuredDataWithProvider } from "../providers/llm";
 import { getLlmStepSettings } from "../store/llm-config";
 
-const appendSection = (base: string, append?: string): string => {
-  const trimmed = append?.trim();
-  if (!trimmed) {
-    return base;
-  }
-  return `${base}\n\nPreset override:\n${trimmed}`;
-};
-
-export const applyPromptTemplateAppend = (
+export const applyPromptTemplateOverride = (
   template: LlmPromptTemplate,
-  append?: GenerateStructuredDataInput<unknown>["promptTemplateAppend"],
+  override?: GenerateStructuredDataInput<unknown>["promptTemplateOverride"],
 ): LlmPromptTemplate => {
-  if (!append?.systemAppend && !append?.userAppend) {
+  if (!override) {
     return template;
   }
   return {
     ...template,
-    systemPrompt: appendSection(template.systemPrompt, append.systemAppend),
-    userPrompt: appendSection(template.userPrompt, append.userAppend),
+    version: `${template.version}:preset-override`,
+    systemPrompt: override.systemPrompt,
+    userPrompt: override.userPrompt,
   };
 };
 
@@ -33,9 +26,9 @@ export const generateStepStructuredData = async <T>(
   input: GenerateStructuredDataInput<T>,
 ): Promise<GenerateStructuredDataResult<T>> => {
   const settings = await getLlmStepSettings(input.stepKey);
-  const promptTemplate = applyPromptTemplateAppend(
+  const promptTemplate = applyPromptTemplateOverride(
     settings.promptTemplate,
-    input.promptTemplateAppend,
+    input.promptTemplateOverride,
   );
   const prompt = renderPrompt(promptTemplate.userPrompt, input.variables);
 
@@ -59,6 +52,6 @@ export type {
   LlmStepConfig,
   LlmStepKey,
   LlmStepSettings,
-  PromptTemplateAppend,
+  PromptTemplateOverride,
   PromptVariables,
 } from "./types";

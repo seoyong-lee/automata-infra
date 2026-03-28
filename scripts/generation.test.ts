@@ -16,7 +16,7 @@ import { estimateMinimumVoiceDurationSec } from "../services/shared/lib/provider
 import { generateSceneVideos } from "../services/video-generation/usecase/generate-scene-videos";
 import { generateSceneVoices } from "../services/voice/usecase/generate-scene-voices";
 import {
-  applyPromptTemplateAppend,
+  applyPromptTemplateOverride,
   type GenerateStructuredData,
   type GenerateStructuredDataInput,
   type GenerateStructuredDataResult,
@@ -104,16 +104,18 @@ const buildResolvedPolicyWithOverrides = (): NonNullable<
     preferredVideoProvider: "runway",
     promptOverrides: {
       jobPlan: {
-        userAppend: "Keep the plan factual and documentary in tone.",
+        systemPrompt: "Documentary job-plan system",
+        userPrompt: "Documentary job-plan user",
       },
       sceneJson: {
-        userAppend: "Use restrained documentary narration.",
+        systemPrompt: "Documentary scene-json system",
+        userPrompt: "Documentary scene-json user",
       },
     },
   };
 };
 
-void test("applyPromptTemplateAppend appends preset instructions", () => {
+void test("applyPromptTemplateOverride replaces base prompts", () => {
   const template: LlmPromptTemplate = {
     stepKey: "scene-json",
     version: "v1",
@@ -121,19 +123,14 @@ void test("applyPromptTemplateAppend appends preset instructions", () => {
     userPrompt: "Base user",
   };
 
-  const result = applyPromptTemplateAppend(template, {
-    systemAppend: "System addendum",
-    userAppend: "User addendum",
+  const result = applyPromptTemplateOverride(template, {
+    systemPrompt: "Preset system",
+    userPrompt: "Preset user",
   });
 
-  assert.equal(
-    result.systemPrompt,
-    "Base system\n\nPreset override:\nSystem addendum",
-  );
-  assert.equal(
-    result.userPrompt,
-    "Base user\n\nPreset override:\nUser addendum",
-  );
+  assert.equal(result.version, "v1:preset-override");
+  assert.equal(result.systemPrompt, "Preset system");
+  assert.equal(result.userPrompt, "Preset user");
 });
 
 void test("createJobPlan uses shared LLM generation with deterministic output", async () => {
@@ -201,14 +198,15 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
   assert.deepEqual(JSON.parse(JSON.stringify(result)), sceneJsonExpected);
 });
 
-void test("buildSceneJson forwards preset scene prompt append", async () => {
+void test("buildSceneJson forwards preset scene prompt override", async () => {
   const resolvedPolicy = buildResolvedPolicyWithOverrides();
   const generateStructuredData: GenerateStructuredData = async <T>(
     input: GenerateStructuredDataInput<T>,
   ) => {
     assert.equal(input.stepKey, "scene-json");
-    assert.deepEqual(input.promptTemplateAppend, {
-      userAppend: "Use restrained documentary narration.",
+    assert.deepEqual(input.promptTemplateOverride, {
+      systemPrompt: "Documentary scene-json system",
+      userPrompt: "Documentary scene-json user",
     });
 
     return {

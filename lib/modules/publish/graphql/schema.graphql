@@ -156,8 +156,8 @@ type ContentPresetDefaultPolicy {
 }
 
 type ContentPresetPromptOverride {
-  systemAppend: String
-  userAppend: String
+  systemPrompt: String!
+  userPrompt: String!
 }
 
 type ContentPresetPromptOverrides {
@@ -597,8 +597,8 @@ input ContentPresetDefaultPolicyInput {
 }
 
 input ContentPresetPromptOverrideInput {
-  systemAppend: String
-  userAppend: String
+  systemPrompt: String!
+  userPrompt: String!
 }
 
 input ContentPresetPromptOverridesInput {
