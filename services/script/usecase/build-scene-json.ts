@@ -2,6 +2,7 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
+import { sceneStartTransitionSchema } from "../../shared/lib/contracts/canonical-io-schemas";
 import type {
   ContentPresetPromptOverride,
   PresetSnapshot,
@@ -17,6 +18,7 @@ import {
   expectString,
 } from "../../shared/lib/llm/validate";
 import { alignSceneJsonNarrationAndSubtitle } from "../../shared/lib/scene-text";
+import { applyDefaultSceneStartTransitions } from "../../shared/lib/scene-transition-defaults";
 import { SceneJson } from "../../../types/render/scene-json";
 
 type JobPlanResult = {
@@ -72,6 +74,20 @@ const buildMockSceneJson = (event: JobPlanResult): SceneJson => {
   };
 };
 
+const parseOptionalStartTransition = (
+  value: unknown,
+  label: string,
+) => {
+  if (value === undefined || value === null) {
+    return undefined;
+  }
+  const parsed = sceneStartTransitionSchema.safeParse(value);
+  if (!parsed.success) {
+    throw new Error(`${label} is invalid`);
+  }
+  return parsed.data;
+};
+
 const validateSceneJson = (payload: unknown): SceneJson => {
   const root = expectRecord(payload, "sceneJson");
 
@@ -122,6 +138,10 @@ const validateSceneJson = (payload: unknown): SceneJson => {
               ),
             )
           : undefined,
+        startTransition: parseOptionalStartTransition(
+          record.startTransition,
+          `sceneJson.scenes[${index}].startTransition`,
+        ),
       };
     }),
   };
@@ -182,5 +202,7 @@ export const buildSceneJson = async (
     buildMockResult: () => buildMockSceneJson(event),
   });
 
-  return alignSceneJsonNarrationAndSubtitle(result.output);
+  return applyDefaultSceneStartTransitions(
+    alignSceneJsonNarrationAndSubtitle(result.output),
+  );
 };

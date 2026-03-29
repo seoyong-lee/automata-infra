@@ -28,6 +28,8 @@ import {
 } from "../services/shared/lib/providers/media";
 import type { SceneJson } from "../types/render/scene-json";
 
+const sceneJsonExpectedFixture = sceneJsonExpected as SceneJson;
+
 const buildMetadata = <T>(): GenerateStructuredDataResult<T>["metadata"] => {
   return {
     provider: "mock",
@@ -190,7 +192,7 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
     });
 
     return {
-      output: input.validate(sceneJsonExpected),
+      output: input.validate(sceneJsonExpectedFixture),
       metadata: buildMetadata<T>(),
     };
   };
@@ -199,7 +201,56 @@ void test("buildSceneJson uses injected LLM generator and matches golden output"
     generateStructuredData,
   });
 
-  assert.deepEqual(JSON.parse(JSON.stringify(result)), sceneJsonExpected);
+  assert.deepEqual(
+    JSON.parse(JSON.stringify(result)),
+    sceneJsonExpectedFixture,
+  );
+});
+
+void test("buildSceneJson auto-fills default scene start transitions when absent", async () => {
+  const generateStructuredData: GenerateStructuredData = async <T>(
+    input: GenerateStructuredDataInput<T>,
+  ) => {
+    return {
+      output: input.validate({
+        videoTitle: "Transition Story",
+        language: "en",
+        scenes: [
+          {
+            sceneId: 1,
+            durationSec: 6,
+            narration: "A calm opening begins the story.",
+            imagePrompt: "quiet alley at dawn, cinematic still frame",
+            subtitle: "A calm opening begins the story.",
+          },
+          {
+            sceneId: 2,
+            durationSec: 6,
+            narration: "The scene turns darker as tension rises.",
+            imagePrompt: "dark alley, storm clouds, cinematic",
+            videoPrompt: "slow pan across a dark alley in the rain",
+            subtitle: "The scene turns darker as tension rises.",
+          },
+        ],
+      }),
+      metadata: buildMetadata<T>(),
+    };
+  };
+
+  const result = await buildSceneJson(
+    {
+      ...(sceneJsonInput as JobPlanResult),
+      titleIdea: "Transition Story",
+    },
+    {
+      generateStructuredData,
+    },
+  );
+
+  assert.deepEqual(
+    result.scenes.map((scene) => scene.startTransition),
+    [{ type: "cut" }, { type: "fadeblack", durationSec: 0.55 }],
+  );
 });
 
 void test("buildSceneJson forwards preset scene prompt override", async () => {
@@ -214,7 +265,7 @@ void test("buildSceneJson forwards preset scene prompt override", async () => {
     });
 
     return {
-      output: input.validate(sceneJsonExpected),
+      output: input.validate(sceneJsonExpectedFixture),
       metadata: buildMetadata<T>(),
     };
   };
@@ -235,7 +286,7 @@ void test("sceneJson contract flows through asset usecases and render-plan build
   const imageAssets = await generateSceneImages(
     {
       jobId: sceneJsonInput.jobId,
-      scenes: sceneJsonExpected.scenes.map((scene) => ({
+      scenes: sceneJsonExpectedFixture.scenes.map((scene) => ({
         sceneId: scene.sceneId,
         imagePrompt: scene.imagePrompt,
       })),
@@ -255,7 +306,7 @@ void test("sceneJson contract flows through asset usecases and render-plan build
   const videoAssets = await generateSceneVideos(
     {
       jobId: sceneJsonInput.jobId,
-      scenes: sceneJsonExpected.scenes
+      scenes: sceneJsonExpectedFixture.scenes
         .filter((scene) => scene.videoPrompt)
         .map((scene) => ({
           sceneId: scene.sceneId,
@@ -277,7 +328,7 @@ void test("sceneJson contract flows through asset usecases and render-plan build
   const voiceAssets = await generateSceneVoices(
     {
       jobId: sceneJsonInput.jobId,
-      scenes: sceneJsonExpected.scenes.map((scene) => ({
+      scenes: sceneJsonExpectedFixture.scenes.map((scene) => ({
         sceneId: scene.sceneId,
         narration: scene.narration,
         durationSec: scene.durationSec,
@@ -297,18 +348,24 @@ void test("sceneJson contract flows through asset usecases and render-plan build
 
   const renderPlan = buildRenderPlanScenes({
     jobId: sceneJsonInput.jobId,
-    sceneJson: sceneJsonExpected,
+    sceneJson: sceneJsonExpectedFixture,
     imageAssets: imageAssets as Array<{ sceneId: number; imageS3Key: string }>,
     voiceAssets: voiceAssets as Array<{ sceneId: number; voiceS3Key: string }>,
   });
 
-  assert.equal(imageAssets.length, sceneJsonExpected.scenes.length);
+  assert.equal(imageAssets.length, sceneJsonExpectedFixture.scenes.length);
   assert.equal(videoAssets.length, 3);
-  assert.equal(voiceAssets.length, sceneJsonExpected.scenes.length);
-  assert.equal(renderPlan.scenes.length, sceneJsonExpected.scenes.length);
-  const expectedTotalDurationSec = sceneJsonExpected.scenes.reduce(
+  assert.equal(voiceAssets.length, sceneJsonExpectedFixture.scenes.length);
+  assert.equal(
+    renderPlan.scenes.length,
+    sceneJsonExpectedFixture.scenes.length,
+  );
+  assert.equal(renderPlan.scenes[0]?.startTransition?.type, "cut");
+  assert.equal(renderPlan.scenes[1]?.startTransition?.type, "fadeblack");
+  const expectedTotalDurationSec = sceneJsonExpectedFixture.scenes.reduce(
     (sum, scene, index) => {
-      const gapAfterSec = index < sceneJsonExpected.scenes.length - 1 ? 0.5 : 0;
+      const gapAfterSec =
+        index < sceneJsonExpectedFixture.scenes.length - 1 ? 0.5 : 0;
       return (
         sum +
         Math.max(
@@ -359,6 +416,10 @@ void test("smoke dataset scenarios remain compatible with scene generation contr
       result.scenes.every((scene) => scene.subtitle === scene.narration),
     );
     assert.ok(result.scenes.every((scene) => scene.imagePrompt.length > 0));
+    assert.equal(result.scenes[0]?.startTransition?.type, "cut");
+    assert.ok(
+      result.scenes.slice(1).every((scene) => scene.startTransition?.type),
+    );
   }
 });
 

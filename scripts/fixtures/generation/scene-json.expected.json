@@ -10,7 +10,10 @@
       "videoPrompt": "slow push toward a moonlit Joseon watchtower, drifting night fog, cinematic",
       "subtitle": "After midnight, the outer wall sounded louder than the city itself.",
       "bgmMood": "dark_ambient",
-      "sfx": ["night_wind"]
+      "sfx": ["night_wind"],
+      "startTransition": {
+        "type": "cut"
+      }
     },
     {
       "sceneId": 2,
@@ -20,7 +23,11 @@
       "videoPrompt": "gentle pan across a lantern-lit watchtower with a guard scanning the darkness",
       "subtitle": "Guards listened for footsteps, bells, and anything that moved against the dark.",
       "bgmMood": "dark_ambient",
-      "sfx": ["distant_bell", "soft_steps"]
+      "sfx": ["distant_bell", "soft_steps"],
+      "startTransition": {
+        "type": "fadeblack",
+        "durationSec": 0.55
+      }
     },
     {
       "sceneId": 3,
@@ -30,7 +37,11 @@
       "videoPrompt": "slow dolly along a silent fortress wall before dawn, subtle lantern flicker",
       "subtitle": "That silence was not empty. It was the sound of waiting for trouble first.",
       "bgmMood": "dark_ambient",
-      "sfx": ["low_rumble"]
+      "sfx": ["low_rumble"],
+      "startTransition": {
+        "type": "fadeblack",
+        "durationSec": 0.55
+      }
     }
   ]
 }
