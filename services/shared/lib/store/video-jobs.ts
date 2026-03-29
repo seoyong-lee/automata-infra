@@ -205,6 +205,19 @@ export type SceneVoiceCandidateItem = {
   createdAt: string;
 };
 
+export type RenderArtifactItem = {
+  PK: string;
+  SK: string;
+  finalVideoS3Key?: string;
+  thumbnailS3Key?: string;
+  previewS3Key?: string;
+  renderPlanS3Key?: string;
+  subtitleAssS3Key?: string;
+  provider?: string;
+  providerRenderId?: string | null;
+  createdAt: string;
+};
+
 const encodeNextToken = (key?: Record<string, unknown>): string | null => {
   if (!key) {
     return null;
@@ -538,6 +551,36 @@ export const putRenderArtifact = async (
     PK: jobPk(jobId),
     SK: "ARTIFACT#FINAL",
     ...item,
+  });
+};
+
+export const putFinalRenderArtifact = async (
+  jobId: string,
+  item: Omit<RenderArtifactItem, "PK" | "SK">,
+): Promise<void> => {
+  await putItem({
+    PK: jobPk(jobId),
+    SK: `ARTIFACT#FINAL#${item.createdAt}`,
+    ...item,
+  });
+};
+
+export const listFinalRenderArtifacts = async (
+  jobId: string,
+): Promise<RenderArtifactItem[]> => {
+  const items = await queryItems<RenderArtifactItem>({
+    keyConditionExpression: "PK = :pk AND begins_with(SK, :artifactPrefix)",
+    expressionAttributeValues: {
+      ":pk": jobPk(jobId),
+      ":artifactPrefix": "ARTIFACT#FINAL#",
+    },
+    scanIndexForward: false,
+    limit: 50,
+  });
+  return items.sort((left, right) => {
+    const a = new Date(right.createdAt).getTime();
+    const b = new Date(left.createdAt).getTime();
+    return a - b;
   });
 };
 

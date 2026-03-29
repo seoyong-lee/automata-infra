@@ -5,6 +5,7 @@ import {
   getStoredJobPlan,
   getStoredSceneJson,
   listStoredBackgroundMusicAssets,
+  listStoredFinalRenderArtifacts,
   listStoredSceneAssets,
 } from "../../../shared/repo/job-draft-store";
 import { mapJobDraftDetail } from "../../../shared/mapper/map-job-draft-detail";
@@ -18,6 +19,7 @@ export const getJobDraft = async (jobId: string) => {
     sceneJson,
     assets,
     backgroundMusicOptions,
+    renderArtifacts,
   ] = await Promise.all([
     getStoredContentBrief(job),
     getStoredJobBrief(job),
@@ -25,6 +27,7 @@ export const getJobDraft = async (jobId: string) => {
     getStoredSceneJson(job),
     listStoredSceneAssets(jobId),
     listStoredBackgroundMusicAssets(jobId),
+    listStoredFinalRenderArtifacts(jobId),
   ]);
 
   return mapJobDraftDetail({
@@ -35,6 +38,7 @@ export const getJobDraft = async (jobId: string) => {
     sceneJson,
     assets,
     backgroundMusicOptions,
+    renderArtifacts,
     assetMenuModel:
       jobBrief?.resolvedPolicy?.assetMenu ??
       contentBrief?.resolvedPolicy?.assetMenu,

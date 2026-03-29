@@ -137,6 +137,17 @@ export type AdminJobDto = {
   backgroundMusicS3Key?: string;
 };
 
+export type RenderArtifactDto = {
+  finalVideoS3Key?: string;
+  thumbnailS3Key?: string;
+  previewS3Key?: string;
+  renderPlanS3Key?: string;
+  subtitleAssS3Key?: string;
+  provider?: string;
+  providerRenderId?: string | null;
+  createdAt: string;
+};
+
 export type ConnectionDto<T> = {
   items: T[];
   nextToken: string | null;
@@ -394,6 +405,7 @@ export type JobDraftDetailDto = {
   assets: SceneAssetDto[];
   backgroundMusicOptions: BackgroundMusicAssetDto[];
   assetMenuModel?: AssetMenuModel;
+  renderArtifacts: RenderArtifactDto[];
 };
 
 export type ContentPresetDto = ContentPreset;

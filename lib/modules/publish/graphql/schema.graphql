@@ -403,6 +403,18 @@ type JobDraftDetail {
   assets: [SceneAsset!]!
   backgroundMusicOptions: [BackgroundMusicAsset!]!
   assetMenuModel: AssetMenuModel
+  renderArtifacts: [RenderArtifact!]!
+}
+
+type RenderArtifact {
+  finalVideoS3Key: String
+  thumbnailS3Key: String
+  previewS3Key: String
+  renderPlanS3Key: String
+  subtitleAssS3Key: String
+  provider: String
+  providerRenderId: String
+  createdAt: AWSDateTime!
 }
 
 type BackgroundMusicAsset {

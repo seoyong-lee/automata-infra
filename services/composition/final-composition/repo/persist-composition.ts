@@ -4,6 +4,7 @@ import {
   fetchWithRetry,
 } from "../../../shared/lib/providers/http/retry";
 import {
+  putFinalRenderArtifact,
   putRenderArtifact,
   updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
@@ -100,6 +101,7 @@ export const persistComposition = async (
   composition: CompositionResult,
 ): Promise<void> => {
   await storeRenderedArtifacts(jobId, composition);
+  const createdAt = new Date().toISOString();
 
   await putRenderArtifact(jobId, {
     finalVideoS3Key: composition.finalVideoS3Key,
@@ -107,7 +109,15 @@ export const persistComposition = async (
     previewS3Key: composition.previewS3Key,
     provider: composition.provider,
     providerRenderId: composition.providerRenderId ?? null,
-    createdAt: new Date().toISOString(),
+    createdAt,
+  });
+  await putFinalRenderArtifact(jobId, {
+    finalVideoS3Key: composition.finalVideoS3Key,
+    thumbnailS3Key: composition.thumbnailS3Key,
+    previewS3Key: composition.previewS3Key,
+    provider: composition.provider,
+    providerRenderId: composition.providerRenderId ?? null,
+    createdAt,
   });
 
   await updateJobMeta(

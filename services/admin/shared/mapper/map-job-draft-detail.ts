@@ -19,6 +19,7 @@ export const mapJobDraftDetail = (input: {
   assets: SceneAssetDto[];
   backgroundMusicOptions: BackgroundMusicAssetDto[];
   assetMenuModel?: AssetMenuModelDto;
+  renderArtifacts: JobDraftDetailDto["renderArtifacts"];
 }): JobDraftDetailDto => {
   return {
     job: mapJobMetaToAdminJob(input.job),
@@ -29,5 +30,6 @@ export const mapJobDraftDetail = (input: {
     assets: input.assets,
     backgroundMusicOptions: input.backgroundMusicOptions,
     assetMenuModel: input.assetMenuModel,
+    renderArtifacts: input.renderArtifacts,
   };
 };

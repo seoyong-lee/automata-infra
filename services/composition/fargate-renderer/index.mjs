@@ -870,11 +870,12 @@ async function createPreview(finalVideoPath, renderPlan, previewPath) {
 }
 
 async function createThumbnail(finalVideoPath, renderPlan, thumbnailPath) {
-  const midpoint = Math.max(0.1, Number(renderPlan.totalDurationSec ?? 1) / 2);
+  const totalDurationSec = Math.max(0.1, Number(renderPlan.totalDurationSec ?? 1));
+  const thumbnailSec = Math.max(0.1, Math.min(3, totalDurationSec - 0.1));
   await runCommand("ffmpeg", [
     "-y",
     "-ss",
-    String(midpoint),
+    String(thumbnailSec),
     "-i",
     finalVideoPath,
     "-frames:v",
@@ -998,10 +999,11 @@ async function main() {
   );
   await createPreview(finalVideoPath, renderPlan, previewPath);
   await createThumbnail(finalVideoPath, renderPlan, thumbnailPath);
+  const renderId = new Date().toISOString().replaceAll(":", "-").replaceAll(".", "-");
   const result = {
-    finalVideoS3Key: `rendered/${jobId}/final.mp4`,
-    previewS3Key: `previews/${jobId}/preview.mp4`,
-    thumbnailS3Key: `rendered/${jobId}/thumbnail.jpg`,
+    finalVideoS3Key: `rendered/${jobId}/history/${renderId}/final.mp4`,
+    previewS3Key: `previews/${jobId}/history/${renderId}/preview.mp4`,
+    thumbnailS3Key: `rendered/${jobId}/history/${renderId}/thumbnail.jpg`,
     provider: "fargate-ffmpeg",
     artifactsStored: true,
     renderedAt: new Date().toISOString(),
