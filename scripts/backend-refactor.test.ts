@@ -110,6 +110,10 @@ void test("parseUpdateSceneJsonArgs accepts stringified sceneJson payloads", () 
             narration: "narration",
             imagePrompt: "image prompt",
             subtitle: "subtitle",
+            startTransition: {
+              type: "fade",
+              durationSec: 0.4,
+            },
           },
         ],
       }),
@@ -119,6 +123,7 @@ void test("parseUpdateSceneJsonArgs accepts stringified sceneJson payloads", () 
   assert.equal(parsed.jobId, "job_123");
   assert.equal(parsed.sceneJson.scenes[0]?.sceneId, 1);
   assert.equal(parsed.sceneJson.scenes[0]?.subtitle, "narration");
+  assert.equal(parsed.sceneJson.scenes[0]?.startTransition?.type, "fade");
 });
 
 void test("parseUpdateSceneJsonArgs rejects duplicate scene ids", () => {

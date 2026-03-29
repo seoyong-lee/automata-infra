@@ -47,6 +47,31 @@ const subtitleOffsetScalarSchema = z.number().min(-1).max(1);
 const videoCropModeSchema = z.enum(["contain", "cover", "smart-crop"]);
 const normalizedFrameScalarSchema = z.number().min(0).max(1);
 const normalizedOverlayWidthSchema = z.number().min(0.2).max(1);
+export const sceneStartTransitionTypeSchema = z.enum([
+  "cut",
+  "fade",
+  "dissolve",
+  "fadeblack",
+  "fadewhite",
+  "wipeleft",
+  "wiperight",
+  "wipeup",
+  "wipedown",
+  "slideleft",
+  "slideright",
+  "slideup",
+  "slidedown",
+  "smoothleft",
+  "smoothright",
+  "smoothup",
+  "smoothdown",
+]);
+export const sceneStartTransitionSchema = z
+  .object({
+    type: sceneStartTransitionTypeSchema,
+    durationSec: z.number().positive().max(1.5).optional(),
+  })
+  .strict();
 const jobRenderTextOverlaySchema = z
   .object({
     overlayId: nonEmpty,
@@ -141,6 +166,10 @@ export type AttachJobToContentInput = z.infer<
   typeof attachJobToContentInputSchema
 >;
 export type JobRenderTextOverlay = z.infer<typeof jobRenderTextOverlaySchema>;
+export type SceneStartTransitionType = z.infer<
+  typeof sceneStartTransitionTypeSchema
+>;
+export type SceneStartTransition = z.infer<typeof sceneStartTransitionSchema>;
 
 /** 콘텐츠 = 채널 단일 단위 (유튜브 게시 설정은 동일 레코드에 저장). 식별자는 contentId만 사용. */
 export const createContentInputSchema = z
@@ -186,6 +215,7 @@ export const sceneDefinitionSchema = z
     subtitle: nonEmpty,
     bgmMood: z.string().optional(),
     sfx: z.array(nonEmpty).optional(),
+    startTransition: sceneStartTransitionSchema.optional(),
   })
   .transform((scene) => alignSceneNarrationAndSubtitle(scene));
 

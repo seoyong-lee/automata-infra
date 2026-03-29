@@ -149,6 +149,7 @@ const buildRenderPlanScene = (input: {
     }),
     bgmMood: input.scene.bgmMood,
     sfx: input.scene.sfx,
+    startTransition: input.scene.startTransition,
   };
 };
 

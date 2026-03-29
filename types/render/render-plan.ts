@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sceneStartTransitionSchema } from "../../services/shared/lib/contracts/canonical-io-schemas";
 
 const normalizedScalarSchema = z.number().finite();
 const normalizedSizeSchema = z.number().positive().max(1);
@@ -73,6 +74,7 @@ export const renderPlanSceneSchema = z.object({
   subtitleSegments: z.array(renderPlanSubtitleSegmentSchema).optional(),
   bgmMood: z.string().trim().min(1).optional(),
   sfx: z.array(z.string()).optional(),
+  startTransition: sceneStartTransitionSchema.optional(),
 });
 
 export const renderPlanOverlayPlacementSchema = z.object({

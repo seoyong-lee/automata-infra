@@ -306,6 +306,11 @@ type RenderTextOverlay {
   color: String
 }
 
+type SceneStartTransition {
+  type: String!
+  durationSec: Float
+}
+
 type SceneJsonScene {
   sceneId: Int!
   durationSec: Int!
@@ -316,6 +321,7 @@ type SceneJsonScene {
   subtitle: String!
   bgmMood: String
   sfx: [String!]
+  startTransition: SceneStartTransition
 }
 
 type SceneJsonPayload {

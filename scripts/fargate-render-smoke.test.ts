@@ -1,3 +1,6 @@
+/* eslint-disable @typescript-eslint/triple-slash-reference */
+/// <reference path="../types/fargate-renderer-finalize-render-output.d.ts" />
+
 import assert from "node:assert/strict";
 import test from "node:test";
 import {
@@ -26,6 +29,10 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
           durationSec: 5,
           narration: "두 번째 나레이션",
           subtitle: "두 번째 자막",
+          startTransition: {
+            type: "fadeblack" as const,
+            durationSec: 0.6,
+          },
         },
       ],
     },
@@ -84,6 +91,8 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
   assert.equal(renderPlan.scenes[0]?.durationSec, 6.2);
   assert.equal(renderPlan.scenes[0]?.gapAfterSec, 0.5);
   assert.equal(renderPlan.scenes[1]?.startSec, 6.7);
+  assert.equal(renderPlan.scenes[1]?.startTransition?.type, "fadeblack");
+  assert.equal(renderPlan.scenes[1]?.startTransition?.durationSec, 0.6);
   assert.equal(renderPlan.overlays.length, 1);
   assert.equal(renderPlan.overlays[0]?.type, "image");
   assert.equal(renderPlan.outputKey, "render-plans/job_test/render-plan.json");
@@ -338,4 +347,42 @@ void test("subtitle ass wraps long subtitle and title overlay text", () => {
   assert.match(ass, /강아지가 사람과 함께\\\\N살기 시작했던 이유/);
   assert.match(ass, /줄바꿈되어야 합니다/);
   assert.match(ass, /\\an5/);
+});
+
+void test("scene transition graph chains per-scene start transitions", async () => {
+  const { buildSceneTransitionGraph } =
+    await import("../services/composition/fargate-renderer/usecase/finalize-render-output.mjs");
+
+  const graph = buildSceneTransitionGraph([
+    {
+      segmentPath: "/tmp/scene-1.mp4",
+      durationSec: 4,
+      scene: { sceneId: 1 },
+    },
+    {
+      segmentPath: "/tmp/scene-2.mp4",
+      durationSec: 5,
+      scene: {
+        sceneId: 2,
+        startTransition: {
+          type: "fadeblack",
+          durationSec: 0.5,
+        },
+      },
+    },
+    {
+      segmentPath: "/tmp/scene-3.mp4",
+      durationSec: 4,
+      scene: {
+        sceneId: 3,
+      },
+    },
+  ]);
+
+  assert.ok(graph);
+  assert.match(graph.filterComplex, /xfade=transition=fadeblack/);
+  assert.match(graph.filterComplex, /xfade=transition=fade:duration=0\.001/);
+  assert.match(graph.filterComplex, /acrossfade=d=0\.500/);
+  assert.equal(graph.videoLabel, "[vout]");
+  assert.equal(graph.audioLabel, "[aout]");
 });

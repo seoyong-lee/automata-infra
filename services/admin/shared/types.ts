@@ -4,7 +4,10 @@ import type {
   PresetSnapshot,
   ResolvedPolicy,
 } from "../../shared/lib/contracts/content-presets";
-import type { JobRenderSettings } from "../../shared/lib/contracts/canonical-io-schemas";
+import type {
+  JobRenderSettings,
+  SceneStartTransition,
+} from "../../shared/lib/contracts/canonical-io-schemas";
 
 export type GraphqlResolverEvent<TArgs> = {
   arguments: TArgs;
@@ -291,6 +294,7 @@ export type SceneJsonSceneDto = {
   subtitle: string;
   bgmMood?: string;
   sfx?: string[];
+  startTransition?: SceneStartTransition;
 };
 
 export type SceneJsonDto = {

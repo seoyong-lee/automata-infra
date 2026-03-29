@@ -5,7 +5,10 @@ import type {
   RenderPlanOverlay,
   RenderPlanScene,
 } from "../../../types/render/render-plan";
-import type { JobRenderSettings } from "../../shared/lib/contracts/canonical-io-schemas";
+import type {
+  JobRenderSettings,
+  SceneStartTransition,
+} from "../../shared/lib/contracts/canonical-io-schemas";
 import type { ResolvedPolicy } from "../../shared/lib/contracts/content-presets";
 
 export type RenderPlanEvent = {
@@ -21,6 +24,7 @@ export type RenderPlanEvent = {
       subtitle: string;
       bgmMood?: string;
       sfx?: string[];
+      startTransition?: SceneStartTransition;
     }>;
   };
   imageAssets?: Array<{

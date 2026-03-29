@@ -13,6 +13,7 @@ const mapScene = (scene: SceneJson["scenes"][number]): SceneJsonSceneDto => {
     subtitle: scene.subtitle,
     bgmMood: scene.bgmMood,
     sfx: scene.sfx,
+    startTransition: scene.startTransition,
   };
 };
 

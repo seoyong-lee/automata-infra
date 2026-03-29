@@ -375,9 +375,10 @@ export async function runRenderTask(input) {
   const mediaFrameSettings = resolveMediaFrameSettings(renderPlan);
   const subtitleSettings = resolveSubtitleSettings(renderPlan);
   const workDir = await fs.mkdtemp(path.join(tmpdir(), `render-${jobId}-`));
-  const segmentPaths = [];
+  const segmentInputs = [];
 
   for (const scene of renderPlan.scenes ?? []) {
+    const durationSec = sceneDuration(scene);
     const segmentPath = await createSceneSegment({
       jobId,
       scene,
@@ -390,10 +391,14 @@ export async function runRenderTask(input) {
       storageRepo,
       mediaToolsRepo,
     });
-    segmentPaths.push(segmentPath);
+    segmentInputs.push({
+      scene,
+      segmentPath,
+      durationSec,
+    });
   }
 
-  if (!segmentPaths.length) {
+  if (!segmentInputs.length) {
     throw new Error("Render plan has no scenes to compose");
   }
 
@@ -402,7 +407,7 @@ export async function runRenderTask(input) {
   const previewPath = path.join(workDir, "preview.mp4");
   const thumbnailPath = path.join(workDir, "thumbnail.jpg");
 
-  await concatSegments(segmentPaths, workDir, concatenatedPath, mediaToolsRepo);
+  await concatSegments(segmentInputs, workDir, concatenatedPath, mediaToolsRepo);
   const soundtrackPath = await maybeDownloadSoundtrack(
     renderPlan,
     workDir,
