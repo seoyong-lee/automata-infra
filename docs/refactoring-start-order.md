@@ -143,6 +143,23 @@
 - 선행 조건:
   - Track A 1차 절개 완료
 
+### Track C. Remaining Large Multifunction Files 정리
+
+- 범위:
+  - `services/shared/lib/aws/runtime.ts`
+  - `services/shared/lib/store/video-jobs.ts`
+  - `services/shared/lib/providers/media/byteplus-video.ts`
+  - `services/plan/usecase/create-job-plan.ts`
+- 현재 상태:
+  - 완료: `runtime.ts`를 env/secrets/ddb/s3/sqs/sfn re-export barrel로 분리
+  - 완료: `video-jobs.ts`를 shared/meta/content/scene/artifact 단위 store 모듈로 분리
+  - 완료: `byteplus-video.ts`를 config/response/task/persist helper로 분리하고 entry orchestration만 유지
+  - 완료: `create-job-plan.ts`를 types/context/seed/result 조립 구조로 분리
+- 유지 규칙:
+  - 외부 import 경로와 기존 response contract는 유지
+  - barrel 파일은 재-export만 담당하고 세부 로직은 하위 모듈에 둔다
+  - provider/usecase entry는 orchestration만 남기고 세부 계산/저장/검증은 helper로 이동한다
+
 ---
 
 ## 리뷰 체크
