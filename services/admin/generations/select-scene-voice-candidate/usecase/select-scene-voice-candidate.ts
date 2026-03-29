@@ -4,6 +4,7 @@ import {
 } from "../../../../shared/lib/store/video-jobs";
 import { notFound } from "../../../shared/errors";
 import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
+import { mapSelectedVoiceCandidatePatch } from "../mapper/map-selected-voice-candidate-patch";
 
 export const selectSceneVoiceCandidateUsecase = async (input: {
   jobId: string;
@@ -20,14 +21,7 @@ export const selectSceneVoiceCandidateUsecase = async (input: {
   }
 
   await upsertSceneAsset(input.jobId, input.sceneId, {
-    voiceS3Key: candidate.voiceS3Key,
-    voiceProvider: candidate.provider,
-    voiceProviderLogS3Key: candidate.providerLogS3Key,
-    voiceMocked: candidate.mocked,
-    voiceDurationSec: candidate.voiceDurationSec,
-    voiceProfileId: candidate.voiceProfileId,
-    voiceSelectedCandidateId: candidate.candidateId,
-    voiceSelectedAt: candidate.createdAt,
+    ...mapSelectedVoiceCandidatePatch(candidate),
   });
 
   return getJobDraftView(input.jobId);

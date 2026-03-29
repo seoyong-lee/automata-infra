@@ -1,58 +1,11 @@
 import {
   getSceneVideoCandidate,
-  putSceneVideoCandidate,
   upsertSceneAsset,
 } from "../../../../shared/lib/store/video-jobs";
-import { materializeRemoteVideoAsset } from "../../../../shared/lib/providers/media";
 import { notFound } from "../../../shared/errors";
 import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
-
-const resolveSelectedVideoS3Key = async (input: {
-  jobId: string;
-  sceneId: number;
-  candidate: Awaited<ReturnType<typeof getSceneVideoCandidate>>;
-}): Promise<string> => {
-  const candidate = input.candidate;
-  if (!candidate) {
-    throw notFound("video candidate not found");
-  }
-  if (
-    typeof candidate.videoClipS3Key === "string" &&
-    candidate.videoClipS3Key.length > 0
-  ) {
-    return candidate.videoClipS3Key;
-  }
-  if (!candidate.sourceUrl) {
-    throw new Error("video candidate source url not found");
-  }
-  const videoClipS3Key = await materializeRemoteVideoAsset({
-    jobId: input.jobId,
-    sceneId: input.sceneId,
-    candidateId: candidate.candidateId,
-    sourceUrl: candidate.sourceUrl,
-  });
-  await putSceneVideoCandidate(
-    input.jobId,
-    input.sceneId,
-    candidate.candidateId,
-    {
-      videoClipS3Key,
-      createdAt: candidate.createdAt,
-      provider: candidate.provider,
-      providerLogS3Key: candidate.providerLogS3Key,
-      promptHash: candidate.promptHash,
-      mocked: candidate.mocked,
-      sourceUrl: candidate.sourceUrl,
-      thumbnailUrl: candidate.thumbnailUrl,
-      authorName: candidate.authorName,
-      sourceAssetId: candidate.sourceAssetId,
-      width: candidate.width,
-      height: candidate.height,
-      durationSec: candidate.durationSec,
-    },
-  );
-  return videoClipS3Key;
-};
+import { mapSelectedVideoCandidatePatch } from "../mapper/map-selected-video-candidate-patch";
+import { resolveSelectedVideoS3Key } from "../repo/resolve-selected-video-s3-key";
 
 export const selectSceneVideoCandidateUsecase = async (input: {
   jobId: string;
@@ -74,16 +27,7 @@ export const selectSceneVideoCandidateUsecase = async (input: {
   });
 
   await upsertSceneAsset(input.jobId, input.sceneId, {
-    videoClipS3Key,
-    videoProvider: candidate.provider,
-    videoProviderLogS3Key: candidate.providerLogS3Key,
-    videoPromptHash: candidate.promptHash,
-    videoMocked: candidate.mocked,
-    videoSelectedCandidateId: candidate.candidateId,
-    videoSelectedAt: candidate.createdAt,
-    ...(typeof candidate.durationSec === "number"
-      ? { videoResolvedDurationSec: candidate.durationSec }
-      : {}),
+    ...mapSelectedVideoCandidatePatch(candidate, videoClipS3Key),
   });
 
   return getJobDraftView(input.jobId);
