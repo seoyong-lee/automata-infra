@@ -5,32 +5,23 @@ import {
 } from "../../../shared/lib/aws/runtime";
 import {
   type JobMetaItem,
-  listFinalRenderArtifacts,
+  type RenderArtifactItem,
   type SceneAssetItem,
+  type SceneImageCandidateItem,
+  type SceneVideoCandidateItem,
+  type SceneVoiceCandidateItem,
   getJobMeta,
+  listFinalRenderArtifacts,
   listSceneImageCandidates,
   listSceneAssets,
   listSceneVideoCandidates,
   listSceneVoiceCandidates,
   updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
-import {
-  alignSceneJsonNarrationAndSubtitle,
-  alignSceneNarrationAndSubtitle,
-} from "../../../shared/lib/scene-text";
-import {
-  mapSceneAssetDraft,
-  mapSceneImageCandidateDraft,
-  mapSceneVideoCandidateDraft,
-  mapSceneVoiceCandidateDraft,
-} from "../mapper/map-scene-asset-draft";
 import type {
   BackgroundMusicAssetDto,
   ContentBriefDto,
   JobBriefDto,
-  RenderArtifactDto,
-  SceneJsonDto,
-  SceneJsonSceneDto,
 } from "../types";
 import type { SceneJson } from "../../../../types/render/scene-json";
 
@@ -46,28 +37,11 @@ export const buildJobPlanKey = (jobId: string): string => {
   return `plans/${jobId}/job-plan.json`;
 };
 
-const mapScene = (scene: SceneJson["scenes"][number]): SceneJsonSceneDto => {
-  const alignedScene = alignSceneNarrationAndSubtitle(scene);
-  return {
-    sceneId: alignedScene.sceneId,
-    durationSec: alignedScene.durationSec,
-    narration: alignedScene.narration,
-    disableNarration: alignedScene.disableNarration,
-    imagePrompt: alignedScene.imagePrompt,
-    videoPrompt: alignedScene.videoPrompt,
-    subtitle: alignedScene.subtitle,
-    bgmMood: alignedScene.bgmMood,
-    sfx: alignedScene.sfx,
-  };
-};
-
-const mapSceneJson = (sceneJson: SceneJson): SceneJsonDto => {
-  const alignedSceneJson = alignSceneJsonNarrationAndSubtitle(sceneJson);
-  return {
-    videoTitle: alignedSceneJson.videoTitle,
-    language: alignedSceneJson.language,
-    scenes: alignedSceneJson.scenes.map(mapScene),
-  };
+export type StoredSceneAssetRecord = {
+  asset: SceneAssetItem;
+  imageCandidates: SceneImageCandidateItem[];
+  videoCandidates: SceneVideoCandidateItem[];
+  voiceCandidates: SceneVoiceCandidateItem[];
 };
 
 export const getStoredJobBrief = async (
@@ -100,64 +74,28 @@ export const getStoredJobPlan = async (
   return (await getJsonFromS3<JobBriefDto>(key)) ?? undefined;
 };
 
-export const getStoredSceneJson = async (
+export const getStoredSceneJsonRaw = async (
   job: JobMetaItem,
-): Promise<SceneJsonDto | undefined> => {
+): Promise<SceneJson | undefined> => {
   const key = job.sceneJsonS3Key;
   if (!key) {
     return undefined;
   }
-  const payload = await getJsonFromS3<SceneJson>(key);
-  return payload ? mapSceneJson(payload) : undefined;
+  return (await getJsonFromS3<SceneJson>(key)) ?? undefined;
 };
 
-export const listStoredSceneAssets = async (jobId: string) => {
+export const listStoredSceneAssetRecords = async (
+  jobId: string,
+): Promise<StoredSceneAssetRecord[]> => {
   const assets = await listSceneAssets(jobId);
-  return Promise.all(assets.map((asset) => mapStoredSceneAsset(jobId, asset)));
-};
-
-const mapStoredSceneAsset = async (jobId: string, asset: SceneAssetItem) => {
-  const [imageCandidates, videoCandidates, voiceCandidates] = await Promise.all(
-    [
-      listSceneImageCandidates(jobId, asset.sceneId),
-      listSceneVideoCandidates(jobId, asset.sceneId),
-      listSceneVoiceCandidates(jobId, asset.sceneId),
-    ],
+  return Promise.all(
+    assets.map(async (asset) => ({
+      asset,
+      imageCandidates: await listSceneImageCandidates(jobId, asset.sceneId),
+      videoCandidates: await listSceneVideoCandidates(jobId, asset.sceneId),
+      voiceCandidates: await listSceneVoiceCandidates(jobId, asset.sceneId),
+    })),
   );
-  const selectedImageCandidateId =
-    typeof asset.imageSelectedCandidateId === "string"
-      ? asset.imageSelectedCandidateId
-      : undefined;
-  const selectedVideoCandidateId =
-    typeof asset.videoSelectedCandidateId === "string"
-      ? asset.videoSelectedCandidateId
-      : undefined;
-  const selectedVoiceCandidateId =
-    typeof asset.voiceSelectedCandidateId === "string"
-      ? asset.voiceSelectedCandidateId
-      : undefined;
-
-  return {
-    ...mapSceneAssetDraft(asset),
-    imageCandidates: imageCandidates.map((candidate) =>
-      mapSceneImageCandidateDraft(candidate, {
-        selectedCandidateId: selectedImageCandidateId,
-        sceneImageS3Key: asset.imageS3Key,
-      }),
-    ),
-    videoCandidates: videoCandidates.map((candidate) =>
-      mapSceneVideoCandidateDraft(candidate, {
-        selectedCandidateId: selectedVideoCandidateId,
-        sceneVideoClipS3Key: asset.videoClipS3Key,
-      }),
-    ),
-    voiceCandidates: voiceCandidates.map((candidate) =>
-      mapSceneVoiceCandidateDraft(candidate, {
-        selectedCandidateId: selectedVoiceCandidateId,
-        sceneVoiceS3Key: asset.voiceS3Key,
-      }),
-    ),
-  };
 };
 
 const BACKGROUND_MUSIC_PREFIX = (jobId: string) => `assets/${jobId}/bgm/`;
@@ -183,35 +121,10 @@ export const listStoredBackgroundMusicAssets = async (
     }));
 };
 
-export const listStoredFinalRenderArtifacts = async (
+export const listStoredFinalRenderArtifactItems = async (
   jobId: string,
-): Promise<RenderArtifactDto[]> => {
-  const items = await listFinalRenderArtifacts(jobId);
-  return items.map((item) => ({
-    finalVideoS3Key:
-      typeof item.finalVideoS3Key === "string"
-        ? item.finalVideoS3Key
-        : undefined,
-    thumbnailS3Key:
-      typeof item.thumbnailS3Key === "string" ? item.thumbnailS3Key : undefined,
-    previewS3Key:
-      typeof item.previewS3Key === "string" ? item.previewS3Key : undefined,
-    renderPlanS3Key:
-      typeof item.renderPlanS3Key === "string"
-        ? item.renderPlanS3Key
-        : undefined,
-    subtitleAssS3Key:
-      typeof item.subtitleAssS3Key === "string"
-        ? item.subtitleAssS3Key
-        : undefined,
-    provider: typeof item.provider === "string" ? item.provider : undefined,
-    providerRenderId:
-      typeof item.providerRenderId === "string" ||
-      item.providerRenderId === null
-        ? item.providerRenderId
-        : undefined,
-    createdAt: item.createdAt,
-  }));
+): Promise<RenderArtifactItem[]> => {
+  return listFinalRenderArtifacts(jobId);
 };
 
 export const saveJobBrief = async (input: {
