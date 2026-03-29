@@ -311,9 +311,17 @@ type SceneStartTransition {
   durationSec: Float
 }
 
+type SceneVisualNeed {
+  semanticType: String!
+  moodTags: [String!]!
+  visualTypePriority: [String!]!
+  motionHint: String
+  avoidTags: [String!]!
+}
+
 type SceneJsonScene {
   sceneId: Int!
-  durationSec: Int!
+  durationSec: Float!
   narration: String!
   disableNarration: Boolean
   imagePrompt: String!
@@ -321,6 +329,8 @@ type SceneJsonScene {
   subtitle: String!
   bgmMood: String
   sfx: [String!]
+  storyBeat: String
+  visualNeed: SceneVisualNeed
   startTransition: SceneStartTransition
 }
 
@@ -344,11 +354,13 @@ type SceneAsset {
   voiceSelectedCandidateId: String
   voiceProfileId: String
   voiceDurationSec: Float
-  durationSec: Int
+  durationSec: Float
   narration: String
   subtitle: String
   imagePrompt: String
   videoPrompt: String
+  storyBeat: String
+  visualNeed: SceneVisualNeed
   validationStatus: String
   imageCandidates: [SceneImageCandidate!]!
   videoCandidates: [SceneVideoCandidate!]!
@@ -358,6 +370,9 @@ type SceneAsset {
 type SceneImageCandidate {
   candidateId: ID!
   imageS3Key: String
+  candidateSource: String
+  assetPoolAssetId: String
+  matchScore: Float
   provider: String
   providerLogS3Key: String
   promptHash: String
@@ -366,6 +381,9 @@ type SceneImageCandidate {
   thumbnailUrl: String
   authorName: String
   sourceAssetId: String
+  licenseType: String
+  attributionRequired: Boolean
+  commercialUseAllowed: Boolean
   width: Int
   height: Int
   createdAt: AWSDateTime!
@@ -375,6 +393,9 @@ type SceneImageCandidate {
 type SceneVideoCandidate {
   candidateId: ID!
   videoClipS3Key: String
+  candidateSource: String
+  assetPoolAssetId: String
+  matchScore: Float
   provider: String
   providerLogS3Key: String
   promptHash: String
@@ -383,6 +404,9 @@ type SceneVideoCandidate {
   thumbnailUrl: String
   authorName: String
   sourceAssetId: String
+  licenseType: String
+  attributionRequired: Boolean
+  commercialUseAllowed: Boolean
   width: Int
   height: Int
   durationSec: Float

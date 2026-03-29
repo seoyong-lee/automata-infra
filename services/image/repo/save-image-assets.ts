@@ -3,6 +3,8 @@ import {
   upsertSceneAsset,
   updateJobMeta,
 } from "../../shared/lib/store/video-jobs";
+import { registerSceneAssetPoolItem } from "../../shared/lib/asset-pool-ingest";
+import type { SceneDefinition } from "../../../types/render/scene-json";
 import { mapGeneratedImageFields } from "../mapper/map-generated-image-fields";
 
 const asRecord = (asset: unknown): Record<string, unknown> =>
@@ -18,6 +20,7 @@ const persistImageCandidate = async (
   jobId: string,
   sceneId: number,
   typedAsset: Record<string, unknown>,
+  assetPoolAssetId?: string,
 ) => {
   const candidateId =
     typeof typedAsset.candidateId === "string"
@@ -37,6 +40,8 @@ const persistImageCandidate = async (
       typeof typedAsset.createdAt === "string"
         ? typedAsset.createdAt
         : new Date().toISOString(),
+    candidateSource: "ai",
+    assetPoolAssetId,
     provider:
       typeof typedAsset.provider === "string" ? typedAsset.provider : undefined,
     providerLogS3Key:
@@ -54,16 +59,59 @@ const persistImageCandidate = async (
 
 export const saveImageAssets = async (input: {
   jobId: string;
-  scenes: Array<{ sceneId: number }>;
+  scenes: Array<
+    Pick<SceneDefinition, "sceneId" | "imagePrompt"> & Partial<SceneDefinition>
+  >;
   imageAssets: unknown[];
   markStatus?: boolean;
 }): Promise<void> => {
   for (const [index, asset] of input.imageAssets.entries()) {
     const typedAsset = asRecord(asset);
-    const sceneId = resolveSceneId(typedAsset, input.scenes[index]?.sceneId);
+    const scene = input.scenes[index];
+    const sceneId = resolveSceneId(typedAsset, scene?.sceneId);
     if (typeof sceneId === "number") {
-      const patch = mapGeneratedImageFields(typedAsset, sceneId);
-      await persistImageCandidate(input.jobId, sceneId, typedAsset);
+      const imageS3Key =
+        typeof typedAsset.imageS3Key === "string"
+          ? typedAsset.imageS3Key
+          : undefined;
+      const assetPoolItem =
+        scene && imageS3Key
+          ? await registerSceneAssetPoolItem({
+              assetType: "image",
+              sourceType: "ai",
+              storageKey: imageS3Key,
+              scene,
+              provider:
+                typeof typedAsset.provider === "string"
+                  ? typedAsset.provider
+                  : undefined,
+              width:
+                typeof typedAsset.width === "number"
+                  ? typedAsset.width
+                  : undefined,
+              height:
+                typeof typedAsset.height === "number"
+                  ? typedAsset.height
+                  : undefined,
+              qualityScore: 0.62,
+              reusabilityScore: 0.58,
+            })
+          : undefined;
+      const patch = {
+        ...mapGeneratedImageFields(typedAsset, sceneId),
+        ...(assetPoolItem
+          ? {
+              imageAssetId: assetPoolItem.assetId,
+              imageSelectionSource: "ai",
+            }
+          : {}),
+      };
+      await persistImageCandidate(
+        input.jobId,
+        sceneId,
+        typedAsset,
+        assetPoolItem?.assetId,
+      );
       await upsertSceneAsset(input.jobId, sceneId, patch);
     }
   }

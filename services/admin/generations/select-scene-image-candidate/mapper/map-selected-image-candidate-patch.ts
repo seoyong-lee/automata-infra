@@ -6,11 +6,13 @@ export const mapSelectedImageCandidatePatch = (
 ) => {
   return {
     imageS3Key,
+    imageAssetId: candidate.assetPoolAssetId,
     imageProvider: candidate.provider,
     imageProviderLogS3Key: candidate.providerLogS3Key,
     imagePromptHash: candidate.promptHash,
     imageMocked: candidate.mocked,
     imageSelectedCandidateId: candidate.candidateId,
     imageSelectedAt: candidate.createdAt,
+    imageSelectionSource: candidate.candidateSource,
   };
 };

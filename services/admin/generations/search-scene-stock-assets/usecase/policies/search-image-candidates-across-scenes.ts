@@ -1,5 +1,6 @@
 import { upsertSceneAsset } from "../../../../../shared/lib/store/video-jobs";
 import { derivePexelsSearchQuery } from "../../../../../shared/lib/providers/media";
+import { buildSceneStockSearchPrompt } from "../../../../../shared/lib/scene-visual-needs";
 import { persistStockImageCandidates } from "../../repo/persist-stock-candidates";
 import { runWithConcurrency } from "./run-with-concurrency";
 import type { SceneDefinition } from "../../../../../../types/render/scene-json";
@@ -12,7 +13,8 @@ const searchImageCandidatesForScene = async (input: {
   secretId: string;
   searchStockImages: SearchStockImageFn;
 }): Promise<void> => {
-  const query = derivePexelsSearchQuery(input.scene.imagePrompt);
+  const prompt = buildSceneStockSearchPrompt(input.scene, "image");
+  const query = derivePexelsSearchQuery(prompt);
   if (!query) {
     await upsertSceneAsset(input.jobId, input.scene.sceneId, {
       stockImageSearchStatus: "UNSUITABLE_PROMPT",
@@ -24,7 +26,7 @@ const searchImageCandidatesForScene = async (input: {
   const assets = await input.searchStockImages({
     jobId: input.jobId,
     sceneId: input.scene.sceneId,
-    prompt: input.scene.imagePrompt,
+    prompt,
     query,
     language: input.language,
     secretId: input.secretId,

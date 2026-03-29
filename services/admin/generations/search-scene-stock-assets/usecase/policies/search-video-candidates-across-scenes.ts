@@ -1,5 +1,6 @@
 import { upsertSceneAsset } from "../../../../../shared/lib/store/video-jobs";
 import { derivePexelsSearchQuery } from "../../../../../shared/lib/providers/media";
+import { buildSceneStockSearchPrompt } from "../../../../../shared/lib/scene-visual-needs";
 import { persistStockVideoCandidates } from "../../repo/persist-stock-candidates";
 import { runWithConcurrency } from "./run-with-concurrency";
 import type { SceneDefinition } from "../../../../../../types/render/scene-json";
@@ -12,7 +13,7 @@ const searchVideoCandidatesForScene = async (input: {
   secretId: string;
   searchStockVideos: SearchStockVideoFn;
 }): Promise<void> => {
-  const prompt = input.scene.videoPrompt ?? "";
+  const prompt = buildSceneStockSearchPrompt(input.scene, "video");
   const query = derivePexelsSearchQuery(prompt);
   if (!query) {
     await upsertSceneAsset(input.jobId, input.scene.sceneId, {

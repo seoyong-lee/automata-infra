@@ -11,6 +11,22 @@
       "subtitle": "After midnight, the outer wall sounded louder than the city itself.",
       "bgmMood": "dark_ambient",
       "sfx": ["night_wind"],
+      "storyBeat": "hook",
+      "visualNeed": {
+        "semanticType": "joseon_watchtower_silent_city",
+        "moodTags": ["dark", "mysterious", "calm"],
+        "visualTypePriority": [
+          "pool_video",
+          "stock_video",
+          "pool_image",
+          "stock_image",
+          "ai_image",
+          "ai_video",
+          "title_card"
+        ],
+        "motionHint": "slow_push_in",
+        "avoidTags": ["logo", "text", "watermark"]
+      },
       "startTransition": {
         "type": "cut"
       }
@@ -24,6 +40,22 @@
       "subtitle": "Guards listened for footsteps, bells, and anything that moved against the dark.",
       "bgmMood": "dark_ambient",
       "sfx": ["distant_bell", "soft_steps"],
+      "storyBeat": "build",
+      "visualNeed": {
+        "semanticType": "korean_night_guard_listening",
+        "moodTags": ["dark", "suspense"],
+        "visualTypePriority": [
+          "pool_video",
+          "stock_video",
+          "pool_image",
+          "stock_image",
+          "ai_image",
+          "ai_video",
+          "title_card"
+        ],
+        "motionHint": "slow_pan",
+        "avoidTags": ["logo", "text", "watermark"]
+      },
       "startTransition": {
         "type": "fadeblack",
         "durationSec": 0.55
@@ -38,6 +70,22 @@
       "subtitle": "That silence was not empty. It was the sound of waiting for trouble first.",
       "bgmMood": "dark_ambient",
       "sfx": ["low_rumble"],
+      "storyBeat": "payoff",
+      "visualNeed": {
+        "semanticType": "silent_fortress_wall_dawn",
+        "moodTags": ["dark", "suspense", "mysterious", "calm"],
+        "visualTypePriority": [
+          "pool_video",
+          "stock_video",
+          "pool_image",
+          "stock_image",
+          "ai_image",
+          "ai_video",
+          "title_card"
+        ],
+        "motionHint": "slow_dolly_in",
+        "avoidTags": ["logo", "text", "watermark"]
+      },
       "startTransition": {
         "type": "fadeblack",
         "durationSec": 0.55

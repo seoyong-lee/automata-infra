@@ -2,23 +2,12 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
-import { sceneStartTransitionSchema } from "../../shared/lib/contracts/canonical-io-schemas";
+import { parseSceneJsonInput } from "../../shared/lib/contracts/canonical-io-schemas";
 import type {
   ContentPresetPromptOverride,
   PresetSnapshot,
   ResolvedPolicy,
 } from "../../shared/lib/contracts/content-presets";
-import {
-  expectArray,
-  expectNullableString,
-  expectNumberCoerced,
-  expectOptionalBoolean,
-  expectOptionalString,
-  expectRecord,
-  expectString,
-} from "../../shared/lib/llm/validate";
-import { alignSceneJsonNarrationAndSubtitle } from "../../shared/lib/scene-text";
-import { applyDefaultSceneStartTransitions } from "../../shared/lib/scene-transition-defaults";
 import { SceneJson } from "../../../types/render/scene-json";
 
 type JobPlanResult = {
@@ -74,77 +63,8 @@ const buildMockSceneJson = (event: JobPlanResult): SceneJson => {
   };
 };
 
-const parseOptionalStartTransition = (
-  value: unknown,
-  label: string,
-) => {
-  if (value === undefined || value === null) {
-    return undefined;
-  }
-  const parsed = sceneStartTransitionSchema.safeParse(value);
-  if (!parsed.success) {
-    throw new Error(`${label} is invalid`);
-  }
-  return parsed.data;
-};
-
 const validateSceneJson = (payload: unknown): SceneJson => {
-  const root = expectRecord(payload, "sceneJson");
-
-  return {
-    videoTitle: expectString(root.videoTitle, "sceneJson.videoTitle"),
-    language: expectString(root.language, "sceneJson.language"),
-    scenes: expectArray(root.scenes, "sceneJson.scenes", (scene, index) => {
-      const record = expectRecord(scene, `sceneJson.scenes[${index}]`);
-
-      return {
-        sceneId: expectNumberCoerced(
-          record.sceneId,
-          `sceneJson.scenes[${index}].sceneId`,
-        ),
-        durationSec: expectNumberCoerced(
-          record.durationSec,
-          `sceneJson.scenes[${index}].durationSec`,
-        ),
-        narration: expectNullableString(
-          record.narration,
-          `sceneJson.scenes[${index}].narration`,
-        ),
-        disableNarration: expectOptionalBoolean(
-          record.disableNarration,
-          `sceneJson.scenes[${index}].disableNarration`,
-        ),
-        imagePrompt: expectString(
-          record.imagePrompt,
-          `sceneJson.scenes[${index}].imagePrompt`,
-        ),
-        videoPrompt: expectOptionalString(
-          record.videoPrompt,
-          `sceneJson.scenes[${index}].videoPrompt`,
-        ),
-        subtitle: expectString(
-          record.subtitle,
-          `sceneJson.scenes[${index}].subtitle`,
-        ),
-        bgmMood: expectOptionalString(
-          record.bgmMood,
-          `sceneJson.scenes[${index}].bgmMood`,
-        ),
-        sfx: Array.isArray(record.sfx)
-          ? record.sfx.map((entry, sfxIndex) =>
-              expectString(
-                entry,
-                `sceneJson.scenes[${index}].sfx[${sfxIndex}]`,
-              ),
-            )
-          : undefined,
-        startTransition: parseOptionalStartTransition(
-          record.startTransition,
-          `sceneJson.scenes[${index}].startTransition`,
-        ),
-      };
-    }),
-  };
+  return parseSceneJsonInput(payload);
 };
 
 type BuildSceneJsonDeps = {
@@ -202,7 +122,5 @@ export const buildSceneJson = async (
     buildMockResult: () => buildMockSceneJson(event),
   });
 
-  return applyDefaultSceneStartTransitions(
-    alignSceneJsonNarrationAndSubtitle(result.output),
-  );
+  return result.output;
 };

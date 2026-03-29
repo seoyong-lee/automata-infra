@@ -1,6 +1,7 @@
 import { z } from "zod";
 
 import { alignSceneNarrationAndSubtitle } from "../scene-text";
+import { normalizeSceneJson } from "../scene-json-normalization";
 import {
   contentPresetRefSchema,
   presetSnapshotSchema,
@@ -70,6 +71,24 @@ export const sceneStartTransitionSchema = z
   .object({
     type: sceneStartTransitionTypeSchema,
     durationSec: z.number().positive().max(1.5).optional(),
+  })
+  .strict();
+export const sceneVisualSourceTypeSchema = z.enum([
+  "pool_video",
+  "pool_image",
+  "stock_video",
+  "stock_image",
+  "ai_image",
+  "ai_video",
+  "title_card",
+]);
+export const sceneVisualNeedSchema = z
+  .object({
+    semanticType: nonEmpty,
+    moodTags: z.array(nonEmpty).min(1),
+    visualTypePriority: z.array(sceneVisualSourceTypeSchema).min(1),
+    motionHint: nonEmpty.optional(),
+    avoidTags: z.array(nonEmpty).min(1),
   })
   .strict();
 const jobRenderTextOverlaySchema = z
@@ -170,6 +189,8 @@ export type SceneStartTransitionType = z.infer<
   typeof sceneStartTransitionTypeSchema
 >;
 export type SceneStartTransition = z.infer<typeof sceneStartTransitionSchema>;
+export type SceneVisualSourceType = z.infer<typeof sceneVisualSourceTypeSchema>;
+export type SceneVisualNeed = z.infer<typeof sceneVisualNeedSchema>;
 
 /** 콘텐츠 = 채널 단일 단위 (유튜브 게시 설정은 동일 레코드에 저장). 식별자는 contentId만 사용. */
 export const createContentInputSchema = z
@@ -215,6 +236,8 @@ export const sceneDefinitionSchema = z
     subtitle: nonEmpty,
     bgmMood: z.string().optional(),
     sfx: z.array(nonEmpty).optional(),
+    storyBeat: nonEmpty.optional(),
+    visualNeed: sceneVisualNeedSchema.optional(),
     startTransition: sceneStartTransitionSchema.optional(),
   })
   .transform((scene) => alignSceneNarrationAndSubtitle(scene));
@@ -238,7 +261,8 @@ export const sceneJsonSchema = z
       }
       seenSceneIds.add(scene.sceneId);
     });
-  });
+  })
+  .transform((sceneJson) => normalizeSceneJson(sceneJson));
 
 export const updateSceneJsonInputSchema = z.object({
   jobId: nonEmpty,
@@ -398,4 +422,8 @@ export const parseUpdateSceneJsonInput = (
   payload: unknown,
 ): UpdateSceneJsonInput => {
   return updateSceneJsonInputSchema.parse(payload);
+};
+
+export const parseSceneJsonInput = (payload: unknown): SceneJsonInput => {
+  return sceneJsonSchema.parse(payload);
 };

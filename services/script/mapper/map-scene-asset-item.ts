@@ -11,6 +11,8 @@ export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {
     narration: alignedScene.narration,
     disableNarration: alignedScene.disableNarration,
     subtitle: alignedScene.subtitle,
+    storyBeat: alignedScene.storyBeat,
+    visualNeed: alignedScene.visualNeed,
     imagePrompt: alignedScene.imagePrompt,
     videoPrompt: alignedScene.videoPrompt,
     voiceS3Key: hasNarration ? undefined : null,

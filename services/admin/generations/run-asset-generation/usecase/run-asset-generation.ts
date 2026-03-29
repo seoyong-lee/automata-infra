@@ -20,6 +20,7 @@ import {
   finalizeSceneAssetsReadiness,
   recomputeSceneAssetsReadiness,
 } from "./finalize-scene-assets-readiness";
+import { resolveSceneImagePoolAssets } from "./resolve-scene-image-pool-assets";
 import { runImageModalityForScenes } from "./policies/run-image-modality-for-scenes";
 import { runVideoModalityForScenes } from "./policies/run-video-modality-for-scenes";
 import { runVoiceModalityForScenes } from "./policies/run-voice-modality-for-scenes";
@@ -27,6 +28,57 @@ import type { ParsedRunAssetGenerationArgs } from "../normalize/parse-run-asset-
 
 export type { AssetGenerationScope } from "../normalize/asset-generation-scope";
 export { resolveTargetVideoDurationSec } from "./policies/run-video-modality-for-scenes";
+
+const shouldRunImageModality = (
+  scope: AssetGenerationScope,
+  policy: Awaited<ReturnType<typeof loadAssetGenerationPolicy>>,
+): boolean => {
+  return (
+    (scope.modality === "all" && policy.allowImage) ||
+    scope.modality === "image"
+  );
+};
+
+const shouldRunVoiceModality = (
+  scope: AssetGenerationScope,
+  policy: Awaited<ReturnType<typeof loadAssetGenerationPolicy>>,
+): boolean => {
+  return (
+    (scope.modality === "all" && policy.allowVoice) ||
+    scope.modality === "voice"
+  );
+};
+
+const shouldRunVideoModality = (
+  scope: AssetGenerationScope,
+  policy: Awaited<ReturnType<typeof loadAssetGenerationPolicy>>,
+): boolean => {
+  return (
+    (scope.modality === "all" && policy.allowVideo) ||
+    scope.modality === "video"
+  );
+};
+
+const finalizeAssetGenerationState = async (input: {
+  jobId: string;
+  scope: AssetGenerationScope;
+  sceneJson: Awaited<
+    ReturnType<typeof loadAssetGenerationContext>
+  >["sceneJson"];
+}) => {
+  if (isFullStrictFinalize(input.scope)) {
+    await finalizeSceneAssetsReadiness({
+      jobId: input.jobId,
+      sceneJson: input.sceneJson,
+    });
+    return;
+  }
+
+  await recomputeSceneAssetsReadiness({
+    jobId: input.jobId,
+    sceneJson: input.sceneJson,
+  });
+};
 
 export const runAssetGenerationCore = async (
   jobId: string,
@@ -39,22 +91,17 @@ export const runAssetGenerationCore = async (
   await updateJobMeta(jobId, {}, "ASSET_GENERATING");
   assertModalityAllowed(scope, policy);
 
-  if (
-    (scope.modality === "all" && policy.allowImage) ||
-    scope.modality === "image"
-  ) {
+  if (shouldRunImageModality(scope, policy)) {
+    await resolveSceneImagePoolAssets(jobId, scenes);
+  }
+
+  if (shouldRunImageModality(scope, policy)) {
     await runImageModalityForScenes(jobId, scenes, scope, policy);
   }
-  if (
-    (scope.modality === "all" && policy.allowVoice) ||
-    scope.modality === "voice"
-  ) {
+  if (shouldRunVoiceModality(scope, policy)) {
     await runVoiceModalityForScenes(jobId, scenes);
   }
-  if (
-    (scope.modality === "all" && policy.allowVideo) ||
-    scope.modality === "video"
-  ) {
+  if (shouldRunVideoModality(scope, policy)) {
     await runVideoModalityForScenes(jobId, scenes);
   }
 
@@ -63,11 +110,7 @@ export const runAssetGenerationCore = async (
     sceneJsonS3Key,
   });
 
-  if (isFullStrictFinalize(scope)) {
-    await finalizeSceneAssetsReadiness({ jobId, sceneJson });
-  } else {
-    await recomputeSceneAssetsReadiness({ jobId, sceneJson });
-  }
+  await finalizeAssetGenerationState({ jobId, scope, sceneJson });
 
   const updated = await getJobOrThrow(jobId);
   return mapJobMetaToAdminJob(updated);
@@ -87,7 +130,8 @@ export const runAdminAssetGeneration = async (
     inputSnapshotId,
     workerPayload: { assetGenScope: scope },
     runCore: () => runAssetGenerationCore(jobId, scope),
-    getQueuedResult: async () => mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
+    getQueuedResult: async () =>
+      mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
     getSuccessSnapshot: (result) =>
       result.assetManifestS3Key ?? result.sceneJsonS3Key,
   });

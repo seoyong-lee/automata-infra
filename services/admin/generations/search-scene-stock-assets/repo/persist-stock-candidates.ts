@@ -28,6 +28,7 @@ export const persistStockImageCandidates = async (
     await putSceneImageCandidate(jobId, sceneId, candidateId, {
       imageS3Key: asString(asset.imageS3Key),
       createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
+      candidateSource: "stock",
       provider: asString(asset.provider),
       providerLogS3Key: asString(asset.providerLogS3Key),
       promptHash: asString(asset.promptHash),
@@ -55,6 +56,7 @@ export const persistStockVideoCandidates = async (
     await putSceneVideoCandidate(jobId, sceneId, candidateId, {
       videoClipS3Key: asString(asset.videoClipS3Key),
       createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
+      candidateSource: "stock",
       provider: asString(asset.provider),
       providerLogS3Key: asString(asset.providerLogS3Key),
       promptHash: asString(asset.promptHash),

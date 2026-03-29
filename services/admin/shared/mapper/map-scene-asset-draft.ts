@@ -4,7 +4,22 @@ import type {
   SceneVoiceCandidateItem,
   SceneAssetItem,
 } from "../../../shared/lib/store/video-jobs";
+import type { SceneVisualNeed } from "../../../shared/lib/contracts/canonical-io-schemas";
 import { alignSceneNarrationAndSubtitle } from "../../../shared/lib/scene-text";
+
+const asOptionalString = (value: unknown): string | undefined => {
+  return typeof value === "string" ? value : undefined;
+};
+
+const asOptionalNumber = (value: unknown): number | undefined => {
+  return typeof value === "number" ? value : undefined;
+};
+
+const asOptionalVisualNeed = (value: unknown): SceneVisualNeed | undefined => {
+  return value && typeof value === "object" && !Array.isArray(value)
+    ? (value as SceneVisualNeed)
+    : undefined;
+};
 
 const asSelected = (input: {
   selectedCandidateId?: string;
@@ -28,45 +43,30 @@ export const mapSceneAssetDraft = (asset: SceneAssetItem) => {
     imageS3Key: alignedAsset.imageS3Key,
     videoClipS3Key: alignedAsset.videoClipS3Key,
     voiceS3Key: alignedAsset.voiceS3Key,
-    stockImageSearchStatus:
-      typeof alignedAsset.stockImageSearchStatus === "string"
-        ? alignedAsset.stockImageSearchStatus
-        : undefined,
-    stockImageSearchQuery:
-      typeof alignedAsset.stockImageSearchQuery === "string"
-        ? alignedAsset.stockImageSearchQuery
-        : undefined,
-    stockVideoSearchStatus:
-      typeof alignedAsset.stockVideoSearchStatus === "string"
-        ? alignedAsset.stockVideoSearchStatus
-        : undefined,
-    stockVideoSearchQuery:
-      typeof alignedAsset.stockVideoSearchQuery === "string"
-        ? alignedAsset.stockVideoSearchQuery
-        : undefined,
-    imageSelectedCandidateId:
-      typeof alignedAsset.imageSelectedCandidateId === "string"
-        ? alignedAsset.imageSelectedCandidateId
-        : undefined,
-    videoSelectedCandidateId:
-      typeof alignedAsset.videoSelectedCandidateId === "string"
-        ? alignedAsset.videoSelectedCandidateId
-        : undefined,
-    voiceSelectedCandidateId:
-      typeof alignedAsset.voiceSelectedCandidateId === "string"
-        ? alignedAsset.voiceSelectedCandidateId
-        : undefined,
-    voiceProfileId:
-      typeof alignedAsset.voiceProfileId === "string"
-        ? alignedAsset.voiceProfileId
-        : undefined,
-    voiceDurationSec:
-      typeof alignedAsset.voiceDurationSec === "number"
-        ? alignedAsset.voiceDurationSec
-        : undefined,
+    stockImageSearchStatus: asOptionalString(
+      alignedAsset.stockImageSearchStatus,
+    ),
+    stockImageSearchQuery: asOptionalString(alignedAsset.stockImageSearchQuery),
+    stockVideoSearchStatus: asOptionalString(
+      alignedAsset.stockVideoSearchStatus,
+    ),
+    stockVideoSearchQuery: asOptionalString(alignedAsset.stockVideoSearchQuery),
+    imageSelectedCandidateId: asOptionalString(
+      alignedAsset.imageSelectedCandidateId,
+    ),
+    videoSelectedCandidateId: asOptionalString(
+      alignedAsset.videoSelectedCandidateId,
+    ),
+    voiceSelectedCandidateId: asOptionalString(
+      alignedAsset.voiceSelectedCandidateId,
+    ),
+    voiceProfileId: asOptionalString(alignedAsset.voiceProfileId),
+    voiceDurationSec: asOptionalNumber(alignedAsset.voiceDurationSec),
     durationSec: alignedAsset.durationSec,
     narration: alignedAsset.narration,
     subtitle: alignedAsset.subtitle,
+    storyBeat: asOptionalString(alignedAsset.storyBeat),
+    visualNeed: asOptionalVisualNeed(alignedAsset.visualNeed),
     imagePrompt: alignedAsset.imagePrompt,
     videoPrompt: alignedAsset.videoPrompt,
     validationStatus: alignedAsset.validationStatus,
@@ -82,6 +82,9 @@ export const mapSceneImageCandidateDraft = (
 ) => ({
   candidateId: candidate.candidateId,
   imageS3Key: candidate.imageS3Key,
+  candidateSource: candidate.candidateSource,
+  assetPoolAssetId: candidate.assetPoolAssetId,
+  matchScore: candidate.matchScore,
   provider: candidate.provider,
   providerLogS3Key: candidate.providerLogS3Key,
   promptHash: candidate.promptHash,
@@ -90,6 +93,9 @@ export const mapSceneImageCandidateDraft = (
   thumbnailUrl: candidate.thumbnailUrl,
   authorName: candidate.authorName,
   sourceAssetId: candidate.sourceAssetId,
+  licenseType: candidate.licenseType,
+  attributionRequired: candidate.attributionRequired,
+  commercialUseAllowed: candidate.commercialUseAllowed,
   width: candidate.width,
   height: candidate.height,
   createdAt: candidate.createdAt,
@@ -110,6 +116,9 @@ export const mapSceneVideoCandidateDraft = (
 ) => ({
   candidateId: candidate.candidateId,
   videoClipS3Key: candidate.videoClipS3Key,
+  candidateSource: candidate.candidateSource,
+  assetPoolAssetId: candidate.assetPoolAssetId,
+  matchScore: candidate.matchScore,
   provider: candidate.provider,
   providerLogS3Key: candidate.providerLogS3Key,
   promptHash: candidate.promptHash,
@@ -118,6 +127,9 @@ export const mapSceneVideoCandidateDraft = (
   thumbnailUrl: candidate.thumbnailUrl,
   authorName: candidate.authorName,
   sourceAssetId: candidate.sourceAssetId,
+  licenseType: candidate.licenseType,
+  attributionRequired: candidate.attributionRequired,
+  commercialUseAllowed: candidate.commercialUseAllowed,
   width: candidate.width,
   height: candidate.height,
   durationSec: candidate.durationSec,

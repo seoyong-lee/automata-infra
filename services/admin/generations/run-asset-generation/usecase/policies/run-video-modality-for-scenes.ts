@@ -30,8 +30,13 @@ export const runVideoModalityForScenes = async (
   scenes: SceneDefinition[],
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_VIDEO_SECRET_ID?.trim();
+  const selectedScenes = scenes.filter(
+    (scene) =>
+      typeof scene.videoPrompt === "string" &&
+      scene.videoPrompt.trim().length > 0,
+  );
   const videoScenes = await Promise.all(
-    scenes.map(async (scene) => {
+    selectedScenes.map(async (scene) => {
       const sceneAsset = await getSceneAsset(jobId, scene.sceneId);
       const selectedImageS3Key =
         typeof sceneAsset?.imageS3Key === "string"
@@ -59,6 +64,9 @@ export const runVideoModalityForScenes = async (
       };
     }),
   );
+  if (videoScenes.length === 0) {
+    return;
+  }
   const videoAssets = await generateSceneVideos({
     jobId,
     scenes: videoScenes,
@@ -67,7 +75,7 @@ export const runVideoModalityForScenes = async (
   });
   await saveVideoAssets({
     jobId,
-    scenes: videoScenes,
+    scenes: selectedScenes,
     videoAssets,
   });
 };

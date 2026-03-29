@@ -114,9 +114,13 @@ const buildSceneTransitionText = (scene: SceneDefinition): string => {
   return [
     scene.narration,
     scene.subtitle,
+    scene.storyBeat,
     scene.imagePrompt,
     scene.videoPrompt,
     scene.bgmMood,
+    scene.visualNeed?.semanticType,
+    scene.visualNeed?.motionHint,
+    ...(scene.visualNeed?.moodTags ?? []),
     ...(Array.isArray(scene.sfx) ? scene.sfx : []),
   ]
     .filter((value): value is string => typeof value === "string" && value.trim().length > 0)

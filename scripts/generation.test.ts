@@ -251,6 +251,40 @@ void test("buildSceneJson auto-fills default scene start transitions when absent
     result.scenes.map((scene) => scene.startTransition),
     [{ type: "cut" }, { type: "fadeblack", durationSec: 0.55 }],
   );
+  assert.deepEqual(
+    result.scenes.map((scene) => scene.storyBeat),
+    ["hook", "payoff"],
+  );
+  assert.deepEqual(result.scenes[0]?.visualNeed, {
+    semanticType: "quiet_alley_dawn",
+    moodTags: ["calm"],
+    visualTypePriority: [
+      "pool_image",
+      "stock_image",
+      "pool_video",
+      "stock_video",
+      "ai_image",
+      "ai_video",
+      "title_card",
+    ],
+    motionHint: undefined,
+    avoidTags: ["logo", "text", "watermark"],
+  });
+  assert.deepEqual(result.scenes[1]?.visualNeed, {
+    semanticType: "dark_alley_storm_clouds",
+    moodTags: ["dark", "suspense", "dramatic"],
+    visualTypePriority: [
+      "pool_video",
+      "stock_video",
+      "pool_image",
+      "stock_image",
+      "ai_image",
+      "ai_video",
+      "title_card",
+    ],
+    motionHint: "slow_pan",
+    avoidTags: ["logo", "text", "watermark"],
+  });
 });
 
 void test("buildSceneJson forwards preset scene prompt override", async () => {
@@ -416,6 +450,8 @@ void test("smoke dataset scenarios remain compatible with scene generation contr
       result.scenes.every((scene) => scene.subtitle === scene.narration),
     );
     assert.ok(result.scenes.every((scene) => scene.imagePrompt.length > 0));
+    assert.ok(result.scenes.every((scene) => scene.storyBeat));
+    assert.ok(result.scenes.every((scene) => scene.visualNeed));
     assert.equal(result.scenes[0]?.startTransition?.type, "cut");
     assert.ok(
       result.scenes.slice(1).every((scene) => scene.startTransition?.type),

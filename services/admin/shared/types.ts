@@ -7,6 +7,7 @@ import type {
 import type {
   JobRenderSettings,
   SceneStartTransition,
+  SceneVisualNeed,
 } from "../../shared/lib/contracts/canonical-io-schemas";
 
 export type GraphqlResolverEvent<TArgs> = {
@@ -294,6 +295,8 @@ export type SceneJsonSceneDto = {
   subtitle: string;
   bgmMood?: string;
   sfx?: string[];
+  storyBeat?: string;
+  visualNeed?: SceneVisualNeedDto;
   startTransition?: SceneStartTransition;
 };
 
@@ -322,11 +325,15 @@ export type SceneAssetDto = {
   subtitle?: string;
   imagePrompt?: string;
   videoPrompt?: string;
+  storyBeat?: string;
+  visualNeed?: SceneVisualNeedDto;
   validationStatus?: string;
   imageCandidates?: SceneImageCandidateDto[];
   videoCandidates?: SceneVideoCandidateDto[];
   voiceCandidates?: SceneVoiceCandidateDto[];
 };
+
+export type SceneVisualNeedDto = SceneVisualNeed;
 
 export type VoiceProfileDto = {
   profileId: string;
@@ -357,6 +364,9 @@ export type BackgroundMusicAssetDto = {
 export type SceneImageCandidateDto = {
   candidateId: string;
   imageS3Key?: string;
+  candidateSource?: string;
+  assetPoolAssetId?: string;
+  matchScore?: number;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -365,6 +375,9 @@ export type SceneImageCandidateDto = {
   thumbnailUrl?: string;
   authorName?: string;
   sourceAssetId?: string;
+  licenseType?: string;
+  attributionRequired?: boolean;
+  commercialUseAllowed?: boolean;
   width?: number;
   height?: number;
   createdAt: string;
@@ -374,6 +387,9 @@ export type SceneImageCandidateDto = {
 export type SceneVideoCandidateDto = {
   candidateId: string;
   videoClipS3Key?: string;
+  candidateSource?: string;
+  assetPoolAssetId?: string;
+  matchScore?: number;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -382,6 +398,9 @@ export type SceneVideoCandidateDto = {
   thumbnailUrl?: string;
   authorName?: string;
   sourceAssetId?: string;
+  licenseType?: string;
+  attributionRequired?: boolean;
+  commercialUseAllowed?: boolean;
   width?: number;
   height?: number;
   durationSec?: number;

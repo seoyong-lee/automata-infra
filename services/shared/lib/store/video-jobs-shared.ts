@@ -1,3 +1,5 @@
+import type { SceneVisualNeed } from "../contracts/canonical-io-schemas";
+
 export type QueryPage<T> = {
   items: T[];
   nextToken: string | null;
@@ -108,6 +110,8 @@ export type SceneAssetItem = {
   durationSec?: number;
   narration?: string;
   subtitle?: string;
+  storyBeat?: string;
+  visualNeed?: SceneVisualNeed;
   voiceDurationSec?: number;
   imagePrompt?: string;
   videoPrompt?: string;
@@ -132,6 +136,9 @@ export type SceneImageCandidateItem = {
   sceneId: number;
   candidateId: string;
   imageS3Key?: string;
+  candidateSource?: string;
+  assetPoolAssetId?: string;
+  matchScore?: number;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -140,6 +147,9 @@ export type SceneImageCandidateItem = {
   thumbnailUrl?: string;
   authorName?: string;
   sourceAssetId?: string;
+  licenseType?: string;
+  attributionRequired?: boolean;
+  commercialUseAllowed?: boolean;
   width?: number;
   height?: number;
   createdAt: string;
@@ -151,6 +161,9 @@ export type SceneVideoCandidateItem = {
   sceneId: number;
   candidateId: string;
   videoClipS3Key?: string;
+  candidateSource?: string;
+  assetPoolAssetId?: string;
+  matchScore?: number;
   provider?: string;
   providerLogS3Key?: string;
   promptHash?: string;
@@ -159,6 +172,9 @@ export type SceneVideoCandidateItem = {
   thumbnailUrl?: string;
   authorName?: string;
   sourceAssetId?: string;
+  licenseType?: string;
+  attributionRequired?: boolean;
+  commercialUseAllowed?: boolean;
   width?: number;
   height?: number;
   durationSec?: number;

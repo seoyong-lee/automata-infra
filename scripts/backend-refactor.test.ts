@@ -2,6 +2,12 @@ import assert from "node:assert/strict";
 import test from "node:test";
 
 import { parseUpdateSceneJsonArgs } from "../services/admin/generations/update-scene-json/normalize/parse-update-scene-json-args";
+import { buildSceneAssetPoolItem } from "../services/shared/lib/asset-pool-ingest";
+import {
+  deriveScenePoolSearchTags,
+  rankSceneImagePoolCandidates,
+} from "../services/admin/generations/run-asset-generation/usecase/resolve-scene-image-pool-assets";
+import { mapSelectedImageCandidatePatch } from "../services/admin/generations/select-scene-image-candidate/mapper/map-selected-image-candidate-patch";
 import { updateLlmStepSettings } from "../services/admin/settings/update-llm-settings/repo/update-llm-step-settings";
 import { collectAssetRefs } from "../services/composition/validate-assets/normalize/collect-asset-refs";
 import { hasRenderableVisualAsset } from "../services/composition/validate-assets/usecase/validate-generated-assets";
@@ -124,6 +130,11 @@ void test("parseUpdateSceneJsonArgs accepts stringified sceneJson payloads", () 
   assert.equal(parsed.sceneJson.scenes[0]?.sceneId, 1);
   assert.equal(parsed.sceneJson.scenes[0]?.subtitle, "narration");
   assert.equal(parsed.sceneJson.scenes[0]?.startTransition?.type, "fade");
+  assert.equal(parsed.sceneJson.scenes[0]?.storyBeat, "hook");
+  assert.equal(
+    parsed.sceneJson.scenes[0]?.visualNeed?.semanticType,
+    "image_prompt",
+  );
 });
 
 void test("parseUpdateSceneJsonArgs rejects duplicate scene ids", () => {
@@ -181,6 +192,136 @@ void test("parseUpdateSceneJsonArgs rejects non-integer scene ids", () => {
       }),
     /integer|Invalid input/i,
   );
+});
+
+void test("deriveScenePoolSearchTags uses semantic and mood tags", () => {
+  const tags = deriveScenePoolSearchTags({
+    sceneId: 1,
+    durationSec: 5,
+    narration: "A dark corridor reveal",
+    subtitle: "A dark corridor reveal",
+    imagePrompt: "dark corridor with a figure at the end",
+    storyBeat: "tension",
+    visualNeed: {
+      semanticType: "dark_hallway_figure",
+      moodTags: ["eerie", "suspense"],
+      visualTypePriority: ["pool_image", "stock_image", "ai_image"],
+      avoidTags: ["logo", "text", "watermark"],
+    },
+  });
+
+  assert.deepEqual(tags, ["dark", "hallway", "figure", "eerie", "suspense"]);
+});
+
+void test("rankSceneImagePoolCandidates prefers safe high-overlap assets", () => {
+  const ranked = rankSceneImagePoolCandidates(
+    {
+      sceneId: 1,
+      durationSec: 5,
+      narration: "A figure stands at the end of the dark hallway.",
+      subtitle: "A figure stands at the end of the dark hallway.",
+      imagePrompt: "dark hallway with a silhouette",
+      storyBeat: "tension",
+      visualNeed: {
+        semanticType: "dark_hallway_figure",
+        moodTags: ["eerie", "suspense"],
+        visualTypePriority: ["pool_image", "stock_image", "ai_image"],
+        avoidTags: ["logo", "text", "watermark"],
+      },
+    },
+    [
+      {
+        assetId: "asset-best",
+        assetType: "image",
+        sourceType: "stock",
+        storageKey: "assets/pool/best.png",
+        visualTags: ["dark", "hallway", "figure"],
+        moodTags: ["eerie", "suspense"],
+        qualityScore: 0.92,
+        reusabilityScore: 0.81,
+        reviewStatus: "approved",
+        ingestedAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+        matchedTags: ["dark", "hallway", "figure", "eerie", "suspense"],
+        matchedTagCount: 5,
+      },
+      {
+        assetId: "asset-risky",
+        assetType: "image",
+        sourceType: "stock",
+        storageKey: "assets/pool/risky.png",
+        visualTags: ["dark", "hallway", "figure"],
+        moodTags: ["eerie", "suspense"],
+        qualityScore: 0.97,
+        reusabilityScore: 0.9,
+        containsText: true,
+        reviewStatus: "approved",
+        ingestedAt: "2026-03-29T00:00:00.000Z",
+        updatedAt: "2026-03-29T00:00:00.000Z",
+        matchedTags: ["dark", "hallway", "figure", "eerie", "suspense"],
+        matchedTagCount: 5,
+      },
+    ],
+  );
+
+  assert.equal(ranked[0]?.assetId, "asset-best");
+  assert.ok((ranked[0]?.matchScore ?? 0) > (ranked[1]?.matchScore ?? 0));
+});
+
+void test("buildSceneAssetPoolItem derives pool tags from scene context", () => {
+  const item = buildSceneAssetPoolItem({
+    assetType: "image",
+    sourceType: "ai",
+    storageKey: "assets/job/images/scene-1/test.png",
+    provider: "openai-image",
+    scene: {
+      sceneId: 1,
+      durationSec: 5,
+      narration: "A quiet hallway slowly reveals a silhouette.",
+      subtitle: "A quiet hallway slowly reveals a silhouette.",
+      imagePrompt: "quiet hallway with a silhouette at the far end",
+      storyBeat: "tension",
+      visualNeed: {
+        semanticType: "quiet_hallway_silhouette",
+        moodTags: ["eerie", "suspense"],
+        visualTypePriority: ["pool_image", "stock_image", "ai_image"],
+        motionHint: "slow_push_in",
+        avoidTags: ["logo", "text", "watermark"],
+      },
+    },
+  });
+
+  assert.deepEqual(item.visualTags, [
+    "quiet",
+    "hallway",
+    "silhouette",
+    "slow",
+    "push",
+    "in",
+  ]);
+  assert.deepEqual(item.moodTags, ["eerie", "suspense"]);
+  assert.equal(item.sourceType, "ai");
+  assert.equal(item.reviewStatus, "approved");
+});
+
+void test("mapSelectedImageCandidatePatch carries asset provenance fields", () => {
+  const patch = mapSelectedImageCandidatePatch(
+    {
+      PK: "JOB#job_123",
+      SK: "SCENE#1#IMAGE_CANDIDATE#cand_1",
+      sceneId: 1,
+      candidateId: "cand_1",
+      candidateSource: "pool",
+      assetPoolAssetId: "asset_123",
+      createdAt: "2026-03-29T00:00:00.000Z",
+      imageS3Key: "assets/pool/asset_123.png",
+      provider: "asset-pool",
+    },
+    "assets/pool/asset_123.png",
+  );
+
+  assert.equal((patch as Record<string, unknown>).imageAssetId, "asset_123");
+  assert.equal((patch as Record<string, unknown>).imageSelectionSource, "pool");
 });
 
 void test("updateLlmStepSettings rejects GEMINI until runtime support exists", async () => {

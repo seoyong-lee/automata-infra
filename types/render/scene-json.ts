@@ -1,4 +1,7 @@
-import type { SceneStartTransition } from "../../services/shared/lib/contracts/canonical-io-schemas";
+import type {
+  SceneStartTransition,
+  SceneVisualNeed,
+} from "../../services/shared/lib/contracts/canonical-io-schemas";
 
 export type SceneDefinition = {
   sceneId: number;
@@ -10,6 +13,8 @@ export type SceneDefinition = {
   subtitle: string;
   bgmMood?: string;
   sfx?: string[];
+  storyBeat?: string;
+  visualNeed?: SceneVisualNeed;
   startTransition?: SceneStartTransition;
 };
 

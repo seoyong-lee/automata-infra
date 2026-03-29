@@ -1,5 +1,6 @@
 import { generateSceneImages } from "../../../../../image/usecase/generate-scene-images";
 import { saveImageAssets } from "../../../../../image/repo/save-image-assets";
+import { listSceneAssets } from "../../../../../shared/lib/store/video-jobs";
 import type { SceneDefinition } from "../../../../../../types/render/scene-json";
 import type { AssetGenerationScope } from "../../normalize/asset-generation-scope";
 import type { AssetGenerationPolicy } from "../../repo/load-asset-generation-policy";
@@ -12,10 +13,30 @@ export const runImageModalityForScenes = async (
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_IMAGE_SECRET_ID?.trim();
   const openAiSecretId = process.env.OPENAI_SECRET_ID?.trim();
-  const imageScenes = scenes.map((scene) => ({
-    sceneId: scene.sceneId,
-    imagePrompt: scene.imagePrompt,
-  }));
+  const sceneAssetMap = new Map(
+    (await listSceneAssets(jobId)).map((asset) => [asset.sceneId, asset]),
+  );
+  const selectedScenes = scenes.filter((scene) => {
+    const existing = sceneAssetMap.get(scene.sceneId);
+    return !(
+      typeof existing?.imageS3Key === "string" &&
+      existing.imageS3Key.trim().length > 0
+    );
+  });
+  const imageScenes = selectedScenes
+    .filter((scene) => {
+      return scene.imagePrompt.trim().length > 0;
+    })
+    .map((scene) => ({
+      sceneId: scene.sceneId,
+      imagePrompt: scene.imagePrompt,
+    }));
+  if (imageScenes.length === 0) {
+    return;
+  }
+  const scenesForPersistence = selectedScenes.filter((scene) => {
+    return imageScenes.some((entry) => entry.sceneId === scene.sceneId);
+  });
   const provider =
     scope.imageProvider ??
     policy?.preferredImageProvider ??
@@ -36,7 +57,7 @@ export const runImageModalityForScenes = async (
   });
   await saveImageAssets({
     jobId,
-    scenes: imageScenes,
+    scenes: scenesForPersistence,
     imageAssets,
     markStatus: false,
   });
