@@ -11,14 +11,12 @@ import { run as setJobDefaultVoiceProfile } from "./set-job-default-voice-profil
 import { run as setSceneVoiceProfile } from "./set-scene-voice-profile";
 import { run as updateSceneJson } from "./update-scene-json";
 import {
-  getGroupedFieldName,
-  GroupedGraphqlResolverEvent,
-} from "../shared/graphql-event";
+  dispatchGroupedResolver,
+  type GroupedResolverRoutes,
+} from "../shared/grouped-router";
+import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
-const handlers: Record<
-  string,
-  Handler<GroupedGraphqlResolverEvent, unknown>
-> = {
+const routes: GroupedResolverRoutes = {
   runJobPlan,
   runSceneJson,
   updateSceneJson,
@@ -35,10 +33,5 @@ const handlers: Record<
 export const run: Handler<GroupedGraphqlResolverEvent, unknown> = async (
   event,
 ) => {
-  const fieldName = getGroupedFieldName(event);
-  const handler = handlers[fieldName];
-  if (!handler) {
-    throw new Error(`Unsupported generations resolver: ${fieldName}`);
-  }
-  return handler(event, {} as never, () => undefined);
+  return dispatchGroupedResolver(event, routes, "generations");
 };

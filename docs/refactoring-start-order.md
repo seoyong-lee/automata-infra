@@ -65,7 +65,14 @@
   - field별 `index.ts`는 args parse + context 고정 + usecase 호출만 담당
   - 에러 노출 정책은 handler에만 둔다
 - 진행 상태:
-  - `pending`
+  - `in_progress`
+  - 완료: grouped domain router 공통 dispatch 도입
+  - 완료: `generations/jobs/content/settings/final/pipeline`의 `routes` 기반 라우팅 통일
+  - 완료: `run-asset-generation/index.ts`의 scope 조합 책임을 usecase로 이동
+  - 완료: generation 도메인의 job draft 반환을 shared facade로 분리
+  - 완료: `run-scene-json`의 입력 로드 / 저장 책임을 repo + normalize로 분리
+  - 완료: `search-scene-stock-assets`의 scene load / candidate persistence 책임 일부 분리
+  - next: field 단위에서 index/usecase 경계가 약한 구간 점검
 
 ---
 

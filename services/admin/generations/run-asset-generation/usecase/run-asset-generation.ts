@@ -49,7 +49,7 @@ export type AssetGenerationScope = {
   imageProvider?: "openai" | "byteplus";
 };
 
-export const toAssetGenerationScope = (
+const toAssetGenerationScope = (
   parsed: ParsedRunAssetGenerationArgs,
 ): AssetGenerationScope => {
   const modalityStr =
@@ -426,10 +426,11 @@ export const runAssetGenerationCore = async (
 };
 
 export const runAdminAssetGeneration = async (
-  jobId: string,
+  parsed: ParsedRunAssetGenerationArgs,
   triggeredBy?: string,
-  scope: AssetGenerationScope = { modality: "all" },
 ) => {
+  const jobId = parsed.jobId;
+  const scope = toAssetGenerationScope(parsed);
   const job = await getJobOrThrow(jobId);
   const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
     jobId,

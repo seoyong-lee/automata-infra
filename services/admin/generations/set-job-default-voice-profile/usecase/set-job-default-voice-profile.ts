@@ -1,7 +1,7 @@
 import { getVoiceProfile } from "../../../../shared/lib/store/voice-profiles";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { notFound } from "../../../shared/errors";
-import { getJobDraft } from "../../../jobs/get-job-draft/repo/get-job-draft";
+import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
 
 export const setJobDefaultVoiceProfile = async (input: {
   jobId: string;
@@ -18,5 +18,5 @@ export const setJobDefaultVoiceProfile = async (input: {
     defaultVoiceProfileId: input.profileId ?? null,
   });
 
-  return getJobDraft(input.jobId);
+  return getJobDraftView(input.jobId);
 };

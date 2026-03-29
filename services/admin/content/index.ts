@@ -5,14 +5,12 @@ import { run as deleteContent } from "./delete-content";
 import { run as listContents } from "./list-contents";
 import { run as updateContent } from "./update-content";
 import {
-  getGroupedFieldName,
-  GroupedGraphqlResolverEvent,
-} from "../shared/graphql-event";
+  dispatchGroupedResolver,
+  type GroupedResolverRoutes,
+} from "../shared/grouped-router";
+import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
-const handlers: Record<
-  string,
-  Handler<GroupedGraphqlResolverEvent, unknown>
-> = {
+const routes: GroupedResolverRoutes = {
   adminContents: listContents,
   createContent,
   updateContent,
@@ -23,10 +21,5 @@ const handlers: Record<
 export const run: Handler<GroupedGraphqlResolverEvent, unknown> = async (
   event,
 ) => {
-  const fieldName = getGroupedFieldName(event);
-  const handler = handlers[fieldName];
-  if (!handler) {
-    throw new Error(`Unsupported content resolver: ${fieldName}`);
-  }
-  return handler(event, {} as never, () => undefined);
+  return dispatchGroupedResolver(event, routes, "content");
 };

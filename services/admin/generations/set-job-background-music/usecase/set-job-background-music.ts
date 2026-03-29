@@ -1,7 +1,7 @@
 import { headObjectFromS3 } from "../../../../shared/lib/aws/runtime";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { badUserInput, notFound } from "../../../shared/errors";
-import { getJobDraft } from "../../../jobs/get-job-draft/repo/get-job-draft";
+import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
 
 const ALLOWED_AUDIO_EXTENSION_RE = /\.(mp3|wav|m4a|aac|ogg)$/i;
 
@@ -36,5 +36,5 @@ export const setJobBackgroundMusic = async (input: {
     backgroundMusicS3Key: input.s3Key ?? null,
   });
 
-  return getJobDraft(input.jobId);
+  return getJobDraftView(input.jobId);
 };

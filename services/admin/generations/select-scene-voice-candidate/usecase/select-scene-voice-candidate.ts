@@ -3,7 +3,7 @@ import {
   upsertSceneAsset,
 } from "../../../../shared/lib/store/video-jobs";
 import { notFound } from "../../../shared/errors";
-import { getJobDraft } from "../../../jobs/get-job-draft/repo/get-job-draft";
+import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
 
 export const selectSceneVoiceCandidateUsecase = async (input: {
   jobId: string;
@@ -30,5 +30,5 @@ export const selectSceneVoiceCandidateUsecase = async (input: {
     voiceSelectedAt: candidate.createdAt,
   });
 
-  return getJobDraft(input.jobId);
+  return getJobDraftView(input.jobId);
 };

@@ -1,31 +1,26 @@
-import { getJsonFromS3 } from "../../../../shared/lib/aws/runtime";
-import {
-  putSceneImageCandidate,
-  putSceneVideoCandidate,
-  upsertSceneAsset,
-} from "../../../../shared/lib/store/video-jobs";
+import { upsertSceneAsset } from "../../../../shared/lib/store/video-jobs";
 import {
   derivePexelsSearchQuery,
   searchPexelsPhotoCandidates,
   searchPexelsVideoCandidates,
 } from "../../../../shared/lib/providers/media";
-import { resolveSceneJsonS3KeyForAssetGeneration } from "../../../shared/lib/resolve-approved-pipeline-input";
 import {
   getJobOrThrow,
   getStoredContentBrief,
   getStoredJobBrief,
 } from "../../../shared/repo/job-draft-store";
-import { getJobDraft } from "../../../jobs/get-job-draft/repo/get-job-draft";
-import type {
-  SceneDefinition,
-  SceneJson,
-} from "../../../../../types/render/scene-json";
+import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
+import { loadStockSearchContext } from "../repo/load-stock-search-context";
+import {
+  persistStockImageCandidates,
+  persistStockVideoCandidates,
+} from "../repo/persist-stock-candidates";
+import {
+  toStockSearchScope,
+  type StockSearchScope,
+} from "../normalize/stock-search-scope";
+import type { SceneDefinition } from "../../../../../types/render/scene-json";
 import type { SearchSceneStockAssetsInputDto } from "../normalize/parse-search-scene-stock-assets-args";
-
-type StockSearchScope = {
-  targetSceneId?: number;
-  modality: "all" | "image" | "video";
-};
 
 type StockSearchPolicy = {
   allowImage: boolean;
@@ -34,18 +29,6 @@ type StockSearchPolicy = {
 
 type SearchStockImageFn = typeof searchPexelsPhotoCandidates;
 type SearchStockVideoFn = typeof searchPexelsVideoCandidates;
-
-const asString = (value: unknown): string | undefined => {
-  return typeof value === "string" ? value : undefined;
-};
-
-const asBoolean = (value: unknown): boolean | undefined => {
-  return typeof value === "boolean" ? value : undefined;
-};
-
-const asNumber = (value: unknown): number | undefined => {
-  return typeof value === "number" ? value : undefined;
-};
 
 const runWithConcurrency = async <T>(
   items: T[],
@@ -71,56 +54,6 @@ const runWithConcurrency = async <T>(
       }
     }),
   );
-};
-
-const toStockSearchScope = (
-  parsed: SearchSceneStockAssetsInputDto,
-): StockSearchScope => {
-  return {
-    ...(parsed.targetSceneId !== undefined
-      ? { targetSceneId: parsed.targetSceneId }
-      : {}),
-    modality:
-      parsed.modality === "IMAGE"
-        ? "image"
-        : parsed.modality === "VIDEO"
-          ? "video"
-          : "all",
-  };
-};
-
-const loadSearchContext = async (
-  jobId: string,
-  scope: StockSearchScope,
-): Promise<{ sceneJson: SceneJson; scenes: SceneDefinition[] }> => {
-  const job = await getJobOrThrow(jobId);
-  const sceneResolved = await resolveSceneJsonS3KeyForAssetGeneration(
-    jobId,
-    job,
-  );
-  if (!sceneResolved) {
-    throw new Error("scene json not found");
-  }
-
-  const sceneJson = await getJsonFromS3<SceneJson>(
-    sceneResolved.sceneJsonS3Key,
-  );
-  if (!sceneJson) {
-    throw new Error("scene json payload not found");
-  }
-
-  let scenes = sceneJson.scenes;
-  if (scope.targetSceneId !== undefined) {
-    scenes = scenes.filter((scene) => scene.sceneId === scope.targetSceneId);
-    if (scenes.length === 0) {
-      throw new Error(`scene ${scope.targetSceneId} not found in sceneJson`);
-    }
-  }
-
-  return {
-    sceneJson,
-    scenes,
-  };
 };
 
 const loadStockSearchPolicy = async (
@@ -158,61 +91,6 @@ const assertStockSearchAllowed = (
   }
   if (scope.modality === "all" && !policy.allowImage && !policy.allowVideo) {
     throw new Error("stock asset search is disabled for this preset");
-  }
-};
-
-const persistImageCandidates = async (
-  jobId: string,
-  sceneId: number,
-  assets: Record<string, unknown>[],
-): Promise<void> => {
-  for (const asset of assets) {
-    const candidateId = asString(asset.candidateId);
-    if (!candidateId) {
-      continue;
-    }
-    await putSceneImageCandidate(jobId, sceneId, candidateId, {
-      imageS3Key: asString(asset.imageS3Key),
-      createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
-      provider: asString(asset.provider),
-      providerLogS3Key: asString(asset.providerLogS3Key),
-      promptHash: asString(asset.promptHash),
-      mocked: asBoolean(asset.mocked),
-      sourceUrl: asString(asset.sourceUrl),
-      thumbnailUrl: asString(asset.thumbnailUrl),
-      authorName: asString(asset.authorName),
-      sourceAssetId: asString(asset.sourceAssetId),
-      width: asNumber(asset.width),
-      height: asNumber(asset.height),
-    });
-  }
-};
-
-const persistVideoCandidates = async (
-  jobId: string,
-  sceneId: number,
-  assets: Record<string, unknown>[],
-): Promise<void> => {
-  for (const asset of assets) {
-    const candidateId = asString(asset.candidateId);
-    if (!candidateId) {
-      continue;
-    }
-    await putSceneVideoCandidate(jobId, sceneId, candidateId, {
-      videoClipS3Key: asString(asset.videoClipS3Key),
-      createdAt: asString(asset.createdAt) ?? new Date().toISOString(),
-      provider: asString(asset.provider),
-      providerLogS3Key: asString(asset.providerLogS3Key),
-      promptHash: asString(asset.promptHash),
-      mocked: asBoolean(asset.mocked),
-      sourceUrl: asString(asset.sourceUrl),
-      thumbnailUrl: asString(asset.thumbnailUrl),
-      authorName: asString(asset.authorName),
-      sourceAssetId: asString(asset.sourceAssetId),
-      width: asNumber(asset.width),
-      height: asNumber(asset.height),
-      durationSec: asNumber(asset.durationSec),
-    });
   }
 };
 
@@ -277,7 +155,7 @@ const searchImageCandidatesForScene = async (input: {
     language: input.language,
     secretId: input.secretId,
   });
-  await persistImageCandidates(input.jobId, input.scene.sceneId, assets);
+  await persistStockImageCandidates(input.jobId, input.scene.sceneId, assets);
   await upsertSceneAsset(input.jobId, input.scene.sceneId, {
     stockImageSearchStatus: assets.length > 0 ? "FOUND" : "NO_RESULT",
     stockImageSearchQuery: query,
@@ -310,7 +188,7 @@ const searchVideoCandidatesForScene = async (input: {
     targetDurationSec: input.scene.durationSec,
     secretId: input.secretId,
   });
-  await persistVideoCandidates(input.jobId, input.scene.sceneId, assets);
+  await persistStockVideoCandidates(input.jobId, input.scene.sceneId, assets);
   await upsertSceneAsset(input.jobId, input.scene.sceneId, {
     stockVideoSearchStatus: assets.length > 0 ? "FOUND" : "NO_RESULT",
     stockVideoSearchQuery: query,
@@ -333,7 +211,10 @@ export const searchSceneStockAssetsUsecase = async (
     throw new Error("PEXELS_SECRET_ID is not configured");
   }
 
-  const { sceneJson, scenes } = await loadSearchContext(parsed.jobId, scope);
+  const { sceneJson, scenes } = await loadStockSearchContext(
+    parsed.jobId,
+    scope,
+  );
   const searchStockImages =
     deps.searchStockImages ?? searchPexelsPhotoCandidates;
   const searchStockVideos =
@@ -365,5 +246,5 @@ export const searchSceneStockAssetsUsecase = async (
     });
   }
 
-  return getJobDraft(parsed.jobId);
+  return getJobDraftView(parsed.jobId);
 };

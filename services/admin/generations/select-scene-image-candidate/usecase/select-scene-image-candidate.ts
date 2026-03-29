@@ -5,7 +5,7 @@ import {
 } from "../../../../shared/lib/store/video-jobs";
 import { materializeRemoteImageAsset } from "../../../../shared/lib/providers/media";
 import { notFound } from "../../../shared/errors";
-import { getJobDraft } from "../../../jobs/get-job-draft/repo/get-job-draft";
+import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
 
 const resolveSelectedImageS3Key = async (input: {
   jobId: string;
@@ -82,5 +82,5 @@ export const selectSceneImageCandidateUsecase = async (input: {
     imageSelectedAt: candidate.createdAt,
   });
 
-  return getJobDraft(input.jobId);
+  return getJobDraftView(input.jobId);
 };

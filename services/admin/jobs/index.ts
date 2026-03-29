@@ -8,14 +8,12 @@ import { run as jobTimeline } from "./job-timeline";
 import { run as listJobs } from "./list-jobs";
 import { run as updateJobBrief } from "./update-job-brief";
 import {
-  getGroupedFieldName,
-  GroupedGraphqlResolverEvent,
-} from "../shared/graphql-event";
+  dispatchGroupedResolver,
+  type GroupedResolverRoutes,
+} from "../shared/grouped-router";
+import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
-const handlers: Record<
-  string,
-  Handler<GroupedGraphqlResolverEvent, unknown>
-> = {
+const routes: GroupedResolverRoutes = {
   adminJobs: listJobs,
   adminJob: getJob,
   jobTimeline,
@@ -29,10 +27,5 @@ const handlers: Record<
 export const run: Handler<GroupedGraphqlResolverEvent, unknown> = async (
   event,
 ) => {
-  const fieldName = getGroupedFieldName(event);
-  const handler = handlers[fieldName];
-  if (!handler) {
-    throw new Error(`Unsupported jobs resolver: ${fieldName}`);
-  }
-  return handler(event, {} as never, () => undefined);
+  return dispatchGroupedResolver(event, routes, "jobs");
 };

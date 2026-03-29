@@ -7,14 +7,12 @@ import { run as updateLlmSettings } from "./update-llm-settings";
 import { run as upsertContentPreset } from "./upsert-content-preset";
 import { run as upsertVoiceProfile } from "./upsert-voice-profile";
 import {
-  getGroupedFieldName,
-  GroupedGraphqlResolverEvent,
-} from "../shared/graphql-event";
+  dispatchGroupedResolver,
+  type GroupedResolverRoutes,
+} from "../shared/grouped-router";
+import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
-const handlers: Record<
-  string,
-  Handler<GroupedGraphqlResolverEvent, unknown>
-> = {
+const routes: GroupedResolverRoutes = {
   contentPresets: listContentPresets,
   deleteContentPreset,
   llmSettings: getLlmSettings,
@@ -27,10 +25,5 @@ const handlers: Record<
 export const run: Handler<GroupedGraphqlResolverEvent, unknown> = async (
   event,
 ) => {
-  const fieldName = getGroupedFieldName(event);
-  const handler = handlers[fieldName];
-  if (!handler) {
-    throw new Error(`Unsupported settings resolver: ${fieldName}`);
-  }
-  return handler(event, {} as never, () => undefined);
+  return dispatchGroupedResolver(event, routes, "settings");
 };

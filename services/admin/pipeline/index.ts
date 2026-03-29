@@ -2,9 +2,10 @@ import { Handler } from "aws-lambda";
 import { run as approvePipelineExecution } from "./approve-pipeline-execution";
 import { run as pipelineWorker } from "./pipeline-worker";
 import {
-  getGroupedFieldName,
-  GroupedGraphqlResolverEvent,
-} from "../shared/graphql-event";
+  dispatchGroupedResolver,
+  type GroupedResolverRoutes,
+} from "../shared/grouped-router";
+import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
 type PipelineWorkerEvent = {
   jobId: string;
@@ -25,6 +26,10 @@ const isPipelineWorkerEvent = (
   );
 };
 
+const routes: GroupedResolverRoutes = {
+  approvePipelineExecution,
+};
+
 export const run: Handler<
   GroupedGraphqlResolverEvent | PipelineWorkerEvent,
   unknown
@@ -32,10 +37,5 @@ export const run: Handler<
   if (isPipelineWorkerEvent(event)) {
     return pipelineWorker(event as never, {} as never, () => undefined);
   }
-
-  const fieldName = getGroupedFieldName(event);
-  if (fieldName !== "approvePipelineExecution") {
-    throw new Error(`Unsupported pipeline resolver: ${fieldName}`);
-  }
-  return approvePipelineExecution(event, {} as never, () => undefined);
+  return dispatchGroupedResolver(event, routes, "pipeline");
 };

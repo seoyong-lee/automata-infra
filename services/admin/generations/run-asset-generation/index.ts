@@ -10,10 +10,7 @@ import {
   parseRunAssetGenerationArgs,
   type ParsedRunAssetGenerationArgs,
 } from "./normalize/parse-run-asset-generation-args";
-import {
-  runAdminAssetGeneration,
-  toAssetGenerationScope,
-} from "./usecase/run-asset-generation";
+import { runAdminAssetGeneration } from "./usecase/run-asset-generation";
 
 export const run: Handler<
   GraphqlResolverEvent<Record<string, unknown>>,
@@ -34,8 +31,7 @@ export const run: Handler<
       actor,
       jobId,
     });
-    const scope = toAssetGenerationScope(parsed);
-    const result = await runAdminAssetGeneration(parsed.jobId, actor, scope);
+    const result = await runAdminAssetGeneration(parsed, actor);
     logResolverAudit({
       operation: "runAssetGeneration",
       operationType: "mutation",

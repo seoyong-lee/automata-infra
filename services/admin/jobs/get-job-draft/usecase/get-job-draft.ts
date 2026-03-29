@@ -47,3 +47,5 @@ export const getAdminJobDraft = async (jobId: string) => {
       contentBrief?.resolvedPolicy?.assetMenu,
   });
 };
+
+export const getJobDraft = getAdminJobDraft;
