@@ -101,6 +101,7 @@ export const renderPlanImageOverlaySchema = z
 export const renderPlanTextOverlayStyleSchema = z.object({
   fontFamily: z.string().trim().min(1),
   fontSize: z.number().positive(),
+  fontWeight: z.enum(["regular", "bold"]).optional(),
   color: z.string().trim().min(1),
   opacity: z.number().min(0).max(1).optional(),
   strokeColor: z.string().trim().min(1).optional(),

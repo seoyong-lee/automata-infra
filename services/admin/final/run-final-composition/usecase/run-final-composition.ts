@@ -17,6 +17,7 @@ import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-adm
 import type { SceneJson } from "../../../../../types/render/scene-json";
 import type {
   RenderPlan,
+  RenderPlanOverlay,
   RenderPlanOutput,
   RenderPlanSubtitleSegment,
   RenderPlanSubtitleStyle,
@@ -152,13 +153,71 @@ const buildAssStyleLine = (
   ].join(",");
 };
 
+const resolveTextOverlayAlignment = (
+  align?: "left" | "center" | "right",
+): number => {
+  if (align === "left") {
+    return 7;
+  }
+  if (align === "right") {
+    return 9;
+  }
+  return 8;
+};
+
+const resolveTextOverlayPosition = (
+  overlay: Extract<RenderPlanOverlay, { type: "text" }>,
+  output: RenderPlanOutput,
+) => {
+  const align = overlay.style.align ?? "center";
+  const xRatio =
+    align === "left"
+      ? overlay.placement.x
+      : align === "right"
+        ? overlay.placement.x + overlay.placement.width
+        : overlay.placement.x + overlay.placement.width / 2;
+  return {
+    x: clamp(Math.round(output.size.width * xRatio), 0, output.size.width),
+    y: clamp(
+      Math.round(output.size.height * overlay.placement.y),
+      0,
+      output.size.height,
+    ),
+    alignment: resolveTextOverlayAlignment(align),
+  };
+};
+
+const buildTextOverlayEvents = (
+  renderPlan: Pick<RenderPlan, "output" | "overlays" | "totalDurationSec">,
+) => {
+  const output = renderPlan.output ?? DEFAULT_RENDER_OUTPUT;
+  return (renderPlan.overlays ?? [])
+    .filter(
+      (overlay): overlay is Extract<RenderPlanOverlay, { type: "text" }> =>
+        overlay.type === "text" && overlay.text.trim().length > 0,
+    )
+    .map((overlay) => {
+      const position = resolveTextOverlayPosition(overlay, output);
+      const bold = overlay.style.fontWeight === "bold" ? 1 : 0;
+      const startSec = Math.max(0, overlay.startSec ?? 0);
+      const endSec = Math.max(
+        startSec,
+        overlay.endSec ?? renderPlan.totalDurationSec ?? startSec,
+      );
+      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,0,0,0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${Math.round(overlay.style.fontSize)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
+    });
+};
+
 const buildSubtitleAss = (
-  renderPlan: Pick<RenderPlan, "output" | "scenes" | "subtitles">,
+  renderPlan: Pick<
+    RenderPlan,
+    "output" | "scenes" | "subtitles" | "overlays" | "totalDurationSec"
+  >,
 ): string => {
   const output = renderPlan.output ?? DEFAULT_RENDER_OUTPUT;
   const style = renderPlan.subtitles.style;
   const basePosition = resolveSubtitleBasePosition(style, output);
-  const events = renderPlan.scenes
+  const subtitleEvents = renderPlan.scenes
     .flatMap((scene) =>
       buildSceneSubtitleSegments(scene).map((segment) => ({
         startSec: segment.startSec,
@@ -177,6 +236,7 @@ const buildSubtitleAss = (
       (scene) =>
         `Dialogue: 0,${formatAssTimestamp(scene.startSec)},${formatAssTimestamp(scene.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(scene.subtitle)}`,
     );
+  const overlayEvents = buildTextOverlayEvents(renderPlan);
 
   return [
     "[Script Info]",
@@ -192,7 +252,8 @@ const buildSubtitleAss = (
     "",
     "[Events]",
     "Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text",
-    ...events,
+    ...subtitleEvents,
+    ...overlayEvents,
     "",
   ].join("\n");
 };
@@ -232,9 +293,13 @@ const maybePersistSubtitleAss = async (
   if (!burnInSubtitles) {
     return undefined;
   }
-  const hasSubtitleEntries = renderPlan.scenes.some(
-    (scene) => buildSceneSubtitleSegments(scene).length > 0,
-  );
+  const hasSubtitleEntries =
+    renderPlan.scenes.some(
+      (scene) => buildSceneSubtitleSegments(scene).length > 0,
+    ) ||
+    (renderPlan.overlays ?? []).some(
+      (overlay) => overlay.type === "text" && overlay.text.trim().length > 0,
+    );
   if (!hasSubtitleEntries) {
     return undefined;
   }

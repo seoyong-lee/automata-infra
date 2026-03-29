@@ -259,6 +259,61 @@ function resolveSubtitleBaseYRatio(position) {
   return 0.5;
 }
 
+function resolveTextOverlayAlignment(align) {
+  if (align === "left") {
+    return 7;
+  }
+  if (align === "right") {
+    return 9;
+  }
+  return 8;
+}
+
+function resolveTextOverlayPosition(overlay, outputSettings) {
+  const align = overlay.style?.align ?? "center";
+  const xRatio =
+    align === "left"
+      ? Number(overlay.placement?.x ?? 0)
+      : align === "right"
+        ? Number(overlay.placement?.x ?? 0) +
+          Number(overlay.placement?.width ?? 0)
+        : Number(overlay.placement?.x ?? 0) +
+          Number(overlay.placement?.width ?? 0) / 2;
+  return {
+    x: Math.round(outputSettings.width * xRatio),
+    y: Math.round(outputSettings.height * Number(overlay.placement?.y ?? 0)),
+    alignment: resolveTextOverlayAlignment(align),
+  };
+}
+
+function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
+  const sceneStartSec = Number(scene.startSec ?? 0);
+  const sceneEndSec = Number(scene.endSec ?? sceneDuration(scene));
+  return (Array.isArray(overlays) ? overlays : [])
+    .filter((overlay) => overlay?.type === "text")
+    .filter((overlay) => String(overlay.text ?? "").trim().length > 0)
+    .map((overlay) => {
+      const overlayStartSec = Math.max(0, Number(overlay.startSec ?? sceneStartSec));
+      const overlayEndSec = Math.max(
+        overlayStartSec,
+        Number(overlay.endSec ?? sceneEndSec),
+      );
+      const activeStartSec = Math.max(sceneStartSec, overlayStartSec);
+      const activeEndSec = Math.min(sceneEndSec, overlayEndSec);
+      return {
+        overlay,
+        startSec: activeStartSec - sceneStartSec,
+        endSec: activeEndSec - sceneStartSec,
+      };
+    })
+    .filter((event) => event.endSec > event.startSec)
+    .map(({ overlay, startSec, endSec }) => {
+      const position = resolveTextOverlayPosition(overlay, outputSettings);
+      const bold = overlay.style?.fontWeight === "bold" ? 1 : 0;
+      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,0,0,0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${Math.round(Number(overlay.style?.fontSize ?? 32))}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
+    });
+}
+
 function normalizeSceneSubtitleSegments(scene) {
   const segments = Array.isArray(scene.subtitleSegments)
     ? scene.subtitleSegments
@@ -291,11 +346,15 @@ function normalizeSceneSubtitleSegments(scene) {
   ];
 }
 
-async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
+async function writeSceneAss(
+  scene,
+  subtitleSettings,
+  outputSettings,
+  assPath,
+  overlays = [],
+) {
   const subtitleSegments = normalizeSceneSubtitleSegments(scene);
-  if (!subtitleSettings.burnIn || subtitleSegments.length === 0) {
-    return false;
-  }
+  const overlayEvents = getSceneTextOverlayEvents(scene, overlays, outputSettings);
   const alignment = resolveSubtitleAlignment(subtitleSettings.style.position);
   const posX = Math.round(
     outputSettings.width * (0.5 + subtitleSettings.style.offsetX),
@@ -305,6 +364,23 @@ async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
       (resolveSubtitleBaseYRatio(subtitleSettings.style.position) +
         subtitleSettings.style.offsetY),
   );
+  const subtitleEvents =
+    !subtitleSettings.burnIn || subtitleSegments.length === 0
+      ? []
+      : subtitleSegments.map((segment) => {
+          const segmentStartSec = Math.max(
+            0,
+            segment.startSec - Number(scene.startSec ?? 0),
+          );
+          const segmentEndSec = Math.max(
+            segmentStartSec + 0.05,
+            segment.endSec - Number(scene.startSec ?? 0),
+          );
+          return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(segment.text)}`;
+        });
+  if (subtitleEvents.length === 0 && overlayEvents.length === 0) {
+    return false;
+  }
   const assBold = subtitleSettings.style.fontWeight === "bold" ? -1 : 0;
   const content = `[Script Info]
 ScriptType: v4.00+
@@ -319,16 +395,7 @@ Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fon
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
-${subtitleSegments
-  .map((segment) => {
-    const segmentStartSec = Math.max(0, segment.startSec - Number(scene.startSec ?? 0));
-    const segmentEndSec = Math.max(
-      segmentStartSec + 0.05,
-      segment.endSec - Number(scene.startSec ?? 0),
-    );
-    return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(segment.text)}`;
-  })
-  .join("\n")}
+${[...subtitleEvents, ...overlayEvents].join("\n")}
 `;
   await fs.writeFile(assPath, content, "utf8");
   return true;
@@ -409,6 +476,7 @@ async function createSceneSegment(
   subtitleSettings,
   canvasSettings,
   mediaFrameSettings,
+  overlays = [],
 ) {
   const durationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
@@ -418,6 +486,7 @@ async function createSceneSegment(
     subtitleSettings,
     outputSettings,
     assPath,
+    overlays,
   );
   const vf = visualFilter(
     outputSettings,
@@ -863,6 +932,7 @@ async function main() {
       subtitleSettings,
       canvasSettings,
       mediaFrameSettings,
+      renderPlan.overlays,
     );
     segmentPaths.push(segmentPath);
     if (Number(scene.gapAfterSec) > 0) {

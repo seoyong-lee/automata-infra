@@ -137,7 +137,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
         strokeColor: "#000000",
         strokeWidth: 2,
         position: "center",
-        offset: { x: 0, y: 0 },
+        offset: { x: 0, y: 0.12 },
       },
     },
     sceneGapSec: 0.5,
@@ -154,6 +154,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
   assert.equal(renderPlan.subtitles.style.fontFamily, "DejaVu Serif");
   assert.equal(renderPlan.subtitles.style.fontSize, 44);
   assert.equal(renderPlan.subtitles.style.fontWeight, "bold");
+  assert.equal(renderPlan.subtitles.style.offset.y, 0.12);
 });
 
 void test("render plan splits subtitle text into timed sentence segments", () => {
@@ -180,4 +181,89 @@ void test("render plan splits subtitle text into timed sentence segments", () =>
   assert.equal(firstScene?.subtitleSegments?.length, 3);
   assert.equal(firstScene?.subtitleSegments?.[0]?.text, "첫 문장입니다.");
   assert.equal(firstScene?.subtitleSegments?.[2]?.endSec, firstScene?.endSec);
+});
+
+void test("render plan maps subtitle color and saved text overlays into overlay events", () => {
+  const event = {
+    jobId: "job_overlay_text",
+    sceneJson: {
+      videoTitle: "Overlay Story",
+      language: "ko",
+      scenes: [
+        {
+          sceneId: 1,
+          durationSec: 5,
+          narration: "타이틀 오버레이 테스트",
+          subtitle: "자막 색상 테스트",
+        },
+      ],
+    },
+  };
+
+  const builtScenes = buildRenderPlanScenes(event);
+  const renderPlan = buildRenderPlan(event, builtScenes, {
+    output: {
+      format: "mp4",
+      size: { width: 1080, height: 1920 },
+      fps: 30,
+    },
+    canvas: {
+      backgroundColor: "#000000",
+      videoScale: 1,
+      videoCropMode: "cover",
+    },
+    mediaFrame: {
+      x: 0,
+      y: 0,
+      width: 1,
+      height: 1,
+    },
+    previewMaxDurationSec: 12,
+    subtitles: {
+      burnIn: true,
+      format: "ass",
+      style: {
+        fontFamily: "Clear Sans",
+        fontSize: 36,
+        fontWeight: "bold",
+        lineHeight: 1,
+        opacity: 1,
+        color: "#FFDD00",
+        strokeColor: "#000000",
+        strokeWidth: 2,
+        position: "bottom",
+        offset: { x: 0, y: 0 },
+      },
+    },
+    sceneGapSec: 0.5,
+    defaultOverlays: [
+      {
+        overlayId: "headline",
+        type: "text",
+        text: "오늘의 제목",
+        placement: {
+          x: 0.1,
+          y: 0.12,
+          width: 0.72,
+          height: 0.05,
+        },
+        style: {
+          fontFamily: "DejaVu Sans",
+          fontSize: 40,
+          fontWeight: "bold",
+          color: "#FFFFFF",
+          strokeColor: "#000000",
+          strokeWidth: 2,
+          align: "center",
+        },
+        zIndex: 10,
+      },
+    ],
+  });
+
+  assert.equal(renderPlan.subtitles.style.color, "#FFDD00");
+  assert.equal(renderPlan.overlays.length, 1);
+  assert.equal(renderPlan.overlays[0]?.type, "text");
+  assert.equal(renderPlan.overlays[0]?.text, "오늘의 제목");
+  assert.equal(renderPlan.overlays[0]?.style.fontWeight, "bold");
 });

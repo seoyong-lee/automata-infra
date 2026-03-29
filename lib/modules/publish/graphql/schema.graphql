@@ -276,9 +276,11 @@ type RenderSettings {
   subtitleEnabled: Boolean
   subtitleStylePreset: String
   subtitlePosition: String
+  subtitleOffsetY: Float
   subtitleFontPreset: String
   subtitleFontWeight: String
   subtitleFontSize: Int
+  subtitleColor: String
   backgroundColor: String
   videoScale: Float
   videoCropMode: String
@@ -286,6 +288,19 @@ type RenderSettings {
   videoFrameY: Float
   videoFrameWidth: Float
   videoFrameHeight: Float
+  textOverlays: [RenderTextOverlay!]
+}
+
+type RenderTextOverlay {
+  overlayId: ID!
+  text: String!
+  x: Float!
+  y: Float!
+  width: Float
+  fontPreset: String
+  fontWeight: String
+  fontSize: Int
+  color: String
 }
 
 type SceneJsonScene {
@@ -682,9 +697,11 @@ input RenderSettingsInput {
   subtitleEnabled: Boolean
   subtitleStylePreset: String
   subtitlePosition: String
+  subtitleOffsetY: Float
   subtitleFontPreset: String
   subtitleFontWeight: String
   subtitleFontSize: Int
+  subtitleColor: String
   backgroundColor: String
   videoScale: Float
   videoCropMode: String
@@ -692,6 +709,19 @@ input RenderSettingsInput {
   videoFrameY: Float
   videoFrameWidth: Float
   videoFrameHeight: Float
+  textOverlays: [RenderTextOverlayInput!]
+}
+
+input RenderTextOverlayInput {
+  overlayId: ID!
+  text: String!
+  x: Float!
+  y: Float!
+  width: Float
+  fontPreset: String
+  fontWeight: String
+  fontSize: Int
+  color: String
 }
 
 input UpdateJobBriefInput {

@@ -43,17 +43,34 @@ const subtitleFontPresetSchema = z.enum([
   "display",
 ]);
 const subtitleFontWeightSchema = z.enum(["regular", "bold"]);
+const subtitleOffsetScalarSchema = z.number().min(-1).max(1);
 const videoCropModeSchema = z.enum(["contain", "cover", "smart-crop"]);
 const normalizedFrameScalarSchema = z.number().min(0).max(1);
+const normalizedOverlayWidthSchema = z.number().min(0.2).max(1);
+const jobRenderTextOverlaySchema = z
+  .object({
+    overlayId: nonEmpty,
+    text: z.string().max(200),
+    x: normalizedFrameScalarSchema,
+    y: normalizedFrameScalarSchema,
+    width: normalizedOverlayWidthSchema.optional(),
+    fontPreset: subtitleFontPresetSchema.optional(),
+    fontWeight: subtitleFontWeightSchema.optional(),
+    fontSize: z.number().int().min(12).max(96).optional(),
+    color: hexColorSchema.optional(),
+  })
+  .strict();
 
 export const jobRenderSettingsSchema = z
   .object({
     subtitleEnabled: z.boolean().optional(),
     subtitleStylePreset: nonEmpty.optional(),
     subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
+    subtitleOffsetY: subtitleOffsetScalarSchema.optional(),
     subtitleFontPreset: subtitleFontPresetSchema.optional(),
     subtitleFontWeight: subtitleFontWeightSchema.optional(),
     subtitleFontSize: z.number().int().min(12).max(96).optional(),
+    subtitleColor: hexColorSchema.optional(),
     backgroundColor: hexColorSchema.optional(),
     videoScale: z.number().min(0.5).max(1.25).optional(),
     videoCropMode: videoCropModeSchema.optional(),
@@ -61,6 +78,7 @@ export const jobRenderSettingsSchema = z
     videoFrameY: normalizedFrameScalarSchema.optional(),
     videoFrameWidth: z.number().min(0.1).max(1).optional(),
     videoFrameHeight: z.number().min(0.1).max(1).optional(),
+    textOverlays: z.array(jobRenderTextOverlaySchema).max(12).optional(),
   })
   .strict();
 
@@ -121,6 +139,7 @@ export const attachJobToContentInputSchema = z
 export type AttachJobToContentInput = z.infer<
   typeof attachJobToContentInputSchema
 >;
+export type JobRenderTextOverlay = z.infer<typeof jobRenderTextOverlaySchema>;
 
 /** 콘텐츠 = 채널 단일 단위 (유튜브 게시 설정은 동일 레코드에 저장). 식별자는 contentId만 사용. */
 export const createContentInputSchema = z
