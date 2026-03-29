@@ -1,6 +1,9 @@
 import assert from "node:assert/strict";
 import test from "node:test";
 
+import { parseAssetPoolAssetsArgs } from "../services/admin/library/asset-pool-assets/normalize/parse-asset-pool-assets-args";
+import { parseRegisterAssetPoolAssetArgs } from "../services/admin/library/register-asset-pool-asset/normalize/parse-register-asset-pool-asset-args";
+import { mapAssetPoolItemToDto } from "../services/admin/shared/mapper/map-asset-pool-item";
 import { parseUpdateSceneJsonArgs } from "../services/admin/generations/update-scene-json/normalize/parse-update-scene-json-args";
 import { buildSceneAssetPoolItem } from "../services/shared/lib/asset-pool-ingest";
 import {
@@ -302,6 +305,69 @@ void test("buildSceneAssetPoolItem derives pool tags from scene context", () => 
   assert.deepEqual(item.moodTags, ["eerie", "suspense"]);
   assert.equal(item.sourceType, "ai");
   assert.equal(item.reviewStatus, "approved");
+});
+
+void test("parseAssetPoolAssetsArgs applies defaults for library listing", () => {
+  const parsed = parseAssetPoolAssetsArgs({
+    assetType: "image",
+    tags: ["dark_hallway", "eerie"],
+  });
+
+  assert.equal(parsed.assetType, "image");
+  assert.deepEqual(parsed.tags, ["dark_hallway", "eerie"]);
+  assert.equal(parsed.limit, 50);
+  assert.equal(parsed.nextToken, undefined);
+});
+
+void test("parseRegisterAssetPoolAssetArgs fills registration defaults", () => {
+  const parsed = parseRegisterAssetPoolAssetArgs({
+    input: {
+      assetType: "video",
+      storageKey: "assets/library/video/demo.mp4",
+      visualTags: ["factory", "assembly"],
+    },
+  });
+
+  assert.equal(parsed.sourceType, "internal");
+  assert.equal(parsed.reviewStatus, "approved");
+  assert.deepEqual(parsed.visualTags, ["factory", "assembly"]);
+  assert.deepEqual(parsed.moodTags, []);
+});
+
+void test("mapAssetPoolItemToDto exposes preview urls when domain exists", () => {
+  const previousDomain = process.env.PREVIEW_DISTRIBUTION_DOMAIN;
+  process.env.PREVIEW_DISTRIBUTION_DOMAIN = "preview.example.com";
+
+  try {
+    const dto = mapAssetPoolItemToDto({
+      assetId: "asset_demo",
+      assetType: "image",
+      sourceType: "internal",
+      storageKey: "assets/library/image/demo.png",
+      visualTags: ["factory"],
+      moodTags: ["clean"],
+      matchedTags: ["factory"],
+      matchedTagCount: 1,
+      reviewStatus: "approved",
+      ingestedAt: "2026-03-29T00:00:00.000Z",
+      updatedAt: "2026-03-29T00:00:00.000Z",
+    });
+
+    assert.equal(
+      dto.storageUrl,
+      "https://preview.example.com/assets/library/image/demo.png",
+    );
+    assert.equal(
+      dto.thumbnailUrl,
+      "https://preview.example.com/assets/library/image/demo.png",
+    );
+  } finally {
+    if (previousDomain === undefined) {
+      delete process.env.PREVIEW_DISTRIBUTION_DOMAIN;
+    } else {
+      process.env.PREVIEW_DISTRIBUTION_DOMAIN = previousDomain;
+    }
+  }
 });
 
 void test("mapSelectedImageCandidatePatch carries asset provenance fields", () => {

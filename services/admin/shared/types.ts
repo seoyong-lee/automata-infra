@@ -361,6 +361,40 @@ export type BackgroundMusicAssetDto = {
   sizeBytes?: number;
 };
 
+export type AssetPoolAssetDto = {
+  assetId: string;
+  assetType: "image" | "video";
+  sourceType: "pool" | "stock" | "ai" | "internal";
+  provider?: string;
+  storageKey: string;
+  storageUrl?: string;
+  thumbnailKey?: string;
+  thumbnailUrl?: string;
+  sourceUrl?: string;
+  durationSec?: number;
+  width?: number;
+  height?: number;
+  visualTags: string[];
+  moodTags: string[];
+  matchedTags: string[];
+  matchedTagCount: number;
+  containsPeople?: boolean;
+  containsLogo?: boolean;
+  containsText?: boolean;
+  containsWatermark?: boolean;
+  qualityScore?: number;
+  reusabilityScore?: number;
+  licenseType?: string;
+  creatorName?: string;
+  attributionRequired?: boolean;
+  commercialUseAllowed?: boolean;
+  reviewStatus: "approved" | "pending" | "rejected";
+  ingestedAt: string;
+  updatedAt: string;
+};
+
+export type AssetPoolAssetConnectionDto = ConnectionDto<AssetPoolAssetDto>;
+
 export type SceneImageCandidateDto = {
   candidateId: string;
   imageS3Key?: string;

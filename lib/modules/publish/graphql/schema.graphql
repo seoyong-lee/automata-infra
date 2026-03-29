@@ -28,6 +28,14 @@ type Query {
   contentPresets(includeInactive: Boolean): [ContentPreset!]!
   llmSettings: LlmSettings!
   voiceProfiles: [VoiceProfile!]!
+  assetPoolAssets(
+    assetType: AssetPoolAssetType
+    sourceType: AssetPoolSourceType
+    reviewStatus: AssetPoolReviewStatus
+    tags: [String!]
+    limit: Int
+    nextToken: String
+  ): AssetPoolAssetConnection!
 }
 
 type Mutation {
@@ -83,6 +91,7 @@ type Mutation {
   """
   approvePipelineExecution(input: ApprovePipelineExecutionInput!): AdminJob!
   deleteJob(jobId: ID!): DeleteJobResult!
+  registerAssetPoolAsset(input: RegisterAssetPoolAssetInput!): AssetPoolAsset!
 }
 
 type AdminJob {
@@ -573,6 +582,43 @@ type ContentConnection {
   nextToken: String
 }
 
+type AssetPoolAsset {
+  assetId: ID!
+  assetType: AssetPoolAssetType!
+  sourceType: AssetPoolSourceType!
+  provider: String
+  storageKey: String!
+  storageUrl: String
+  thumbnailKey: String
+  thumbnailUrl: String
+  sourceUrl: String
+  durationSec: Float
+  width: Int
+  height: Int
+  visualTags: [String!]!
+  moodTags: [String!]!
+  matchedTags: [String!]!
+  matchedTagCount: Int!
+  containsPeople: Boolean
+  containsLogo: Boolean
+  containsText: Boolean
+  containsWatermark: Boolean
+  qualityScore: Float
+  reusabilityScore: Float
+  licenseType: String
+  creatorName: String
+  attributionRequired: Boolean
+  commercialUseAllowed: Boolean
+  reviewStatus: AssetPoolReviewStatus!
+  ingestedAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+}
+
+type AssetPoolAssetConnection {
+  items: [AssetPoolAsset!]!
+  nextToken: String
+}
+
 type DeleteContentResult {
   ok: Boolean!
   contentId: ID!
@@ -633,12 +679,55 @@ enum AssetUploadCategory {
   SCENE_VIDEO
 }
 
+enum AssetPoolAssetType {
+  image
+  video
+}
+
+enum AssetPoolSourceType {
+  pool
+  stock
+  ai
+  internal
+}
+
+enum AssetPoolReviewStatus {
+  approved
+  pending
+  rejected
+}
+
 input RequestAssetUploadInput {
   jobId: ID!
   fileName: String!
   contentType: String!
   category: AssetUploadCategory!
   targetSceneId: Int
+}
+
+input RegisterAssetPoolAssetInput {
+  assetType: AssetPoolAssetType!
+  sourceType: AssetPoolSourceType
+  provider: String
+  storageKey: String!
+  thumbnailKey: String
+  sourceUrl: String
+  durationSec: Float
+  width: Int
+  height: Int
+  visualTags: [String!]
+  moodTags: [String!]
+  containsPeople: Boolean
+  containsLogo: Boolean
+  containsText: Boolean
+  containsWatermark: Boolean
+  qualityScore: Float
+  reusabilityScore: Float
+  licenseType: String
+  creatorName: String
+  attributionRequired: Boolean
+  commercialUseAllowed: Boolean
+  reviewStatus: AssetPoolReviewStatus
 }
 
 input UpdateLlmStepSettingsInput {

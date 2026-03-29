@@ -284,6 +284,13 @@ export class AppStack extends Stack {
       path.join(process.cwd(), "services/admin/settings/handler.ts"),
       environment,
     );
+    const libraryHandler = createLambda(
+      this,
+      "AdminLibraryLambda",
+      `${props.projectPrefix}-admin-library`,
+      path.join(process.cwd(), "services/admin/library/handler.ts"),
+      environment,
+    );
     const finalHandler = createLambda(
       this,
       "AdminFinalLambda",
@@ -315,6 +322,8 @@ export class AppStack extends Stack {
     const upsertContentPresetResolver = settingsHandler;
     const listVoiceProfilesResolver = settingsHandler;
     const upsertVoiceProfileResolver = settingsHandler;
+    const assetPoolAssetsResolver = libraryHandler;
+    const registerAssetPoolAssetResolver = libraryHandler;
 
     const runJobPlanResolver = generationsHandler;
     const runSceneJsonResolver = generationsHandler;
@@ -385,6 +394,8 @@ export class AppStack extends Stack {
     this.jobsTable.grantReadWriteData(createContentResolver);
     this.jobsTable.grantReadWriteData(updateContentResolver);
     this.jobsTable.grantReadWriteData(deleteContentResolver);
+    this.jobsTable.grantReadWriteData(assetPoolAssetsResolver);
+    this.jobsTable.grantReadWriteData(registerAssetPoolAssetResolver);
     this.assetsBucket.grantReadWrite(getJobDraftResolver);
     this.assetsBucket.grantReadWrite(createDraftJobResolver);
     this.assetsBucket.grantReadWrite(updateJobBriefResolver);
@@ -403,6 +414,8 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     this.assetsBucket.grantReadWrite(deleteJobResolver);
     this.assetsBucket.grantReadWrite(attachJobToContentResolver);
+    this.assetsBucket.grantRead(assetPoolAssetsResolver);
+    this.assetsBucket.grantRead(registerAssetPoolAssetResolver);
     this.llmConfigTable.grantReadData(getLlmSettingsResolver);
     this.llmConfigTable.grantReadData(listContentPresetsResolver);
     this.llmConfigTable.grantReadWriteData(deleteContentPresetResolver);
@@ -515,6 +528,8 @@ export class AppStack extends Stack {
       upsertContentPresetResolver,
       listVoiceProfilesResolver,
       upsertVoiceProfileResolver,
+      assetPoolAssetsResolver,
+      registerAssetPoolAssetResolver,
       getJobDraftResolver,
       createContentResolver,
       updateContentResolver,
