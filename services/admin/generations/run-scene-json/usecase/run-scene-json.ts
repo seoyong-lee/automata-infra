@@ -32,7 +32,8 @@ export const runAdminSceneJson = async (
     triggeredBy,
     inputSnapshotId,
     runCore: () => runSceneJsonCore(jobId),
-    getQueuedResult: async () => mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
+    getQueuedResult: async () =>
+      mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
     getSuccessSnapshot: (result) => result.sceneJsonS3Key,
   });
 };

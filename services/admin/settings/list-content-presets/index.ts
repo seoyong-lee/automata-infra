@@ -1,49 +1,10 @@
-import { Handler } from "aws-lambda";
-import {
-  assertAdminGroup,
-  getActor,
-} from "../../../shared/lib/auth/admin-claims";
-import { logResolverAudit } from "../../shared/audit-log";
-import { toGraphqlResolverError } from "../../shared/errors";
-import { GraphqlResolverEvent } from "../../shared/types";
+import { runAuditedAdminResolver } from "../../shared/run-audited-admin-resolver";
 import { parseListContentPresetsArgs } from "./normalize/parse-list-content-presets-args";
 import { listContentPresets } from "./usecase/list-content-presets";
 
-export const run: Handler<
-  GraphqlResolverEvent<Record<string, unknown>>,
-  unknown
-> = async (event) => {
-  const actor = getActor(event.identity);
-
-  try {
-    assertAdminGroup(event.identity);
-    const parsed = parseListContentPresetsArgs(
-      (event.arguments ?? {}) as Record<string, unknown>,
-    );
-    logResolverAudit({
-      operation: "contentPresets",
-      operationType: "query",
-      phase: "started",
-      actor,
-    });
-    const result = await listContentPresets(parsed);
-    logResolverAudit({
-      operation: "contentPresets",
-      operationType: "query",
-      phase: "succeeded",
-      actor,
-    });
-    return result;
-  } catch (error) {
-    const mapped = toGraphqlResolverError(error);
-    logResolverAudit({
-      operation: "contentPresets",
-      operationType: "query",
-      phase: "failed",
-      actor,
-      errorCode: mapped.code,
-      errorMessage: mapped.message,
-    });
-    throw mapped;
-  }
-};
+export const run = runAuditedAdminResolver({
+  operation: "contentPresets",
+  operationType: "query",
+  parse: parseListContentPresetsArgs,
+  run: async ({ parsed }) => listContentPresets(parsed),
+});

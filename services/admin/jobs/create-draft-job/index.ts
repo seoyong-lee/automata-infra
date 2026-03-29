@@ -1,49 +1,19 @@
-import { Handler } from "aws-lambda";
-import {
-  assertAdminGroup,
-  getActor,
-} from "../../../shared/lib/auth/admin-claims";
-import { logResolverAudit } from "../../shared/audit-log";
-import { toGraphqlResolverError } from "../../shared/errors";
-import { GraphqlResolverEvent } from "../../shared/types";
+import { runAuditedAdminResolver } from "../../shared/run-audited-admin-resolver";
 import { parseCreateDraftJobArgs } from "./normalize/parse-create-draft-job-args";
 import { createAdminDraftJob } from "./usecase/create-draft-job";
 
-export const run: Handler<
-  GraphqlResolverEvent<Record<string, unknown>>,
-  unknown
-> = async (event) => {
-  const actor = getActor(event.identity);
-  try {
-    assertAdminGroup(event.identity);
-    const parsed = parseCreateDraftJobArgs(
-      (event.arguments ?? {}) as Record<string, unknown>,
-    );
-    logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
-      phase: "started",
-      actor,
-    });
-    const result = await createAdminDraftJob({ ...parsed, triggeredBy: actor });
-    logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
-      phase: "succeeded",
-      actor,
-      jobId: result.jobId,
-    });
-    return result;
-  } catch (error) {
-    const mapped = toGraphqlResolverError(error);
-    logResolverAudit({
-      operation: "createDraftJob",
-      operationType: "mutation",
-      phase: "failed",
-      actor,
-      errorCode: mapped.code,
-      errorMessage: mapped.message,
-    });
-    throw mapped;
-  }
-};
+export const run = runAuditedAdminResolver({
+  operation: "createDraftJob",
+  operationType: "mutation",
+  parse: parseCreateDraftJobArgs,
+  resolveAuditFields: ({ result }) => {
+    const resolved = result as
+      | Awaited<ReturnType<typeof createAdminDraftJob>>
+      | undefined;
+    return {
+      jobId: resolved?.jobId,
+    };
+  },
+  run: async ({ parsed, actor }) =>
+    createAdminDraftJob({ ...parsed, triggeredBy: actor }),
+});
