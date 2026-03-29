@@ -75,6 +75,8 @@
   - 완료: `run-final-composition`의 subtitle ASS 계산 / render context load 분리
   - 완료: `run-asset-generation`의 scope/context/policy/modality 실행 분리
   - 완료: scene candidate 선택 / voice profile 설정 usecase의 repo/mapper/helper 분리
+  - 완료: pipeline stage usecase의 queued/sync execution wrapper 공통화
+  - 완료: `set-job-background-music` 검증 로직 분리
   - next: field 단위에서 index/usecase 경계가 약한 구간 점검
 
 ---

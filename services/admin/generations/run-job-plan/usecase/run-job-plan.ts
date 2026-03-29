@@ -1,9 +1,4 @@
 import { putJsonToS3 } from "../../../../shared/lib/aws/runtime";
-import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
-import {
-  startJobExecution,
-  startQueuedJobExecution,
-} from "../../../../shared/lib/store/job-execution";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { parseJobBriefInput } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import { createJobPlan } from "../../../../plan/usecase/create-job-plan";
@@ -12,11 +7,7 @@ import {
   getStoredJobBrief,
 } from "../../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
-
-const pipelineAsyncEnabled = (): boolean =>
-  (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
-    process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
-  Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
+import { runAdminStageExecution } from "../../../shared/usecase/run-admin-stage-execution";
 
 export const runJobPlanCore = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
@@ -52,44 +43,20 @@ export const runJobPlanCore = async (jobId: string) => {
 export const runAdminJobPlan = async (jobId: string, triggeredBy?: string) => {
   const job = await getJobOrThrow(jobId);
   const inputSnapshotId = job.jobBriefS3Key ?? undefined;
-
-  if (pipelineAsyncEnabled()) {
-    const { sk, finish } = await startQueuedJobExecution({
-      jobId,
-      stageType: "JOB_PLAN",
-      triggeredBy,
-      inputSnapshotId,
-    });
-    try {
-      await invokePipelineWorkerAsync({
-        jobId,
-        executionSk: sk,
-        stage: "JOB_PLAN",
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      await updateJobMeta(jobId, { lastError: msg }, "FAILED");
-      await finish("FAILED", msg);
-      throw e;
-    }
-    const queuedJob = await getJobOrThrow(jobId);
-    return mapJobMetaToAdminJob(queuedJob);
-  }
-
-  const { finish } = await startJobExecution({
+  return runAdminStageExecution({
     jobId,
     stageType: "JOB_PLAN",
     triggeredBy,
     inputSnapshotId,
+    runCore: () => runJobPlanCore(jobId),
+    getQueuedResult: async () =>
+      mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
+    getSuccessSnapshot: (result) => result.jobPlanS3Key,
+    onAsyncInvokeError: async (message) => {
+      await updateJobMeta(jobId, { lastError: message }, "FAILED");
+    },
+    onSyncError: async (message) => {
+      await updateJobMeta(jobId, { lastError: message }, "FAILED");
+    },
   });
-  try {
-    const result = await runJobPlanCore(jobId);
-    await finish("SUCCEEDED", undefined, result.jobPlanS3Key);
-    return result;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await updateJobMeta(jobId, { lastError: msg }, "FAILED");
-    await finish("FAILED", msg);
-    throw e;
-  }
 };

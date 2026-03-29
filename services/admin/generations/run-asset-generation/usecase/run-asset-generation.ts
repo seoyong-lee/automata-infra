@@ -1,11 +1,7 @@
-import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
-import {
-  startJobExecution,
-  startQueuedJobExecution,
-} from "../../../../shared/lib/store/job-execution";
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
 import { getJobOrThrow } from "../../../shared/repo/job-draft-store";
+import { runAdminStageExecution } from "../../../shared/usecase/run-admin-stage-execution";
 import { persistAssetManifestForJob } from "../repo/persist-asset-manifest";
 import {
   assertModalityAllowed,
@@ -31,11 +27,6 @@ import type { ParsedRunAssetGenerationArgs } from "../normalize/parse-run-asset-
 
 export type { AssetGenerationScope } from "../normalize/asset-generation-scope";
 export { resolveTargetVideoDurationSec } from "./policies/run-video-modality-for-scenes";
-
-const pipelineAsyncEnabled = (): boolean =>
-  (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
-    process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
-  Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
 export const runAssetGenerationCore = async (
   jobId: string,
@@ -89,47 +80,15 @@ export const runAdminAssetGeneration = async (
   const jobId = parsed.jobId;
   const scope = toAssetGenerationScope(parsed);
   const inputSnapshotId = await resolveAssetGenerationInputSnapshotId(jobId);
-
-  if (pipelineAsyncEnabled()) {
-    const { sk, finish } = await startQueuedJobExecution({
-      jobId,
-      stageType: "ASSET_GENERATION",
-      triggeredBy,
-      inputSnapshotId,
-    });
-    try {
-      await invokePipelineWorkerAsync({
-        jobId,
-        executionSk: sk,
-        stage: "ASSET_GENERATION",
-        assetGenScope: scope,
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      await finish("FAILED", msg);
-      throw e;
-    }
-    const job = await getJobOrThrow(jobId);
-    return mapJobMetaToAdminJob(job);
-  }
-
-  const { finish } = await startJobExecution({
+  return runAdminStageExecution({
     jobId,
     stageType: "ASSET_GENERATION",
     triggeredBy,
     inputSnapshotId,
-  });
-  try {
-    const result = await runAssetGenerationCore(jobId, scope);
-    await finish(
-      "SUCCEEDED",
-      undefined,
+    workerPayload: { assetGenScope: scope },
+    runCore: () => runAssetGenerationCore(jobId, scope),
+    getQueuedResult: async () => mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
+    getSuccessSnapshot: (result) =>
       result.assetManifestS3Key ?? result.sceneJsonS3Key,
-    );
-    return result;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await finish("FAILED", msg);
-    throw e;
-  }
+  });
 };

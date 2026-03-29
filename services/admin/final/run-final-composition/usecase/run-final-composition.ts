@@ -1,14 +1,10 @@
 import { putBufferToS3 } from "../../../../shared/lib/aws/runtime";
-import { invokePipelineWorkerAsync } from "../../../../shared/lib/aws/invoke-pipeline-worker";
-import {
-  startJobExecution,
-  startQueuedJobExecution,
-} from "../../../../shared/lib/store/job-execution";
 import { run as runFinalCompositionStage } from "../../../../composition/final-composition";
 import { run as runRenderPlanStage } from "../../../../composition/render-plan";
 import { run as runValidateAssetsStage } from "../../../../composition/validate-assets";
 import { getJobOrThrow } from "../../../shared/repo/job-draft-store";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
+import { runAdminStageExecution } from "../../../shared/usecase/run-admin-stage-execution";
 import {
   buildSubtitleAss,
   hasSubtitleAssEntries,
@@ -27,11 +23,6 @@ type RenderPlanResult = {
 const noopCallback = (() => undefined) as never;
 const noopContext = {} as never;
 const SUBTITLE_ASS_CONTENT_TYPE = "text/x-ass";
-
-const pipelineAsyncEnabled = (): boolean =>
-  (process.env.PIPELINE_ASYNC_INVOCATION === "1" ||
-    process.env.PIPELINE_ASYNC_INVOCATION === "true") &&
-  Boolean(process.env.PIPELINE_WORKER_FUNCTION_NAME?.trim());
 
 const maybePersistSubtitleAss = async (
   jobId: string,
@@ -126,47 +117,15 @@ export const runAdminFinalComposition = async (
   const job = await getJobOrThrow(jobId);
   const inputSnapshotId =
     job.assetManifestS3Key ?? job.sceneJsonS3Key ?? undefined;
-
-  if (pipelineAsyncEnabled()) {
-    const { sk, finish } = await startQueuedJobExecution({
-      jobId,
-      stageType: "FINAL_COMPOSITION",
-      triggeredBy,
-      inputSnapshotId,
-    });
-    try {
-      await invokePipelineWorkerAsync({
-        jobId,
-        executionSk: sk,
-        stage: "FINAL_COMPOSITION",
-        ...(scope ? { finalCompositionScope: scope } : {}),
-      });
-    } catch (e) {
-      const msg = e instanceof Error ? e.message : String(e);
-      await finish("FAILED", msg);
-      throw e;
-    }
-    const refreshed = await getJobOrThrow(jobId);
-    return mapJobMetaToAdminJob(refreshed);
-  }
-
-  const { finish } = await startJobExecution({
+  return runAdminStageExecution({
     jobId,
     stageType: "FINAL_COMPOSITION",
     triggeredBy,
     inputSnapshotId,
-  });
-  try {
-    const result = await runFinalCompositionCore(jobId, scope);
-    await finish(
-      "SUCCEEDED",
-      undefined,
+    workerPayload: scope ? { finalCompositionScope: scope } : undefined,
+    runCore: () => runFinalCompositionCore(jobId, scope),
+    getQueuedResult: async () => mapJobMetaToAdminJob(await getJobOrThrow(jobId)),
+    getSuccessSnapshot: (result) =>
       result.finalVideoS3Key ?? result.previewS3Key,
-    );
-    return result;
-  } catch (e) {
-    const msg = e instanceof Error ? e.message : String(e);
-    await finish("FAILED", msg);
-    throw e;
-  }
+  });
 };
