@@ -391,21 +391,6 @@ export async function runRenderTask(input) {
       mediaToolsRepo,
     });
     segmentPaths.push(segmentPath);
-    if (Number(scene.gapAfterSec) > 0) {
-      segmentPaths.push(
-        await createGapSegment({
-          jobId,
-          index: scene.sceneId,
-          durationSec: Number(scene.gapAfterSec),
-          workDir,
-          outputSettings,
-          canvasSettings,
-          previousSegmentPath: segmentPath,
-          storageRepo,
-          mediaToolsRepo,
-        }),
-      );
-    }
   }
 
   if (!segmentPaths.length) {

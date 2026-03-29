@@ -14,6 +14,7 @@ const DEFAULT_RENDER_OUTPUT: RenderPlanOutput = {
   },
   fps: 30,
 };
+const PREVIEW_TEXT_REFERENCE_SHORT_EDGE = 320;
 
 const formatAssTimestamp = (seconds: number): string => {
   const safeCs = Math.max(0, Math.round(seconds * 100));
@@ -173,6 +174,17 @@ const resolveTextOverlayPosition = (
   };
 };
 
+const resolveOverlayFontSize = (
+  overlay: Extract<RenderPlanOverlay, { type: "text" }>,
+  output: RenderPlanOutput,
+): number => {
+  const outputShortEdge = Math.min(output.size.width, output.size.height);
+  return Math.round(
+    Math.max(12, overlay.style.fontSize) *
+      (outputShortEdge / PREVIEW_TEXT_REFERENCE_SHORT_EDGE),
+  );
+};
+
 const buildTextOverlayEvents = (
   renderPlan: Pick<RenderPlan, "output" | "overlays" | "totalDurationSec">,
 ) => {
@@ -191,7 +203,7 @@ const buildTextOverlayEvents = (
         startSec,
         overlay.endSec ?? renderPlan.totalDurationSec ?? startSec,
       );
-      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${Math.round(overlay.style.fontSize)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
+      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, output)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
     });
 };
 
@@ -266,7 +278,7 @@ export const buildSubtitleAss = (
   return [
     "[Script Info]",
     "ScriptType: v4.00+",
-    "WrapStyle: 2",
+    "WrapStyle: 0",
     "ScaledBorderAndShadow: yes",
     `PlayResX: ${output.size.width}`,
     `PlayResY: ${output.size.height}`,

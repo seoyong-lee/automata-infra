@@ -1,6 +1,8 @@
 import { promises as fs } from "node:fs";
 import { seconds } from "../normalize/render-plan.mjs";
 
+const PREVIEW_TEXT_REFERENCE_SHORT_EDGE = 320;
+
 function clampNumber(value, min, max, fallback) {
   const parsed = Number(value);
   if (!Number.isFinite(parsed)) {
@@ -86,10 +88,22 @@ function resolveTextOverlayPosition(overlay, outputSettings) {
         : Number(overlay.placement?.x ?? 0) +
           Number(overlay.placement?.width ?? 0) / 2;
   return {
-    x: Math.round(outputSettings.width * xRatio),
-    y: Math.round(outputSettings.height * Number(overlay.placement?.y ?? 0)),
+    x: Math.max(0, Math.min(outputSettings.width, Math.round(outputSettings.width * xRatio))),
+    y: Math.max(
+      0,
+      Math.min(
+        outputSettings.height,
+        Math.round(outputSettings.height * Number(overlay.placement?.y ?? 0)),
+      ),
+    ),
     alignment: resolveTextOverlayAlignment(align),
   };
+}
+
+function resolveOverlayFontSize(overlay, outputSettings) {
+  const rawFontSize = Math.max(12, Number(overlay.style?.fontSize ?? 32));
+  const outputShortEdge = Math.min(outputSettings.width, outputSettings.height);
+  return Math.round(rawFontSize * (outputShortEdge / PREVIEW_TEXT_REFERENCE_SHORT_EDGE));
 }
 
 function resolveHorizontalMargins(outputWidth, widthRatio) {
@@ -147,7 +161,7 @@ function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
       const position = resolveTextOverlayPosition(overlay, outputSettings);
       const margins = resolveOverlayMargins(overlay, outputSettings);
       const bold = overlay.style?.fontWeight === "bold" ? 1 : 0;
-      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${Math.round(Number(overlay.style?.fontSize ?? 32))}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
+      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, outputSettings)}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
     });
 }
 
@@ -227,7 +241,7 @@ export async function writeSceneAss(
 ScriptType: v4.00+
 PlayResX: ${outputSettings.width}
 PlayResY: ${outputSettings.height}
-WrapStyle: 2
+WrapStyle: 0
 ScaledBorderAndShadow: yes
 
 [V4+ Styles]
