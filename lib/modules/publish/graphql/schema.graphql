@@ -280,6 +280,7 @@ type RenderSettings {
   subtitleFontPreset: String
   subtitleFontWeight: String
   subtitleFontSize: Int
+  subtitleMaxWidth: Float
   subtitleColor: String
   backgroundColor: String
   videoScale: Float
@@ -701,6 +702,7 @@ input RenderSettingsInput {
   subtitleFontPreset: String
   subtitleFontWeight: String
   subtitleFontSize: Int
+  subtitleMaxWidth: Float
   subtitleColor: String
   backgroundColor: String
   videoScale: Float

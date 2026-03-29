@@ -34,6 +34,7 @@ export const renderPlanSubtitleStyleSchema = z.object({
   fontWeight: z.enum(["regular", "bold"]),
   lineHeight: z.number().positive(),
   opacity: z.number().min(0).max(1),
+  maxWidth: z.number().min(0.2).max(1),
   color: z.string().trim().min(1),
   strokeColor: z.string().trim().min(1),
   strokeWidth: z.number().min(0),

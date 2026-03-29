@@ -55,6 +55,7 @@ const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   fontWeight: "regular",
   lineHeight: 1,
   opacity: 1,
+  maxWidth: 0.88,
   color: "#000000",
   strokeColor: "#ffffff",
   strokeWidth: 2,
@@ -224,6 +225,7 @@ const resolveSubtitleFont = (
     fontFamily: resolvedFontFamily,
     fontWeight: renderSettings?.subtitleFontWeight ?? style.fontWeight,
     fontSize: scaledFontSize,
+    maxWidth: renderSettings?.subtitleMaxWidth ?? style.maxWidth,
   };
 };
 

@@ -166,6 +166,7 @@ function resolveSubtitleSettings(renderPlan) {
       fontWeight: style.fontWeight === "bold" ? "bold" : "regular",
       lineHeight: Number(style.lineHeight ?? 1),
       opacity: Number(style.opacity ?? 1),
+      maxWidth: clampNumber(style.maxWidth, 0.2, 1, 0.88),
       color: style.color ?? "#000000",
       strokeColor: style.strokeColor ?? "#ffffff",
       strokeWidth: Number(style.strokeWidth ?? 2),
@@ -286,6 +287,33 @@ function resolveTextOverlayPosition(overlay, outputSettings) {
   };
 }
 
+function resolveHorizontalMargins(outputWidth, widthRatio) {
+  const safeWidthRatio = clampNumber(widthRatio, 0.2, 1, 0.88);
+  const margin = Math.round((outputWidth * (1 - safeWidthRatio)) / 2);
+  return {
+    left: Math.max(0, margin),
+    right: Math.max(0, margin),
+  };
+}
+
+function resolveOverlayMargins(overlay, outputSettings) {
+  return {
+    left: Math.max(0, Math.round(outputSettings.width * Number(overlay.placement?.x ?? 0))),
+    right: Math.max(
+      0,
+      Math.round(
+        outputSettings.width *
+          Math.max(
+            0,
+            1 -
+              Number(overlay.placement?.x ?? 0) -
+              Number(overlay.placement?.width ?? 0),
+          ),
+      ),
+    ),
+  };
+}
+
 function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
   const sceneStartSec = Number(scene.startSec ?? 0);
   const sceneEndSec = Number(scene.endSec ?? sceneDuration(scene));
@@ -309,8 +337,9 @@ function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
     .filter((event) => event.endSec > event.startSec)
     .map(({ overlay, startSec, endSec }) => {
       const position = resolveTextOverlayPosition(overlay, outputSettings);
+      const margins = resolveOverlayMargins(overlay, outputSettings);
       const bold = overlay.style?.fontWeight === "bold" ? 1 : 0;
-      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,0,0,0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${Math.round(Number(overlay.style?.fontSize ?? 32))}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
+      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${Math.round(Number(overlay.style?.fontSize ?? 32))}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
     });
 }
 
@@ -382,6 +411,10 @@ async function writeSceneAss(
     return false;
   }
   const assBold = subtitleSettings.style.fontWeight === "bold" ? -1 : 0;
+  const subtitleMargins = resolveHorizontalMargins(
+    outputSettings.width,
+    subtitleSettings.style.maxWidth,
+  );
   const content = `[Script Info]
 ScriptType: v4.00+
 PlayResX: ${outputSettings.width}
@@ -391,7 +424,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},40,40,48,1
+Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},${subtitleMargins.left},${subtitleMargins.right},48,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text

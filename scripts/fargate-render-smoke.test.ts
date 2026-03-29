@@ -133,6 +133,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
         fontWeight: "bold",
         lineHeight: 1,
         opacity: 1,
+        maxWidth: 0.64,
         color: "#FFFFFF",
         strokeColor: "#000000",
         strokeWidth: 2,
@@ -154,6 +155,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
   assert.equal(renderPlan.subtitles.style.fontFamily, "DejaVu Serif");
   assert.equal(renderPlan.subtitles.style.fontSize, 44);
   assert.equal(renderPlan.subtitles.style.fontWeight, "bold");
+  assert.equal(renderPlan.subtitles.style.maxWidth, 0.64);
   assert.equal(renderPlan.subtitles.style.offset.y, 0.12);
 });
 
@@ -228,6 +230,7 @@ void test("render plan maps subtitle color and saved text overlays into overlay 
         fontWeight: "bold",
         lineHeight: 1,
         opacity: 1,
+        maxWidth: 0.88,
         color: "#FFDD00",
         strokeColor: "#000000",
         strokeWidth: 2,

@@ -70,6 +70,7 @@ export const jobRenderSettingsSchema = z
     subtitleFontPreset: subtitleFontPresetSchema.optional(),
     subtitleFontWeight: subtitleFontWeightSchema.optional(),
     subtitleFontSize: z.number().int().min(12).max(96).optional(),
+    subtitleMaxWidth: normalizedOverlayWidthSchema.optional(),
     subtitleColor: hexColorSchema.optional(),
     backgroundColor: hexColorSchema.optional(),
     videoScale: z.number().min(0.5).max(1.25).optional(),

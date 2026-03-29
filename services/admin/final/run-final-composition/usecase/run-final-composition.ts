@@ -121,11 +121,42 @@ const resolveSubtitleBasePosition = (
   };
 };
 
+const resolveHorizontalMarginsFromWidthRatio = (
+  outputWidth: number,
+  widthRatio?: number,
+) => {
+  const safeWidthRatio = clamp(widthRatio ?? 0.88, 0.2, 1);
+  const margin = Math.round((outputWidth * (1 - safeWidthRatio)) / 2);
+  return {
+    left: Math.max(0, margin),
+    right: Math.max(0, margin),
+  };
+};
+
+const resolveOverlayMargins = (
+  overlay: Extract<RenderPlanOverlay, { type: "text" }>,
+  output: RenderPlanOutput,
+) => {
+  const left = Math.round(output.size.width * overlay.placement.x);
+  const right = Math.round(
+    output.size.width *
+      Math.max(0, 1 - overlay.placement.x - overlay.placement.width),
+  );
+  return {
+    left: clamp(left, 0, output.size.width),
+    right: clamp(right, 0, output.size.width),
+  };
+};
+
 const buildAssStyleLine = (
   style: RenderPlanSubtitleStyle,
   output: RenderPlanOutput,
 ): string => {
   const assBold = style.fontWeight === "bold" ? -1 : 0;
+  const margins = resolveHorizontalMarginsFromWidthRatio(
+    output.size.width,
+    style.maxWidth,
+  );
   return [
     "Style: Default",
     style.fontFamily.replace(/,/g, " "),
@@ -146,8 +177,8 @@ const buildAssStyleLine = (
     Math.max(0, style.strokeWidth),
     0,
     resolveSubtitleAlignment(style.position),
-    Math.round(output.size.width * 0.06),
-    Math.round(output.size.width * 0.06),
+    margins.left,
+    margins.right,
     Math.round(output.size.height * 0.06),
     1,
   ].join(",");
@@ -198,13 +229,14 @@ const buildTextOverlayEvents = (
     )
     .map((overlay) => {
       const position = resolveTextOverlayPosition(overlay, output);
+      const margins = resolveOverlayMargins(overlay, output);
       const bold = overlay.style.fontWeight === "bold" ? 1 : 0;
       const startSec = Math.max(0, overlay.startSec ?? 0);
       const endSec = Math.max(
         startSec,
         overlay.endSec ?? renderPlan.totalDurationSec ?? startSec,
       );
-      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,0,0,0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${Math.round(overlay.style.fontSize)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
+      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${Math.round(overlay.style.fontSize)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
     });
 };
 
