@@ -23,8 +23,10 @@ import {
 import type {
   RenderPlan,
   RenderPlanCanvas,
+  RenderPlanMediaFrame,
   RenderPlanOverlay,
   RenderPlanScene,
+  RenderPlanSubtitleSegment,
   RenderPlanSubtitleStyle,
 } from "../../../types/render/render-plan";
 
@@ -94,6 +96,7 @@ const LANDSCAPE_OUTPUT = {
 const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   fontFamily: "Clear Sans",
   fontSize: 32,
+  fontWeight: "regular",
   lineHeight: 1,
   opacity: 1,
   color: "#000000",
@@ -108,6 +111,7 @@ const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
 const BOLD_CAPTION_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   ...DEFAULT_SUBTITLE_STYLE,
   fontSize: 42,
+  fontWeight: "bold",
   color: "#FFFFFF",
   strokeColor: "#000000",
   strokeWidth: 3,
@@ -140,6 +144,14 @@ const DEFAULT_CANVAS: RenderPlanCanvas = {
   videoScale: 1,
   videoCropMode: "cover",
 };
+const DEFAULT_MEDIA_FRAME: RenderPlanMediaFrame = {
+  x: 0,
+  y: 0,
+  width: 1,
+  height: 1,
+};
+const PREVIEW_SUBTITLE_REFERENCE_SHORT_EDGE = 320;
+const MIN_SUBTITLE_SEGMENT_DURATION_SEC = 0.45;
 const subtitleStyleByPreset: Record<string, RenderPlanSubtitleStyle> = {
   "bold-caption-news": BOLD_CAPTION_SUBTITLE_STYLE,
   "minimal-quote": MINIMAL_SUBTITLE_STYLE,
@@ -154,6 +166,7 @@ const subtitleFontFamilyByPreset: Record<string, string> = {
 type RenderPolicyConfig = {
   output: RenderPlan["output"];
   canvas: RenderPlanCanvas;
+  mediaFrame: RenderPlanMediaFrame;
   previewMaxDurationSec: number;
   subtitles: RenderPlan["subtitles"];
   sceneGapSec: number;
@@ -187,6 +200,126 @@ const resolveSceneDurationSec = (
   return Math.max(plannedDurationSec, minimumNarrationDurationSec);
 };
 
+const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
+  const normalized = subtitle.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return [];
+  }
+  const sentenceMatches = normalized.match(/[^.!?。！？\n]+[.!?。！？]?/g);
+  const sentences = (sentenceMatches ?? [normalized])
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+  if (sentences.length > 1) {
+    return sentences;
+  }
+  return normalized
+    .split(/[,;:]/)
+    .map((part) => part.trim())
+    .filter((part) => part.length > 0);
+};
+
+const buildSubtitleSegments = (input: {
+  subtitle: string;
+  startSec: number;
+  endSec: number;
+}): RenderPlanSubtitleSegment[] => {
+  const parts = splitSubtitleIntoPhrases(input.subtitle);
+  if (parts.length === 0 || input.endSec <= input.startSec) {
+    return [];
+  }
+  if (parts.length === 1) {
+    return [
+      {
+        text: parts[0]!,
+        startSec: input.startSec,
+        endSec: input.endSec,
+      },
+    ];
+  }
+
+  const totalDurationSec = input.endSec - input.startSec;
+  const weights = parts.map((part) =>
+    Math.max(1, part.replace(/\s+/g, "").length),
+  );
+  const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
+  let cursorSec = input.startSec;
+
+  return parts.map((part, index) => {
+    const isLast = index === parts.length - 1;
+    const proportionalDurationSec =
+      (totalDurationSec * weights[index]!) / totalWeight;
+    const remainingSec = input.endSec - cursorSec;
+    const segmentDurationSec = isLast
+      ? remainingSec
+      : Math.min(
+          remainingSec,
+          Math.max(
+            MIN_SUBTITLE_SEGMENT_DURATION_SEC,
+            Math.min(proportionalDurationSec, remainingSec),
+          ),
+        );
+    const segment = {
+      text: part,
+      startSec: cursorSec,
+      endSec: isLast
+        ? input.endSec
+        : Math.min(input.endSec, cursorSec + segmentDurationSec),
+    };
+    cursorSec = segment.endSec;
+    return segment;
+  });
+};
+
+const buildRenderPlanScene = (input: {
+  scene: RenderPlanSceneInput;
+  index: number;
+  sceneCount: number;
+  startSec: number;
+  sceneGapSec: number;
+  imageAssets: NonNullable<RenderPlanEvent["imageAssets"]>;
+  videoAssets: NonNullable<RenderPlanEvent["videoAssets"]>;
+  voiceAssets: NonNullable<RenderPlanEvent["voiceAssets"]>;
+}): RenderPlanScene => {
+  const imageAsset = input.imageAssets.find(
+    (asset) => asset.sceneId === input.scene.sceneId,
+  );
+  const voiceAsset = input.voiceAssets.find(
+    (asset) => asset.sceneId === input.scene.sceneId,
+  );
+  const videoAsset = input.videoAssets.find(
+    (asset) => asset.sceneId === input.scene.sceneId,
+  );
+  const sceneDurationSec = resolveSceneDurationSec(input.scene, voiceAsset);
+  const endSec = input.startSec + sceneDurationSec;
+  const gapAfterSec =
+    input.index < input.sceneCount - 1 ? input.sceneGapSec : 0;
+
+  return {
+    sceneId: input.scene.sceneId,
+    startSec: input.startSec,
+    endSec,
+    durationSec: sceneDurationSec,
+    gapAfterSec,
+    ...(imageAsset?.imageS3Key ? { imageS3Key: imageAsset.imageS3Key } : {}),
+    ...(videoAsset?.videoClipS3Key
+      ? { videoClipS3Key: videoAsset.videoClipS3Key }
+      : {}),
+    ...(voiceAsset?.voiceS3Key ? { voiceS3Key: voiceAsset.voiceS3Key } : {}),
+    ...(typeof voiceAsset?.voiceDurationSec === "number"
+      ? { voiceDurationSec: voiceAsset.voiceDurationSec }
+      : {}),
+    disableNarration: input.scene.disableNarration,
+    subtitle: input.scene.subtitle,
+    subtitleSegments: buildSubtitleSegments({
+      subtitle: input.scene.subtitle,
+      startSec: input.startSec,
+      endSec,
+    }),
+    bgmMood: input.scene.bgmMood,
+    sfx: input.scene.sfx,
+  };
+};
+
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
   sceneGapSec = 0.5,
@@ -197,38 +330,21 @@ export const buildRenderPlanScenes = (
   const voiceAssets = event.voiceAssets ?? [];
 
   const scenes = event.sceneJson.scenes.map((scene, index) => {
-    const alignedScene = alignSceneNarrationAndSubtitle(scene);
-    const imageAsset = imageAssets.find(
-      (asset) => asset.sceneId === alignedScene.sceneId,
-    );
-    const voiceAsset = voiceAssets.find(
-      (asset) => asset.sceneId === alignedScene.sceneId,
-    );
-    const videoAsset = videoAssets.find(
-      (asset) => asset.sceneId === alignedScene.sceneId,
-    );
-    const sceneDurationSec = resolveSceneDurationSec(alignedScene, voiceAsset);
-    const startSec = cursorSec;
-    const endSec = startSec + sceneDurationSec;
-    const gapAfterSec =
-      index < event.sceneJson.scenes.length - 1 ? sceneGapSec : 0;
-    cursorSec = endSec + gapAfterSec;
-
-    return {
-      sceneId: alignedScene.sceneId,
-      startSec,
-      endSec,
-      durationSec: sceneDurationSec,
-      gapAfterSec,
-      imageS3Key: imageAsset?.imageS3Key,
-      videoClipS3Key: videoAsset?.videoClipS3Key,
-      voiceS3Key: voiceAsset?.voiceS3Key,
-      voiceDurationSec: voiceAsset?.voiceDurationSec,
-      disableNarration: alignedScene.disableNarration,
-      subtitle: alignedScene.subtitle,
-      bgmMood: alignedScene.bgmMood,
-      sfx: alignedScene.sfx,
-    };
+    const alignedScene = alignSceneNarrationAndSubtitle(
+      scene,
+    ) as RenderPlanSceneInput;
+    const builtScene = buildRenderPlanScene({
+      scene: alignedScene,
+      index,
+      sceneCount: event.sceneJson.scenes.length,
+      startSec: cursorSec,
+      sceneGapSec,
+      imageAssets,
+      videoAssets,
+      voiceAssets,
+    });
+    cursorSec = builtScene.endSec + builtScene.gapAfterSec;
+    return builtScene;
   });
 
   return {
@@ -316,6 +432,7 @@ const resolveSubtitlePosition = (
 
 const resolveSubtitleFont = (
   style: RenderPlanSubtitleStyle,
+  output: RenderPlan["output"],
   renderSettings?: JobRenderSettings,
 ): RenderPlanSubtitleStyle => {
   const resolvedFontFamily =
@@ -324,10 +441,18 @@ const resolveSubtitleFont = (
       ? (subtitleFontFamilyByPreset[renderSettings.subtitleFontPreset] ??
         style.fontFamily)
       : style.fontFamily;
+  const outputShortEdge = Math.min(output.size.width, output.size.height);
+  const scaledFontSize = renderSettings?.subtitleFontSize
+    ? Math.round(
+        renderSettings.subtitleFontSize *
+          (outputShortEdge / PREVIEW_SUBTITLE_REFERENCE_SHORT_EDGE),
+      )
+    : style.fontSize;
   return {
     ...style,
     fontFamily: resolvedFontFamily,
-    fontSize: renderSettings?.subtitleFontSize ?? style.fontSize,
+    fontWeight: renderSettings?.subtitleFontWeight ?? style.fontWeight,
+    fontSize: scaledFontSize,
   };
 };
 
@@ -409,6 +534,31 @@ const resolveCanvas = (
   };
 };
 
+const resolveMediaFrame = (
+  renderSettings?: JobRenderSettings,
+): RenderPlanMediaFrame => {
+  const width = Math.min(
+    1,
+    Math.max(0.1, renderSettings?.videoFrameWidth ?? DEFAULT_MEDIA_FRAME.width),
+  );
+  const height = Math.min(
+    1,
+    Math.max(
+      0.1,
+      renderSettings?.videoFrameHeight ?? DEFAULT_MEDIA_FRAME.height,
+    ),
+  );
+  const x = Math.min(
+    1 - width,
+    Math.max(0, renderSettings?.videoFrameX ?? (1 - width) / 2),
+  );
+  const y = Math.min(
+    1 - height,
+    Math.max(0, renderSettings?.videoFrameY ?? (1 - height) / 2),
+  );
+  return { x, y, width, height };
+};
+
 const resolveRenderPolicyConfig = (
   event: RenderPlanEvent,
   input: StoredRenderInputs = {},
@@ -422,6 +572,7 @@ const resolveRenderPolicyConfig = (
       resolveSubtitleStyle(resolvedPolicy, renderSettings),
       renderSettings,
     ),
+    output,
     renderSettings,
   );
   const defaultBurnIn =
@@ -430,6 +581,7 @@ const resolveRenderPolicyConfig = (
   return {
     output,
     canvas: resolveCanvas(renderSettings),
+    mediaFrame: resolveMediaFrame(renderSettings),
     previewMaxDurationSec: resolvePreviewMaxDurationSec(resolvedPolicy),
     subtitles: {
       burnIn: renderSettings?.subtitleEnabled ?? defaultBurnIn,
@@ -547,6 +699,7 @@ export const buildRenderPlan = (
     language: event.sceneJson.language,
     output: config.output,
     canvas: config.canvas,
+    mediaFrame: config.mediaFrame,
     preview: {
       enabled: true,
       maxDurationSec: config.previewMaxDurationSec,

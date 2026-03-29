@@ -42,7 +42,9 @@ const subtitleFontPresetSchema = z.enum([
   "sans",
   "display",
 ]);
+const subtitleFontWeightSchema = z.enum(["regular", "bold"]);
 const videoCropModeSchema = z.enum(["contain", "cover", "smart-crop"]);
+const normalizedFrameScalarSchema = z.number().min(0).max(1);
 
 export const jobRenderSettingsSchema = z
   .object({
@@ -50,10 +52,15 @@ export const jobRenderSettingsSchema = z
     subtitleStylePreset: nonEmpty.optional(),
     subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
     subtitleFontPreset: subtitleFontPresetSchema.optional(),
+    subtitleFontWeight: subtitleFontWeightSchema.optional(),
     subtitleFontSize: z.number().int().min(12).max(96).optional(),
     backgroundColor: hexColorSchema.optional(),
     videoScale: z.number().min(0.5).max(1.25).optional(),
     videoCropMode: videoCropModeSchema.optional(),
+    videoFrameX: normalizedFrameScalarSchema.optional(),
+    videoFrameY: normalizedFrameScalarSchema.optional(),
+    videoFrameWidth: z.number().min(0.1).max(1).optional(),
+    videoFrameHeight: z.number().min(0.1).max(1).optional(),
   })
   .strict();
 

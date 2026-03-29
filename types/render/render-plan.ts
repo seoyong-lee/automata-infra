@@ -21,9 +21,17 @@ export const renderPlanCanvasSchema = z.object({
   videoCropMode: z.enum(["contain", "cover", "smart-crop"]),
 });
 
+export const renderPlanMediaFrameSchema = z.object({
+  x: z.number().min(0).max(1),
+  y: z.number().min(0).max(1),
+  width: z.number().min(0.1).max(1),
+  height: z.number().min(0.1).max(1),
+});
+
 export const renderPlanSubtitleStyleSchema = z.object({
   fontFamily: z.string().trim().min(1),
   fontSize: z.number().positive(),
+  fontWeight: z.enum(["regular", "bold"]),
   lineHeight: z.number().positive(),
   opacity: z.number().min(0).max(1),
   color: z.string().trim().min(1),
@@ -43,6 +51,12 @@ export const renderPlanSubtitleSchema = z.object({
   assS3Key: z.string().trim().min(1).optional(),
 });
 
+export const renderPlanSubtitleSegmentSchema = z.object({
+  text: z.string().trim().min(1),
+  startSec: z.number().min(0),
+  endSec: z.number().min(0),
+});
+
 export const renderPlanSceneSchema = z.object({
   sceneId: z.number().int().positive(),
   startSec: z.number().min(0),
@@ -55,6 +69,7 @@ export const renderPlanSceneSchema = z.object({
   voiceDurationSec: z.number().positive().optional(),
   disableNarration: z.boolean().optional(),
   subtitle: z.string(),
+  subtitleSegments: z.array(renderPlanSubtitleSegmentSchema).optional(),
   bgmMood: z.string().trim().min(1).optional(),
   sfx: z.array(z.string()).optional(),
 });
@@ -115,6 +130,7 @@ export const renderPlanSchema = z.object({
   language: z.string(),
   output: renderPlanOutputSchema,
   canvas: renderPlanCanvasSchema,
+  mediaFrame: renderPlanMediaFrameSchema,
   preview: z.object({
     enabled: z.boolean(),
     maxDurationSec: z.number().positive(),
@@ -131,10 +147,14 @@ export const renderPlanSchema = z.object({
 
 export type RenderPlanOutput = z.infer<typeof renderPlanOutputSchema>;
 export type RenderPlanCanvas = z.infer<typeof renderPlanCanvasSchema>;
+export type RenderPlanMediaFrame = z.infer<typeof renderPlanMediaFrameSchema>;
 export type RenderPlanSubtitleStyle = z.infer<
   typeof renderPlanSubtitleStyleSchema
 >;
 export type RenderPlanSubtitle = z.infer<typeof renderPlanSubtitleSchema>;
+export type RenderPlanSubtitleSegment = z.infer<
+  typeof renderPlanSubtitleSegmentSchema
+>;
 export type RenderPlanScene = z.infer<typeof renderPlanSceneSchema>;
 export type RenderPlanOverlay = z.infer<typeof renderPlanOverlaySchema>;
 export type RenderPlan = z.infer<typeof renderPlanSchema>;

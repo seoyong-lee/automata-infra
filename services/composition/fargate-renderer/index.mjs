@@ -142,6 +142,17 @@ function resolveCanvasSettings(renderPlan) {
   };
 }
 
+function resolveMediaFrameSettings(renderPlan) {
+  const width = clampNumber(renderPlan.mediaFrame?.width, 0.1, 1, 1);
+  const height = clampNumber(renderPlan.mediaFrame?.height, 0.1, 1, 1);
+  return {
+    x: clampNumber(renderPlan.mediaFrame?.x, 0, 1 - width, 0),
+    y: clampNumber(renderPlan.mediaFrame?.y, 0, 1 - height, 0),
+    width,
+    height,
+  };
+}
+
 function resolveSubtitleSettings(renderPlan) {
   const style = renderPlan.subtitles?.style ?? {};
   return {
@@ -152,6 +163,7 @@ function resolveSubtitleSettings(renderPlan) {
     style: {
       fontFamily: style.fontFamily ?? "Clear Sans",
       fontSize: Number(style.fontSize ?? 32),
+      fontWeight: style.fontWeight === "bold" ? "bold" : "regular",
       lineHeight: Number(style.lineHeight ?? 1),
       opacity: Number(style.opacity ?? 1),
       color: style.color ?? "#000000",
@@ -247,9 +259,41 @@ function resolveSubtitleBaseYRatio(position) {
   return 0.5;
 }
 
-async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
+function normalizeSceneSubtitleSegments(scene) {
+  const segments = Array.isArray(scene.subtitleSegments)
+    ? scene.subtitleSegments
+        .map((segment) => ({
+          text: String(segment?.text ?? "").trim(),
+          startSec: Number(segment?.startSec ?? 0),
+          endSec: Number(segment?.endSec ?? 0),
+        }))
+        .filter(
+          (segment) =>
+            segment.text &&
+            Number.isFinite(segment.startSec) &&
+            Number.isFinite(segment.endSec) &&
+            segment.endSec > segment.startSec,
+        )
+    : [];
+  if (segments.length > 0) {
+    return segments;
+  }
   const text = String(scene.subtitle ?? "").trim();
-  if (!subtitleSettings.burnIn || !text) {
+  if (!text) {
+    return [];
+  }
+  return [
+    {
+      text,
+      startSec: Number(scene.startSec ?? 0),
+      endSec: Number(scene.endSec ?? sceneDuration(scene)),
+    },
+  ];
+}
+
+async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
+  const subtitleSegments = normalizeSceneSubtitleSegments(scene);
+  if (!subtitleSettings.burnIn || subtitleSegments.length === 0) {
     return false;
   }
   const alignment = resolveSubtitleAlignment(subtitleSettings.style.position);
@@ -261,6 +305,7 @@ async function writeSceneAss(scene, subtitleSettings, outputSettings, assPath) {
       (resolveSubtitleBaseYRatio(subtitleSettings.style.position) +
         subtitleSettings.style.offsetY),
   );
+  const assBold = subtitleSettings.style.fontWeight === "bold" ? -1 : 0;
   const content = `[Script Info]
 ScriptType: v4.00+
 PlayResX: ${outputSettings.width}
@@ -270,11 +315,20 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,0,0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},40,40,48,1
+Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},40,40,48,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
-Dialogue: 0,${formatAssTime(0)},${formatAssTime(sceneDuration(scene))},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(text)}
+${subtitleSegments
+  .map((segment) => {
+    const segmentStartSec = Math.max(0, segment.startSec - Number(scene.startSec ?? 0));
+    const segmentEndSec = Math.max(
+      segmentStartSec + 0.05,
+      segment.endSec - Number(scene.startSec ?? 0),
+    );
+    return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(segment.text)}`;
+  })
+  .join("\n")}
 `;
   await fs.writeFile(assPath, content, "utf8");
   return true;
@@ -285,22 +339,38 @@ function subtitlesFilter(assPath) {
   return `subtitles='${escaped}'`;
 }
 
-function visualFilter(outputSettings, canvasSettings, assPath) {
+function visualFilter(outputSettings, canvasSettings, mediaFrameSettings, assPath) {
   const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
   const videoScale = clampNumber(canvasSettings.videoScale, 0.5, 1.25, 1);
   const cropMode = resolveVideoCropMode(canvasSettings.videoCropMode);
+  const frameWidth = Math.max(
+    2,
+    Math.round(outputSettings.width * mediaFrameSettings.width),
+  );
+  const frameHeight = Math.max(
+    2,
+    Math.round(outputSettings.height * mediaFrameSettings.height),
+  );
+  const frameX = Math.max(
+    0,
+    Math.round(outputSettings.width * mediaFrameSettings.x),
+  );
+  const frameY = Math.max(
+    0,
+    Math.round(outputSettings.height * mediaFrameSettings.y),
+  );
   const containScale = Math.min(videoScale, 1);
   const scaledWidth = Math.max(
     2,
     Math.round(
-      outputSettings.width *
+      frameWidth *
         (cropMode === "contain" ? containScale : videoScale),
     ),
   );
   const scaledHeight = Math.max(
     2,
     Math.round(
-      outputSettings.height *
+      frameHeight *
         (cropMode === "contain" ? containScale : videoScale),
     ),
   );
@@ -308,19 +378,22 @@ function visualFilter(outputSettings, canvasSettings, assPath) {
     cropMode === "contain"
       ? [
           `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
-          `pad=${outputSettings.width}:${outputSettings.height}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+          `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+          `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
           `fps=${outputSettings.fps}`,
         ]
       : videoScale >= 1
         ? [
             `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
-            `crop=${outputSettings.width}:${outputSettings.height}`,
+            `crop=${frameWidth}:${frameHeight}`,
+            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
             `fps=${outputSettings.fps}`,
           ]
         : [
             `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
             `crop=${scaledWidth}:${scaledHeight}`,
-            `pad=${outputSettings.width}:${outputSettings.height}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+            `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
             `fps=${outputSettings.fps}`,
           ];
   if (assPath) {
@@ -335,6 +408,7 @@ async function createSceneSegment(
   outputSettings,
   subtitleSettings,
   canvasSettings,
+  mediaFrameSettings,
 ) {
   const durationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
@@ -345,7 +419,12 @@ async function createSceneSegment(
     outputSettings,
     assPath,
   );
-  const vf = visualFilter(outputSettings, canvasSettings, hasAss ? assPath : "");
+  const vf = visualFilter(
+    outputSettings,
+    canvasSettings,
+    mediaFrameSettings,
+    hasAss ? assPath : "",
+  );
   const voiceKey = typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : "";
   const voicePath = path.join(
     workDir,
@@ -496,8 +575,65 @@ async function createGapSegment(
   workDir,
   outputSettings,
   canvasSettings,
+  previousSegmentPath,
 ) {
   const gapPath = path.join(workDir, `gap-${index}.mp4`);
+  if (previousSegmentPath) {
+    const freezeFramePath = path.join(workDir, `gap-${index}-freeze.png`);
+    try {
+      await runCommand("ffmpeg", [
+        "-y",
+        "-sseof",
+        "-0.04",
+        "-i",
+        previousSegmentPath,
+        "-frames:v",
+        "1",
+        freezeFramePath,
+      ]);
+      await runCommand("ffmpeg", [
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        freezeFramePath,
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=48000",
+        "-vf",
+        `fps=${outputSettings.fps}`,
+        "-t",
+        String(seconds(durationSec)),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-movflags",
+        "+faststart",
+        gapPath,
+      ]);
+      return gapPath;
+    } catch (error) {
+      await putJsonToS3(`logs/${jobId}/composition/fargate-gap-${index}.json`, {
+        sceneId: index,
+        fallback: "solid-color",
+        reason: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
   await runCommand("ffmpeg", [
     "-y",
     "-f",
@@ -715,6 +851,7 @@ async function main() {
   const renderPlan = await getJsonFromS3(renderPlanS3Key);
   const outputSettings = resolveOutput(renderPlan);
   const canvasSettings = resolveCanvasSettings(renderPlan);
+  const mediaFrameSettings = resolveMediaFrameSettings(renderPlan);
   const subtitleSettings = resolveSubtitleSettings(renderPlan);
   const workDir = await fs.mkdtemp(path.join(tmpdir(), `render-${jobId}-`));
   const segmentPaths = [];
@@ -725,6 +862,7 @@ async function main() {
       outputSettings,
       subtitleSettings,
       canvasSettings,
+      mediaFrameSettings,
     );
     segmentPaths.push(segmentPath);
     if (Number(scene.gapAfterSec) > 0) {
@@ -735,6 +873,7 @@ async function main() {
           workDir,
           outputSettings,
           canvasSettings,
+          segmentPath,
         ),
       );
     }

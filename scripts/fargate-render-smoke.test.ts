@@ -72,8 +72,13 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
   assert.equal(renderPlan.canvas.backgroundColor, "#000000");
   assert.equal(renderPlan.canvas.videoScale, 1);
   assert.equal(renderPlan.canvas.videoCropMode, "cover");
+  assert.equal(renderPlan.mediaFrame.x, 0);
+  assert.equal(renderPlan.mediaFrame.y, 0);
+  assert.equal(renderPlan.mediaFrame.width, 1);
+  assert.equal(renderPlan.mediaFrame.height, 1);
   assert.equal(renderPlan.subtitles.format, "ass");
   assert.equal(renderPlan.subtitles.style.fontFamily, "Clear Sans");
+  assert.equal(renderPlan.subtitles.style.fontWeight, "regular");
   assert.equal(renderPlan.preview.maxDurationSec, 12);
   assert.equal(renderPlan.scenes[0]?.durationSec, 6.2);
   assert.equal(renderPlan.scenes[0]?.gapAfterSec, 0.5);
@@ -112,6 +117,12 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
       videoScale: 0.8,
       videoCropMode: "contain",
     },
+    mediaFrame: {
+      x: 0.1,
+      y: 0.08,
+      width: 0.8,
+      height: 0.46,
+    },
     previewMaxDurationSec: 12,
     subtitles: {
       burnIn: true,
@@ -119,6 +130,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
       style: {
         fontFamily: "DejaVu Serif",
         fontSize: 44,
+        fontWeight: "bold",
         lineHeight: 1,
         opacity: 1,
         color: "#FFFFFF",
@@ -135,6 +147,37 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
   assert.equal(renderPlan.canvas.backgroundColor, "#112233");
   assert.equal(renderPlan.canvas.videoScale, 0.8);
   assert.equal(renderPlan.canvas.videoCropMode, "contain");
+  assert.equal(renderPlan.mediaFrame.x, 0.1);
+  assert.equal(renderPlan.mediaFrame.y, 0.08);
+  assert.equal(renderPlan.mediaFrame.width, 0.8);
+  assert.equal(renderPlan.mediaFrame.height, 0.46);
   assert.equal(renderPlan.subtitles.style.fontFamily, "DejaVu Serif");
   assert.equal(renderPlan.subtitles.style.fontSize, 44);
+  assert.equal(renderPlan.subtitles.style.fontWeight, "bold");
+});
+
+void test("render plan splits subtitle text into timed sentence segments", () => {
+  const event = {
+    jobId: "job_segments",
+    sceneJson: {
+      videoTitle: "Segment Story",
+      language: "ko",
+      scenes: [
+        {
+          sceneId: 1,
+          durationSec: 6,
+          narration: "첫 문장입니다. 두 번째 문장입니다. 마지막 문장입니다.",
+          subtitle: "첫 문장입니다. 두 번째 문장입니다. 마지막 문장입니다.",
+        },
+      ],
+    },
+  };
+
+  const builtScenes = buildRenderPlanScenes(event);
+  const firstScene = builtScenes.scenes[0];
+
+  assert.ok(firstScene);
+  assert.equal(firstScene?.subtitleSegments?.length, 3);
+  assert.equal(firstScene?.subtitleSegments?.[0]?.text, "첫 문장입니다.");
+  assert.equal(firstScene?.subtitleSegments?.[2]?.endSec, firstScene?.endSec);
 });

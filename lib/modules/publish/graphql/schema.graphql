@@ -277,10 +277,15 @@ type RenderSettings {
   subtitleStylePreset: String
   subtitlePosition: String
   subtitleFontPreset: String
+  subtitleFontWeight: String
   subtitleFontSize: Int
   backgroundColor: String
   videoScale: Float
   videoCropMode: String
+  videoFrameX: Float
+  videoFrameY: Float
+  videoFrameWidth: Float
+  videoFrameHeight: Float
 }
 
 type SceneJsonScene {
@@ -678,10 +683,15 @@ input RenderSettingsInput {
   subtitleStylePreset: String
   subtitlePosition: String
   subtitleFontPreset: String
+  subtitleFontWeight: String
   subtitleFontSize: Int
   backgroundColor: String
   videoScale: Float
   videoCropMode: String
+  videoFrameX: Float
+  videoFrameY: Float
+  videoFrameWidth: Float
+  videoFrameHeight: Float
 }
 
 input UpdateJobBriefInput {

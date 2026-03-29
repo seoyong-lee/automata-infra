@@ -18,6 +18,7 @@ import type { SceneJson } from "../../../../../types/render/scene-json";
 import type {
   RenderPlan,
   RenderPlanOutput,
+  RenderPlanSubtitleSegment,
   RenderPlanSubtitleStyle,
 } from "../../../../../types/render/render-plan";
 
@@ -123,6 +124,7 @@ const buildAssStyleLine = (
   style: RenderPlanSubtitleStyle,
   output: RenderPlanOutput,
 ): string => {
+  const assBold = style.fontWeight === "bold" ? -1 : 0;
   return [
     "Style: Default",
     style.fontFamily.replace(/,/g, " "),
@@ -131,7 +133,7 @@ const buildAssStyleLine = (
     toAssColor(style.color, style.opacity),
     toAssColor(style.strokeColor, 1),
     "&H00000000&",
-    0,
+    assBold,
     0,
     0,
     0,
@@ -157,11 +159,13 @@ const buildSubtitleAss = (
   const style = renderPlan.subtitles.style;
   const basePosition = resolveSubtitleBasePosition(style, output);
   const events = renderPlan.scenes
-    .map((scene) => ({
-      startSec: scene.startSec,
-      endSec: scene.endSec,
-      subtitle: typeof scene.subtitle === "string" ? scene.subtitle.trim() : "",
-    }))
+    .flatMap((scene) =>
+      buildSceneSubtitleSegments(scene).map((segment) => ({
+        startSec: segment.startSec,
+        endSec: segment.endSec,
+        subtitle: segment.text.trim(),
+      })),
+    )
     .filter(
       (scene) =>
         scene.subtitle.length > 0 &&
@@ -193,6 +197,33 @@ const buildSubtitleAss = (
   ].join("\n");
 };
 
+const buildSceneSubtitleSegments = (
+  scene: Pick<
+    RenderPlan["scenes"][number],
+    "startSec" | "endSec" | "subtitle" | "subtitleSegments"
+  >,
+): RenderPlanSubtitleSegment[] => {
+  const segments = scene.subtitleSegments?.filter(
+    (segment) =>
+      segment.endSec > segment.startSec && segment.text.trim().length > 0,
+  );
+  if (segments && segments.length > 0) {
+    return segments;
+  }
+  const subtitle =
+    typeof scene.subtitle === "string" ? scene.subtitle.trim() : "";
+  if (!subtitle || scene.endSec <= scene.startSec) {
+    return [];
+  }
+  return [
+    {
+      text: subtitle,
+      startSec: scene.startSec,
+      endSec: scene.endSec,
+    },
+  ];
+};
+
 const maybePersistSubtitleAss = async (
   jobId: string,
   renderPlan: RenderPlan,
@@ -202,8 +233,7 @@ const maybePersistSubtitleAss = async (
     return undefined;
   }
   const hasSubtitleEntries = renderPlan.scenes.some(
-    (scene) =>
-      typeof scene.subtitle === "string" && scene.subtitle.trim().length > 0,
+    (scene) => buildSceneSubtitleSegments(scene).length > 0,
   );
   if (!hasSubtitleEntries) {
     return undefined;
