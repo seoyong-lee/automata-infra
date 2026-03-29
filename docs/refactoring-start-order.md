@@ -34,6 +34,7 @@
   - `mapper/`: render result 저장 payload 조립
 - 진행 상태:
   - `done`: `repo` / `normalize` / `usecase` / result mapper 1차 추출 완료
+  - `done`: `run-render-task.mjs`의 subtitle ASS / final output helper 추가 분리
   - `next`: scene composition 세부 helper 추가 분리 여부 검토
 
 ### 2. Job detail 조회/조립 흐름
@@ -52,7 +53,8 @@
   - `mapper/`: GraphQL DTO 변환
   - `usecase/`: fallback, 우선순위, 섹션 조합 정책
 - 진행 상태:
-  - `pending`
+  - `in_progress`
+  - `done`: `job-draft-store.ts`의 read/write 책임을 분리해 write store / key helper 추가
 
 ### 3. GraphQL field별 handler/index/usecase 정렬
 
@@ -77,11 +79,15 @@
   - 완료: `run-final-composition`의 subtitle ASS 계산 / render context load 분리
   - 완료: `run-asset-generation`의 scope/context/policy/modality 실행 분리
   - 완료: scene candidate 선택 / voice profile 설정 usecase의 repo/mapper/helper 분리
+  - 완료: scene image/video/voice candidate selection 공통 흐름 helper 분리
   - 완료: pipeline stage usecase의 queued/sync execution wrapper 공통화
+  - 완료: pipeline stage approve / worker routing 규칙을 helper로 분리
   - 완료: `set-job-background-music` 검증 로직 분리
   - 완료: `search-scene-stock-assets`의 image/video scene search policy 분리
   - 완료: `run-final-composition`의 subtitle persistence / render plan patch 분리
   - 완료: `attach-job-to-content`의 validation/context load/artifact sync 분리
+  - 완료: settings upsert 계열의 store payload mapping 분리
+  - 완료: `create-draft-job`의 post-create job plan follow-up 분리
   - next: field 단위에서 index/usecase 경계가 약한 구간 점검
 
 ---

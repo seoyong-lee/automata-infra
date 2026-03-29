@@ -1,5 +1,6 @@
 import { putVoiceProfile } from "../../../../shared/lib/store/voice-profiles";
 import { mapVoiceProfile } from "../../../shared/mapper/map-voice-profile";
+import { mapUpsertVoiceProfileItem } from "../mapper/map-upsert-voice-profile-item";
 
 export const upsertVoiceProfile = async (input: {
   actor: string;
@@ -18,25 +19,7 @@ export const upsertVoiceProfile = async (input: {
   useSpeakerBoost?: boolean;
   isActive: boolean;
 }) => {
-  const item = await putVoiceProfile(
-    {
-      profileId: input.profileId,
-      label: input.label,
-      provider: input.provider,
-      voiceId: input.voiceId,
-      modelId: input.modelId,
-      sampleAudioUrl: input.sampleAudioUrl,
-      description: input.description,
-      language: input.language,
-      speed: input.speed,
-      stability: input.stability,
-      similarityBoost: input.similarityBoost,
-      style: input.style,
-      useSpeakerBoost: input.useSpeakerBoost,
-      isActive: input.isActive,
-    },
-    input.actor,
-  );
+  const item = await putVoiceProfile(mapUpsertVoiceProfileItem(input), input.actor);
 
   return mapVoiceProfile(item);
 };

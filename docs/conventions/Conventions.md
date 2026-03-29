@@ -427,3 +427,54 @@ UI 탭 추가 때마다 repo가 비대해진다.
 
 현재 저장소 기준 추천 착수 순서와 진행 상태는 `docs/refactoring-start-order.md`에서 관리한다.
 `Conventions.md`는 원칙과 경계 고정에 집중하고, 실행 백로그는 별도 문서로 분리한다.
+
+---
+
+## 21) 회귀 방지 강제 규칙
+
+현재 상태를 유지하려면 “좋은 예시가 있다” 수준으로는 부족하다. 아래는 **새 코드/수정 코드에서 바로 차단해야 하는 규칙**이다.
+
+### 21.1 admin field entry 강제 규칙
+
+- `services/admin/<domain>/<field>/index.ts`는 기본적으로 `runAuditedAdminResolver(...)`를 사용한다.
+- field entry에서 `logResolverAudit`, `toGraphqlResolverError`, `assertAdminGroup`, `getActor`를 직접 호출하지 않는다.
+- audit metadata는 `resolver-audit-fields.ts` helper로만 구성한다.
+- `index.ts`에서 store/repo/provider를 직접 호출하지 않는다.
+- raw failure cause 로깅이 필요하면 `onError` + 별도 helper를 만들고, entry 파일 본문은 계속 얇게 유지한다.
+
+### 21.2 helper 승격 기준
+
+- 같은 흐름이 **2번 보이면 3번째 전에** shared helper로 승격한다.
+- image/video/voice처럼 sibling field가 같은 골격을 가지면 처음부터 shared helper를 검토한다.
+- `stageType`, `modality`, `candidate kind`처럼 3개 이상 분기하는 규칙은 inline `if/else`로 늘리지 않고 shared rule module 또는 `policies/`로 이동한다.
+- update/persist payload에서 5개 이상 필드를 복사하면 usecase 밖 `mapper/` 또는 `repo/` helper로 이동한다.
+- raw load가 두 개 이상 묶이면 `load*Context`, guard가 두 개 이상이면 `assert*`로 이름을 고정한다.
+
+### 21.3 리뷰 차단 질문
+
+아래 중 하나라도 “예”면 추가 구현보다 먼저 구조를 다시 자른다.
+
+1. `index.ts`에 auth/audit/error 변환 코드가 다시 생겼는가
+2. `usecase`가 `process.env`, AWS SDK client, raw event를 다시 알게 되었는가
+3. sibling field 사이에 거의 같은 코드가 두 벌 이상 생겼는가
+4. `stageType`/`modality`/`candidate` 분기가 새 usecase 안에서 다시 커졌는가
+5. mapper로 뺄 수 있는 payload 조립이 usecase 본문에 남았는가
+
+---
+
+## 22) Cursor Rule 적용 맵
+
+AI가 같은 경계를 계속 따르도록 아래 rule을 유지한다.
+
+- 항상 적용:
+  - `services-handler-convention.mdc`
+  - `api-zod-contracts.mdc`
+- 파일 범위 적용:
+  - `admin-resolver-entry-convention.mdc` → `services/admin/*/*/index.ts`
+  - `service-usecase-orchestration.mdc` → `services/**/usecase/**/*`
+  - `admin-shared-pattern-promotion.mdc` → `services/admin/**/*`
+- 자동 점검:
+  - `yarn check:service-boundaries`
+  - 현재는 `services/admin/<domain>/<field>/index.ts`가 wrapper/audit 규칙을 어기는지 먼저 차단한다.
+
+규칙이 충돌하면 **더 좁은 범위의 rule이 우선**이고, 그래도 애매하면 `Conventions.md`의 경계 원칙을 기준으로 판단한다.

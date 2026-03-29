@@ -2,9 +2,11 @@ import {
   getStoredContentBrief,
   getJobOrThrow,
   getStoredJobBrief,
+} from "../../../shared/repo/job-draft-store";
+import {
   saveContentBrief,
   saveJobBrief,
-} from "../../../shared/repo/job-draft-store";
+} from "../../../shared/repo/job-draft-write-store";
 import { ADMIN_UNASSIGNED_CONTENT_ID } from "../../../../shared/lib/contracts/canonical-io-schemas";
 import {
   buildPresetSnapshot,

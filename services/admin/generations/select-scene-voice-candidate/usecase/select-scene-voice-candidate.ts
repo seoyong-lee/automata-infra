@@ -1,9 +1,5 @@
-import {
-  getSceneVoiceCandidate,
-  upsertSceneAsset,
-} from "../../../../shared/lib/store/video-jobs";
-import { notFound } from "../../../shared/errors";
-import { getJobDraftView } from "../../../shared/usecase/get-job-draft-view";
+import { getSceneVoiceCandidate } from "../../../../shared/lib/store/video-jobs";
+import { applySceneCandidateSelection } from "../../shared/usecase/apply-scene-candidate-selection";
 import { mapSelectedVoiceCandidatePatch } from "../mapper/map-selected-voice-candidate-patch";
 
 export const selectSceneVoiceCandidateUsecase = async (input: {
@@ -11,18 +7,11 @@ export const selectSceneVoiceCandidateUsecase = async (input: {
   sceneId: number;
   candidateId: string;
 }) => {
-  const candidate = await getSceneVoiceCandidate(
-    input.jobId,
-    input.sceneId,
-    input.candidateId,
-  );
-  if (!candidate) {
-    throw notFound("voice candidate not found");
-  }
-
-  await upsertSceneAsset(input.jobId, input.sceneId, {
-    ...mapSelectedVoiceCandidatePatch(candidate),
+  return applySceneCandidateSelection({
+    ...input,
+    notFoundMessage: "voice candidate not found",
+    loadCandidate: ({ jobId, sceneId, candidateId }) =>
+      getSceneVoiceCandidate(jobId, sceneId, candidateId),
+    buildPatch: async (candidate) => mapSelectedVoiceCandidatePatch(candidate),
   });
-
-  return getJobDraftView(input.jobId);
 };

@@ -2,6 +2,7 @@ import { listJobExecutionRows } from "../../../../shared/lib/store/job-execution
 import { updateJobMeta } from "../../../../shared/lib/store/video-jobs";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
 import { getJobOrThrow } from "../../../shared/repo/job-draft-store";
+import { mapApprovedExecutionFields } from "../../shared/mapper/map-approved-execution-fields";
 
 export const approvePipelineExecutionUsecase = async (input: {
   jobId: string;
@@ -15,16 +16,7 @@ export const approvePipelineExecutionUsecase = async (input: {
   if (row.status !== "SUCCEEDED") {
     throw new Error("only succeeded executions can be approved");
   }
-  const fields: Record<string, unknown> = {};
-  if (row.stageType === "JOB_PLAN") {
-    fields.approvedPlanExecutionId = input.executionId;
-  } else if (row.stageType === "SCENE_JSON") {
-    fields.approvedSceneExecutionId = input.executionId;
-  } else if (row.stageType === "ASSET_GENERATION") {
-    fields.approvedAssetExecutionId = input.executionId;
-  } else {
-    throw new Error("unknown pipeline stage");
-  }
+  const fields = mapApprovedExecutionFields(row.stageType, input.executionId);
   await updateJobMeta(input.jobId, fields);
   const job = await getJobOrThrow(input.jobId);
   return mapJobMetaToAdminJob(job);

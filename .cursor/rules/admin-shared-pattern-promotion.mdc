@@ -1,0 +1,14 @@
+---
+description: Promote repeated admin service patterns into shared helpers early
+globs: services/admin/**/*
+alwaysApply: false
+---
+
+# Admin Shared Pattern Promotion
+
+- Once the same admin field pattern appears twice, extract a shared helper instead of cloning it a third time.
+- Stage-specific approval fields, stage execution routing, and output artifact resolution belong in shared pipeline helpers, not inline `if/else` chains.
+- Parallel image, video, and voice selection flows should share one selection helper with injected load or patch behavior.
+- Shared helpers belong under `services/admin/<domain>/shared/*` or `services/admin/shared/*`, not copied across sibling fields.
+- Prefer shared names that reveal responsibility: `resolve*AuditFields`, `apply*Selection`, `map*Fields`, `load*Context`, `run*Policy`.
+- Treat new near-copy code in admin services as a refactor trigger, not a temporary shortcut.

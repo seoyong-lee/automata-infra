@@ -1,7 +1,6 @@
 import {
   getJsonFromS3,
   listObjectsFromS3,
-  putJsonToS3,
 } from "../../../shared/lib/aws/runtime";
 import {
   type JobMetaItem,
@@ -16,7 +15,6 @@ import {
   listSceneAssets,
   listSceneVideoCandidates,
   listSceneVoiceCandidates,
-  updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
 import type {
   BackgroundMusicAssetDto,
@@ -24,18 +22,6 @@ import type {
   JobBriefDto,
 } from "../types";
 import type { SceneJson } from "../../../../types/render/scene-json";
-
-export const buildJobBriefKey = (jobId: string): string => {
-  return `drafts/${jobId}/job-brief.json`;
-};
-
-export const buildContentBriefKey = (jobId: string): string => {
-  return `drafts/${jobId}/content-brief.json`;
-};
-
-export const buildJobPlanKey = (jobId: string): string => {
-  return `plans/${jobId}/job-plan.json`;
-};
 
 export type StoredSceneAssetRecord = {
   asset: SceneAssetItem;
@@ -125,83 +111,6 @@ export const listStoredFinalRenderArtifactItems = async (
   jobId: string,
 ): Promise<RenderArtifactItem[]> => {
   return listFinalRenderArtifacts(jobId);
-};
-
-export const saveJobBrief = async (input: {
-  jobId: string;
-  jobBrief: JobBriefDto;
-  status?: string;
-}): Promise<string> => {
-  const key = buildJobBriefKey(input.jobId);
-  await putJsonToS3(key, input.jobBrief);
-  await updateJobMeta(
-    input.jobId,
-    {
-      jobBriefS3Key: key,
-      contentId: input.jobBrief.contentId,
-      presetId: input.jobBrief.presetId,
-      presetFormat: input.jobBrief.presetSnapshot?.format,
-      presetDuration: input.jobBrief.presetSnapshot?.duration,
-      presetPlatformPreset:
-        input.jobBrief.resolvedPolicy?.primaryPlatformPreset,
-      language: input.jobBrief.targetLanguage,
-      targetDurationSec: input.jobBrief.targetDurationSec,
-      videoTitle: input.jobBrief.titleIdea,
-    },
-    input.status,
-  );
-  return key;
-};
-
-export const saveContentBrief = async (input: {
-  jobId: string;
-  contentBrief: ContentBriefDto;
-  status?: string;
-}): Promise<string> => {
-  const key = buildContentBriefKey(input.jobId);
-  await putJsonToS3(key, input.contentBrief);
-  await updateJobMeta(
-    input.jobId,
-    {
-      contentBriefS3Key: key,
-      contentType: input.contentBrief.contentType,
-      variant: input.contentBrief.variant,
-      contentId: input.contentBrief.contentId,
-      presetId: input.contentBrief.presetId,
-      presetFormat: input.contentBrief.presetSnapshot?.format,
-      presetDuration: input.contentBrief.presetSnapshot?.duration,
-      presetPlatformPreset:
-        input.contentBrief.resolvedPolicy?.primaryPlatformPreset,
-      language: input.contentBrief.language,
-      targetDurationSec: input.contentBrief.targetDurationSec,
-      videoTitle: input.contentBrief.titleIdea,
-      autoPublish: input.contentBrief.autoPublish ?? false,
-      publishAt: input.contentBrief.publishAt,
-    },
-    input.status,
-  );
-  return key;
-};
-
-export const saveJobPlan = async (input: {
-  jobId: string;
-  jobPlan: JobBriefDto;
-  status?: string;
-}): Promise<string> => {
-  const key = buildJobPlanKey(input.jobId);
-  await putJsonToS3(key, input.jobPlan);
-  await updateJobMeta(
-    input.jobId,
-    {
-      jobPlanS3Key: key,
-      contentId: input.jobPlan.contentId,
-      language: input.jobPlan.targetLanguage,
-      targetDurationSec: input.jobPlan.targetDurationSec,
-      videoTitle: input.jobPlan.titleIdea,
-    },
-    input.status,
-  );
-  return key;
 };
 
 export const getJobOrThrow = async (jobId: string): Promise<JobMetaItem> => {

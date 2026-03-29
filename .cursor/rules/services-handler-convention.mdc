@@ -23,6 +23,8 @@ Apply this convention for runtime code, especially `services/**/*.ts`.
 - No JSON schema/business validation logic in `handler.ts`.
 - No direct external API calls in `index.ts`; call `usecase` or provider modules.
 - Avoid inline status transitions in `handler.ts`; delegate to called function.
+- For `services/admin/**/index.ts`, default to `runAuditedAdminResolver(...)`.
+- Use `resolver-audit-fields` helpers for audit metadata instead of inline result casts or path reads.
 
 ## Naming
 
@@ -36,3 +38,5 @@ Apply this convention for runtime code, especially `services/**/*.ts`.
 - Prefer pure functions for normalization/mapping blocks.
 - Keep files single-purpose and easy to test in isolation.
 - Use named exports only; avoid default exports in `services/**`.
+- After the second repetition of a field flow, promote it to `services/<domain>/shared/*`.
+- If a usecase copies 5+ fields into a payload or branches by 3+ sibling cases, extract `mapper/`, `repo/`, or `policies/`.

@@ -1,0 +1,15 @@
+---
+description: Keep admin GraphQL field entry files on the audited resolver wrapper
+globs: services/admin/*/*/index.ts
+alwaysApply: false
+---
+
+# Admin Resolver Entry Convention
+
+- This rule is for GraphQL field entry files such as `services/admin/<domain>/<field>/index.ts`, not worker entries like `pipeline-worker/index.ts`.
+- Default to `runAuditedAdminResolver(...)` for GraphQL field entry files.
+- `index.ts` may only parse args, set audit metadata helpers, call one usecase, and optionally wire a dedicated `onError`.
+- Do not call `logResolverAudit`, `toGraphqlResolverError`, `assertAdminGroup`, or `getActor` directly in field entry files.
+- Use `resolver-audit-fields.ts` helpers for `jobId` and `action` metadata instead of inline result casts or manual path reads.
+- If a field needs custom failure logging, keep it in a dedicated helper such as `handle-*-error.ts`; `index.ts` should still delegate.
+- Never call store, repo, or provider code directly from field `index.ts`.

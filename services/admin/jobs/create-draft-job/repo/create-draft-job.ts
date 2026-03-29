@@ -18,7 +18,7 @@ import {
 import {
   buildContentBriefKey,
   buildJobBriefKey,
-} from "../../../shared/repo/job-draft-store";
+} from "../../../shared/repo/job-draft-keys";
 import { mapJobMetaToAdminJob } from "../../../shared/mapper/map-job-meta-to-admin-job";
 import type {
   ContentBriefDto,

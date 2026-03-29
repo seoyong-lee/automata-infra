@@ -1,0 +1,14 @@
+---
+description: Keep service usecases orchestration-focused and push details outward
+globs: services/**/usecase/**/*
+alwaysApply: false
+---
+
+# Service Usecase Orchestration
+
+- A `usecase` should read like scenario orchestration, not transport glue or payload shaping.
+- Do not access raw event objects, `process.env`, or AWS SDK clients inside `usecase/`.
+- Move validation guards to `assert*`, raw load bundles to `load*Context`, and persistence payload assembly to `map*` or `resolve*`.
+- If a usecase repeats the same sibling flow twice, promote it to `services/<domain>/shared/usecase`, `shared/repo`, or `shared/mapper`.
+- If branching spans 3+ stage, modality, or candidate kinds, move the rule table into shared helper or `policies/`.
+- If an update or persist payload copies 5+ fields, move that object construction out of the usecase.
