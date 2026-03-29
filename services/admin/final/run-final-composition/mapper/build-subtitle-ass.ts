@@ -144,12 +144,12 @@ const resolveTextOverlayAlignment = (
   align?: "left" | "center" | "right",
 ): number => {
   if (align === "left") {
-    return 7;
+    return 4;
   }
   if (align === "right") {
-    return 9;
+    return 6;
   }
-  return 8;
+  return 5;
 };
 
 const resolveTextOverlayPosition = (
@@ -163,10 +163,11 @@ const resolveTextOverlayPosition = (
       : align === "right"
         ? overlay.placement.x + overlay.placement.width
         : overlay.placement.x + overlay.placement.width / 2;
+  const yRatio = overlay.placement.y + overlay.placement.height / 2;
   return {
     x: clamp(Math.round(output.size.width * xRatio), 0, output.size.width),
     y: clamp(
-      Math.round(output.size.height * overlay.placement.y),
+      Math.round(output.size.height * yRatio),
       0,
       output.size.height,
     ),
@@ -183,6 +184,97 @@ const resolveOverlayFontSize = (
     Math.max(12, overlay.style.fontSize) *
       (outputShortEdge / PREVIEW_TEXT_REFERENCE_SHORT_EDGE),
   );
+};
+
+const estimateCharUnits = (char: string): number => {
+  if (!char.trim()) {
+    return 0.35;
+  }
+  if (/^[A-Za-z0-9]$/.test(char)) {
+    return 0.6;
+  }
+  if (/^[.,!?;:'"()\-[\]]$/.test(char)) {
+    return 0.45;
+  }
+  return 1;
+};
+
+const estimateTextUnits = (value: string): number => {
+  return [...value].reduce((sum, char) => sum + estimateCharUnits(char), 0);
+};
+
+const splitLongToken = (token: string, maxUnits: number): string[] => {
+  const parts: string[] = [];
+  let current = "";
+  let currentUnits = 0;
+  for (const char of [...token]) {
+    const charUnits = estimateCharUnits(char);
+    if (current && currentUnits + charUnits > maxUnits) {
+      parts.push(current);
+      current = char;
+      currentUnits = charUnits;
+      continue;
+    }
+    current += char;
+    currentUnits += charUnits;
+  }
+  if (current) {
+    parts.push(current);
+  }
+  return parts;
+};
+
+const wrapTextToWidth = (text: string, maxUnits: number): string => {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (estimateTextUnits(normalized) <= maxUnits) {
+    return normalized;
+  }
+  const tokens = normalized.split(" ");
+  const lines: string[] = [];
+  let current = "";
+  for (const token of tokens) {
+    const candidate = current ? `${current} ${token}` : token;
+    if (!current || estimateTextUnits(candidate) <= maxUnits) {
+      current = candidate;
+      continue;
+    }
+    lines.push(current);
+    if (estimateTextUnits(token) <= maxUnits) {
+      current = token;
+      continue;
+    }
+    const pieces = splitLongToken(token, maxUnits);
+    lines.push(...pieces.slice(0, -1));
+    current = pieces[pieces.length - 1] ?? "";
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines.join("\\N");
+};
+
+const wrapOverlayText = (
+  overlay: Extract<RenderPlanOverlay, { type: "text" }>,
+  output: RenderPlanOutput,
+): string => {
+  const widthPx = output.size.width * Math.max(0.2, overlay.placement.width);
+  const fontSize = resolveOverlayFontSize(overlay, output);
+  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  return wrapTextToWidth(overlay.text, maxUnits);
+};
+
+const wrapSubtitleText = (
+  text: string,
+  style: RenderPlanSubtitleStyle,
+  output: RenderPlanOutput,
+): string => {
+  const widthPx = output.size.width * style.maxWidth;
+  const fontSize = Math.max(12, style.fontSize);
+  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  return wrapTextToWidth(text, maxUnits);
 };
 
 const buildTextOverlayEvents = (
@@ -203,7 +295,7 @@ const buildTextOverlayEvents = (
         startSec,
         overlay.endSec ?? renderPlan.totalDurationSec ?? startSec,
       );
-      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, output)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(overlay.text)}`;
+      return `Dialogue: ${overlay.zIndex ?? 5},${formatAssTimestamp(startSec)},${formatAssTimestamp(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${overlay.style.fontFamily.replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, output)}\\b${bold}\\c${toAssColor(overlay.style.color, overlay.style.opacity ?? 1)}\\3c${toAssColor(overlay.style.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, overlay.style.strokeWidth ?? 0)}}${escapeAssText(wrapOverlayText(overlay, output))}`;
     });
 };
 
@@ -271,7 +363,7 @@ export const buildSubtitleAss = (
     )
     .map(
       (scene) =>
-        `Dialogue: 0,${formatAssTimestamp(scene.startSec)},${formatAssTimestamp(scene.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(scene.subtitle)}`,
+        `Dialogue: 0,${formatAssTimestamp(scene.startSec)},${formatAssTimestamp(scene.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(wrapSubtitleText(scene.subtitle, style, output))}`,
     );
   const overlayEvents = buildTextOverlayEvents(renderPlan);
 

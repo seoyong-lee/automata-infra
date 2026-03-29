@@ -13,6 +13,21 @@ import { mapRenderArtifactDraft } from "../../../shared/mapper/map-render-artifa
 import { mapSceneAssetRecordDraft } from "../../../shared/mapper/map-scene-asset-record-draft";
 import { mapSceneJsonDraft } from "../../../shared/mapper/map-scene-json-draft";
 
+const isSelectedRenderArtifact = (
+  job: Awaited<ReturnType<typeof getJobOrThrow>>,
+  item: {
+    finalVideoS3Key?: string | null;
+    previewS3Key?: string | null;
+    thumbnailS3Key?: string | null;
+  },
+): boolean => {
+  return (
+    item.finalVideoS3Key === job.finalVideoS3Key &&
+    item.previewS3Key === job.previewS3Key &&
+    item.thumbnailS3Key === job.thumbnailS3Key
+  );
+};
+
 export const getAdminJobDraft = async (jobId: string) => {
   const job = await getJobOrThrow(jobId);
   const [
@@ -41,7 +56,9 @@ export const getAdminJobDraft = async (jobId: string) => {
     sceneJson: sceneJson ? mapSceneJsonDraft(sceneJson) : undefined,
     assets: assetRecords.map(mapSceneAssetRecordDraft),
     backgroundMusicOptions,
-    renderArtifacts: renderArtifactItems.map(mapRenderArtifactDraft),
+    renderArtifacts: renderArtifactItems.map((item) =>
+      mapRenderArtifactDraft(item, isSelectedRenderArtifact(job, item)),
+    ),
     assetMenuModel:
       jobBrief?.resolvedPolicy?.assetMenu ??
       contentBrief?.resolvedPolicy?.assetMenu,

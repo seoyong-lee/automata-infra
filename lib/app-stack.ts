@@ -226,6 +226,12 @@ export class AppStack extends Stack {
       );
       fn.addToRolePolicy(
         new iam.PolicyStatement({
+          actions: ["ecs:StopTask"],
+          resources: ["*"],
+        }),
+      );
+      fn.addToRolePolicy(
+        new iam.PolicyStatement({
           actions: ["iam:PassRole"],
           resources: ["*"],
         }),
@@ -323,6 +329,8 @@ export class AppStack extends Stack {
     const setSceneVoiceProfileResolver = generationsHandler;
 
     const runFinalCompositionResolver = finalHandler;
+    const cancelFinalCompositionResolver = finalHandler;
+    const selectRenderArtifactResolver = finalHandler;
 
     const approvePipelineExecutionResolver = pipelineHandler;
 
@@ -525,6 +533,8 @@ export class AppStack extends Stack {
       setJobBackgroundMusicResolver,
       setSceneVoiceProfileResolver,
       runFinalCompositionResolver,
+      cancelFinalCompositionResolver,
+      selectRenderArtifactResolver,
       deleteJobResolver,
       attachJobToContentResolver,
       approvePipelineExecutionResolver,

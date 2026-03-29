@@ -69,12 +69,12 @@ function resolveSubtitleBaseYRatio(position) {
 
 function resolveTextOverlayAlignment(align) {
   if (align === "left") {
-    return 7;
+    return 4;
   }
   if (align === "right") {
-    return 9;
+    return 6;
   }
-  return 8;
+  return 5;
 }
 
 function resolveTextOverlayPosition(overlay, outputSettings) {
@@ -87,13 +87,15 @@ function resolveTextOverlayPosition(overlay, outputSettings) {
           Number(overlay.placement?.width ?? 0)
         : Number(overlay.placement?.x ?? 0) +
           Number(overlay.placement?.width ?? 0) / 2;
+  const yRatio =
+    Number(overlay.placement?.y ?? 0) + Number(overlay.placement?.height ?? 0) / 2;
   return {
     x: Math.max(0, Math.min(outputSettings.width, Math.round(outputSettings.width * xRatio))),
     y: Math.max(
       0,
       Math.min(
         outputSettings.height,
-        Math.round(outputSettings.height * Number(overlay.placement?.y ?? 0)),
+        Math.round(outputSettings.height * yRatio),
       ),
     ),
     alignment: resolveTextOverlayAlignment(align),
@@ -104,6 +106,91 @@ function resolveOverlayFontSize(overlay, outputSettings) {
   const rawFontSize = Math.max(12, Number(overlay.style?.fontSize ?? 32));
   const outputShortEdge = Math.min(outputSettings.width, outputSettings.height);
   return Math.round(rawFontSize * (outputShortEdge / PREVIEW_TEXT_REFERENCE_SHORT_EDGE));
+}
+
+function estimateCharUnits(char) {
+  if (!char.trim()) {
+    return 0.35;
+  }
+  if (/^[A-Za-z0-9]$/.test(char)) {
+    return 0.6;
+  }
+  if (/^[.,!?;:'"()\-[\]]$/.test(char)) {
+    return 0.45;
+  }
+  return 1;
+}
+
+function estimateTextUnits(value) {
+  return [...String(value)].reduce((sum, char) => sum + estimateCharUnits(char), 0);
+}
+
+function splitLongToken(token, maxUnits) {
+  const parts = [];
+  let current = "";
+  let currentUnits = 0;
+  for (const char of [...token]) {
+    const charUnits = estimateCharUnits(char);
+    if (current && currentUnits + charUnits > maxUnits) {
+      parts.push(current);
+      current = char;
+      currentUnits = charUnits;
+      continue;
+    }
+    current += char;
+    currentUnits += charUnits;
+  }
+  if (current) {
+    parts.push(current);
+  }
+  return parts;
+}
+
+function wrapTextToWidth(text, maxUnits) {
+  const normalized = String(text).replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (estimateTextUnits(normalized) <= maxUnits) {
+    return normalized;
+  }
+  const tokens = normalized.split(" ");
+  const lines = [];
+  let current = "";
+  for (const token of tokens) {
+    const candidate = current ? `${current} ${token}` : token;
+    if (!current || estimateTextUnits(candidate) <= maxUnits) {
+      current = candidate;
+      continue;
+    }
+    lines.push(current);
+    if (estimateTextUnits(token) <= maxUnits) {
+      current = token;
+      continue;
+    }
+    const pieces = splitLongToken(token, maxUnits);
+    lines.push(...pieces.slice(0, -1));
+    current = pieces[pieces.length - 1] ?? "";
+  }
+  if (current) {
+    lines.push(current);
+  }
+  return lines.join("\\N");
+}
+
+function wrapSubtitleText(text, subtitleSettings, outputSettings) {
+  const widthPx = outputSettings.width * Number(subtitleSettings.style.maxWidth ?? 0.88);
+  const fontSize = Math.max(12, Number(subtitleSettings.style.fontSize ?? 32));
+  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  return wrapTextToWidth(text, maxUnits);
+}
+
+function wrapOverlayText(text, overlay, outputSettings) {
+  const widthPx =
+    outputSettings.width * Math.max(0.2, Number(overlay.placement?.width ?? 0.72));
+  const fontSize = resolveOverlayFontSize(overlay, outputSettings);
+  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  return wrapTextToWidth(text, maxUnits);
 }
 
 function resolveHorizontalMargins(outputWidth, widthRatio) {
@@ -161,7 +248,8 @@ function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
       const position = resolveTextOverlayPosition(overlay, outputSettings);
       const margins = resolveOverlayMargins(overlay, outputSettings);
       const bold = overlay.style?.fontWeight === "bold" ? 1 : 0;
-      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, outputSettings)}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(overlay.text)}`;
+      const wrappedText = wrapOverlayText(overlay.text, overlay, outputSettings);
+      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, outputSettings)}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(wrappedText)}`;
     });
 }
 
@@ -227,7 +315,7 @@ export async function writeSceneAss(
             segmentStartSec + 0.05,
             segment.endSec - Number(scene.startSec ?? 0),
           );
-          return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(segment.text)}`;
+          return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(wrapSubtitleText(segment.text, subtitleSettings, outputSettings))}`;
         });
   if (subtitleEvents.length === 0 && overlayEvents.length === 0) {
     return false;

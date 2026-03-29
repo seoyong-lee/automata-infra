@@ -3,9 +3,11 @@ import {
   type DescribeTasksCommandOutput,
   ECSClient,
   RunTaskCommand,
+  StopTaskCommand,
   type RunTaskCommandOutput,
 } from "@aws-sdk/client-ecs";
 import { getJsonFromS3, putJsonToS3 } from "../../aws/runtime";
+import { setJobExecutionProviderTaskArn } from "../../store/job-execution";
 import { pollUntil } from "../http/retry";
 
 const region = process.env.AWS_REGION ?? "ap-northeast-2";
@@ -85,6 +87,20 @@ const describeTask = async (clusterArn: string, taskArn: string) => {
     new DescribeTasksCommand({
       cluster: clusterArn,
       tasks: [taskArn],
+    }),
+  );
+};
+
+const stopTask = async (
+  clusterArn: string,
+  taskArn: string,
+  reason: string,
+) => {
+  await ecsClient.send(
+    new StopTaskCommand({
+      cluster: clusterArn,
+      task: taskArn,
+      reason,
     }),
   );
 };
@@ -216,6 +232,7 @@ const assertTaskCompleted = (
 
 const runFargateTask = async (input: {
   jobId: string;
+  executionSk?: string;
   resultS3Key: string;
   requestLogKey: string;
   requestPayload: Record<string, unknown>;
@@ -227,6 +244,13 @@ const runFargateTask = async (input: {
     resultS3Key: input.resultS3Key,
     containerEnvironment: input.containerEnvironment,
   });
+  if (input.executionSk) {
+    await setJobExecutionProviderTaskArn({
+      jobId: input.jobId,
+      sk: input.executionSk,
+      providerTaskArn: taskArn,
+    });
+  }
   const taskState = await waitForTask(
     config.clusterArn,
     taskArn,
@@ -243,6 +267,7 @@ const runFargateTask = async (input: {
 
 export const composeWithFargate = async (input: {
   jobId: string;
+  executionSk?: string;
   renderPlan: Record<string, unknown>;
 }): Promise<FargateCompositionResult> => {
   const renderPlanS3Key = getRenderPlanS3Key(input.jobId, input.renderPlan);
@@ -250,6 +275,7 @@ export const composeWithFargate = async (input: {
   await putJsonToS3(renderPlanS3Key, input.renderPlan);
   const { result, taskArn } = await runFargateTask({
     jobId: input.jobId,
+    executionSk: input.executionSk,
     resultS3Key,
     requestLogKey: REQUEST_KEY(input.jobId),
     requestPayload: {
@@ -270,6 +296,14 @@ export const composeWithFargate = async (input: {
     ...typedResult,
     providerRenderId: taskArn,
   };
+};
+
+export const stopFargateRenderTask = async (input: {
+  taskArn: string;
+  reason: string;
+}): Promise<void> => {
+  const config = getTaskConfig();
+  await stopTask(config.clusterArn, input.taskArn, input.reason);
 };
 
 export const adjustVoiceWithFargate = async (input: {

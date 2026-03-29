@@ -18,7 +18,10 @@ export const runPipelineStage = async (input: {
   assetGenScope?: AssetGenerationScope;
   finalCompositionScope?: FinalCompositionScope;
 }): Promise<void> => {
-  await markJobExecutionRunning(input.jobId, input.executionSk);
+  const shouldRun = await markJobExecutionRunning(input.jobId, input.executionSk);
+  if (!shouldRun) {
+    return;
+  }
   try {
     await executePipelineStage(input);
     const job = await getJobOrThrow(input.jobId);

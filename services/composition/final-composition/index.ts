@@ -4,6 +4,7 @@ import { composeFinalVideo } from "./usecase/compose-final-video";
 
 type CompositionEvent = {
   jobId: string;
+  executionSk?: string;
   renderPlan: Record<string, unknown> & {
     totalDurationSec: number;
   };
@@ -25,6 +26,7 @@ export const run: Handler<
 > = async (event) => {
   const composition = (await composeFinalVideo({
     jobId: event.jobId,
+    executionSk: event.executionSk,
     renderPlan: event.renderPlan,
   })) as CompositionResult;
 

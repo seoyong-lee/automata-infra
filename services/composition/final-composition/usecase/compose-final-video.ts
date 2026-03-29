@@ -12,10 +12,12 @@ type CompositionResult = Record<string, unknown> & {
 
 export const composeFinalVideo = async (input: {
   jobId: string;
+  executionSk?: string;
   renderPlan: Record<string, unknown>;
 }): Promise<CompositionResult> => {
   return (await composeWithFargate({
     jobId: input.jobId,
+    executionSk: input.executionSk,
     renderPlan: input.renderPlan,
   })) as CompositionResult;
 };

@@ -4,6 +4,7 @@ import {
   buildRenderPlan,
   buildRenderPlanScenes,
 } from "../services/composition/render-plan";
+import { buildSubtitleAss } from "../services/admin/final/run-final-composition/mapper/build-subtitle-ass";
 
 void test("render plan includes ffmpeg-friendly defaults and extends scenes for voice", () => {
   const event = {
@@ -269,4 +270,72 @@ void test("render plan maps subtitle color and saved text overlays into overlay 
   assert.equal(renderPlan.overlays[0]?.type, "text");
   assert.equal(renderPlan.overlays[0]?.text, "오늘의 제목");
   assert.equal(renderPlan.overlays[0]?.style.fontWeight, "bold");
+});
+
+void test("subtitle ass wraps long subtitle and title overlay text", () => {
+  const ass = buildSubtitleAss({
+    output: {
+      format: "mp4",
+      size: { width: 1080, height: 1920 },
+      fps: 30,
+    },
+    totalDurationSec: 6,
+    subtitles: {
+      burnIn: true,
+      format: "ass",
+      style: {
+        fontFamily: "Clear Sans",
+        fontSize: 96,
+        fontWeight: "bold",
+        lineHeight: 1,
+        opacity: 1,
+        maxWidth: 0.88,
+        color: "#FFFFFF",
+        strokeColor: "#000000",
+        strokeWidth: 2,
+        position: "bottom",
+        offset: { x: 0, y: 0 },
+      },
+    },
+    scenes: [
+      {
+        sceneId: 1,
+        startSec: 0,
+        endSec: 6,
+        durationSec: 6,
+        gapAfterSec: 0,
+        subtitle:
+          "자막이 화면 가로 길이를 넘어가지 않도록 실제 렌더에서 줄바꿈되어야 합니다",
+      },
+    ],
+    overlays: [
+      {
+        overlayId: "headline",
+        type: "text",
+        text: "강아지가 사람과 함께 살기 시작했던 이유",
+        placement: {
+          x: 0.06,
+          y: 0.05,
+          width: 0.88,
+          height: 0.12,
+        },
+        style: {
+          fontFamily: "Clear Sans",
+          fontSize: 28,
+          fontWeight: "bold",
+          color: "#FFFFFF",
+          strokeColor: "#000000",
+          strokeWidth: 2,
+          opacity: 1,
+          align: "center",
+        },
+        startSec: 0,
+        endSec: 6,
+      },
+    ],
+  });
+
+  assert.match(ass, /강아지가 사람과 함께\\\\N살기 시작했던 이유/);
+  assert.match(ass, /줄바꿈되어야 합니다/);
+  assert.match(ass, /\\an5/);
 });

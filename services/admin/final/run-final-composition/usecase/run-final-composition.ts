@@ -13,6 +13,10 @@ export type FinalCompositionScope = {
   burnInSubtitles?: boolean;
 };
 
+type FinalCompositionRuntimeContext = {
+  executionSk?: string;
+};
+
 type RenderPlanResult = {
   renderPlan?: RenderPlan;
 };
@@ -23,6 +27,7 @@ const noopContext = {} as never;
 export const runFinalCompositionCore = async (
   jobId: string,
   scope?: FinalCompositionScope,
+  runtime?: FinalCompositionRuntimeContext,
 ): Promise<ReturnType<typeof mapJobMetaToAdminJob>> => {
   const context = await loadRenderPipelineContext(jobId);
 
@@ -76,6 +81,7 @@ export const runFinalCompositionCore = async (
     {
       jobId,
       renderPlan: finalRenderPlan,
+      ...(runtime?.executionSk ? { executionSk: runtime.executionSk } : {}),
     },
     noopContext,
     noopCallback,

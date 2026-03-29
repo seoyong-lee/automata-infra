@@ -1,6 +1,6 @@
 import { randomUUID } from "node:crypto";
 
-import { putItem, queryItems, updateItem } from "../aws/runtime";
+import { getItem, putItem, queryItems, updateItem } from "../aws/runtime";
 
 const jobPk = (jobId: string): string => `JOB#${jobId}`;
 
@@ -10,7 +10,12 @@ export type JobExecutionStageType =
   | "ASSET_GENERATION"
   | "FINAL_COMPOSITION";
 
-export type JobExecutionStatus = "QUEUED" | "RUNNING" | "SUCCEEDED" | "FAILED";
+export type JobExecutionStatus =
+  | "QUEUED"
+  | "RUNNING"
+  | "SUCCEEDED"
+  | "FAILED"
+  | "CANCELLED";
 
 export type JobExecutionRow = {
   PK: string;
@@ -23,6 +28,7 @@ export type JobExecutionRow = {
   startedAt: string;
   completedAt?: string;
   errorMessage?: string;
+  providerTaskArn?: string | null;
   /** 해당 실행의 입력 기준(예: 브리프·플랜·씬 JSON S3 키). 승인 스냅샷 ID로 확장 가능. */
   inputSnapshotId?: string;
   /** 성공 시 산출물 기준(예: 플랜·씬 JSON S3 키). 채택 UI 연결용. */
@@ -36,6 +42,10 @@ export const finishJobExecution = async (input: {
   errorMessage?: string;
   outputArtifactS3Key?: string;
 }): Promise<void> => {
+  const current = await getJobExecutionBySk(input.jobId, input.sk);
+  if (!current || current.status === "CANCELLED") {
+    return;
+  }
   const completedAt = new Date().toISOString();
   const key = { PK: jobPk(input.jobId), SK: input.sk };
   if (input.status === "SUCCEEDED") {
@@ -92,12 +102,70 @@ export const finishJobExecution = async (input: {
 export const markJobExecutionRunning = async (
   jobId: string,
   sk: string,
-): Promise<void> => {
+): Promise<boolean> => {
+  const current = await getJobExecutionBySk(jobId, sk);
+  if (!current || current.status === "CANCELLED") {
+    return false;
+  }
+  if (current.status === "RUNNING") {
+    return true;
+  }
   await updateItem({
     key: { PK: jobPk(jobId), SK: sk },
     updateExpression: "SET #s = :s",
     expressionAttributeNames: { "#s": "status" },
     expressionAttributeValues: { ":s": "RUNNING" },
+  });
+  return true;
+};
+
+export const getJobExecutionBySk = async (
+  jobId: string,
+  sk: string,
+): Promise<JobExecutionRow | null> => {
+  return getItem<JobExecutionRow>({
+    PK: jobPk(jobId),
+    SK: sk,
+  });
+};
+
+export const setJobExecutionProviderTaskArn = async (input: {
+  jobId: string;
+  sk: string;
+  providerTaskArn: string;
+}): Promise<void> => {
+  await updateItem({
+    key: { PK: jobPk(input.jobId), SK: input.sk },
+    updateExpression: "SET #task = :task",
+    expressionAttributeNames: {
+      "#task": "providerTaskArn",
+    },
+    expressionAttributeValues: {
+      ":task": input.providerTaskArn,
+    },
+  });
+};
+
+export const cancelJobExecution = async (input: {
+  jobId: string;
+  sk: string;
+  errorMessage?: string;
+}): Promise<void> => {
+  await updateItem({
+    key: { PK: jobPk(input.jobId), SK: input.sk },
+    updateExpression:
+      "SET #s = :s, #completedAt = :c, #err = :e REMOVE #out",
+    expressionAttributeNames: {
+      "#s": "status",
+      "#completedAt": "completedAt",
+      "#err": "errorMessage",
+      "#out": "outputArtifactS3Key",
+    },
+    expressionAttributeValues: {
+      ":s": "CANCELLED",
+      ":c": new Date().toISOString(),
+      ":e": input.errorMessage ?? "cancelled by user",
+    },
   });
 };
 

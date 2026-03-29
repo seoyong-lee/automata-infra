@@ -146,6 +146,7 @@ export type RenderArtifactDto = {
   provider?: string;
   providerRenderId?: string | null;
   createdAt: string;
+  selected: boolean;
 };
 
 export type ConnectionDto<T> = {

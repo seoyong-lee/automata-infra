@@ -4,6 +4,7 @@ import type { RenderArtifactItem } from "../../../shared/lib/store/video-jobs";
 
 export const mapRenderArtifactDraft = (
   item: RenderArtifactItem,
+  selected = false,
 ): RenderArtifactDto => {
-  return normalizeRenderArtifact(item);
+  return normalizeRenderArtifact(item, selected);
 };

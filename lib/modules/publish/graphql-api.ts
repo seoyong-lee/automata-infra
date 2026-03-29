@@ -42,6 +42,8 @@ type CreatePublishGraphqlApiProps = {
   setJobBackgroundMusicResolver: lambda.IFunction;
   setSceneVoiceProfileResolver: lambda.IFunction;
   runFinalCompositionResolver: lambda.IFunction;
+  cancelFinalCompositionResolver: lambda.IFunction;
+  selectRenderArtifactResolver: lambda.IFunction;
   deleteJobResolver: lambda.IFunction;
   attachJobToContentResolver: lambda.IFunction;
   approvePipelineExecutionResolver: lambda.IFunction;
@@ -308,6 +310,20 @@ export const createPublishGraphqlApi = (
     "runFinalComposition",
     "Mutation",
     props.runFinalCompositionResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CancelFinalComposition",
+    "cancelFinalComposition",
+    "Mutation",
+    props.cancelFinalCompositionResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SelectRenderArtifact",
+    "selectRenderArtifact",
+    "Mutation",
+    props.selectRenderArtifactResolver,
   );
   addLambdaResolver(
     graphqlApi,

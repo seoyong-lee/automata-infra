@@ -1,6 +1,9 @@
 import type { RenderArtifactItem } from "../../../shared/lib/store/video-jobs";
 
-export const normalizeRenderArtifact = (item: RenderArtifactItem) => {
+export const normalizeRenderArtifact = (
+  item: RenderArtifactItem,
+  selected = false,
+) => {
   return {
     finalVideoS3Key:
       typeof item.finalVideoS3Key === "string"
@@ -25,5 +28,6 @@ export const normalizeRenderArtifact = (item: RenderArtifactItem) => {
         ? item.providerRenderId
         : undefined,
     createdAt: item.createdAt,
+    selected,
   };
 };

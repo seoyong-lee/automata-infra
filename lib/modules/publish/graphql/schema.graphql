@@ -76,6 +76,8 @@ type Mutation {
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
   """
   runFinalComposition(input: RunFinalCompositionInput!): AdminJob!
+  cancelFinalComposition(input: CancelFinalCompositionInput!): AdminJob!
+  selectRenderArtifact(input: SelectRenderArtifactInput!): JobDraftDetail!
   """
   성공한 파이프라인 실행을 해당 단계의 채택본(승인 라인)으로 기록한다. 다음 단계 자동화는 추후 이 포인터를 소비하도록 확장한다.
   """
@@ -415,6 +417,7 @@ type RenderArtifact {
   provider: String
   providerRenderId: String
   createdAt: AWSDateTime!
+  selected: Boolean!
 }
 
 type BackgroundMusicAsset {
@@ -479,6 +482,7 @@ enum ExecutionStatus {
   RUNNING
   SUCCEEDED
   FAILED
+  CANCELLED
 }
 
 type PipelineExecution {
@@ -503,6 +507,16 @@ type PipelineExecution {
 input ApprovePipelineExecutionInput {
   jobId: ID!
   executionId: ID!
+}
+
+input CancelFinalCompositionInput {
+  jobId: ID!
+  executionId: ID
+}
+
+input SelectRenderArtifactInput {
+  jobId: ID!
+  createdAt: AWSDateTime!
 }
 
 type LlmSettings {

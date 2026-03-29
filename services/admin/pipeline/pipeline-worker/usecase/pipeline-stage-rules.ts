@@ -17,6 +17,7 @@ const DEFAULT_ASSET_GENERATION_SCOPE: AssetGenerationScope = {
 
 export type PipelineStageExecutionInput = {
   jobId: string;
+  executionSk: string;
   stage: JobExecutionStageType;
   assetGenScope?: AssetGenerationScope;
   finalCompositionScope?: FinalCompositionScope;
@@ -34,7 +35,9 @@ export const executePipelineStage = async (
     return;
   }
   if (input.stage === "FINAL_COMPOSITION") {
-    await runFinalCompositionCore(input.jobId, input.finalCompositionScope);
+    await runFinalCompositionCore(input.jobId, input.finalCompositionScope, {
+      executionSk: input.executionSk,
+    });
     return;
   }
   await runAssetGenerationCore(
