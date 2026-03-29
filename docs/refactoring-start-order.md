@@ -69,6 +69,7 @@
   - 완료: grouped domain router 공통 dispatch 도입
   - 완료: `generations/jobs/content/settings/final/pipeline`의 `routes` 기반 라우팅 통일
   - 완료: field `index.ts`의 audit/error 변환 패턴을 `run-audited-admin-resolver`로 공통화
+  - 완료: field audit metadata(`jobId`/`action`)를 `resolver-audit-fields` helper로 2차 공통화
   - 완료: `run-asset-generation/index.ts`의 scope 조합 책임을 usecase로 이동
   - 완료: generation 도메인의 job draft 반환을 shared facade로 분리
   - 완료: `run-scene-json`의 입력 로드 / 저장 책임을 repo + normalize로 분리
@@ -80,6 +81,7 @@
   - 완료: `set-job-background-music` 검증 로직 분리
   - 완료: `search-scene-stock-assets`의 image/video scene search policy 분리
   - 완료: `run-final-composition`의 subtitle persistence / render plan patch 분리
+  - 완료: `attach-job-to-content`의 validation/context load/artifact sync 분리
   - next: field 단위에서 index/usecase 경계가 약한 구간 점검
 
 ---

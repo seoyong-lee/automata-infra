@@ -4,12 +4,12 @@ import { logResolverAudit } from "./audit-log";
 import { toGraphqlResolverError } from "./errors";
 import type { GraphqlResolverEvent } from "./types";
 
-type ResolverAuditFields = {
+export type ResolverAuditFields = {
   jobId?: string;
   action?: string;
 };
 
-type ResolverAuditFieldInput<TParsed, TResult> = {
+export type ResolverAuditFieldInput<TParsed, TResult> = {
   parsed?: TParsed;
   result?: TResult;
 };

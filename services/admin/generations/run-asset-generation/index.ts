@@ -1,3 +1,4 @@
+import { resolveJobIdAuditFields } from "../../shared/resolver-audit-fields";
 import { runAuditedAdminResolver } from "../../shared/run-audited-admin-resolver";
 import {
   parseRunAssetGenerationArgs,
@@ -9,8 +10,6 @@ export const run = runAuditedAdminResolver({
   operation: "runAssetGeneration",
   operationType: "mutation",
   parse: (args): ParsedRunAssetGenerationArgs => parseRunAssetGenerationArgs(args),
-  resolveAuditFields: ({ parsed }) => ({
-    jobId: parsed?.jobId,
-  }),
+  resolveAuditFields: resolveJobIdAuditFields(),
   run: async ({ parsed, actor }) => runAdminAssetGeneration(parsed, actor),
 });
