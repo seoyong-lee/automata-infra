@@ -6,6 +6,7 @@ import test from "node:test";
 import {
   buildRenderPlan,
   buildRenderPlanScenes,
+  resolveRenderPolicyConfig,
 } from "../services/composition/render-plan";
 import { buildSubtitleAss } from "../services/admin/final/run-final-composition/mapper/build-subtitle-ass";
 
@@ -279,6 +280,80 @@ void test("render plan maps subtitle color and saved text overlays into overlay 
   assert.equal(renderPlan.overlays[0]?.type, "text");
   assert.equal(renderPlan.overlays[0]?.text, "오늘의 제목");
   assert.equal(renderPlan.overlays[0]?.style.fontWeight, "bold");
+});
+
+void test("render plan falls back to preset-level render settings", () => {
+  const event = {
+    jobId: "job_preset_defaults",
+    sceneJson: {
+      videoTitle: "Preset Defaults Story",
+      language: "ko",
+      scenes: [
+        {
+          sceneId: 1,
+          durationSec: 5,
+          narration: "프리셋 기본 레이아웃 테스트",
+          subtitle: "프리셋 기본 레이아웃 테스트",
+        },
+      ],
+    },
+  };
+
+  const config = resolveRenderPolicyConfig(event, {
+    resolvedPolicy: {
+      presetId: "preset-layout-test",
+      format: "template-short",
+      duration: "short",
+      primaryPlatformPreset: "9:16",
+      styleTags: ["minimal"],
+      assetStrategy: "mixed",
+      stylePreset: "layout_test",
+      capabilities: {
+        voiceMode: "required",
+        subtitleMode: "required",
+        layoutMode: "template",
+        supportsAiVideo: true,
+        supportsAiImage: true,
+        supportsStockVideo: true,
+        supportsStockImage: true,
+        supportsBgm: true,
+        supportsSfx: false,
+        supportsVoiceProfile: false,
+        supportsOverlayTemplate: false,
+      },
+      assetMenu: {
+        showScript: true,
+        showNarration: true,
+        showSubtitles: true,
+        showImageAssets: true,
+        showVideoAssets: true,
+        showStockPicker: true,
+        showBgm: true,
+        showSfx: false,
+        showOverlayEditor: false,
+        recommendedGenerationOrder: ["script", "voice", "image", "video"],
+      },
+      renderSettings: {
+        subtitleEnabled: true,
+        subtitleColor: "#AABBCC",
+        backgroundColor: "#112233",
+        videoCropMode: "contain",
+        videoFrameX: 0.08,
+        videoFrameY: 0.1,
+        videoFrameWidth: 0.84,
+        videoFrameHeight: 0.5,
+      },
+    },
+  });
+
+  assert.equal(config.subtitles.burnIn, true);
+  assert.equal(config.subtitles.style.color, "#AABBCC");
+  assert.equal(config.canvas.backgroundColor, "#112233");
+  assert.equal(config.canvas.videoCropMode, "contain");
+  assert.equal(config.mediaFrame.x, 0.08);
+  assert.equal(config.mediaFrame.y, 0.1);
+  assert.equal(config.mediaFrame.width, 0.84);
+  assert.equal(config.mediaFrame.height, 0.5);
 });
 
 void test("subtitle ass wraps long subtitle and title overlay text", () => {

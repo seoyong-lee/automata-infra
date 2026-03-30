@@ -7,6 +7,7 @@ import {
   presetSnapshotSchema,
   resolvedPolicySchema,
 } from "./content-presets";
+import { jobRenderSettingsSchema } from "./render-settings";
 
 const isoDateSchema = z
   .string()
@@ -29,25 +30,6 @@ const optionalCreativeBrief = z
     const t = s.trim();
     return t.length === 0 ? undefined : t;
   });
-
-const hexColorSchema = z
-  .string()
-  .trim()
-  .regex(/^#?[0-9A-Fa-f]{6}$/, "Expected a 6-digit hex color")
-  .transform((value) =>
-    value.startsWith("#") ? value.toUpperCase() : `#${value.toUpperCase()}`,
-  );
-const subtitleFontPresetSchema = z.enum([
-  "default",
-  "serif",
-  "sans",
-  "display",
-]);
-const subtitleFontWeightSchema = z.enum(["regular", "bold"]);
-const subtitleOffsetScalarSchema = z.number().min(-1).max(1);
-const videoCropModeSchema = z.enum(["contain", "cover", "smart-crop"]);
-const normalizedFrameScalarSchema = z.number().min(0).max(1);
-const normalizedOverlayWidthSchema = z.number().min(0.2).max(1);
 export const sceneStartTransitionTypeSchema = z.enum([
   "cut",
   "fade",
@@ -89,41 +71,6 @@ export const sceneVisualNeedSchema = z
     visualTypePriority: z.array(sceneVisualSourceTypeSchema).min(1),
     motionHint: nonEmpty.optional(),
     avoidTags: z.array(nonEmpty).min(1),
-  })
-  .strict();
-const jobRenderTextOverlaySchema = z
-  .object({
-    overlayId: nonEmpty,
-    text: z.string().max(200),
-    x: normalizedFrameScalarSchema,
-    y: normalizedFrameScalarSchema,
-    width: normalizedOverlayWidthSchema.optional(),
-    fontPreset: subtitleFontPresetSchema.optional(),
-    fontWeight: subtitleFontWeightSchema.optional(),
-    fontSize: z.number().int().min(12).max(96).optional(),
-    color: hexColorSchema.optional(),
-  })
-  .strict();
-
-export const jobRenderSettingsSchema = z
-  .object({
-    subtitleEnabled: z.boolean().optional(),
-    subtitleStylePreset: nonEmpty.optional(),
-    subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
-    subtitleOffsetY: subtitleOffsetScalarSchema.optional(),
-    subtitleFontPreset: subtitleFontPresetSchema.optional(),
-    subtitleFontWeight: subtitleFontWeightSchema.optional(),
-    subtitleFontSize: z.number().int().min(12).max(96).optional(),
-    subtitleMaxWidth: normalizedOverlayWidthSchema.optional(),
-    subtitleColor: hexColorSchema.optional(),
-    backgroundColor: hexColorSchema.optional(),
-    videoScale: z.number().min(0.5).max(1.25).optional(),
-    videoCropMode: videoCropModeSchema.optional(),
-    videoFrameX: normalizedFrameScalarSchema.optional(),
-    videoFrameY: normalizedFrameScalarSchema.optional(),
-    videoFrameWidth: z.number().min(0.1).max(1).optional(),
-    videoFrameHeight: z.number().min(0.1).max(1).optional(),
-    textOverlays: z.array(jobRenderTextOverlaySchema).max(12).optional(),
   })
   .strict();
 
@@ -184,7 +131,6 @@ export const attachJobToContentInputSchema = z
 export type AttachJobToContentInput = z.infer<
   typeof attachJobToContentInputSchema
 >;
-export type JobRenderTextOverlay = z.infer<typeof jobRenderTextOverlaySchema>;
 export type SceneStartTransitionType = z.infer<
   typeof sceneStartTransitionTypeSchema
 >;
@@ -365,7 +311,6 @@ export type SourcePack = z.infer<typeof sourcePackSchema>;
 export type ScriptSection = z.infer<typeof scriptSectionSchema>;
 export type ScriptStructure = z.infer<typeof scriptStructureSchema>;
 export type JobBriefInput = z.infer<typeof jobBriefInputSchema>;
-export type JobRenderSettings = z.infer<typeof jobRenderSettingsSchema>;
 export type CreateDraftJobInput = z.infer<typeof createDraftJobInputSchema>;
 export type CreateContentInput = z.infer<typeof createContentInputSchema>;
 export type UpdateContentInput = z.infer<typeof updateContentInputSchema>;
@@ -373,6 +318,11 @@ export type RunJobPlanInput = z.infer<typeof runJobPlanInputSchema>;
 export type SceneDefinitionInput = z.infer<typeof sceneDefinitionSchema>;
 export type SceneJsonInput = z.infer<typeof sceneJsonSchema>;
 export type UpdateSceneJsonInput = z.infer<typeof updateSceneJsonInputSchema>;
+export {
+  jobRenderSettingsSchema,
+  type JobRenderSettings,
+  type JobRenderTextOverlay,
+} from "./render-settings";
 
 export const parseContentBrief = (payload: unknown): ContentBrief => {
   return contentBriefSchema.parse(payload);

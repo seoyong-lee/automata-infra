@@ -84,6 +84,23 @@ const resolveExistingPolicy = (input: {
   );
 };
 
+const mergeRenderSettings = (
+  ...values: Array<JobBriefDto["renderSettings"] | undefined>
+): JobBriefDto["renderSettings"] => {
+  const merged = values.reduce<Record<string, unknown>>((acc, value) => {
+    if (!value) {
+      return acc;
+    }
+    return {
+      ...acc,
+      ...value,
+    };
+  }, {});
+  return Object.keys(merged).length > 0
+    ? (merged as JobBriefDto["renderSettings"])
+    : undefined;
+};
+
 const resolvePresetState = async (input: {
   requestedPresetId?: string;
   requestedStylePreset?: string;
@@ -129,6 +146,7 @@ const buildMergedJobBrief = (input: {
   existing?: JobBriefDto;
   requested: UpdateJobBriefInputDto;
   presetState: Awaited<ReturnType<typeof resolvePresetState>>;
+  presetChanged: boolean;
 }): JobBriefDto => {
   return {
     ...input.existing,
@@ -141,6 +159,17 @@ const buildMergedJobBrief = (input: {
       "default",
     presetSnapshot: input.presetState.presetSnapshot,
     resolvedPolicy: input.presetState.resolvedPolicy,
+    renderSettings:
+      input.requested.renderSettings !== undefined
+        ? mergeRenderSettings(
+            input.presetChanged
+              ? input.presetState.resolvedPolicy?.renderSettings
+              : input.existing?.renderSettings,
+            input.requested.renderSettings,
+          )
+        : input.presetChanged
+          ? input.presetState.resolvedPolicy?.renderSettings
+          : input.existing?.renderSettings,
   };
 };
 
@@ -197,10 +226,15 @@ export const updateAdminJobBrief = async (input: {
     existingJobBrief: existing,
     existingContentBrief,
   });
+  const existingPresetId =
+    existing?.presetId ?? existingContentBrief?.presetId ?? undefined;
   const merged = buildMergedJobBrief({
     existing,
     requested: input.jobBrief,
     presetState,
+    presetChanged:
+      input.jobBrief.presetId !== undefined &&
+      input.jobBrief.presetId !== existingPresetId,
   });
   await saveJobBrief({
     jobId: input.jobId,

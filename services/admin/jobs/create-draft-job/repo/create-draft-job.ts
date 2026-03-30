@@ -64,6 +64,9 @@ const buildJobBrief = (input: {
       : {}),
     ...(input.presetSnapshot ? { presetSnapshot: input.presetSnapshot } : {}),
     ...(input.resolvedPolicy ? { resolvedPolicy: input.resolvedPolicy } : {}),
+    ...(input.resolvedPolicy?.renderSettings
+      ? { renderSettings: input.resolvedPolicy.renderSettings }
+      : {}),
   };
 };
 

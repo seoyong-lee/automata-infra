@@ -1,5 +1,6 @@
 import { z } from "zod";
 import { randomUUID } from "crypto";
+import { jobRenderSettingsSchema } from "./render-settings";
 
 const nonEmpty = z.string().trim().min(1);
 
@@ -102,6 +103,7 @@ export const contentPresetDefaultPolicySchema = z
     sceneCountMax: z.number().int().positive().optional(),
     subtitleStylePreset: nonEmpty.optional(),
     renderPreset: nonEmpty.optional(),
+    renderSettings: jobRenderSettingsSchema.optional(),
     preferredImageProvider: nonEmpty.optional(),
     preferredVideoProvider: nonEmpty.optional(),
     preferredVoiceProfileId: nonEmpty.optional(),
@@ -180,6 +182,7 @@ export const resolvedPolicySchema = z
     sceneCountMax: z.number().int().positive().optional(),
     subtitleStylePreset: nonEmpty.optional(),
     renderPreset: nonEmpty.optional(),
+    renderSettings: jobRenderSettingsSchema.optional(),
     preferredImageProvider: nonEmpty.optional(),
     preferredVideoProvider: nonEmpty.optional(),
     preferredVoiceProfileId: nonEmpty.optional(),
@@ -320,6 +323,7 @@ export const buildResolvedPolicy = (
     sceneCountMax: snapshot.defaultPolicy.sceneCountMax,
     subtitleStylePreset: snapshot.defaultPolicy.subtitleStylePreset,
     renderPreset: snapshot.defaultPolicy.renderPreset,
+    renderSettings: snapshot.defaultPolicy.renderSettings,
     preferredImageProvider: snapshot.defaultPolicy.preferredImageProvider,
     preferredVideoProvider: snapshot.defaultPolicy.preferredVideoProvider,
     preferredVoiceProfileId: snapshot.defaultPolicy.preferredVoiceProfileId,

@@ -165,6 +165,7 @@ type ContentPresetDefaultPolicy {
   sceneCountMax: Int
   subtitleStylePreset: String
   renderPreset: String
+  renderSettings: RenderSettings
   preferredImageProvider: String
   preferredVideoProvider: String
   preferredVoiceProfileId: String
@@ -208,6 +209,7 @@ type ResolvedPolicy {
   sceneCountMax: Int
   subtitleStylePreset: String
   renderPreset: String
+  renderSettings: RenderSettings
   preferredImageProvider: String
   preferredVideoProvider: String
   preferredVoiceProfileId: String
@@ -839,6 +841,7 @@ input ContentPresetDefaultPolicyInput {
   sceneCountMax: Int
   subtitleStylePreset: String
   renderPreset: String
+  renderSettings: RenderSettingsInput
   preferredImageProvider: String
   preferredVideoProvider: String
   preferredVoiceProfileId: String

@@ -92,6 +92,7 @@ const createBuiltInPreset = (input: {
       sceneCountMax: input.defaultPolicy?.sceneCountMax,
       subtitleStylePreset: input.defaultPolicy?.subtitleStylePreset,
       renderPreset: input.defaultPolicy?.renderPreset,
+      renderSettings: input.defaultPolicy?.renderSettings,
       preferredImageProvider: input.defaultPolicy?.preferredImageProvider,
       preferredVideoProvider: input.defaultPolicy?.preferredVideoProvider,
       preferredVoiceProfileId: input.defaultPolicy?.preferredVoiceProfileId,

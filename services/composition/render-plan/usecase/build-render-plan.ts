@@ -134,6 +134,19 @@ const resolveFontFamilyFromPreset = (
   return subtitleFontFamilyByPreset[normalizedFontPreset] ?? fallback;
 };
 
+const resolveEffectiveRenderSettings = (
+  resolvedPolicy?: ResolvedPolicy,
+  renderSettings?: JobRenderSettings,
+): JobRenderSettings | undefined => {
+  if (!resolvedPolicy?.renderSettings && !renderSettings) {
+    return undefined;
+  }
+  return {
+    ...(resolvedPolicy?.renderSettings ?? {}),
+    ...(renderSettings ?? {}),
+  };
+};
+
 const resolveBaseSubtitleStyle = (
   resolvedPolicy?: ResolvedPolicy,
   renderSettings?: JobRenderSettings,
@@ -393,34 +406,38 @@ export const resolveRenderPolicyConfig = (
   input: StoredRenderInputs = {},
 ): RenderPolicyConfig => {
   const { resolvedPolicy, renderSettings } = input;
+  const effectiveRenderSettings = resolveEffectiveRenderSettings(
+    resolvedPolicy,
+    renderSettings,
+  );
   const output = resolveOutputByPlatformPreset(
     resolvedPolicy?.primaryPlatformPreset,
   );
   const subtitleStyle = resolveSubtitleFont(
     resolveSubtitlePosition(
-      resolveSubtitleStyle(resolvedPolicy, renderSettings),
-      renderSettings,
+      resolveSubtitleStyle(resolvedPolicy, effectiveRenderSettings),
+      effectiveRenderSettings,
     ),
     output,
-    renderSettings,
+    effectiveRenderSettings,
   );
   const defaultBurnIn =
     resolvedPolicy?.capabilities.layoutMode === "template" ||
     resolvedPolicy?.capabilities.layoutMode === "still-motion";
   return {
     output,
-    canvas: resolveCanvas(renderSettings),
-    mediaFrame: resolveMediaFrame(renderSettings),
+    canvas: resolveCanvas(effectiveRenderSettings),
+    mediaFrame: resolveMediaFrame(effectiveRenderSettings),
     previewMaxDurationSec: resolvePreviewMaxDurationSec(resolvedPolicy),
     subtitles: {
-      burnIn: renderSettings?.subtitleEnabled ?? defaultBurnIn,
+      burnIn: effectiveRenderSettings?.subtitleEnabled ?? defaultBurnIn,
       format: "ass",
       style: subtitleStyle,
     },
     sceneGapSec: resolveSceneGapSec(resolvedPolicy),
     defaultOverlays: [
       ...buildDefaultOverlays(event, resolvedPolicy),
-      ...buildUserTextOverlays(renderSettings, output),
+      ...buildUserTextOverlays(effectiveRenderSettings, output),
     ],
   };
 };
