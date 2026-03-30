@@ -1,6 +1,9 @@
 import { InvokeCommand, LambdaClient } from "@aws-sdk/client-lambda";
 
-import type { JobExecutionStageType } from "../store/job-execution";
+import type {
+  JobExecutionStageType,
+  PipelineExecutionStepType,
+} from "../store/job-execution";
 
 const client = new LambdaClient({});
 
@@ -18,6 +21,7 @@ export const invokePipelineWorkerAsync = async (input: {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
+  stepType?: PipelineExecutionStepType;
   assetGenScope?: PipelineWorkerAssetGenScope;
   finalCompositionScope?: PipelineWorkerFinalCompositionScope;
 }): Promise<void> => {
@@ -34,6 +38,7 @@ export const invokePipelineWorkerAsync = async (input: {
           jobId: input.jobId,
           executionSk: input.executionSk,
           stage: input.stage,
+          ...(input.stepType ? { stepType: input.stepType } : {}),
           ...(input.assetGenScope
             ? { assetGenScope: input.assetGenScope }
             : {}),

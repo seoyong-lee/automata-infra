@@ -516,23 +516,59 @@ enum PipelineStageType {
   FINAL_COMPOSITION
 }
 
+enum PipelineStepType {
+  JOB_PLAN_GENERATE
+  JOB_PLAN_VALIDATE
+  SCENE_JSON_GENERATE
+  SCENE_JSON_VALIDATE
+  ASSET_TEMPLATE_RESOLVE
+  ASSET_BIND
+  ASSET_GENERATE
+  FINAL_COMPOSITION_PREP
+  FINAL_COMPOSITION_RENDER
+  PUBLISH_REQUEST
+}
+
 enum ExecutionStatus {
   QUEUED
   RUNNING
   SUCCEEDED
   FAILED
+  TIMED_OUT
   CANCELLED
+}
+
+enum PipelineFailureType {
+  TIMEOUT
+  VALIDATION
+  RATE_LIMIT
+  PROVIDER
+  POLICY
+  INTERNAL
+  UNKNOWN
 }
 
 type PipelineExecution {
   executionId: ID!
   jobId: ID!
   stageType: PipelineStageType!
+  stepType: PipelineStepType!
   status: ExecutionStatus!
   triggeredBy: String
+  attemptCount: Int!
+  maxAttempts: Int!
+  maxRuntimeSec: Int!
   startedAt: AWSDateTime!
+  deadlineAt: AWSDateTime
+  lastHeartbeatAt: AWSDateTime
+  leaseExpiresAt: AWSDateTime
   completedAt: AWSDateTime
+  timedOutAt: AWSDateTime
   errorMessage: String
+  failureType: PipelineFailureType
+  failureCode: String
+  retryable: Boolean
+  nextRetryAt: AWSDateTime
   """
   해당 실행의 입력 기준. 현재는 단계별 입력 S3 키(시드·토픽 플랜·씬 JSON 등). 승인 스냅샷 ID로 확장 가능.
   """

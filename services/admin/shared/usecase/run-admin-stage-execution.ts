@@ -1,5 +1,7 @@
 import { invokePipelineWorkerAsync } from "../../../shared/lib/aws/invoke-pipeline-worker";
 import {
+  classifyPipelineExecutionFailure,
+  type PipelineExecutionStepType,
   type JobExecutionStageType,
   startJobExecution,
   startQueuedJobExecution,
@@ -13,6 +15,7 @@ const isPipelineAsyncEnabled = (): boolean =>
 export const runAdminStageExecution = async <TResult>(input: {
   jobId: string;
   stageType: JobExecutionStageType;
+  stepType?: PipelineExecutionStepType;
   triggeredBy?: string;
   inputSnapshotId?: string;
   workerPayload?: Record<string, unknown>;
@@ -21,25 +24,32 @@ export const runAdminStageExecution = async <TResult>(input: {
   getSuccessSnapshot?: (result: TResult) => string | undefined;
   onAsyncInvokeError?: (message: string) => Promise<void>;
   onSyncError?: (message: string) => Promise<void>;
+  maxAttempts?: number;
+  maxRuntimeSec?: number;
 }): Promise<TResult> => {
   if (isPipelineAsyncEnabled()) {
     const { sk, finish } = await startQueuedJobExecution({
       jobId: input.jobId,
       stageType: input.stageType,
+      stepType: input.stepType,
       triggeredBy: input.triggeredBy,
       inputSnapshotId: input.inputSnapshotId,
+      maxAttempts: input.maxAttempts,
+      maxRuntimeSec: input.maxRuntimeSec,
     });
     try {
       await invokePipelineWorkerAsync({
         jobId: input.jobId,
         executionSk: sk,
         stage: input.stageType,
+        stepType: input.stepType,
         ...(input.workerPayload ?? {}),
       });
     } catch (error) {
       const message = error instanceof Error ? error.message : String(error);
+      const failure = classifyPipelineExecutionFailure(error);
       await input.onAsyncInvokeError?.(message);
-      await finish("FAILED", message);
+      await finish("FAILED", message, undefined, failure);
       throw error;
     }
     return input.getQueuedResult();
@@ -48,8 +58,11 @@ export const runAdminStageExecution = async <TResult>(input: {
   const { finish } = await startJobExecution({
     jobId: input.jobId,
     stageType: input.stageType,
+    stepType: input.stepType,
     triggeredBy: input.triggeredBy,
     inputSnapshotId: input.inputSnapshotId,
+    maxAttempts: input.maxAttempts,
+    maxRuntimeSec: input.maxRuntimeSec,
   });
   try {
     const result = await input.runCore();
@@ -57,8 +70,9 @@ export const runAdminStageExecution = async <TResult>(input: {
     return result;
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
+    const failure = classifyPipelineExecutionFailure(error);
     await input.onSyncError?.(message);
-    await finish("FAILED", message);
+    await finish("FAILED", message, undefined, failure);
     throw error;
   }
 };
