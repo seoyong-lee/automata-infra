@@ -41,6 +41,12 @@ type Query {
 type Mutation {
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
+  completeSceneVideoUpload(
+    input: CompleteSceneVideoUploadInput!
+  ): JobDraftDetail!
+  extractYoutubeTranscript(
+    input: ExtractYoutubeTranscriptInput!
+  ): JobDraftDetail!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
   upsertContentPreset(input: UpsertContentPresetInput!): ContentPreset!
   deleteContentPreset(presetId: ID!): DeleteContentPresetResult!
@@ -356,6 +362,7 @@ type SceneAsset {
   imageS3Key: String
   videoClipS3Key: String
   voiceS3Key: String
+  videoTranscript: SceneVideoTranscript
   stockImageSearchStatus: StockSearchStatus
   stockImageSearchQuery: String
   stockVideoSearchStatus: StockSearchStatus
@@ -399,6 +406,41 @@ type SceneImageCandidate {
   height: Int
   createdAt: AWSDateTime!
   selected: Boolean!
+}
+
+enum SceneVideoTranscriptStatus {
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum SceneVideoTranscriptProvider {
+  AWS_TRANSCRIBE
+  YT_DLP
+}
+
+type SceneVideoTranscriptSegment {
+  startSec: Float!
+  endSec: Float!
+  text: String!
+}
+
+type SceneVideoTranscript {
+  status: SceneVideoTranscriptStatus!
+  provider: SceneVideoTranscriptProvider!
+  sourceS3Key: String
+  sourceUrl: String
+  providerJobId: String
+  languageCode: String
+  transcriptJsonS3Key: String
+  transcriptVttS3Key: String
+  transcriptSrtS3Key: String
+  plainTextPreview: String
+  startedAt: AWSDateTime
+  completedAt: AWSDateTime
+  updatedAt: AWSDateTime!
+  lastError: String
 }
 
 type SceneVideoCandidate {
@@ -741,6 +783,18 @@ input RequestAssetUploadInput {
   contentType: String!
   category: AssetUploadCategory!
   targetSceneId: Int
+}
+
+input CompleteSceneVideoUploadInput {
+  jobId: ID!
+  sceneId: Int!
+  s3Key: String!
+}
+
+input ExtractYoutubeTranscriptInput {
+  jobId: ID!
+  sceneId: Int!
+  youtubeUrl: String!
 }
 
 input RegisterAssetPoolAssetInput {

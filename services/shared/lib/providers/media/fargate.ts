@@ -33,6 +33,19 @@ type FargateVoiceAdjustmentResult = Record<string, unknown> & {
   message?: string;
 };
 
+type FargateYoutubeTranscriptResult = Record<string, unknown> & {
+  transcriptVttS3Key?: string;
+  audioS3Key?: string;
+  provider: string;
+  languageCode?: string;
+  sourceUrl?: string;
+  extractionMode?: "SUBTITLES" | "AUDIO_FALLBACK";
+  providerJobId?: string;
+  providerRenderId?: string | null;
+  failed?: boolean;
+  message?: string;
+};
+
 const RESULT_KEY = (jobId: string) =>
   `logs/${jobId}/composition/fargate-result.json`;
 const REQUEST_KEY = (jobId: string) =>
@@ -41,6 +54,10 @@ const VOICE_RESULT_KEY = (jobId: string, sceneId: number) =>
   `logs/${jobId}/voice-postprocess/scene-${sceneId}-result.json`;
 const VOICE_REQUEST_KEY = (jobId: string, sceneId: number) =>
   `logs/${jobId}/voice-postprocess/scene-${sceneId}-request.json`;
+const YOUTUBE_TRANSCRIPT_RESULT_KEY = (jobId: string, sceneId: number) =>
+  `logs/${jobId}/youtube-transcript/scene-${sceneId}-result.json`;
+const YOUTUBE_TRANSCRIPT_REQUEST_KEY = (jobId: string, sceneId: number) =>
+  `logs/${jobId}/youtube-transcript/scene-${sceneId}-request.json`;
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -294,6 +311,7 @@ export const composeWithFargate = async (input: {
   }
   return {
     ...typedResult,
+    providerJobId: taskArn,
     providerRenderId: taskArn,
   };
 };
@@ -338,6 +356,43 @@ export const adjustVoiceWithFargate = async (input: {
   if (!typedResult.voiceS3Key || typeof typedResult.durationSec !== "number") {
     throw new Error(
       "Fargate voice postprocess completed without a result payload",
+    );
+  }
+  return {
+    ...typedResult,
+    providerRenderId: taskArn,
+  };
+};
+
+export const extractYoutubeTranscriptWithFargate = async (input: {
+  jobId: string;
+  sceneId: number;
+  youtubeUrl: string;
+  preferredLanguage?: string;
+}): Promise<FargateYoutubeTranscriptResult> => {
+  const resultS3Key = YOUTUBE_TRANSCRIPT_RESULT_KEY(input.jobId, input.sceneId);
+  const { result, taskArn } = await runFargateTask({
+    jobId: input.jobId,
+    resultS3Key,
+    requestLogKey: YOUTUBE_TRANSCRIPT_REQUEST_KEY(input.jobId, input.sceneId),
+    requestPayload: {
+      youtubeUrl: input.youtubeUrl,
+      preferredLanguage: input.preferredLanguage,
+      resultS3Key,
+    },
+    containerEnvironment: [
+      { name: "TASK_MODE", value: "YOUTUBE_TRANSCRIPT" },
+      { name: "SCENE_ID", value: String(input.sceneId) },
+      { name: "YOUTUBE_URL", value: input.youtubeUrl },
+      ...(input.preferredLanguage
+        ? [{ name: "PREFERRED_LANGUAGE", value: input.preferredLanguage }]
+        : []),
+    ],
+  });
+  const typedResult = result as FargateYoutubeTranscriptResult;
+  if (!typedResult.transcriptVttS3Key && !typedResult.audioS3Key) {
+    throw new Error(
+      "Fargate YouTube transcript task completed without a result payload",
     );
   }
   return {

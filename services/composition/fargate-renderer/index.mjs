@@ -2,6 +2,7 @@ import { S3Client } from "@aws-sdk/client-s3";
 import { createS3CompositionRepo } from "./repo/s3-composition-repo.mjs";
 import { getMediaDurationSec, runCommand } from "./repo/media-tools-repo.mjs";
 import { createRenderFailureResult } from "./mapper/render-result.mjs";
+import { extractYoutubeTranscript } from "./usecase/extract-youtube-transcript.mjs";
 import { postProcessVoice } from "./usecase/post-process-voice.mjs";
 import { runRenderTask } from "./usecase/run-render-task.mjs";
 
@@ -26,6 +27,16 @@ function requireEnv(name) {
 }
 
 async function runSelectedTask() {
+  if (taskMode === "YOUTUBE_TRANSCRIPT") {
+    return extractYoutubeTranscript({
+      jobId,
+      sceneId: Number(requireEnv("SCENE_ID")),
+      youtubeUrl: requireEnv("YOUTUBE_URL"),
+      preferredLanguage: process.env.PREFERRED_LANGUAGE?.trim() || undefined,
+      storageRepo,
+    });
+  }
+
   if (taskMode === "VOICE_POSTPROCESS") {
     return postProcessVoice({
       jobId,
@@ -51,6 +62,16 @@ async function main() {
   await storageRepo.putJson(resultS3Key, result);
 }
 
+function getFailureProvider(taskMode) {
+  if (taskMode === "YOUTUBE_TRANSCRIPT") {
+    return "fargate-yt-dlp";
+  }
+  if (taskMode === "VOICE_POSTPROCESS") {
+    return "fargate-ffmpeg-atempo";
+  }
+  return "fargate-ffmpeg";
+}
+
 main().catch(async (error) => {
   const message = error instanceof Error ? error.message : String(error);
   await storageRepo.putJson(
@@ -58,6 +79,7 @@ main().catch(async (error) => {
     createRenderFailureResult({
       message,
       renderedAt: new Date().toISOString(),
+      provider: getFailureProvider(taskMode),
     }),
   );
   process.exitCode = 1;

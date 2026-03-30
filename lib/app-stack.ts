@@ -245,12 +245,40 @@ export class AppStack extends Stack {
       PIPELINE_ASYNC_INVOCATION: "1",
     };
 
+    const sceneVideoTranscriptHandler = createLambda(
+      this,
+      "SceneVideoTranscriptLambda",
+      `${props.projectPrefix}-scene-video-transcript`,
+      path.join(process.cwd(), "services/transcript/scene-video/handler.ts"),
+      environment,
+      Duration.minutes(15),
+      1024,
+    );
+    this.jobsTable.grantReadWriteData(sceneVideoTranscriptHandler);
+    this.assetsBucket.grantReadWrite(sceneVideoTranscriptHandler);
+    sceneVideoTranscriptHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "transcribe:GetTranscriptionJob",
+          "transcribe:StartTranscriptionJob",
+        ],
+        resources: ["*"],
+      }),
+    );
+    grantFargateRunPermissions(sceneVideoTranscriptHandler);
+
+    const uploadTriggerEnv = {
+      ...environment,
+      SCENE_VIDEO_TRANSCRIPT_WORKER_FUNCTION_NAME:
+        sceneVideoTranscriptHandler.functionName,
+    };
+
     const uploadGroupHandler = createLambda(
       this,
       "AdminUploadLambda",
       `${props.projectPrefix}-admin-upload`,
       path.join(process.cwd(), "services/publish/grouped-upload/handler.ts"),
-      environment,
+      uploadTriggerEnv,
     );
 
     const jobsHandler = createLambda(
@@ -314,6 +342,8 @@ export class AppStack extends Stack {
 
     const requestUploadResolver = uploadGroupHandler;
     const requestAssetUploadResolver = uploadGroupHandler;
+    const completeSceneVideoUploadResolver = uploadGroupHandler;
+    const extractYoutubeTranscriptResolver = uploadGroupHandler;
 
     const getLlmSettingsResolver = settingsHandler;
     const updateLlmSettingsResolver = settingsHandler;
@@ -373,6 +403,8 @@ export class AppStack extends Stack {
     this.jobsTable.grantReadData(jobExecutionsResolver);
     this.jobsTable.grantReadWriteData(requestUploadResolver);
     this.jobsTable.grantReadWriteData(requestAssetUploadResolver);
+    this.jobsTable.grantReadWriteData(completeSceneVideoUploadResolver);
+    this.jobsTable.grantReadWriteData(extractYoutubeTranscriptResolver);
     this.jobsTable.grantReadWriteData(getJobDraftResolver);
     this.jobsTable.grantReadWriteData(createDraftJobResolver);
     this.jobsTable.grantReadWriteData(updateJobBriefResolver);
@@ -403,6 +435,8 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(runSceneJsonResolver);
     this.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     this.assetsBucket.grantReadWrite(requestAssetUploadResolver);
+    this.assetsBucket.grantReadWrite(completeSceneVideoUploadResolver);
+    this.assetsBucket.grantReadWrite(extractYoutubeTranscriptResolver);
     this.assetsBucket.grantReadWrite(runAssetGenerationResolver);
     this.assetsBucket.grantReadWrite(searchSceneStockAssetsResolver);
     this.assetsBucket.grantReadWrite(selectSceneImageCandidateResolver);
@@ -499,6 +533,7 @@ export class AppStack extends Stack {
     pipelineHandler.grantInvoke(runSceneJsonResolver);
     pipelineHandler.grantInvoke(runAssetGenerationResolver);
     pipelineHandler.grantInvoke(runFinalCompositionResolver);
+    sceneVideoTranscriptHandler.grantInvoke(uploadGroupHandler);
 
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,
@@ -521,6 +556,8 @@ export class AppStack extends Stack {
       jobExecutionsResolver,
       requestUploadResolver,
       requestAssetUploadResolver,
+      completeSceneVideoUploadResolver,
+      extractYoutubeTranscriptResolver,
       listContentPresetsResolver,
       deleteContentPresetResolver,
       getLlmSettingsResolver,

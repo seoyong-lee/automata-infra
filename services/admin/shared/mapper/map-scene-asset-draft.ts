@@ -5,6 +5,7 @@ import type {
   SceneAssetItem,
 } from "../../../shared/lib/store/video-jobs";
 import type { SceneVisualNeed } from "../../../shared/lib/contracts/canonical-io-schemas";
+import { parseSceneVideoTranscript } from "../../../shared/lib/contracts/video-transcript";
 import { alignSceneNarrationAndSubtitle } from "../../../shared/lib/scene-text";
 
 const asOptionalString = (value: unknown): string | undefined => {
@@ -19,6 +20,17 @@ const asOptionalVisualNeed = (value: unknown): SceneVisualNeed | undefined => {
   return value && typeof value === "object" && !Array.isArray(value)
     ? (value as SceneVisualNeed)
     : undefined;
+};
+
+const asOptionalVideoTranscript = (value: unknown) => {
+  if (!value || typeof value !== "object" || Array.isArray(value)) {
+    return undefined;
+  }
+  try {
+    return parseSceneVideoTranscript(value);
+  } catch {
+    return undefined;
+  }
 };
 
 const asSelected = (input: {
@@ -43,6 +55,7 @@ export const mapSceneAssetDraft = (asset: SceneAssetItem) => {
     imageS3Key: alignedAsset.imageS3Key,
     videoClipS3Key: alignedAsset.videoClipS3Key,
     voiceS3Key: alignedAsset.voiceS3Key,
+    videoTranscript: asOptionalVideoTranscript(alignedAsset.videoTranscript),
     stockImageSearchStatus: asOptionalString(
       alignedAsset.stockImageSearchStatus,
     ),

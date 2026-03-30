@@ -1,4 +1,5 @@
 import type { SceneVisualNeed } from "../contracts/canonical-io-schemas";
+import type { SceneVideoTranscript } from "../contracts/video-transcript";
 
 export type QueryPage<T> = {
   items: T[];
@@ -122,6 +123,7 @@ export type SceneAssetItem = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  videoTranscript?: SceneVideoTranscript;
   imageSelectedCandidateId?: string;
   videoSelectedCandidateId?: string;
   voiceSelectedCandidateId?: string;

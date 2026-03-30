@@ -24,9 +24,13 @@ export function createVoicePostprocessResult({
   };
 }
 
-export function createRenderFailureResult({ message, renderedAt }) {
+export function createRenderFailureResult({
+  message,
+  renderedAt,
+  provider = "fargate-ffmpeg",
+}) {
   return {
-    provider: "fargate-ffmpeg",
+    provider,
     failed: true,
     message,
     renderedAt,

@@ -17,6 +17,8 @@ type CreatePublishGraphqlApiProps = {
   jobExecutionsResolver: lambda.IFunction;
   requestUploadResolver: lambda.IFunction;
   requestAssetUploadResolver: lambda.IFunction;
+  completeSceneVideoUploadResolver: lambda.IFunction;
+  extractYoutubeTranscriptResolver: lambda.IFunction;
   listContentPresetsResolver: lambda.IFunction;
   deleteContentPresetResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
@@ -144,6 +146,20 @@ export const createPublishGraphqlApi = (
     "requestAssetUpload",
     "Mutation",
     props.requestAssetUploadResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CompleteSceneVideoUpload",
+    "completeSceneVideoUpload",
+    "Mutation",
+    props.completeSceneVideoUploadResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ExtractYoutubeTranscript",
+    "extractYoutubeTranscript",
+    "Mutation",
+    props.extractYoutubeTranscriptResolver,
   );
   addLambdaResolver(
     graphqlApi,

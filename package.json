@@ -27,6 +27,7 @@
     "@aws-sdk/client-secrets-manager": "^3.1012.0",
     "@aws-sdk/client-sfn": "^3.1012.0",
     "@aws-sdk/client-sqs": "^3.1012.0",
+    "@aws-sdk/client-transcribe": "^3.1019.0",
     "@aws-sdk/lib-dynamodb": "^3.1012.0",
     "@aws-sdk/s3-request-presigner": "3.1012.0",
     "aws-cdk-lib": "^2.219.0",

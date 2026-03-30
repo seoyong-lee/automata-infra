@@ -9,6 +9,11 @@ import type {
   SceneStartTransition,
   SceneVisualNeed,
 } from "../../shared/lib/contracts/canonical-io-schemas";
+import type {
+  SceneVideoTranscript,
+  SceneVideoTranscriptProvider,
+  SceneVideoTranscriptStatus,
+} from "../../shared/lib/contracts/video-transcript";
 
 export type GraphqlResolverEvent<TArgs> = {
   arguments: TArgs;
@@ -311,6 +316,7 @@ export type SceneAssetDto = {
   imageS3Key?: string;
   videoClipS3Key?: string;
   voiceS3Key?: string;
+  videoTranscript?: SceneVideoTranscriptDto;
   stockImageSearchStatus?: string;
   stockImageSearchQuery?: string;
   stockVideoSearchStatus?: string;
@@ -334,6 +340,10 @@ export type SceneAssetDto = {
 };
 
 export type SceneVisualNeedDto = SceneVisualNeed;
+
+export type SceneVideoTranscriptDto = SceneVideoTranscript;
+export type SceneVideoTranscriptStatusDto = SceneVideoTranscriptStatus;
+export type SceneVideoTranscriptProviderDto = SceneVideoTranscriptProvider;
 
 export type VoiceProfileDto = {
   profileId: string;

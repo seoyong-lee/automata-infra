@@ -1,4 +1,6 @@
 import { Handler } from "aws-lambda";
+import { run as completeSceneVideoUpload } from "./complete-scene-video-upload";
+import { run as extractYoutubeTranscript } from "./extract-youtube-transcript";
 import { run as requestAssetUpload } from "./request-asset-upload";
 import { run as requestUpload } from "./request-upload";
 import { run as uploadApi } from "../upload";
@@ -35,6 +37,18 @@ export const run: Handler<
 
   const fieldName = getGroupedFieldName(event as GroupedGraphqlResolverEvent);
   switch (fieldName) {
+    case "extractYoutubeTranscript":
+      return extractYoutubeTranscript(
+        event as GroupedGraphqlResolverEvent,
+        {} as never,
+        () => undefined,
+      );
+    case "completeSceneVideoUpload":
+      return completeSceneVideoUpload(
+        event as GroupedGraphqlResolverEvent,
+        {} as never,
+        () => undefined,
+      );
     case "requestUpload":
       return requestUpload(
         event as GroupedGraphqlResolverEvent,
