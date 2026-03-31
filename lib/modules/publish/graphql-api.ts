@@ -17,8 +17,12 @@ type CreatePublishGraphqlApiProps = {
   jobExecutionsResolver: lambda.IFunction;
   requestUploadResolver: lambda.IFunction;
   requestAssetUploadResolver: lambda.IFunction;
+  requestTranscriptUploadResolver: lambda.IFunction;
+  createVideoTranscriptFromUploadResolver: lambda.IFunction;
+  createVideoTranscriptFromYoutubeResolver: lambda.IFunction;
   completeSceneVideoUploadResolver: lambda.IFunction;
   extractYoutubeTranscriptResolver: lambda.IFunction;
+  getTranscriptResolver: lambda.IFunction;
   listContentPresetsResolver: lambda.IFunction;
   deleteContentPresetResolver: lambda.IFunction;
   getLlmSettingsResolver: lambda.IFunction;
@@ -149,6 +153,27 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "RequestTranscriptUpload",
+    "requestTranscriptUpload",
+    "Mutation",
+    props.requestTranscriptUploadResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CreateVideoTranscriptFromUpload",
+    "createVideoTranscriptFromUpload",
+    "Mutation",
+    props.createVideoTranscriptFromUploadResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CreateVideoTranscriptFromYoutube",
+    "createVideoTranscriptFromYoutube",
+    "Mutation",
+    props.createVideoTranscriptFromYoutubeResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "CompleteSceneVideoUpload",
     "completeSceneVideoUpload",
     "Mutation",
@@ -188,6 +213,13 @@ export const createPublishGraphqlApi = (
     "assetPoolAssets",
     "Query",
     props.assetPoolAssetsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "GetTranscript",
+    "getTranscript",
+    "Query",
+    props.getTranscriptResolver,
   );
   addLambdaResolver(
     graphqlApi,

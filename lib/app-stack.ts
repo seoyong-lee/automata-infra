@@ -267,10 +267,40 @@ export class AppStack extends Stack {
     );
     grantFargateRunPermissions(sceneVideoTranscriptHandler);
 
+    const standaloneVideoTranscriptHandler = createLambda(
+      this,
+      "StandaloneVideoTranscriptLambda",
+      `${props.projectPrefix}-standalone-video-transcript`,
+      path.join(
+        process.cwd(),
+        "services/transcript/standalone-video/handler.ts",
+      ),
+      environment,
+      Duration.minutes(15),
+      1024,
+    );
+    this.jobsTable.grantReadWriteData(standaloneVideoTranscriptHandler);
+    this.assetsBucket.grantReadWrite(standaloneVideoTranscriptHandler);
+    standaloneVideoTranscriptHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: [
+          "transcribe:GetTranscriptionJob",
+          "transcribe:StartTranscriptionJob",
+        ],
+        resources: ["*"],
+      }),
+    );
+    grantFargateRunPermissions(standaloneVideoTranscriptHandler);
+
     const uploadTriggerEnv = {
       ...environment,
       SCENE_VIDEO_TRANSCRIPT_WORKER_FUNCTION_NAME:
         sceneVideoTranscriptHandler.functionName,
+    };
+    const transcriptTriggerEnv = {
+      ...environment,
+      STANDALONE_VIDEO_TRANSCRIPT_WORKER_FUNCTION_NAME:
+        standaloneVideoTranscriptHandler.functionName,
     };
 
     const uploadGroupHandler = createLambda(
@@ -279,6 +309,13 @@ export class AppStack extends Stack {
       `${props.projectPrefix}-admin-upload`,
       path.join(process.cwd(), "services/publish/grouped-upload/handler.ts"),
       uploadTriggerEnv,
+    );
+    const transcriptsHandler = createLambda(
+      this,
+      "AdminTranscriptsLambda",
+      `${props.projectPrefix}-admin-transcripts`,
+      path.join(process.cwd(), "services/admin/transcripts/handler.ts"),
+      transcriptTriggerEnv,
     );
 
     const jobsHandler = createLambda(
@@ -344,6 +381,10 @@ export class AppStack extends Stack {
     const requestAssetUploadResolver = uploadGroupHandler;
     const completeSceneVideoUploadResolver = uploadGroupHandler;
     const extractYoutubeTranscriptResolver = uploadGroupHandler;
+    const requestTranscriptUploadResolver = transcriptsHandler;
+    const createVideoTranscriptFromUploadResolver = transcriptsHandler;
+    const createVideoTranscriptFromYoutubeResolver = transcriptsHandler;
+    const getTranscriptResolver = transcriptsHandler;
 
     const getLlmSettingsResolver = settingsHandler;
     const updateLlmSettingsResolver = settingsHandler;
@@ -384,6 +425,8 @@ export class AppStack extends Stack {
     this.assetsBucket.grantRead(uploadHandler);
     this.assetsBucket.grantRead(requestUploadResolver);
     this.jobsTable.grantReadWriteData(uploadHandler);
+    this.jobsTable.grantReadWriteData(transcriptsHandler);
+    this.assetsBucket.grantReadWrite(transcriptsHandler);
     uploadHandler.addToRolePolicy(
       new iam.PolicyStatement({
         actions: ["secretsmanager:GetSecretValue"],
@@ -403,6 +446,10 @@ export class AppStack extends Stack {
     this.jobsTable.grantReadData(jobExecutionsResolver);
     this.jobsTable.grantReadWriteData(requestUploadResolver);
     this.jobsTable.grantReadWriteData(requestAssetUploadResolver);
+    this.jobsTable.grantReadWriteData(requestTranscriptUploadResolver);
+    this.jobsTable.grantReadWriteData(createVideoTranscriptFromUploadResolver);
+    this.jobsTable.grantReadWriteData(createVideoTranscriptFromYoutubeResolver);
+    this.jobsTable.grantReadWriteData(getTranscriptResolver);
     this.jobsTable.grantReadWriteData(completeSceneVideoUploadResolver);
     this.jobsTable.grantReadWriteData(extractYoutubeTranscriptResolver);
     this.jobsTable.grantReadWriteData(getJobDraftResolver);
@@ -435,6 +482,10 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(runSceneJsonResolver);
     this.assetsBucket.grantReadWrite(updateSceneJsonResolver);
     this.assetsBucket.grantReadWrite(requestAssetUploadResolver);
+    this.assetsBucket.grantReadWrite(requestTranscriptUploadResolver);
+    this.assetsBucket.grantReadWrite(createVideoTranscriptFromUploadResolver);
+    this.assetsBucket.grantReadWrite(createVideoTranscriptFromYoutubeResolver);
+    this.assetsBucket.grantReadWrite(getTranscriptResolver);
     this.assetsBucket.grantReadWrite(completeSceneVideoUploadResolver);
     this.assetsBucket.grantReadWrite(extractYoutubeTranscriptResolver);
     this.assetsBucket.grantReadWrite(runAssetGenerationResolver);
@@ -534,6 +585,7 @@ export class AppStack extends Stack {
     pipelineHandler.grantInvoke(runAssetGenerationResolver);
     pipelineHandler.grantInvoke(runFinalCompositionResolver);
     sceneVideoTranscriptHandler.grantInvoke(uploadGroupHandler);
+    standaloneVideoTranscriptHandler.grantInvoke(transcriptsHandler);
 
     const auth = createPublishAuth(this, {
       projectPrefix: props.projectPrefix,
@@ -556,8 +608,12 @@ export class AppStack extends Stack {
       jobExecutionsResolver,
       requestUploadResolver,
       requestAssetUploadResolver,
+      requestTranscriptUploadResolver,
+      createVideoTranscriptFromUploadResolver,
+      createVideoTranscriptFromYoutubeResolver,
       completeSceneVideoUploadResolver,
       extractYoutubeTranscriptResolver,
+      getTranscriptResolver,
       listContentPresetsResolver,
       deleteContentPresetResolver,
       getLlmSettingsResolver,

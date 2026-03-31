@@ -93,8 +93,14 @@ async function listAudioFiles(workDir) {
 }
 
 export async function extractYoutubeTranscript(input) {
-  const baseName = `scene-${input.sceneId}`;
+  const transcriptId = input.transcriptId?.trim();
+  const baseName = transcriptId
+    ? `transcript-${sanitizeKeyPart(transcriptId)}`
+    : `scene-${input.sceneId}`;
   const workDir = await fs.mkdtemp(path.join(tmpdir(), "yt-dlp-"));
+  const targetPrefix = transcriptId
+    ? `assets/transcripts/${transcriptId}/youtube`
+    : `assets/${input.jobId}/transcript/scene-${input.sceneId}/youtube`;
 
   try {
     await runYtDlp(
@@ -121,7 +127,7 @@ export async function extractYoutubeTranscript(input) {
     const selected = candidates[0];
     if (selected) {
       const languageCode = extractLanguageCode(baseName, selected.entry);
-      const transcriptVttS3Key = `assets/${input.jobId}/transcript/scene-${input.sceneId}/youtube/${sanitizeKeyPart(selected.entry)}`;
+      const transcriptVttS3Key = `${targetPrefix}/${sanitizeKeyPart(selected.entry)}`;
       await input.storageRepo.uploadFile(
         transcriptVttS3Key,
         selected.filePath,
@@ -159,7 +165,7 @@ export async function extractYoutubeTranscript(input) {
       throw new Error("No YouTube subtitles or downloadable audio were available");
     }
 
-    const audioS3Key = `assets/${input.jobId}/transcript/scene-${input.sceneId}/youtube/${sanitizeKeyPart(selectedAudio.entry)}`;
+    const audioS3Key = `${targetPrefix}/${sanitizeKeyPart(selectedAudio.entry)}`;
     await input.storageRepo.uploadFile(
       audioS3Key,
       selectedAudio.filePath,

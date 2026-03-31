@@ -30,7 +30,8 @@ async function runSelectedTask() {
   if (taskMode === "YOUTUBE_TRANSCRIPT") {
     return extractYoutubeTranscript({
       jobId,
-      sceneId: Number(requireEnv("SCENE_ID")),
+      sceneId: process.env.SCENE_ID ? Number(requireEnv("SCENE_ID")) : undefined,
+      transcriptId: process.env.TRANSCRIPT_ID?.trim() || undefined,
       youtubeUrl: requireEnv("YOUTUBE_URL"),
       preferredLanguage: process.env.PREFERRED_LANGUAGE?.trim() || undefined,
       storageRepo,

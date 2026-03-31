@@ -16,16 +16,20 @@ const sleep = async (ms: number) => {
   await new Promise((resolve) => setTimeout(resolve, ms));
 };
 
+const sanitizeJobNamePart = (value: string): string => {
+  return value.replace(/[^A-Za-z0-9._-]+/g, "-");
+};
+
 const buildJobName = (input: {
-  jobId: string;
-  sceneId: number;
+  scope: string;
+  identity: string;
   s3Key: string;
 }): string => {
   const digest = createHash("sha1")
-    .update(`${input.jobId}:${input.sceneId}:${input.s3Key}`)
+    .update(`${input.scope}:${input.identity}:${input.s3Key}`)
     .digest("hex")
     .slice(0, 16);
-  return `scene-video-${input.sceneId}-${digest}`;
+  return `${input.scope}-${sanitizeJobNamePart(input.identity).slice(0, 24)}-${digest}`;
 };
 
 const resolveMediaFormat = (
@@ -69,14 +73,14 @@ const fetchJson = async <T>(uri: string): Promise<T> => {
   return (await response.json()) as T;
 };
 
-export const startSceneVideoTranscriptionJob = async (input: {
-  jobId: string;
-  sceneId: number;
+const startVideoTranscriptionJob = async (input: {
+  scope: "scene-video" | "transcript";
+  identity: string;
   s3Key: string;
 }): Promise<{ providerJobId: string }> => {
   const providerJobId = buildJobName({
-    jobId: input.jobId,
-    sceneId: input.sceneId,
+    scope: input.scope,
+    identity: input.identity,
     s3Key: input.s3Key,
   });
   try {
@@ -105,6 +109,29 @@ export const startSceneVideoTranscriptionJob = async (input: {
     }
   }
   return { providerJobId };
+};
+
+export const startSceneVideoTranscriptionJob = async (input: {
+  jobId: string;
+  sceneId: number;
+  s3Key: string;
+}): Promise<{ providerJobId: string }> => {
+  return startVideoTranscriptionJob({
+    scope: "scene-video",
+    identity: `${input.jobId}:${input.sceneId}`,
+    s3Key: input.s3Key,
+  });
+};
+
+export const startStandaloneVideoTranscriptionJob = async (input: {
+  transcriptId: string;
+  s3Key: string;
+}): Promise<{ providerJobId: string }> => {
+  return startVideoTranscriptionJob({
+    scope: "transcript",
+    identity: input.transcriptId,
+    s3Key: input.s3Key,
+  });
 };
 
 export const waitForSceneVideoTranscriptionJob = async (input: {

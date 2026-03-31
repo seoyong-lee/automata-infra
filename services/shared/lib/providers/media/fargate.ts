@@ -58,6 +58,10 @@ const YOUTUBE_TRANSCRIPT_RESULT_KEY = (jobId: string, sceneId: number) =>
   `logs/${jobId}/youtube-transcript/scene-${sceneId}-result.json`;
 const YOUTUBE_TRANSCRIPT_REQUEST_KEY = (jobId: string, sceneId: number) =>
   `logs/${jobId}/youtube-transcript/scene-${sceneId}-request.json`;
+const STANDALONE_YOUTUBE_TRANSCRIPT_RESULT_KEY = (transcriptId: string) =>
+  `logs/transcripts/${transcriptId}/youtube-transcript/result.json`;
+const STANDALONE_YOUTUBE_TRANSCRIPT_REQUEST_KEY = (transcriptId: string) =>
+  `logs/transcripts/${transcriptId}/youtube-transcript/request.json`;
 
 const requireEnv = (name: string): string => {
   const value = process.env[name]?.trim();
@@ -383,6 +387,47 @@ export const extractYoutubeTranscriptWithFargate = async (input: {
     containerEnvironment: [
       { name: "TASK_MODE", value: "YOUTUBE_TRANSCRIPT" },
       { name: "SCENE_ID", value: String(input.sceneId) },
+      { name: "YOUTUBE_URL", value: input.youtubeUrl },
+      ...(input.preferredLanguage
+        ? [{ name: "PREFERRED_LANGUAGE", value: input.preferredLanguage }]
+        : []),
+    ],
+  });
+  const typedResult = result as FargateYoutubeTranscriptResult;
+  if (!typedResult.transcriptVttS3Key && !typedResult.audioS3Key) {
+    throw new Error(
+      "Fargate YouTube transcript task completed without a result payload",
+    );
+  }
+  return {
+    ...typedResult,
+    providerRenderId: taskArn,
+  };
+};
+
+export const extractStandaloneYoutubeTranscriptWithFargate = async (input: {
+  transcriptId: string;
+  youtubeUrl: string;
+  preferredLanguage?: string;
+}): Promise<FargateYoutubeTranscriptResult> => {
+  const resultS3Key = STANDALONE_YOUTUBE_TRANSCRIPT_RESULT_KEY(
+    input.transcriptId,
+  );
+  const { result, taskArn } = await runFargateTask({
+    jobId: input.transcriptId,
+    resultS3Key,
+    requestLogKey: STANDALONE_YOUTUBE_TRANSCRIPT_REQUEST_KEY(
+      input.transcriptId,
+    ),
+    requestPayload: {
+      transcriptId: input.transcriptId,
+      youtubeUrl: input.youtubeUrl,
+      preferredLanguage: input.preferredLanguage,
+      resultS3Key,
+    },
+    containerEnvironment: [
+      { name: "TASK_MODE", value: "YOUTUBE_TRANSCRIPT" },
+      { name: "TRANSCRIPT_ID", value: input.transcriptId },
       { name: "YOUTUBE_URL", value: input.youtubeUrl },
       ...(input.preferredLanguage
         ? [{ name: "PREFERRED_LANGUAGE", value: input.preferredLanguage }]

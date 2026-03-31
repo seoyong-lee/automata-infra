@@ -29,6 +29,16 @@ const toSrtTimestamp = (value: number): string => {
   return toVttTimestamp(value).replace(".", ",");
 };
 
+const toMarkdownTimestamp = (value: number): string => {
+  const totalSeconds = Math.max(0, Math.floor(value));
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+  return [hours, minutes, seconds]
+    .map((segment) => String(segment).padStart(2, "0"))
+    .join(":");
+};
+
 export const parseVttSegments = (
   vttText: string,
 ): SceneVideoTranscriptSegment[] => {
@@ -133,4 +143,35 @@ export const normalizeSceneVideoTranscriptArtifact = (input: {
     segments,
     generatedAt: new Date().toISOString(),
   });
+};
+
+export const buildMarkdownFromTranscript = (
+  transcript: NormalizedSceneVideoTranscript,
+): string => {
+  const lines: string[] = ["# Transcript", ""];
+  lines.push(`- Provider: ${transcript.provider}`);
+  if (transcript.languageCode) {
+    lines.push(`- Language: ${transcript.languageCode}`);
+  }
+  if (transcript.sourceUrl) {
+    lines.push(`- Source URL: ${transcript.sourceUrl}`);
+  }
+  if (transcript.sourceS3Key) {
+    lines.push(`- Source S3 Key: ${transcript.sourceS3Key}`);
+  }
+  lines.push(`- Generated At: ${transcript.generatedAt}`);
+  lines.push("");
+  lines.push("## Text", "");
+  lines.push(transcript.text.trim() || "_No transcript text available._");
+
+  if (transcript.segments.length > 0) {
+    lines.push("", "## Segments", "");
+    for (const segment of transcript.segments) {
+      lines.push(
+        `- [${toMarkdownTimestamp(segment.startSec)} - ${toMarkdownTimestamp(segment.endSec)}] ${segment.text}`,
+      );
+    }
+  }
+
+  return lines.join("\n").trimEnd() + "\n";
 };

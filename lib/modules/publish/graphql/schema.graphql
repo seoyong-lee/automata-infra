@@ -36,11 +36,21 @@ type Query {
     limit: Int
     nextToken: String
   ): AssetPoolAssetConnection!
+  getTranscript(transcriptId: ID!): VideoTranscriptRecord!
 }
 
 type Mutation {
   requestUpload(input: RequestUploadInput!): UploadRequestResult!
   requestAssetUpload(input: RequestAssetUploadInput!): AssetUploadRequest!
+  requestTranscriptUpload(
+    input: RequestTranscriptUploadInput!
+  ): TranscriptUploadRequest!
+  createVideoTranscriptFromUpload(
+    input: CreateVideoTranscriptFromUploadInput!
+  ): VideoTranscriptRecord!
+  createVideoTranscriptFromYoutube(
+    input: CreateVideoTranscriptFromYoutubeInput!
+  ): VideoTranscriptRecord!
   completeSceneVideoUpload(
     input: CompleteSceneVideoUploadInput!
   ): JobDraftDetail!
@@ -785,6 +795,22 @@ input RequestAssetUploadInput {
   targetSceneId: Int
 }
 
+input RequestTranscriptUploadInput {
+  fileName: String!
+  contentType: String!
+}
+
+input CreateVideoTranscriptFromUploadInput {
+  transcriptId: ID!
+  s3Key: String!
+  languageCode: String
+}
+
+input CreateVideoTranscriptFromYoutubeInput {
+  youtubeUrl: String!
+  languageCode: String
+}
+
 input CompleteSceneVideoUploadInput {
   jobId: ID!
   sceneId: Int!
@@ -1110,6 +1136,52 @@ type AssetUploadRequest {
   fileName: String!
   contentType: String!
   category: AssetUploadCategory!
+}
+
+type TranscriptUploadRequest {
+  transcriptId: ID!
+  uploadUrl: String!
+  s3Key: String!
+  fileName: String!
+  contentType: String!
+}
+
+enum VideoTranscriptStatus {
+  AWAITING_UPLOAD
+  QUEUED
+  PROCESSING
+  SUCCEEDED
+  FAILED
+}
+
+enum VideoTranscriptProvider {
+  AWS_TRANSCRIBE
+  YT_DLP
+}
+
+enum VideoTranscriptSourceType {
+  UPLOAD
+  YOUTUBE_URL
+}
+
+type VideoTranscriptRecord {
+  transcriptId: ID!
+  status: VideoTranscriptStatus!
+  sourceType: VideoTranscriptSourceType!
+  provider: VideoTranscriptProvider!
+  sourceS3Key: String
+  sourceUrl: String
+  languageCode: String
+  markdown: String
+  plainTextPreview: String
+  providerJobId: String
+  fileName: String
+  contentType: String
+  startedAt: AWSDateTime
+  completedAt: AWSDateTime
+  createdAt: AWSDateTime!
+  updatedAt: AWSDateTime!
+  lastError: String
 }
 
 enum JobStatus {
