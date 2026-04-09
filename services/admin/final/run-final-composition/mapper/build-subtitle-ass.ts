@@ -200,7 +200,6 @@ const estimateTextUnits = (value: string): number => {
 };
 
 const MAX_SUBTITLE_DISPLAY_LINES = 2;
-const MIN_SUBTITLE_CHUNK_SEC = 0.32;
 const ELLIPSIS = "…";
 
 const splitLongToken = (token: string, maxUnits: number): string[] => {
@@ -283,6 +282,24 @@ const firstLineAndRestTokens = (
   return { first, restTokens };
 };
 
+const pushUpToTwoLineChunk = (
+  chunks: string[],
+  first: string,
+  line2: string,
+): void => {
+  if (first && line2) {
+    chunks.push(`${first}\n${line2}`);
+    return;
+  }
+  if (first) {
+    chunks.push(first);
+    return;
+  }
+  if (line2) {
+    chunks.push(line2);
+  }
+};
+
 /** Full text preserved: each chunk is at most two on-screen lines (one \\N). */
 const splitIntoTwoLineChunks = (
   normalized: string,
@@ -304,16 +321,15 @@ const splitIntoTwoLineChunks = (
       break;
     }
     const secondPass = firstLineAndRestTokens(restJoined, maxUnits);
-    const line2 = secondPass.first;
     const afterTwo = secondPass.restTokens.join(" ").trim();
-    if (first && line2) {
-      chunks.push(`${first}\n${line2}`);
-    } else if (first) {
-      chunks.push(first);
-    } else if (line2) {
-      chunks.push(line2);
-    }
+    pushUpToTwoLineChunk(chunks, first, secondPass.first);
     if (afterTwo === remaining) {
+      if (afterTwo) {
+        chunks.push(afterTwo);
+      }
+      break;
+    }
+    if (afterTwo.length >= remaining.length) {
       if (afterTwo) {
         chunks.push(afterTwo);
       }
@@ -336,32 +352,20 @@ const assignSubtitleDisplayChunks = (
   if (chunks.length === 1) {
     return [{ startSec, endSec, text: chunks[0]! }];
   }
-  const weights = chunks.map((c) => Math.max(1, estimateTextUnits(c)));
+  const weights = chunks.map((c) => Math.max(1e-6, estimateTextUnits(c)));
   const totalW = weights.reduce((a, b) => a + b, 0);
-  let cursor = startSec;
-  const out: Array<{ startSec: number; endSec: number; text: string }> = [];
-  for (let i = 0; i < chunks.length; i++) {
-    const isLast = i === chunks.length - 1;
-    const ideal = (totalDur * weights[i]!) / totalW;
-    const remaining = endSec - cursor;
-    const tail = chunks.length - i - 1;
-    const reserve = tail * MIN_SUBTITLE_CHUNK_SEC;
-    const dur = isLast
-      ? remaining
-      : Math.max(
-          MIN_SUBTITLE_CHUNK_SEC,
-          Math.min(
-            ideal,
-            Math.max(MIN_SUBTITLE_CHUNK_SEC, remaining - reserve),
-          ),
-        );
-    out.push({ startSec: cursor, endSec: cursor + dur, text: chunks[i]! });
-    cursor += dur;
+  const edges: number[] = [startSec];
+  let acc = 0;
+  for (let i = 0; i < chunks.length - 1; i++) {
+    acc += weights[i]! / totalW;
+    edges.push(startSec + totalDur * acc);
   }
-  if (out.length > 0) {
-    out[out.length - 1]!.endSec = endSec;
-  }
-  return out;
+  edges.push(endSec);
+  return chunks.map((text, i) => ({
+    startSec: edges[i]!,
+    endSec: edges[i + 1]!,
+    text,
+  }));
 };
 
 const resolveSubtitleMaxUnits = (

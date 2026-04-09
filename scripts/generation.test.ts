@@ -12,7 +12,7 @@ import {
   createJobPlan,
   type JobPlanResult,
 } from "../services/plan/usecase/create-job-plan";
-import { estimateMinimumVoiceDurationSec } from "../services/shared/lib/providers/media/elevenlabs-voice";
+import { estimateResolvedVoiceDurationSec } from "../services/shared/lib/providers/media/elevenlabs-voice";
 import { generateSceneVideos } from "../services/video-generation/usecase/generate-scene-videos";
 import { generateSceneVoices } from "../services/voice/usecase/generate-scene-voices";
 import {
@@ -404,7 +404,7 @@ void test("sceneJson contract flows through asset usecases and render-plan build
         sum +
         Math.max(
           scene.durationSec,
-          estimateMinimumVoiceDurationSec(scene.narration),
+          estimateResolvedVoiceDurationSec(scene.narration, 1),
         ) +
         gapAfterSec
       );
@@ -506,41 +506,38 @@ void test("pickBestPexelsVideoFile prefers highest resolution portrait mp4", () 
   assert.equal(best?.link, "https://cdn.example.com/portrait-large.mp4");
 });
 
-void test(
-  "generateSceneVoices keeps long TTS as-is (render extends scene duration)",
-  async () => {
-    const voiceAssets = await generateSceneVoices(
-      {
-        jobId: "job-voice-post",
-        scenes: [
-          {
-            sceneId: 1,
-            narration:
-              "A long narrated line that should exceed the target duration.",
-            durationSec: 5,
-          },
-        ],
-        secretId: "unused",
-      },
-      {
-        generateSceneVoice: async () => ({
-          candidateId: "cand-1",
-          voiceS3Key: "assets/job-voice-post/tts/scene-1/cand-1.mp3",
-          durationSec: 7.4,
-          provider: "mock-voice",
-          createdAt: "2026-03-28T00:00:00.000Z",
-        }),
-      },
-    );
+void test("generateSceneVoices keeps long TTS as-is (render extends scene duration)", async () => {
+  const voiceAssets = await generateSceneVoices(
+    {
+      jobId: "job-voice-post",
+      scenes: [
+        {
+          sceneId: 1,
+          narration:
+            "A long narrated line that should exceed the target duration.",
+          durationSec: 5,
+        },
+      ],
+      secretId: "unused",
+    },
+    {
+      generateSceneVoice: async () => ({
+        candidateId: "cand-1",
+        voiceS3Key: "assets/job-voice-post/tts/scene-1/cand-1.mp3",
+        durationSec: 7.4,
+        provider: "mock-voice",
+        createdAt: "2026-03-28T00:00:00.000Z",
+      }),
+    },
+  );
 
-    assert.equal(voiceAssets.length, 1);
-    assert.equal(
-      (voiceAssets[0] as Record<string, unknown>).voiceS3Key,
-      "assets/job-voice-post/tts/scene-1/cand-1.mp3",
-    );
-    assert.equal((voiceAssets[0] as Record<string, unknown>).durationSec, 7.4);
-  },
-);
+  assert.equal(voiceAssets.length, 1);
+  assert.equal(
+    (voiceAssets[0] as Record<string, unknown>).voiceS3Key,
+    "assets/job-voice-post/tts/scene-1/cand-1.mp3",
+  );
+  assert.equal((voiceAssets[0] as Record<string, unknown>).durationSec, 7.4);
+});
 
 void test("generateSceneVoices returns TTS asset unchanged when within target", async () => {
   const voiceAssets = await generateSceneVoices(

@@ -1,4 +1,4 @@
-import { estimateMinimumVoiceDurationSec } from "../../../shared/lib/providers/media/elevenlabs-voice";
+import { estimateResolvedVoiceDurationSec } from "../../../shared/lib/providers/media/elevenlabs-voice";
 import { alignSceneNarrationAndSubtitle } from "../../../shared/lib/scene-text";
 import type {
   RenderPlanScene,
@@ -11,7 +11,8 @@ import type {
   RenderPlanVoiceAsset,
 } from "../types";
 
-const MIN_SUBTITLE_SEGMENT_DURATION_SEC = 0.45;
+/** Avoid dozens of micro-phrases that break timing on short scenes. */
+const MAX_PHRASE_SEGMENTS = 14;
 
 const resolveSceneDurationSec = (
   scene: RenderPlanSceneInput,
@@ -26,9 +27,14 @@ const resolveSceneDurationSec = (
     Number.isFinite(voiceAsset.voiceDurationSec)
       ? voiceAsset.voiceDurationSec
       : undefined;
+  /** Natural-speed estimate so plan window ≥ typical TTS (not max-speed lower bound). */
+  const estimatedNarrationSec = estimateResolvedVoiceDurationSec(
+    scene.narration,
+    1,
+  );
   const minimumNarrationDurationSec = actualVoiceDurationSec
     ? actualVoiceDurationSec
-    : estimateMinimumVoiceDurationSec(scene.narration);
+    : estimatedNarrationSec;
   return Math.max(plannedDurationSec, minimumNarrationDurationSec);
 };
 
@@ -101,13 +107,26 @@ const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
   return [normalized];
 };
 
-/** Phrase-level segments; durations scale with character weight over the scene (voice) window. */
+const mergePhraseParts = (parts: string[]): string[] => {
+  if (parts.length <= MAX_PHRASE_SEGMENTS) {
+    return parts;
+  }
+  const merged: string[] = [];
+  const groupSize = Math.ceil(parts.length / MAX_PHRASE_SEGMENTS);
+  for (let i = 0; i < parts.length; i += groupSize) {
+    merged.push(parts.slice(i, i + groupSize).join(" "));
+  }
+  return merged;
+};
+
+/** Phrase-level segments; timeline is a strict partition of [startSec, endSec] by speech-weight. */
 const buildSubtitleSegments = (input: {
   subtitle: string;
   startSec: number;
   endSec: number;
 }): RenderPlanSubtitleSegment[] => {
-  const parts = splitSubtitleIntoPhrases(input.subtitle);
+  let parts = splitSubtitleIntoPhrases(input.subtitle);
+  parts = mergePhraseParts(parts);
   if (parts.length === 0 || input.endSec <= input.startSec) {
     return [];
   }
@@ -121,35 +140,21 @@ const buildSubtitleSegments = (input: {
     ];
   }
 
-  const totalDurationSec = input.endSec - input.startSec;
+  const totalDurationSec = Math.max(0.001, input.endSec - input.startSec);
   const weights = parts.map((part) => estimateSpeechTimingUnits(part));
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  let cursorSec = input.startSec;
-
-  return parts.map((part, index) => {
-    const isLast = index === parts.length - 1;
-    const proportionalDurationSec =
-      (totalDurationSec * weights[index]!) / totalWeight;
-    const remainingSec = input.endSec - cursorSec;
-    const segmentDurationSec = isLast
-      ? remainingSec
-      : Math.min(
-          remainingSec,
-          Math.max(
-            MIN_SUBTITLE_SEGMENT_DURATION_SEC,
-            Math.min(proportionalDurationSec, remainingSec),
-          ),
-        );
-    const segment = {
-      text: part,
-      startSec: cursorSec,
-      endSec: isLast
-        ? input.endSec
-        : Math.min(input.endSec, cursorSec + segmentDurationSec),
-    };
-    cursorSec = segment.endSec;
-    return segment;
-  });
+  const edges: number[] = [input.startSec];
+  let acc = 0;
+  for (let i = 0; i < parts.length - 1; i++) {
+    acc += weights[i]! / totalWeight;
+    edges.push(input.startSec + totalDurationSec * acc);
+  }
+  edges.push(input.endSec);
+  return parts.map((part, index) => ({
+    text: part,
+    startSec: edges[index]!,
+    endSec: edges[index + 1]!,
+  }));
 };
 
 const buildRenderPlanScene = (input: {
