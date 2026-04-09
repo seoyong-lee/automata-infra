@@ -1,7 +1,5 @@
 import { randomUUID } from "node:crypto";
 
-import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
-
 import { getItem, putItem, queryItems, updateItem } from "../aws/runtime";
 import {
   classifyPipelineExecutionFailure,
@@ -182,6 +180,17 @@ const resolveExecutionRuntimeConfig = (input: {
   };
 };
 
+const isExecutionLeaseExpired = (
+  row: JobExecutionRow,
+  nowIso: string,
+): boolean => {
+  const nowMs = new Date(nowIso).getTime();
+  if (row.leaseExpiresAt) {
+    return new Date(row.leaseExpiresAt).getTime() < nowMs;
+  }
+  return new Date(row.startedAt).getTime() + STALE_RUNNING_LEASE_MS < nowMs;
+};
+
 const buildRunningClaim = (input: {
   jobId: string;
   sk: string;
@@ -327,46 +336,49 @@ export const finishJobExecution = async (input: {
   });
 };
 
-export const markJobExecutionRunning = async (input: {
-  jobId: string;
-  sk: string;
-}): Promise<JobExecutionRow | null> => {
-  const current = await getJobExecutionBySk(input.jobId, input.sk);
-  if (!current || isTerminalJobExecutionStatus(current.status)) {
-    return null;
-  }
-  if (current.status === "RUNNING") {
-    return null;
-  }
-  const runningClaim = buildRunningClaim({
-    jobId: input.jobId,
-    sk: input.sk,
-    current,
-  });
-  if (runningClaim.nextAttemptCount > runningClaim.maxAttempts) {
-    return null;
-  }
+type RunningClaimSnapshot = ReturnType<typeof buildRunningClaim>;
 
+const mergeRunningClaimIntoRow = (
+  current: JobExecutionRow,
+  claim: RunningClaimSnapshot,
+): JobExecutionRow => ({
+  ...current,
+  status: "RUNNING",
+  attemptCount: claim.nextAttemptCount,
+  maxAttempts: claim.maxAttempts,
+  maxRuntimeSec: claim.maxRuntimeSec,
+  deadlineAt: claim.deadlineAt,
+  lastHeartbeatAt: claim.now,
+  leaseExpiresAt: claim.leaseExpiresAt,
+});
+
+const runningLeaseAttributeNames = {
+  "#s": "status",
+  "#attemptCount": "attemptCount",
+  "#lastHeartbeatAt": "lastHeartbeatAt",
+  "#leaseExpiresAt": "leaseExpiresAt",
+  "#deadlineAt": "deadlineAt",
+  "#completedAt": "completedAt",
+  "#timedOutAt": "timedOutAt",
+};
+
+const tryTransitionQueuedToRunning = async (input: {
+  key: { PK: string; SK: string };
+  current: JobExecutionRow;
+  claim: RunningClaimSnapshot;
+}): Promise<JobExecutionRow | null> => {
   try {
     await updateItem({
-      key: { PK: jobPk(input.jobId), SK: input.sk },
+      key: input.key,
       updateExpression:
         "SET #s = :s, #attemptCount = :attemptCount, #lastHeartbeatAt = :lastHeartbeatAt, #leaseExpiresAt = :leaseExpiresAt, #deadlineAt = :deadlineAt REMOVE #completedAt, #timedOutAt",
-      expressionAttributeNames: {
-        "#s": "status",
-        "#attemptCount": "attemptCount",
-        "#lastHeartbeatAt": "lastHeartbeatAt",
-        "#leaseExpiresAt": "leaseExpiresAt",
-        "#deadlineAt": "deadlineAt",
-        "#completedAt": "completedAt",
-        "#timedOutAt": "timedOutAt",
-      },
+      expressionAttributeNames: runningLeaseAttributeNames,
       expressionAttributeValues: {
         ":s": "RUNNING",
-        ":attemptCount": runningClaim.nextAttemptCount,
-        ":lastHeartbeatAt": runningClaim.now,
-        ":leaseExpiresAt": runningClaim.leaseExpiresAt,
-        ":deadlineAt": runningClaim.deadlineAt,
+        ":attemptCount": input.claim.nextAttemptCount,
+        ":lastHeartbeatAt": input.claim.now,
+        ":leaseExpiresAt": input.claim.leaseExpiresAt,
+        ":deadlineAt": input.claim.deadlineAt,
         ":queued": "QUEUED",
       },
       conditionExpression: "#s = :queued",
@@ -377,17 +389,79 @@ export const markJobExecutionRunning = async (input: {
     }
     throw error;
   }
+  return mergeRunningClaimIntoRow(input.current, input.claim);
+};
 
-  return {
-    ...current,
-    status: "RUNNING",
-    attemptCount: runningClaim.nextAttemptCount,
-    maxAttempts: runningClaim.maxAttempts,
-    maxRuntimeSec: runningClaim.maxRuntimeSec,
-    deadlineAt: runningClaim.deadlineAt,
-    lastHeartbeatAt: runningClaim.now,
-    leaseExpiresAt: runningClaim.leaseExpiresAt,
-  };
+const tryReclaimStaleRunningExecution = async (input: {
+  key: { PK: string; SK: string };
+  current: JobExecutionRow;
+  claim: RunningClaimSnapshot;
+  nowIso: string;
+}): Promise<JobExecutionRow | null> => {
+  try {
+    await updateItem({
+      key: input.key,
+      updateExpression:
+        "SET #attemptCount = :attemptCount, #lastHeartbeatAt = :lastHeartbeatAt, #leaseExpiresAt = :leaseExpiresAt, #deadlineAt = :deadlineAt REMOVE #completedAt, #timedOutAt",
+      expressionAttributeNames: runningLeaseAttributeNames,
+      expressionAttributeValues: {
+        ":attemptCount": input.claim.nextAttemptCount,
+        ":lastHeartbeatAt": input.claim.now,
+        ":leaseExpiresAt": input.claim.leaseExpiresAt,
+        ":deadlineAt": input.claim.deadlineAt,
+        ":running": "RUNNING",
+        ":nowIso": input.nowIso,
+      },
+      conditionExpression:
+        "#s = :running AND (attribute_not_exists(#leaseExpiresAt) OR #leaseExpiresAt < :nowIso)",
+    });
+  } catch (error) {
+    if (isConditionalCheckFailed(error)) {
+      return null;
+    }
+    throw error;
+  }
+  return mergeRunningClaimIntoRow(input.current, input.claim);
+};
+
+export const markJobExecutionRunning = async (input: {
+  jobId: string;
+  sk: string;
+}): Promise<JobExecutionRow | null> => {
+  const current = await getJobExecutionBySk(input.jobId, input.sk);
+  if (!current || isTerminalJobExecutionStatus(current.status)) {
+    return null;
+  }
+
+  const runningClaim = buildRunningClaim({
+    jobId: input.jobId,
+    sk: input.sk,
+    current,
+  });
+  if (runningClaim.nextAttemptCount > runningClaim.maxAttempts) {
+    return null;
+  }
+
+  const key = { PK: jobPk(input.jobId), SK: input.sk };
+  const nowIso = runningClaim.now;
+
+  if (current.status === "QUEUED") {
+    return tryTransitionQueuedToRunning({ key, current, claim: runningClaim });
+  }
+
+  if (current.status === "RUNNING") {
+    if (!isExecutionLeaseExpired(current, nowIso)) {
+      return null;
+    }
+    return tryReclaimStaleRunningExecution({
+      key,
+      current,
+      claim: runningClaim,
+      nowIso,
+    });
+  }
+
+  return null;
 };
 
 export const getJobExecutionBySk = async (
