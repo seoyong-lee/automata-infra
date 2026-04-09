@@ -1,6 +1,7 @@
 import {
   BedrockRuntimeClient,
   InvokeModelCommand,
+  type InvokeModelCommandOutput,
 } from "@aws-sdk/client-bedrock-runtime";
 import { getOptionalEnv, getSecretJson, putJsonToS3 } from "../../aws/runtime";
 import type {
@@ -132,14 +133,20 @@ const requestBedrockPayload = async (input: {
     max_tokens: input.config.maxOutputTokens ?? 2400,
   };
 
-  const response = await bedrockClient.send(
-    new InvokeModelCommand({
-      modelId: input.model,
-      contentType: "application/json",
-      accept: "application/json",
-      body: JSON.stringify(requestBody),
-    }),
-  );
+  let response: InvokeModelCommandOutput;
+  try {
+    response = await bedrockClient.send(
+      new InvokeModelCommand({
+        modelId: input.model,
+        contentType: "application/json",
+        accept: "application/json",
+        body: JSON.stringify(requestBody),
+      }),
+    );
+  } catch (error) {
+    const detail = error instanceof Error ? error.message : String(error);
+    throw new Error(`Bedrock (${input.model}, ${input.stepKey}): ${detail}`);
+  }
   if (!response.body) {
     throw new Error(`Bedrock returned empty body for ${input.stepKey}`);
   }

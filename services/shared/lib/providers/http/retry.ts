@@ -2,6 +2,8 @@ type RetryOptions = {
   maxAttempts?: number;
   baseDelayMs?: number;
   maxDelayMs?: number;
+  /** Override default retry rules (e.g. OpenAI quota errors on 429). */
+  shouldRetry?: (input: { status: number; bodyText: string }) => boolean;
 };
 
 type PollOptions<T> = {
@@ -14,6 +16,25 @@ type PollOptions<T> = {
 };
 
 const RETRYABLE_STATUS = new Set([408, 409, 425, 429, 500, 502, 503, 504]);
+
+const defaultShouldRetry = (status: number, bodyText: string): boolean => {
+  if (!RETRYABLE_STATUS.has(status)) {
+    return false;
+  }
+  if (status === 429 && /insufficient_quota/i.test(bodyText)) {
+    return false;
+  }
+  return true;
+};
+
+const shouldRetryHttpError = (
+  options: RetryOptions,
+  status: number,
+  bodyText: string,
+): boolean =>
+  options.shouldRetry
+    ? options.shouldRetry({ status, bodyText })
+    : defaultShouldRetry(status, bodyText);
 
 const sleep = async (ms: number): Promise<void> => {
   await new Promise((resolve) => setTimeout(resolve, ms));
@@ -29,13 +50,6 @@ const computeBackoffDelay = (
   return expDelay + jitter;
 };
 
-const responseError = async (response: Response): Promise<Error> => {
-  const bodySnippet = (await response.text()).slice(0, 300);
-  return new Error(
-    `HTTP ${response.status} ${response.statusText}: ${bodySnippet}`,
-  );
-};
-
 export const fetchWithRetry = async (
   url: string,
   init: RequestInit,
@@ -48,20 +62,33 @@ export const fetchWithRetry = async (
   let lastError: unknown;
 
   for (let attempt = 1; attempt <= maxAttempts; attempt += 1) {
+    let response: Response;
     try {
-      const response = await fetch(url, init);
-      if (response.ok) {
-        return response;
-      }
-
-      if (!RETRYABLE_STATUS.has(response.status) || attempt === maxAttempts) {
-        throw await responseError(response);
-      }
+      response = await fetch(url, init);
     } catch (error) {
       lastError = error;
       if (attempt === maxAttempts) {
         break;
       }
+      await sleep(computeBackoffDelay(attempt, baseDelayMs, maxDelayMs));
+      continue;
+    }
+
+    if (response.ok) {
+      return response;
+    }
+
+    const bodyText = await response.text();
+    const shouldRetryError = shouldRetryHttpError(
+      options,
+      response.status,
+      bodyText,
+    );
+
+    if (!shouldRetryError || attempt === maxAttempts) {
+      throw new Error(
+        `HTTP ${response.status} ${response.statusText}: ${bodyText.slice(0, 300)}`,
+      );
     }
 
     await sleep(computeBackoffDelay(attempt, baseDelayMs, maxDelayMs));

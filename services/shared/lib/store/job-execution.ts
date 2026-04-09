@@ -1,5 +1,7 @@
 import { randomUUID } from "node:crypto";
 
+import { ConditionalCheckFailedException } from "@aws-sdk/client-dynamodb";
+
 import { getItem, putItem, queryItems, updateItem } from "../aws/runtime";
 import {
   classifyPipelineExecutionFailure,
@@ -15,6 +17,9 @@ import {
   type JobExecutionStatus,
   type PipelineExecutionStepType,
 } from "../contracts/pipeline-execution";
+
+/** Stale RUNNING rows can be reclaimed after this long (crashed/timed-out worker). */
+const STALE_RUNNING_LEASE_MS = 15 * 60 * 1000;
 
 const jobPk = (jobId: string): string => `JOB#${jobId}`;
 export {

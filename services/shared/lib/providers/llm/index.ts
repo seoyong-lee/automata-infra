@@ -6,18 +6,6 @@ import type {
   LlmStepConfig,
 } from "../../llm/types";
 
-const FALLBACK_MODEL = "gpt-5.4-mini";
-const FALLBACK_SECRET_ENV = "OPENAI_SECRET_ID";
-
-const buildFallbackConfig = (config: LlmStepConfig): LlmStepConfig => {
-  return {
-    ...config,
-    provider: "openai",
-    model: FALLBACK_MODEL,
-    secretIdEnvVar: FALLBACK_SECRET_ENV,
-  };
-};
-
 export const generateStructuredDataWithProvider = async <T>(input: {
   jobId: string;
   stepKey: string;
@@ -27,29 +15,12 @@ export const generateStructuredDataWithProvider = async <T>(input: {
   validate: (payload: unknown) => T;
   buildMockResult: () => T;
 }): Promise<GenerateStructuredDataResult<T>> => {
-  const supportsOpenAiFallback =
-    input.config.provider === "openai" || input.config.provider === "bedrock";
-  try {
-    switch (input.config.provider) {
-      case "openai":
-        return await generateOpenAiStructuredData(input);
-      case "bedrock":
-        return await generateBedrockStructuredData(input);
-      default:
-        throw new Error(`Unsupported LLM provider: ${input.config.provider}`);
-    }
-  } catch (error) {
-    const skipFallback =
-      input.config.provider === "openai" &&
-      input.config.model === FALLBACK_MODEL &&
-      input.config.secretIdEnvVar === FALLBACK_SECRET_ENV;
-    if (skipFallback || !supportsOpenAiFallback) {
-      throw error;
-    }
-
-    return generateOpenAiStructuredData({
-      ...input,
-      config: buildFallbackConfig(input.config),
-    });
+  switch (input.config.provider) {
+    case "openai":
+      return await generateOpenAiStructuredData(input);
+    case "bedrock":
+      return await generateBedrockStructuredData(input);
+    default:
+      throw new Error(`Unsupported LLM provider: ${input.config.provider}`);
   }
 };
