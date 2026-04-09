@@ -4,7 +4,7 @@ import { badUserInput } from "../../../shared/errors";
 const selectSceneVideoCandidateInputSchema = z
   .object({
     jobId: z.string().trim().min(1),
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     candidateId: z.string().trim().min(1),
   })
   .strict();

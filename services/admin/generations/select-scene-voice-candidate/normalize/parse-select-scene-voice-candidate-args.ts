@@ -25,7 +25,7 @@ export const parseSelectSceneVoiceCandidateArgs = (
       ? input.sceneId
       : NaN;
 
-  if (!jobId || !candidateId || !Number.isInteger(sceneId) || sceneId < 1) {
+  if (!jobId || !candidateId || !Number.isInteger(sceneId) || sceneId < 0) {
     throw badUserInput("jobId, sceneId, and candidateId are required");
   }
 

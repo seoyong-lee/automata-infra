@@ -29,7 +29,7 @@ export const parseSetSceneVoiceProfileArgs = (
     typeof input.sceneId === "number" && Number.isInteger(input.sceneId)
       ? input.sceneId
       : NaN;
-  if (!jobId || !Number.isInteger(sceneId) || sceneId < 1) {
+  if (!jobId || !Number.isInteger(sceneId) || sceneId < 0) {
     throw badUserInput("jobId and sceneId are required");
   }
 

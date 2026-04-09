@@ -347,6 +347,9 @@ type SceneVisualNeed {
 }
 
 type SceneJsonScene {
+  """
+  0은 타이틀·브릿지 등 전용 씬, 1 이상은 일반 씬. 문서 내에서 고유해야 한다.
+  """
   sceneId: Int!
   durationSec: Float!
   narration: String!

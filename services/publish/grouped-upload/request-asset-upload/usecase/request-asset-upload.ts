@@ -29,8 +29,12 @@ const validateContentType = (
 };
 
 const requireSceneId = (sceneId: number | undefined): number => {
-  if (sceneId === undefined || sceneId <= 0) {
-    throw badUserInput("targetSceneId is required");
+  if (
+    sceneId === undefined ||
+    !Number.isInteger(sceneId) ||
+    sceneId < 0
+  ) {
+    throw badUserInput("targetSceneId must be a non-negative integer");
   }
   return sceneId;
 };

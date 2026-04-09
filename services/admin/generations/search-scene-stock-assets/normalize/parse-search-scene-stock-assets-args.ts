@@ -4,7 +4,7 @@ import { badUserInput } from "../../../shared/errors";
 const searchSceneStockAssetsInputSchema = z
   .object({
     jobId: z.string().trim().min(1),
-    targetSceneId: z.number().int().positive().optional(),
+    targetSceneId: z.number().int().nonnegative().optional(),
     modality: z.enum(["ALL", "IMAGE", "VIDEO"]).optional(),
   })
   .strict();

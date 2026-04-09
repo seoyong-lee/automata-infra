@@ -60,7 +60,7 @@ export const renderPlanSubtitleSegmentSchema = z.object({
 });
 
 export const renderPlanSceneSchema = z.object({
-  sceneId: z.number().int().positive(),
+  sceneId: z.number().int().nonnegative(),
   startSec: z.number().min(0),
   endSec: z.number().min(0),
   durationSec: z.number().positive(),

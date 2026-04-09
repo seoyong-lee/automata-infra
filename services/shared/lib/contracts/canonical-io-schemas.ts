@@ -217,7 +217,7 @@ export const runJobPlanInputSchema = z
 
 export const sceneDefinitionSchema = z
   .object({
-    sceneId: z.number().finite().int().positive(),
+    sceneId: z.number().finite().int().nonnegative(),
     durationSec: z.number().finite().positive(),
     narration: stringRequiredAllowingNull,
     disableNarration: optionalBooleanAllowingNull,

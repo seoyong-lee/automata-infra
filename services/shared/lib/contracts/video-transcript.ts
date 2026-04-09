@@ -63,7 +63,7 @@ export const sceneVideoTranscriptSchema = z
 export const completeSceneVideoUploadInputSchema = z
   .object({
     jobId: nonEmpty,
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     s3Key: nonEmpty,
   })
   .strict();
@@ -71,7 +71,7 @@ export const completeSceneVideoUploadInputSchema = z
 export const sceneVideoTranscriptWorkerEventSchema = z
   .object({
     jobId: nonEmpty,
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     s3Key: nonEmpty,
   })
   .strict();
@@ -79,7 +79,7 @@ export const sceneVideoTranscriptWorkerEventSchema = z
 export const extractYoutubeTranscriptInputSchema = z
   .object({
     jobId: nonEmpty,
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     youtubeUrl: youtubeUrlSchema,
   })
   .strict();
@@ -88,7 +88,7 @@ export const sceneVideoTranscriptWorkerEventFromS3Schema = z
   .object({
     kind: z.literal("S3_UPLOAD"),
     jobId: nonEmpty,
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     s3Key: nonEmpty,
   })
   .strict();
@@ -97,7 +97,7 @@ export const sceneVideoTranscriptWorkerEventFromYoutubeSchema = z
   .object({
     kind: z.literal("YOUTUBE_URL"),
     jobId: nonEmpty,
-    sceneId: z.number().int().positive(),
+    sceneId: z.number().int().nonnegative(),
     youtubeUrl: youtubeUrlSchema,
     preferredLanguage: nonEmpty.optional(),
   })
