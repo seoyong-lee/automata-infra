@@ -8,11 +8,17 @@ import type { SceneDefinition } from "../../../../../../types/render/scene-json"
 export const runVoiceModalityForScenes = async (
   jobId: string,
   scenes: SceneDefinition[],
+  options?: { runVoiceProfileIdOverride?: string },
 ) => {
   const job = await getJobOrThrow(jobId);
   let voiceScenes;
   try {
-    voiceScenes = await buildVoiceScenesForJob({ jobId, job, scenes });
+    voiceScenes = await buildVoiceScenesForJob({
+      jobId,
+      job,
+      scenes,
+      runVoiceProfileIdOverride: options?.runVoiceProfileIdOverride,
+    });
   } catch (error) {
     const message = error instanceof Error ? error.message : String(error);
     if (message.startsWith("voice profile not found:")) {

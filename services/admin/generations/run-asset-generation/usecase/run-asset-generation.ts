@@ -99,7 +99,9 @@ export const runAssetGenerationCore = async (
     await runImageModalityForScenes(jobId, scenes, scope, policy);
   }
   if (shouldRunVoiceModality(scope, policy)) {
-    await runVoiceModalityForScenes(jobId, scenes);
+    await runVoiceModalityForScenes(jobId, scenes, {
+      runVoiceProfileIdOverride: scope.voiceProfileId,
+    });
   }
   if (shouldRunVideoModality(scope, policy)) {
     await runVideoModalityForScenes(jobId, scenes);

@@ -4,6 +4,8 @@ export type AssetGenerationScope = {
   targetSceneId?: number;
   modality: "all" | "image" | "voice" | "video";
   imageProvider?: "openai" | "byteplus";
+  /** VOICE/ALL 음성 단계: 잡·씬 기본 프로필보다 우선 */
+  voiceProfileId?: string;
 };
 
 export const toAssetGenerationScope = (
@@ -27,6 +29,9 @@ export const toAssetGenerationScope = (
       : parsed.imageProvider === "SEEDREAM"
         ? { imageProvider: "byteplus" as const }
         : {}),
+    ...(parsed.voiceProfileId !== undefined
+      ? { voiceProfileId: parsed.voiceProfileId }
+      : {}),
   };
 };
 

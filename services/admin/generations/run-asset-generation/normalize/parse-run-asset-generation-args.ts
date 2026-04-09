@@ -8,6 +8,7 @@ export type ParsedRunAssetGenerationArgs = {
   targetSceneId?: number;
   modality?: ParsedAssetGenerationModality;
   imageProvider?: ParsedImageGenerationProvider;
+  voiceProfileId?: string;
 };
 
 const parseModality = (
@@ -84,11 +85,16 @@ export const parseRunAssetGenerationArgs = (
   const targetSceneId = parseTargetSceneId(input.targetSceneId);
   const modality = parseModality(input.modality);
   const imageProvider = parseImageProvider(input.imageProvider);
+  const voiceProfileIdRaw =
+    typeof input.voiceProfileId === "string" ? input.voiceProfileId.trim() : "";
+  const voiceProfileId =
+    voiceProfileIdRaw.length > 0 ? voiceProfileIdRaw : undefined;
 
   return {
     jobId,
     ...(targetSceneId !== undefined ? { targetSceneId } : {}),
     ...(modality !== undefined ? { modality } : {}),
     ...(imageProvider !== undefined ? { imageProvider } : {}),
+    ...(voiceProfileId !== undefined ? { voiceProfileId } : {}),
   };
 };

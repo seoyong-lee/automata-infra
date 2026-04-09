@@ -41,7 +41,10 @@ export const generateSceneImages = async (
       prompt: scene.imagePrompt,
       secretId: input.secretId,
     });
-    imageAssets.push(asset);
+    imageAssets.push({
+      ...asset,
+      sceneId: scene.sceneId,
+    });
   }
 
   return imageAssets;

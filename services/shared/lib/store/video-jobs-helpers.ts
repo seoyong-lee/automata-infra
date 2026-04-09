@@ -190,5 +190,10 @@ export const listSceneCandidateItems = async <
     limit: 100,
   });
 
-  return sortByCreatedAtDesc(items);
+  const forScene = items.filter((item) => {
+    const sid = (item as { sceneId?: unknown }).sceneId;
+    return typeof sid === "number" && sid === input.sceneId;
+  });
+
+  return sortByCreatedAtDesc(forScene);
 };

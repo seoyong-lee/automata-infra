@@ -16,7 +16,11 @@ export const runImageModalityForScenes = async (
   const sceneAssetMap = new Map(
     (await listSceneAssets(jobId)).map((asset) => [asset.sceneId, asset]),
   );
+  const isSingleTargetRun = scope.targetSceneId !== undefined;
   const selectedScenes = scenes.filter((scene) => {
+    if (isSingleTargetRun) {
+      return true;
+    }
     const existing = sceneAssetMap.get(scene.sceneId);
     return !(
       typeof existing?.imageS3Key === "string" &&
@@ -34,9 +38,10 @@ export const runImageModalityForScenes = async (
   if (imageScenes.length === 0) {
     return;
   }
-  const scenesForPersistence = selectedScenes.filter((scene) => {
-    return imageScenes.some((entry) => entry.sceneId === scene.sceneId);
-  });
+  /** `imageScenes`와 동일 순서·길이로 맞춰 `saveImageAssets` 인덱스와 어긋나지 않게 한다 */
+  const scenesForPersistence = imageScenes
+    .map((entry) => scenes.find((s) => s.sceneId === entry.sceneId))
+    .filter((s): s is SceneDefinition => s !== undefined);
   const provider =
     scope.imageProvider ??
     policy?.preferredImageProvider ??

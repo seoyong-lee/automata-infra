@@ -12,9 +12,14 @@ const asRecord = (asset: unknown): Record<string, unknown> =>
 
 const resolveSceneId = (
   typedAsset: Record<string, unknown>,
-  sceneId?: number,
-): number | undefined =>
-  typeof typedAsset.sceneId === "number" ? typedAsset.sceneId : sceneId;
+  sceneIdFromOrder?: number,
+): number | undefined => {
+  const fromAsset = typedAsset.sceneId;
+  if (typeof fromAsset === "number" && Number.isFinite(fromAsset)) {
+    return fromAsset;
+  }
+  return sceneIdFromOrder;
+};
 
 const persistImageCandidate = async (
   jobId: string,

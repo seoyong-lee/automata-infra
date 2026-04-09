@@ -36,11 +36,16 @@ const buildSceneAssetMap = (
 };
 
 const resolveVoiceProfileId = (input: {
+  runOverrideProfileId?: string;
   sceneId: number;
   sceneAssetMap: Map<number, SceneAssetItem>;
   defaultVoiceProfileId?: string;
   presetPreferredVoiceProfileId?: string;
 }): string | undefined => {
+  const fromRun = resolveNonEmptyString(input.runOverrideProfileId);
+  if (fromRun) {
+    return fromRun;
+  }
   const fromScene = resolveNonEmptyString(
     input.sceneAssetMap.get(input.sceneId)?.voiceProfileId,
   );
@@ -88,10 +93,12 @@ const resolveTargetDurationSec = (
 const buildOneVoiceScene = async (input: {
   scene: VoiceSceneSource;
   sceneAssetMap: Map<number, SceneAssetItem>;
+  runVoiceProfileIdOverride?: string;
   defaultVoiceProfileId?: string;
   presetPreferredVoiceProfileId?: string;
 }): Promise<VoiceGenerationScene> => {
   const selectedProfileId = resolveVoiceProfileId({
+    runOverrideProfileId: input.runVoiceProfileIdOverride,
     sceneId: input.scene.sceneId,
     sceneAssetMap: input.sceneAssetMap,
     defaultVoiceProfileId: input.defaultVoiceProfileId,
@@ -121,6 +128,8 @@ export const buildVoiceScenesForJob = async (input: {
   jobId: string;
   job: JobMetaItem;
   scenes: VoiceSceneSource[];
+  /** `runAssetGeneration` 등에서 전달 시 씬·잡 기본 프로필보다 우선 */
+  runVoiceProfileIdOverride?: string;
 }): Promise<VoiceGenerationScene[]> => {
   const sceneAssetMap = buildSceneAssetMap(await listSceneAssets(input.jobId));
 
@@ -138,6 +147,7 @@ export const buildVoiceScenesForJob = async (input: {
       buildOneVoiceScene({
         scene,
         sceneAssetMap,
+        runVoiceProfileIdOverride: input.runVoiceProfileIdOverride,
         defaultVoiceProfileId: input.job.defaultVoiceProfileId,
         presetPreferredVoiceProfileId,
       }),

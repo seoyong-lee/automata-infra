@@ -89,7 +89,10 @@ export const generateSceneImage = async (input: {
   const rawKey = `logs/${input.jobId}/provider/image-scene-${input.sceneId}-${candidateId}.json`;
 
   if (!secret?.apiKey) {
-    return putMockImage(imageKey, rawKey, input.prompt);
+    return {
+      sceneId: input.sceneId,
+      ...(await putMockImage(imageKey, rawKey, input.prompt)),
+    };
   }
 
   const endpoint =
@@ -120,6 +123,7 @@ export const generateSceneImage = async (input: {
   await persistResolvedImage(imageKey, payload.data?.[0], input.prompt);
 
   return {
+    sceneId: input.sceneId,
     candidateId,
     createdAt,
     provider: "openai-image",

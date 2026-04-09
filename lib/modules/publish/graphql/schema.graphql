@@ -1058,6 +1058,10 @@ input RunAssetGenerationInput {
   이미지 생성 시 사용할 provider. IMAGE 또는 ALL 실행에서만 반영된다.
   """
   imageProvider: ImageGenerationProvider
+  """
+  VOICE 또는 ALL의 음성 단계에서만 사용. 지정 시 해당 실행의 TTS에 잡·씬에 저장된 기본 프로필보다 우선한다.
+  """
+  voiceProfileId: ID
 }
 
 input SearchSceneStockAssetsInput {
