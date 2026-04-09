@@ -1,4 +1,5 @@
 import { getOptionalEnv, getSecretJson, putJsonToS3 } from "../../aws/runtime";
+import { parseJsonFromLlmText } from "../../llm/parse-json-from-llm-text";
 import { fetchJsonWithRetry } from "../http/retry";
 import type {
   GenerateStructuredDataResult,
@@ -40,14 +41,6 @@ const extractMessageContent = (
   }
 
   return null;
-};
-
-const parseJsonContent = (content: string): unknown => {
-  const trimmed = content.trim();
-  const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  const jsonSource = fencedMatch ? fencedMatch[1] : trimmed;
-
-  return JSON.parse(jsonSource) as unknown;
 };
 
 const buildLogKey = (jobId: string, stepKey: string): string => {
@@ -224,7 +217,7 @@ export const generateOpenAiStructuredData = async <T>(input: {
     throw new Error(`OpenAI returned no content for ${input.stepKey}`);
   }
 
-  const parsed = parseJsonContent(content);
+  const parsed = parseJsonFromLlmText(content);
   const output = input.validate(parsed);
 
   await putJsonToS3(logKey, {

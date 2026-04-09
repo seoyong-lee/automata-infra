@@ -4,6 +4,7 @@ import {
   type InvokeModelCommandOutput,
 } from "@aws-sdk/client-bedrock-runtime";
 import { getOptionalEnv, getSecretJson, putJsonToS3 } from "../../aws/runtime";
+import { parseJsonFromLlmText } from "../../llm/parse-json-from-llm-text";
 import type {
   GenerateStructuredDataResult,
   LlmPromptTemplate,
@@ -23,14 +24,6 @@ type BedrockAnthropicResponse = {
 
 const region = process.env.AWS_REGION ?? "ap-northeast-2";
 const bedrockClient = new BedrockRuntimeClient({ region });
-
-const parseJsonContent = (content: string): unknown => {
-  const trimmed = content.trim();
-  const fencedMatch = trimmed.match(/^```(?:json)?\s*([\s\S]*?)\s*```$/);
-  const jsonSource = fencedMatch ? fencedMatch[1] : trimmed;
-
-  return JSON.parse(jsonSource) as unknown;
-};
 
 const extractTextContent = (
   payload: BedrockAnthropicResponse,
@@ -192,7 +185,7 @@ export const generateBedrockStructuredData = async <T>(input: {
     throw new Error(`Bedrock returned no text content for ${input.stepKey}`);
   }
 
-  const parsed = parseJsonContent(content);
+  const parsed = parseJsonFromLlmText(content);
   const output = input.validate(parsed);
 
   await putJsonToS3(logKey, {
