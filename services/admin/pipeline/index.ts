@@ -12,6 +12,7 @@ type PipelineWorkerEvent = {
   executionSk: string;
   stage: string;
   assetGenScope?: unknown;
+  pipelineWorkerVoiceProfileId?: string;
   finalCompositionScope?: unknown;
 };
 

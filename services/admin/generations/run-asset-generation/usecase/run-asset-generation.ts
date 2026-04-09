@@ -130,7 +130,12 @@ export const runAdminAssetGeneration = async (
     stageType: "ASSET_GENERATION",
     triggeredBy,
     inputSnapshotId,
-    workerPayload: { assetGenScope: scope },
+    workerPayload: {
+      assetGenScope: scope,
+      ...(scope.voiceProfileId
+        ? { pipelineWorkerVoiceProfileId: scope.voiceProfileId }
+        : {}),
+    },
     runCore: () => runAssetGenerationCore(jobId, scope),
     getQueuedResult: async () =>
       mapJobMetaToAdminJob(await getJobOrThrow(jobId)),

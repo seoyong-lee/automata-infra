@@ -15,11 +15,32 @@ const DEFAULT_ASSET_GENERATION_SCOPE: AssetGenerationScope = {
   modality: "all",
 };
 
+const mergeAssetGenScopeForPipelineWorker = (
+  raw: AssetGenerationScope | undefined,
+  pipelineWorkerVoiceProfileId: unknown,
+): AssetGenerationScope => {
+  const pipe =
+    typeof pipelineWorkerVoiceProfileId === "string"
+      ? pipelineWorkerVoiceProfileId.trim()
+      : "";
+  const base = raw ?? DEFAULT_ASSET_GENERATION_SCOPE;
+  if (!pipe) {
+    return base;
+  }
+  return {
+    ...DEFAULT_ASSET_GENERATION_SCOPE,
+    ...base,
+    voiceProfileId: pipe,
+  };
+};
+
 export type PipelineStageExecutionInput = {
   jobId: string;
   executionSk: string;
   stage: JobExecutionStageType;
   assetGenScope?: AssetGenerationScope;
+  /** `invokePipelineWorkerAsync`가 최상위로 중복 실어 보낸 TTS 프로필 id */
+  pipelineWorkerVoiceProfileId?: string;
   finalCompositionScope?: FinalCompositionScope;
 };
 
@@ -42,7 +63,10 @@ export const executePipelineStage = async (
   }
   await runAssetGenerationCore(
     input.jobId,
-    input.assetGenScope ?? DEFAULT_ASSET_GENERATION_SCOPE,
+    mergeAssetGenScopeForPipelineWorker(
+      input.assetGenScope,
+      input.pipelineWorkerVoiceProfileId,
+    ),
   );
 };
 

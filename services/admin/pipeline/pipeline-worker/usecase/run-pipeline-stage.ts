@@ -48,6 +48,7 @@ export const runPipelineStage = async (input: {
   stage: JobExecutionStageType;
   stepType?: PipelineExecutionStepType;
   assetGenScope?: AssetGenerationScope;
+  pipelineWorkerVoiceProfileId?: string;
   finalCompositionScope?: FinalCompositionScope;
 }): Promise<void> => {
   const claimedExecution = await markJobExecutionRunning({

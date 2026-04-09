@@ -75,10 +75,7 @@ const resolveVoiceSettings = (
     return undefined;
   }
   const resolved = { ...baseSettings };
-  if (
-    typeof resolved.speed === "number" &&
-    Number.isFinite(resolved.speed)
-  ) {
+  if (typeof resolved.speed === "number" && Number.isFinite(resolved.speed)) {
     resolved.speed = clamp(resolved.speed, MIN_VOICE_SPEED, MAX_VOICE_SPEED);
   }
   return Object.values(resolved).some((value) => value !== undefined)
@@ -89,9 +86,18 @@ const resolveVoiceSettings = (
 const resolveVoiceConfig = (
   input: GenerateSceneVoiceInput,
   secret: ElevenLabsSecret | null,
+  // eslint-disable-next-line complexity
 ) => {
-  const resolvedVoiceId = input.voiceId ?? secret?.voiceId;
-  const resolvedModelId = input.modelId ?? secret?.modelId ?? DEFAULT_MODEL_ID;
+  const trimmedVoiceId =
+    typeof input.voiceId === "string" && input.voiceId.trim().length > 0
+      ? input.voiceId.trim()
+      : undefined;
+  const resolvedVoiceId = trimmedVoiceId ?? secret?.voiceId;
+  const trimmedModelId =
+    typeof input.modelId === "string" && input.modelId.trim().length > 0
+      ? input.modelId.trim()
+      : undefined;
+  const resolvedModelId = trimmedModelId ?? secret?.modelId ?? DEFAULT_MODEL_ID;
   const endpoint = (
     secret?.endpoint ?? "https://api.elevenlabs.io/v1/text-to-speech/{voiceId}"
   ).replace("{voiceId}", resolvedVoiceId ?? "");

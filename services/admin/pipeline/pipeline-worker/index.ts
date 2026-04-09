@@ -14,6 +14,7 @@ type PipelineWorkerEvent = {
   stage: JobExecutionStageType;
   stepType?: PipelineExecutionStepType;
   assetGenScope?: AssetGenerationScope;
+  pipelineWorkerVoiceProfileId?: string;
   finalCompositionScope?: FinalCompositionScope;
 };
 
@@ -24,6 +25,7 @@ export const run: Handler<PipelineWorkerEvent, void> = async (event) => {
     stage,
     stepType,
     assetGenScope,
+    pipelineWorkerVoiceProfileId,
     finalCompositionScope,
   } = event ?? {};
   if (!jobId || !executionSk || !stage) {
@@ -35,6 +37,7 @@ export const run: Handler<PipelineWorkerEvent, void> = async (event) => {
     stage,
     stepType,
     assetGenScope,
+    pipelineWorkerVoiceProfileId,
     finalCompositionScope,
   });
 };

@@ -73,6 +73,22 @@ const parseTargetSceneId = (raw: unknown): number | undefined => {
   return n;
 };
 
+/** GraphQL `ID` 등 클라이언트·게이트웨이에 따라 string 외 타입이 올 수 있다. */
+const parseOptionalVoiceProfileId = (raw: unknown): string | undefined => {
+  if (raw === null || raw === undefined) {
+    return undefined;
+  }
+  if (typeof raw === "string") {
+    const t = raw.trim();
+    return t.length > 0 ? t : undefined;
+  }
+  if (typeof raw === "number" && Number.isFinite(raw)) {
+    const t = String(raw).trim();
+    return t.length > 0 ? t : undefined;
+  }
+  return undefined;
+};
+
 export const parseRunAssetGenerationArgs = (
   args: Record<string, unknown>,
 ): ParsedRunAssetGenerationArgs => {
@@ -85,10 +101,7 @@ export const parseRunAssetGenerationArgs = (
   const targetSceneId = parseTargetSceneId(input.targetSceneId);
   const modality = parseModality(input.modality);
   const imageProvider = parseImageProvider(input.imageProvider);
-  const voiceProfileIdRaw =
-    typeof input.voiceProfileId === "string" ? input.voiceProfileId.trim() : "";
-  const voiceProfileId =
-    voiceProfileIdRaw.length > 0 ? voiceProfileIdRaw : undefined;
+  const voiceProfileId = parseOptionalVoiceProfileId(input.voiceProfileId);
 
   return {
     jobId,

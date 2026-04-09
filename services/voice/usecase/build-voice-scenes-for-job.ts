@@ -118,8 +118,8 @@ const buildOneVoiceScene = async (input: {
     durationSec: resolveTargetDurationSec(input.scene, input.sceneAssetMap),
     /** 씬/잡/프리셋에서 해석된 프로필 id(저장·로그와 동일해야 함) */
     voiceProfileId: selectedProfile ? selectedProfileId : undefined,
-    voiceId: selectedProfile?.voiceId,
-    modelId: selectedProfile?.modelId,
+    voiceId: resolveNonEmptyString(selectedProfile?.voiceId),
+    modelId: resolveNonEmptyString(selectedProfile?.modelId),
     voiceSettings: buildVoiceSettings(selectedProfile),
   };
 };
