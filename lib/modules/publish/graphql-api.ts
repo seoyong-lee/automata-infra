@@ -29,6 +29,7 @@ type CreatePublishGraphqlApiProps = {
   getLlmSettingsResolver: lambda.IFunction;
   updateLlmSettingsResolver: lambda.IFunction;
   upsertContentPresetResolver: lambda.IFunction;
+  pushJobRenderSettingsToContentPresetResolver: lambda.IFunction;
   listVoiceProfilesResolver: lambda.IFunction;
   upsertVoiceProfileResolver: lambda.IFunction;
   assetPoolAssetsResolver: lambda.IFunction;
@@ -249,6 +250,13 @@ export const createPublishGraphqlApi = (
     "upsertContentPreset",
     "Mutation",
     props.upsertContentPresetResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PushJobRenderSettingsToContentPreset",
+    "pushJobRenderSettingsToContentPreset",
+    "Mutation",
+    props.pushJobRenderSettingsToContentPresetResolver,
   );
   addLambdaResolver(
     graphqlApi,

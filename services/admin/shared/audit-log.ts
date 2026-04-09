@@ -27,6 +27,7 @@ type AuditOperation =
   | "jobDraft"
   | "contentPresets"
   | "upsertContentPreset"
+  | "pushJobRenderSettingsToContentPreset"
   | "deleteContentPreset"
   | "llmSettings"
   | "updateLlmStepSettings"

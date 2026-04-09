@@ -65,6 +65,13 @@ type Mutation {
   ): JobDraftDetail!
   updateLlmStepSettings(input: UpdateLlmStepSettingsInput!): LlmStepSettings!
   upsertContentPreset(input: UpsertContentPresetInput!): ContentPreset!
+  """
+  잡에 저장된 렌더 옵션(또는 resolvedPolicy 기본)을 병합해 지정 콘텐츠 프리셋의 defaultPolicy.renderSettings에 반영한다.
+  다음 잡부터 같은 프리셋으로 생성 시 해당 레이아웃이 기본값으로 쓰인다.
+  """
+  pushJobRenderSettingsToContentPreset(
+    input: PushJobRenderSettingsToContentPresetInput!
+  ): ContentPreset!
   deleteContentPreset(presetId: ID!): DeleteContentPresetResult!
   upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
@@ -337,6 +344,7 @@ type RenderTextOverlay {
   fontWeight: String
   fontSize: Int
   color: String
+  maxLines: Int
 }
 
 type SceneStartTransition {
@@ -1006,6 +1014,15 @@ input RenderTextOverlayInput {
   fontWeight: String
   fontSize: Int
   color: String
+  maxLines: Int
+}
+
+input PushJobRenderSettingsToContentPresetInput {
+  jobId: ID!
+  """
+  생략 시 잡 brief의 presetId를 사용한다.
+  """
+  presetId: ID
 }
 
 input UpdateJobBriefInput {

@@ -1,5 +1,6 @@
 import { Handler } from "aws-lambda";
 import { run as deleteContentPreset } from "./delete-content-preset";
+import { run as pushJobRenderSettingsToContentPreset } from "./push-job-render-settings-to-content-preset";
 import { run as listContentPresets } from "./list-content-presets";
 import { run as getLlmSettings } from "./get-llm-settings";
 import { run as listVoiceProfiles } from "./list-voice-profiles";
@@ -18,6 +19,7 @@ const routes: GroupedResolverRoutes = {
   llmSettings: getLlmSettings,
   updateLlmStepSettings: updateLlmSettings,
   upsertContentPreset,
+  pushJobRenderSettingsToContentPreset,
   voiceProfiles: listVoiceProfiles,
   upsertVoiceProfile,
 };

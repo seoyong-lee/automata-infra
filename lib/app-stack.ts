@@ -392,6 +392,7 @@ export class AppStack extends Stack {
     const listContentPresetsResolver = settingsHandler;
     const deleteContentPresetResolver = settingsHandler;
     const upsertContentPresetResolver = settingsHandler;
+    const pushJobRenderSettingsToContentPresetResolver = settingsHandler;
     const listVoiceProfilesResolver = settingsHandler;
     const upsertVoiceProfileResolver = settingsHandler;
     const assetPoolAssetsResolver = libraryHandler;
@@ -623,6 +624,7 @@ export class AppStack extends Stack {
       getLlmSettingsResolver,
       updateLlmSettingsResolver,
       upsertContentPresetResolver,
+      pushJobRenderSettingsToContentPresetResolver,
       listVoiceProfilesResolver,
       upsertVoiceProfileResolver,
       assetPoolAssetsResolver,
