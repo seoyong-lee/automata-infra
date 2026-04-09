@@ -27,3 +27,12 @@ export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {
   }
   return base;
 };
+
+/** Scene JSON 편집 저장 시: 텍스트·프롬프트만 반영하고 생성/검증 상태는 기존 행을 유지 */
+export const mapSceneAssetItemForSceneJsonUpdate = (
+  scene: SceneJson["scenes"][number],
+) => {
+  const { validationStatus: _validationStatus, ...rest } =
+    mapSceneAssetItem(scene);
+  return rest;
+};

@@ -38,6 +38,31 @@ const optionalBooleanAllowingNull = z.preprocess((v) => {
   }
   return v;
 }, z.boolean().optional());
+
+const nullToUndefined = <S extends z.ZodTypeAny>(schema: S) =>
+  z.preprocess((v: unknown) => (v === null ? undefined : v), schema);
+
+/** 필수 문자열인데 클라이언트가 `null`을 내면 빈 문자열로 두고 이후 nonEmpty 등에서 걸린다. */
+const stringRequiredAllowingNull = z.preprocess(
+  (v: unknown) => (v === null ? "" : v),
+  z.string(),
+);
+
+const nonEmptyRequiredAllowingNull = z.preprocess(
+  (v: unknown) => (v === null ? "" : v),
+  nonEmpty,
+);
+
+const stringArrayFilteringNulls = z.preprocess((v: unknown) => {
+  if (v === null || v === undefined) {
+    return undefined;
+  }
+  if (!Array.isArray(v)) {
+    return v;
+  }
+  return v.filter((x) => x !== null && x !== undefined);
+}, z.array(nonEmpty).min(1));
+
 export const sceneStartTransitionTypeSchema = z.enum([
   "cut",
   "fade",
@@ -59,8 +84,11 @@ export const sceneStartTransitionTypeSchema = z.enum([
 ]);
 export const sceneStartTransitionSchema = z
   .object({
-    type: sceneStartTransitionTypeSchema,
-    durationSec: z.number().positive().max(1.5).optional(),
+    type: z.preprocess(
+      (v: unknown) => (v === null ? undefined : v),
+      sceneStartTransitionTypeSchema,
+    ),
+    durationSec: nullToUndefined(z.number().positive().max(1.5).optional()),
   })
   .strict();
 export const sceneVisualSourceTypeSchema = z.enum([
@@ -74,11 +102,19 @@ export const sceneVisualSourceTypeSchema = z.enum([
 ]);
 export const sceneVisualNeedSchema = z
   .object({
-    semanticType: nonEmpty,
-    moodTags: z.array(nonEmpty).min(1),
-    visualTypePriority: z.array(sceneVisualSourceTypeSchema).min(1),
-    motionHint: nonEmpty.optional(),
-    avoidTags: z.array(nonEmpty).min(1),
+    semanticType: nonEmptyRequiredAllowingNull,
+    moodTags: stringArrayFilteringNulls,
+    visualTypePriority: z.preprocess((v: unknown) => {
+      if (v === null || v === undefined) {
+        return v;
+      }
+      if (!Array.isArray(v)) {
+        return v;
+      }
+      return v.filter((x) => x !== null && x !== undefined);
+    }, z.array(sceneVisualSourceTypeSchema).min(1)),
+    motionHint: nullToUndefined(nonEmpty.optional()),
+    avoidTags: stringArrayFilteringNulls,
   })
   .strict();
 
@@ -183,23 +219,31 @@ export const sceneDefinitionSchema = z
   .object({
     sceneId: z.number().finite().int().positive(),
     durationSec: z.number().finite().positive(),
-    narration: z.string(),
+    narration: stringRequiredAllowingNull,
     disableNarration: optionalBooleanAllowingNull,
-    imagePrompt: nonEmpty,
-    videoPrompt: z.string().optional(),
-    subtitle: nonEmpty,
-    bgmMood: z.string().optional(),
-    sfx: z.array(nonEmpty).optional(),
-    storyBeat: nonEmpty.optional(),
-    visualNeed: sceneVisualNeedSchema.optional(),
-    startTransition: sceneStartTransitionSchema.optional(),
+    imagePrompt: nonEmptyRequiredAllowingNull,
+    videoPrompt: nullToUndefined(z.string().optional()),
+    subtitle: nonEmptyRequiredAllowingNull,
+    bgmMood: nullToUndefined(z.string().optional()),
+    sfx: z.preprocess((v: unknown) => {
+      if (v === null || v === undefined) {
+        return undefined;
+      }
+      if (!Array.isArray(v)) {
+        return v;
+      }
+      return v.filter((x) => x !== null && x !== undefined);
+    }, z.array(nonEmpty).optional()),
+    storyBeat: nullToUndefined(nonEmpty.optional()),
+    visualNeed: nullToUndefined(sceneVisualNeedSchema.optional()),
+    startTransition: nullToUndefined(sceneStartTransitionSchema.optional()),
   })
   .transform((scene) => alignSceneNarrationAndSubtitle(scene));
 
 export const sceneJsonSchema = z
   .object({
-    videoTitle: nonEmpty,
-    language: nonEmpty,
+    videoTitle: nonEmptyRequiredAllowingNull,
+    language: nonEmptyRequiredAllowingNull,
     scenes: z.array(sceneDefinitionSchema).min(1),
   })
   .superRefine((value, ctx) => {

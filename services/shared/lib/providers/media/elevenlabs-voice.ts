@@ -1,3 +1,4 @@
+/* eslint-disable max-lines-per-function */
 import { randomUUID } from "crypto";
 import { parseBuffer } from "music-metadata";
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
@@ -24,9 +25,11 @@ type GenerateSceneVoiceInput = {
   text: string;
   secretId: string;
   targetDurationSec?: number;
+  /** ElevenLabs TTS URL에 쓰이는 보이스 id(프로필에서 오거나 시크릿 기본값) */
   voiceId?: string;
   modelId?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
+  /** 앱 내부 Voice Profile id — API 바디에는 없고 로그·후보 메타에만 기록 */
   voiceProfileId?: string;
 };
 
@@ -131,14 +134,25 @@ const buildRequestBody = (
 
 const buildMockResponse = async (
   input: GenerateSceneVoiceInput,
+  secret: ElevenLabsSecret | null,
   audioKey: string,
   rawKey: string,
   estimatedDurationSec: number,
   candidateId: string,
   createdAt: string,
 ) => {
+  const { resolvedVoiceId, resolvedModelId } = resolveVoiceConfig(
+    input,
+    secret,
+  );
   await putBufferToS3(audioKey, input.text, "text/plain");
-  await putJsonToS3(rawKey, { mocked: true, text: input.text });
+  await putJsonToS3(rawKey, {
+    mocked: true,
+    text: input.text,
+    voiceProfileId: input.voiceProfileId,
+    voiceId: resolvedVoiceId,
+    modelId: resolvedModelId,
+  });
 
   return {
     candidateId,
@@ -147,6 +161,7 @@ const buildMockResponse = async (
     voiceS3Key: audioKey,
     providerLogS3Key: rawKey,
     mocked: true,
+    voiceProfileId: input.voiceProfileId,
     durationSec: estimatedDurationSec,
   };
 };
@@ -258,8 +273,86 @@ const logVoiceFailure = async (input: {
     resolvedModelId: input.resolvedModelId,
     voiceProfileId: input.voiceProfileId,
     voiceSettings: input.voiceSettings,
-    error: input.error instanceof Error ? input.error.message : String(input.error),
+    error:
+      input.error instanceof Error ? input.error.message : String(input.error),
   });
+};
+
+const fetchAndPersistElevenLabsTts = async (input: {
+  input: GenerateSceneVoiceInput;
+  secret: ElevenLabsSecret;
+  endpoint: string;
+  resolvedVoiceId?: string;
+  resolvedModelId: string;
+  resolvedVoiceSettings: ElevenLabsVoiceSettings | undefined;
+  estimatedDurationSec: number;
+  candidateId: string;
+  createdAt: string;
+  audioKey: string;
+  rawKey: string;
+}): Promise<Record<string, unknown>> => {
+  const {
+    input: voiceInput,
+    secret,
+    endpoint,
+    resolvedVoiceId,
+    resolvedModelId,
+    resolvedVoiceSettings,
+    estimatedDurationSec,
+    candidateId,
+    createdAt,
+    audioKey,
+    rawKey,
+  } = input;
+  try {
+    const arrayBuffer = await fetchVoiceAudio({
+      endpoint,
+      apiKey: secret.apiKey,
+      requestBody: buildRequestBody(
+        voiceInput,
+        resolvedModelId,
+        resolvedVoiceSettings,
+      ),
+    });
+    const audioBuffer = Buffer.from(arrayBuffer);
+    const resolvedDurationSec = await resolveAudioDurationSec(
+      audioBuffer,
+      estimatedDurationSec,
+    );
+    await putBufferToS3(audioKey, audioBuffer, "audio/mpeg");
+    await writeVoiceLog({
+      rawKey,
+      status: 200,
+      bytes: arrayBuffer.byteLength,
+      endpoint,
+      resolvedVoiceId,
+      resolvedModelId,
+      voiceProfileId: voiceInput.voiceProfileId,
+      voiceSettings: resolvedVoiceSettings,
+    });
+
+    return buildVoiceResult({
+      candidateId,
+      createdAt,
+      provider: "elevenlabs-tts",
+      voiceS3Key: audioKey,
+      providerLogS3Key: rawKey,
+      mocked: false,
+      voiceProfileId: voiceInput.voiceProfileId,
+      durationSec: resolvedDurationSec,
+    });
+  } catch (error) {
+    await logVoiceFailure({
+      rawKey,
+      endpoint,
+      resolvedVoiceId,
+      resolvedModelId,
+      voiceProfileId: voiceInput.voiceProfileId,
+      voiceSettings: resolvedVoiceSettings,
+      error,
+    });
+    throw error;
+  }
 };
 
 export const generateSceneVoice = async (
@@ -281,6 +374,7 @@ export const generateSceneVoice = async (
   if (!secret?.apiKey || !resolvedVoiceId) {
     return buildMockResponse(
       input,
+      secret,
       audioKey,
       rawKey,
       estimatedDurationSec,
@@ -289,49 +383,17 @@ export const generateSceneVoice = async (
     );
   }
 
-  try {
-    const arrayBuffer = await fetchVoiceAudio({
-      endpoint,
-      apiKey: secret.apiKey,
-      requestBody: buildRequestBody(input, resolvedModelId, resolvedVoiceSettings),
-    });
-    const audioBuffer = Buffer.from(arrayBuffer);
-    const resolvedDurationSec = await resolveAudioDurationSec(
-      audioBuffer,
-      estimatedDurationSec,
-    );
-    await putBufferToS3(audioKey, audioBuffer, "audio/mpeg");
-    await writeVoiceLog({
-      rawKey,
-      status: 200,
-      bytes: arrayBuffer.byteLength,
-      endpoint,
-      resolvedVoiceId,
-      resolvedModelId,
-      voiceProfileId: input.voiceProfileId,
-      voiceSettings: resolvedVoiceSettings,
-    });
-
-    return buildVoiceResult({
-      candidateId,
-      createdAt,
-      provider: "elevenlabs-tts",
-      voiceS3Key: audioKey,
-      providerLogS3Key: rawKey,
-      mocked: false,
-      voiceProfileId: input.voiceProfileId,
-      durationSec: resolvedDurationSec,
-    });
-  } catch (error) {
-    await logVoiceFailure({
-      rawKey,
-      endpoint,
-      resolvedVoiceId,
-      resolvedModelId,
-      voiceProfileId: input.voiceProfileId,
-      voiceSettings: resolvedVoiceSettings,
-      error,
-    });
-    throw error;
-  }
+  return fetchAndPersistElevenLabsTts({
+    input,
+    secret,
+    endpoint,
+    resolvedVoiceId,
+    resolvedModelId,
+    resolvedVoiceSettings,
+    estimatedDurationSec,
+    candidateId,
+    createdAt,
+    audioKey,
+    rawKey,
+  });
 };

@@ -30,6 +30,53 @@ const collectSceneItemS3Keys = (item: Record<string, unknown>): string[] => {
   return keys;
 };
 
+/** Scene JSON에 더 이상 없는 sceneId에 매달린 SCENE#… 행(후보 행 포함)만 삭제 */
+export const deleteSceneScopedRowsOutsideSceneIds = async (
+  jobId: string,
+  activeSceneIds: ReadonlySet<number>,
+): Promise<void> => {
+  const items = await listAllJobItems(jobId);
+  const sceneItems = items.filter(isSceneScopedItem);
+  const tableName = getJobsTableName();
+  const s3Keys = new Set<string>();
+
+  const orphans = sceneItems.filter((item) => {
+    const sk = item.SK;
+    if (typeof sk !== "string") {
+      return false;
+    }
+    const match = /^SCENE#(\d+)/.exec(sk);
+    if (!match) {
+      return false;
+    }
+    const sceneId = Number(match[1]);
+    return !activeSceneIds.has(sceneId);
+  });
+
+  for (const item of orphans) {
+    for (const key of collectSceneItemS3Keys(item)) {
+      s3Keys.add(key);
+    }
+  }
+
+  for (const item of orphans) {
+    const pk = item.PK;
+    const sk = item.SK;
+    if (typeof pk !== "string" || typeof sk !== "string") {
+      continue;
+    }
+    await deleteItemFromTable(tableName, { PK: pk, SK: sk });
+  }
+
+  for (const key of s3Keys) {
+    try {
+      await deleteObjectFromS3(key);
+    } catch {
+      // best-effort cleanup
+    }
+  }
+};
+
 export const clearSceneAssets = async (jobId: string): Promise<void> => {
   const items = await listAllJobItems(jobId);
   const sceneItems = items.filter(isSceneScopedItem);

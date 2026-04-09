@@ -1,7 +1,9 @@
 import { Handler } from "aws-lambda";
 import type { SceneJson } from "../../types/render/scene-json";
 import { pickSceneByReviewTarget } from "../shared/lib/workflow/pick-scene-for-review-regeneration";
+import { getJobMeta } from "../shared/lib/store/video-jobs";
 import { saveVoiceAssets } from "./repo/save-voice-assets";
+import { buildVoiceScenesForJob } from "./usecase/build-voice-scenes-for-job";
 import { generateSceneVoices } from "./usecase/generate-scene-voices";
 
 type SceneJsonEvent = {
@@ -67,7 +69,19 @@ export const run: Handler<
   SceneJsonEvent,
   SceneJsonEvent & { voiceAssets: unknown[]; status: string }
 > = async (event) => {
-  const scenes = getScenes(event);
+  const rawScenes = getScenes(event);
+  const job =
+    typeof event.jobId === "string" && event.jobId.trim().length > 0
+      ? await getJobMeta(event.jobId)
+      : null;
+  const scenes =
+    job && rawScenes.length > 0
+      ? await buildVoiceScenesForJob({
+          jobId: event.jobId,
+          job,
+          scenes: rawScenes,
+        })
+      : rawScenes;
   const voiceAssets = await generateSceneVoices({
     jobId: event.jobId,
     scenes,
