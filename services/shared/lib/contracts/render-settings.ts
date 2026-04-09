@@ -34,6 +34,7 @@ export const jobRenderTextOverlaySchema = z
     fontWeight: subtitleFontWeightSchema.optional(),
     fontSize: z.number().int().min(12).max(96).optional(),
     color: hexColorSchema.optional(),
+    maxLines: z.number().int().min(1).max(20).optional(),
   })
   .strict();
 

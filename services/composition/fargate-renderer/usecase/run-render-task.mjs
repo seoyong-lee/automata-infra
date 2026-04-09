@@ -136,6 +136,45 @@ async function createSceneSegment(input) {
     mediaFrameSettings,
     hasAss ? assPath : "",
   );
+  const encodeFromImage = async (imagePath) => {
+    await mediaToolsRepo.runCommand("ffmpeg", [
+      "-y",
+      "-loop",
+      "1",
+      "-i",
+      imagePath,
+      ...(hasVoice
+        ? ["-i", voicePath]
+        : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+      ...(hasVoice
+        ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
+        : []),
+      "-vf",
+      vf,
+      "-map",
+      "0:v:0",
+      "-map",
+      hasVoice ? "[aout]" : "1:a:0",
+      "-t",
+      String(durationSec),
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-pix_fmt",
+      "yuv420p",
+      "-c:a",
+      "aac",
+      "-ar",
+      "48000",
+      "-ac",
+      "2",
+      "-movflags",
+      "+faststart",
+      segmentPath,
+    ]);
+  };
+
   try {
     if (typeof scene.videoClipS3Key === "string" && scene.videoClipS3Key) {
       const videoPath = path.join(
@@ -143,43 +182,69 @@ async function createSceneSegment(input) {
         `visual-${scene.sceneId}${path.extname(scene.videoClipS3Key) || ".mp4"}`,
       );
       await storageRepo.downloadObject(scene.videoClipS3Key, videoPath);
-      await mediaToolsRepo.runCommand("ffmpeg", [
-        "-y",
-        "-stream_loop",
-        "-1",
-        "-i",
-        videoPath,
-        ...(hasVoice
-          ? ["-i", voicePath]
-          : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-        ...(hasVoice
-          ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
-          : []),
-        "-vf",
-        vf,
-        "-map",
-        "0:v:0",
-        "-map",
-        hasVoice ? "[aout]" : "1:a:0",
-        "-t",
-        String(durationSec),
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-ar",
-        "48000",
-        "-ac",
-        "2",
-        "-movflags",
-        "+faststart",
-        segmentPath,
-      ]);
-      return { segmentPath, durationSec };
+      try {
+        await mediaToolsRepo.runCommand("ffmpeg", [
+          "-y",
+          "-fflags",
+          "+genpts",
+          "-stream_loop",
+          "-1",
+          "-i",
+          videoPath,
+          ...(hasVoice
+            ? ["-i", voicePath]
+            : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+          ...(hasVoice
+            ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
+            : []),
+          "-vf",
+          vf,
+          "-map",
+          "0:v:0",
+          "-map",
+          hasVoice ? "[aout]" : "1:a:0",
+          "-t",
+          String(durationSec),
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-pix_fmt",
+          "yuv420p",
+          "-c:a",
+          "aac",
+          "-ar",
+          "48000",
+          "-ac",
+          "2",
+          "-movflags",
+          "+faststart",
+          segmentPath,
+        ]);
+        return { segmentPath, durationSec };
+      } catch (videoError) {
+        await storageRepo.putJson(
+          `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-video.json`,
+          {
+            sceneId: scene.sceneId,
+            fallback: "after-video-failure",
+            reason:
+              videoError instanceof Error
+                ? videoError.message
+                : String(videoError),
+          },
+        );
+        if (typeof scene.imageS3Key === "string" && scene.imageS3Key) {
+          const imagePath = path.join(
+            workDir,
+            `visual-${scene.sceneId}${path.extname(scene.imageS3Key) || ".png"}`,
+          );
+          await storageRepo.downloadObject(scene.imageS3Key, imagePath);
+          await encodeFromImage(imagePath);
+          return { segmentPath, durationSec };
+        }
+        throw videoError;
+      }
     }
     if (typeof scene.imageS3Key === "string" && scene.imageS3Key) {
       const imagePath = path.join(
@@ -187,42 +252,7 @@ async function createSceneSegment(input) {
         `visual-${scene.sceneId}${path.extname(scene.imageS3Key) || ".png"}`,
       );
       await storageRepo.downloadObject(scene.imageS3Key, imagePath);
-      await mediaToolsRepo.runCommand("ffmpeg", [
-        "-y",
-        "-loop",
-        "1",
-        "-i",
-        imagePath,
-        ...(hasVoice
-          ? ["-i", voicePath]
-          : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-        ...(hasVoice
-          ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
-          : []),
-        "-vf",
-        vf,
-        "-map",
-        "0:v:0",
-        "-map",
-        hasVoice ? "[aout]" : "1:a:0",
-        "-t",
-        String(durationSec),
-        "-c:v",
-        "libx264",
-        "-preset",
-        "veryfast",
-        "-pix_fmt",
-        "yuv420p",
-        "-c:a",
-        "aac",
-        "-ar",
-        "48000",
-        "-ac",
-        "2",
-        "-movflags",
-        "+faststart",
-        segmentPath,
-      ]);
+      await encodeFromImage(imagePath);
       return { segmentPath, durationSec };
     }
   } catch (error) {

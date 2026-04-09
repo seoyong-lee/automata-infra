@@ -296,6 +296,9 @@ const buildUserTextOverlay = (
       strokeColor: "#000000",
       strokeWidth: 0,
       align: "center",
+      ...(typeof overlay.maxLines === "number"
+        ? { maxLines: overlay.maxLines }
+        : {}),
     },
     zIndex: 10 + index,
   };
@@ -342,6 +345,7 @@ const buildDefaultOverlays = (
         strokeColor: "#000000",
         strokeWidth: 2,
         align: "center",
+        maxLines: 1,
       },
       startSec: 0,
       endSec: 4,

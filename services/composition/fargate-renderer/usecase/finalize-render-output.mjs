@@ -2,7 +2,7 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { seconds } from "../normalize/render-plan.mjs";
 
-const SOUNDTRACK_VOLUME = 0.5;
+const SOUNDTRACK_VOLUME = 0.7;
 
 const CUT_TRANSITION_EPSILON_SEC = 0.001;
 const DEFAULT_SCENE_TRANSITION_DURATION_SEC = 0.45;

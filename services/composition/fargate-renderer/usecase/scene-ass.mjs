@@ -336,7 +336,12 @@ function wrapOverlayText(text, overlay, outputSettings) {
     outputSettings.width * Math.max(0.2, Number(overlay.placement?.width ?? 0.72));
   const fontSize = resolveOverlayFontSize(overlay, outputSettings);
   const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
-  return wrapTextToWidth(text, maxUnits);
+  const rawMaxLines = Number(overlay.style?.maxLines);
+  const maxLines =
+    Number.isFinite(rawMaxLines) && rawMaxLines >= 1 && rawMaxLines <= 99
+      ? rawMaxLines
+      : Number.POSITIVE_INFINITY;
+  return wrapTextToWidth(text, maxUnits, maxLines);
 }
 
 function resolveHorizontalMargins(outputWidth, widthRatio) {
@@ -407,7 +412,12 @@ function getSceneTextOverlayEvents(
 }
 
 function normalizeSceneSubtitleSegments(scene) {
-  const segments = Array.isArray(scene.subtitleSegments)
+  const EPS = 1e-4;
+  const sceneStartFallback = Number(scene.startSec ?? 0);
+  const sceneEndFallback = Number(
+    scene.endSec ?? sceneStartFallback + sceneDuration(scene),
+  );
+  const raw = Array.isArray(scene.subtitleSegments)
     ? scene.subtitleSegments
         .map((segment) => ({
           text: String(segment?.text ?? "").trim(),
@@ -417,25 +427,57 @@ function normalizeSceneSubtitleSegments(scene) {
         .filter(
           (segment) =>
             segment.text &&
-            Number.isFinite(segment.startSec) &&
-            Number.isFinite(segment.endSec) &&
-            segment.endSec > segment.startSec,
+            Number.isFinite(segment.startSec) &
+            Number.isFinite(segment.endSec),
         )
+        .sort((a, b) => a.startSec - b.startSec || a.endSec - b.endSec)
     : [];
-  if (segments.length > 0) {
-    return segments;
+  if (raw.length === 0) {
+    const text = String(scene.subtitle ?? "").trim();
+    if (!text) {
+      return [];
+    }
+    return [
+      {
+        text,
+        startSec: sceneStartFallback,
+        endSec: Math.max(sceneEndFallback, sceneStartFallback + 0.1),
+      },
+    ];
   }
-  const text = String(scene.subtitle ?? "").trim();
-  if (!text) {
-    return [];
+  const merged = [];
+  let pendingTexts = [];
+  for (const seg of raw) {
+    const dur = seg.endSec - seg.startSec;
+    if (dur <= EPS) {
+      pendingTexts.push(seg.text);
+      continue;
+    }
+    const prefix = pendingTexts.length ? `${pendingTexts.join(" ")} ` : "";
+    pendingTexts = [];
+    merged.push({
+      text: `${prefix}${seg.text}`.trim(),
+      startSec: seg.startSec,
+      endSec: seg.endSec,
+    });
   }
-  return [
-    {
-      text,
-      startSec: Number(scene.startSec ?? 0),
-      endSec: Number(scene.endSec ?? sceneDuration(scene)),
-    },
-  ];
+  if (pendingTexts.length > 0) {
+    if (merged.length > 0) {
+      const last = merged[merged.length - 1];
+      last.text = `${last.text} ${pendingTexts.join(" ")}`.trim();
+      last.endSec = Math.max(last.endSec, last.startSec + 0.08);
+    } else {
+      merged.push({
+        text: pendingTexts.join(" ").trim(),
+        startSec: sceneStartFallback,
+        endSec: Math.max(sceneEndFallback, sceneStartFallback + 0.1),
+      });
+    }
+  }
+  return merged.filter(
+    (segment) =>
+      segment.text && segment.endSec > segment.startSec + EPS,
+  );
 }
 
 export async function writeSceneAss(

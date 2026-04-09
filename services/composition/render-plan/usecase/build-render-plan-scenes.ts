@@ -143,13 +143,32 @@ const buildSubtitleSegments = (input: {
   const totalDurationSec = Math.max(0.001, input.endSec - input.startSec);
   const weights = parts.map((part) => estimateSpeechTimingUnits(part));
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
-  const edges: number[] = [input.startSec];
+  const n = parts.length;
+  const minGapSec = Math.min(
+    0.04,
+    totalDurationSec / Math.max(2 * n, 1),
+  );
+  const edges: number[] = new Array(n + 1);
+  edges[0] = input.startSec;
   let acc = 0;
-  for (let i = 0; i < parts.length - 1; i++) {
-    acc += weights[i]! / totalWeight;
-    edges.push(input.startSec + totalDurationSec * acc);
+  for (let i = 1; i < n; i++) {
+    acc += weights[i - 1]! / totalWeight;
+    edges[i] = input.startSec + totalDurationSec * acc;
   }
-  edges.push(input.endSec);
+  edges[n] = input.endSec;
+  for (let i = 1; i < n; i++) {
+    edges[i] = Math.max(edges[i]!, edges[i - 1]! + minGapSec);
+  }
+  for (let i = n - 1; i >= 1; i--) {
+    edges[i] = Math.min(edges[i]!, edges[i + 1]! - minGapSec);
+  }
+  if (edges[1]! > edges[n - 1]! - 1e-9) {
+    const step = totalDurationSec / n;
+    for (let i = 1; i < n; i++) {
+      edges[i] = input.startSec + step * i;
+    }
+    edges[n] = input.endSec;
+  }
   return parts.map((part, index) => ({
     text: part,
     startSec: edges[index]!,

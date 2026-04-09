@@ -446,7 +446,12 @@ const wrapOverlayText = (
     6,
     Math.floor(widthPx / Math.max(fontSize * 0.9, 1)),
   );
-  return wrapTextToWidth(overlay.text, maxUnits);
+  const rawMaxLines = Number(overlay.style.maxLines);
+  const maxLines =
+    Number.isFinite(rawMaxLines) && rawMaxLines >= 1 && rawMaxLines <= 99
+      ? rawMaxLines
+      : Number.POSITIVE_INFINITY;
+  return wrapTextToWidth(overlay.text, maxUnits, maxLines);
 };
 
 const buildTextOverlayEvents = (
