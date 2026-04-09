@@ -33,6 +33,62 @@ const VOICE_TAIL_PAD_SEC = 0.15;
 /** Silence before TTS starts (avoids perceived fade-in at scene cut). */
 const TTS_LEAD_IN_SEC = 0.5;
 
+function extractFilterComplexFromFfmpegArgs(args) {
+  const i = args.indexOf("-filter_complex");
+  if (i >= 0 && i + 1 < args.length) {
+    return String(args[i + 1]);
+  }
+  return null;
+}
+
+/**
+ * Writes `logs/{jobId}/composition/fargate-segment-{sceneId}-ffmpeg-{label}-*.json` for black-screen triage.
+ */
+async function runFfmpegWithDiagnostics({
+  jobId,
+  sceneId,
+  label,
+  args,
+  mediaToolsRepo,
+  storageRepo,
+  extra = {},
+}) {
+  const base = `logs/${jobId}/composition/fargate-segment-${sceneId}-ffmpeg-${label}`;
+  await storageRepo.putJson(`${base}-before.json`, {
+    at: new Date().toISOString(),
+    filterComplex: extractFilterComplexFromFfmpegArgs(args),
+    argvPreview: args.slice(0, 24),
+    argvTail: args.slice(-8),
+    argc: args.length,
+    ...extra,
+  });
+  try {
+    const captured = await mediaToolsRepo.runCommand("ffmpeg", args, {
+      capture: true,
+    });
+    const outPath = args[args.length - 1];
+    let probe = null;
+    if (
+      typeof outPath === "string" &&
+      outPath.endsWith(".mp4") &&
+      typeof mediaToolsRepo.ffprobeVideoSummary === "function"
+    ) {
+      probe = await mediaToolsRepo.ffprobeVideoSummary(outPath);
+    }
+    await storageRepo.putJson(`${base}-after.json`, {
+      at: new Date().toISOString(),
+      stderrTail: captured?.stderr?.slice(-14000) ?? "",
+      probe,
+    });
+  } catch (error) {
+    await storageRepo.putJson(`${base}-error.json`, {
+      at: new Date().toISOString(),
+      message: error instanceof Error ? error.message : String(error),
+    });
+    throw error;
+  }
+}
+
 function voiceInputFilterGraph(durationSec) {
   const delayMs = Math.round(TTS_LEAD_IN_SEC * 1000);
   // Single delay works for mono TTS; stereo uses same offset per channel.
@@ -145,24 +201,40 @@ async function createSceneSegment(input) {
   ];
   const encodeFromImage = async (imagePath) => {
     if (useImageOverlays) {
-      await mediaToolsRepo.runCommand("ffmpeg", [
-        "-y",
-        "-loop",
-        "1",
-        "-i",
-        imagePath,
-        ...(hasVoice
-          ? ["-i", voicePath]
-          : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-        ...overlayExtraInputs,
-        "-filter_complex",
-        overlayFilterComplex,
-        "-map",
-        "[vout]",
-        "-map",
-        hasVoice ? "[aout]" : "1:a:0",
-        ...commonVideoEncodeTail,
-      ]);
+      const imageProbe =
+        typeof mediaToolsRepo.ffprobeVideoSummary === "function"
+          ? await mediaToolsRepo.ffprobeVideoSummary(imagePath)
+          : null;
+      await runFfmpegWithDiagnostics({
+        jobId,
+        sceneId: scene.sceneId,
+        label: "scene-image-overlays",
+        args: [
+          "-y",
+          "-loop",
+          "1",
+          "-i",
+          imagePath,
+          ...(hasVoice
+            ? ["-i", voicePath]
+            : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+          ...overlayExtraInputs,
+          "-filter_complex",
+          overlayFilterComplex,
+          "-map",
+          "[vout]",
+          "-map",
+          hasVoice ? "[aout]" : "1:a:0",
+          ...commonVideoEncodeTail,
+        ],
+        mediaToolsRepo,
+        storageRepo,
+        extra: {
+          mode: "encodeFromImage",
+          imageProbe,
+          preparedOverlayCount: preparedOverlays.length,
+        },
+      });
       return;
     }
     await mediaToolsRepo.runCommand("ffmpeg", [
@@ -194,28 +266,49 @@ async function createSceneSegment(input) {
         `visual-${scene.sceneId}${path.extname(scene.videoClipS3Key) || ".mp4"}`,
       );
       await storageRepo.downloadObject(scene.videoClipS3Key, videoPath);
+      let videoInputProbe = null;
+      if (
+        useImageOverlays &&
+        typeof mediaToolsRepo.ffprobeVideoSummary === "function"
+      ) {
+        videoInputProbe = await mediaToolsRepo.ffprobeVideoSummary(videoPath);
+      }
       try {
         if (useImageOverlays) {
-          await mediaToolsRepo.runCommand("ffmpeg", [
-            "-y",
-            "-fflags",
-            "+genpts",
-            "-stream_loop",
-            "-1",
-            "-i",
-            videoPath,
-            ...(hasVoice
-              ? ["-i", voicePath]
-              : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-            ...overlayExtraInputs,
-            "-filter_complex",
-            overlayFilterComplex,
-            "-map",
-            "[vout]",
-            "-map",
-            hasVoice ? "[aout]" : "1:a:0",
-            ...commonVideoEncodeTail,
-          ]);
+          await runFfmpegWithDiagnostics({
+            jobId,
+            sceneId: scene.sceneId,
+            label: "scene-video-overlays",
+            args: [
+              "-y",
+              "-fflags",
+              "+genpts",
+              "-stream_loop",
+              "-1",
+              "-i",
+              videoPath,
+              ...(hasVoice
+                ? ["-i", voicePath]
+                : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+              ...overlayExtraInputs,
+              "-filter_complex",
+              overlayFilterComplex,
+              "-map",
+              "[vout]",
+              "-map",
+              hasVoice ? "[aout]" : "1:a:0",
+              ...commonVideoEncodeTail,
+            ],
+            mediaToolsRepo,
+            storageRepo,
+            extra: {
+              mode: "videoClipWithImageOverlays",
+              videoInputProbe,
+              preparedOverlayCount: preparedOverlays.length,
+              durationSec,
+              hasAss: Boolean(hasAss),
+            },
+          });
         } else {
           await mediaToolsRepo.runCommand("ffmpeg", [
             "-y",
@@ -280,10 +373,24 @@ async function createSceneSegment(input) {
       {
         sceneId: scene.sceneId,
         fallback: true,
+        useImageOverlays,
+        hasVideoClip: Boolean(scene.videoClipS3Key),
+        hasImageClip: Boolean(scene.imageS3Key),
         reason: error instanceof Error ? error.message : String(error),
+        stack: error instanceof Error ? error.stack : undefined,
       },
     );
   }
+  await storageRepo.putJson(
+    `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-solid-fallback.json`,
+    {
+      at: new Date().toISOString(),
+      useImageOverlays,
+      hasVideoClip: Boolean(scene.videoClipS3Key),
+      hasImageClip: Boolean(scene.imageS3Key),
+      note: "Encoding solid canvas + optional subtitles (previous paths did not return a segment).",
+    },
+  );
   await mediaToolsRepo.runCommand("ffmpeg", [
     "-y",
     "-f",

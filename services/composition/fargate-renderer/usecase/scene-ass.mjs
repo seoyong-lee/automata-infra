@@ -256,13 +256,18 @@ function assignSubtitleDisplayChunks(startSec, endSec, chunks) {
   if (chunks.length === 1) {
     return [{ startSec, endSec, text: chunks[0] }];
   }
+  const n = chunks.length;
   const weights = chunks.map((c) => Math.max(1e-6, estimateTextUnits(c)));
   const totalW = weights.reduce((a, b) => a + b, 0);
+  const minPer = Math.min(0.55, totalDur / Math.max(n * 2, 1));
+  const rawDurs = weights.map((w) => totalDur * (w / totalW));
+  const adjusted = rawDurs.map((d) => Math.max(minPer, d));
+  const sumAdj = adjusted.reduce((a, b) => a + b, 0);
+  const scale = sumAdj > 0 ? totalDur / sumAdj : 1;
+  const finalDurs = adjusted.map((d) => d * scale);
   const edges = [startSec];
-  let acc = 0;
-  for (let i = 0; i < chunks.length - 1; i++) {
-    acc += weights[i] / totalW;
-    edges.push(startSec + totalDur * acc);
+  for (let i = 0; i < n - 1; i++) {
+    edges.push(edges[i] + finalDurs[i]);
   }
   edges.push(endSec);
   return chunks.map((text, i) => ({
@@ -427,7 +432,7 @@ function normalizeSceneSubtitleSegments(scene) {
         .filter(
           (segment) =>
             segment.text &&
-            Number.isFinite(segment.startSec) &
+            Number.isFinite(segment.startSec) &&
             Number.isFinite(segment.endSec),
         )
         .sort((a, b) => a.startSec - b.startSec || a.endSec - b.endSec)

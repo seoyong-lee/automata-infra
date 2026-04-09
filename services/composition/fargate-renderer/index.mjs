@@ -1,6 +1,10 @@
 import { S3Client } from "@aws-sdk/client-s3";
 import { createS3CompositionRepo } from "./repo/s3-composition-repo.mjs";
-import { getMediaDurationSec, runCommand } from "./repo/media-tools-repo.mjs";
+import {
+  ffprobeVideoSummary,
+  getMediaDurationSec,
+  runCommand,
+} from "./repo/media-tools-repo.mjs";
 import { createRenderFailureResult } from "./mapper/render-result.mjs";
 import { extractYoutubeTranscript } from "./usecase/extract-youtube-transcript.mjs";
 import { postProcessVoice } from "./usecase/post-process-voice.mjs";
@@ -16,6 +20,7 @@ const storageRepo = createS3CompositionRepo({ s3, bucketName });
 const mediaToolsRepo = {
   getMediaDurationSec,
   runCommand,
+  ffprobeVideoSummary,
 };
 
 function requireEnv(name) {

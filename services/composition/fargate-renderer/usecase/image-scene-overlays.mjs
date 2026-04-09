@@ -221,8 +221,8 @@ export function buildImageOverlayFilterComplex({
   voiceGraph,
 }) {
   const parts = [];
-  // setpts after scale/pad/fps: placing it before the chain breaks some `-stream_loop -1` clips (empty/black video).
-  parts.push(`[0:v]${baseVf},setpts=PTS-STARTPTS[vbase]`);
+  // Avoid setpts here: with `-stream_loop -1` + subtitles + overlay, extra PTS rewiring has produced all-black video in production.
+  parts.push(`[0:v]${baseVf}[vbase]`);
   const rawClipDur = Number(segmentDurationSec);
   const clipDur =
     Number.isFinite(rawClipDur) && rawClipDur > 0
