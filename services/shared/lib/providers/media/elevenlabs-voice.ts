@@ -4,11 +4,17 @@ import { parseBuffer } from "music-metadata";
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
 import { fetchArrayBufferWithRetry } from "../http/retry";
 
-type ElevenLabsSecret = {
-  apiKey: string;
-  voiceId?: string;
-  modelId?: string;
-  endpoint?: string;
+const ELEVENLABS_TTS_ENDPOINT_TEMPLATE =
+  "https://api.elevenlabs.io/v1/text-to-speech/{voiceId}";
+
+/** 시크릿 JSON에서 apiKey만 읽는다(voiceId·modelId·endpoint는 사용하지 않음). */
+const loadElevenLabsApiKey = async (secretId: string): Promise<string> => {
+  const raw = await getSecretJson<Record<string, unknown>>(secretId);
+  if (!raw || typeof raw !== "object") {
+    return "";
+  }
+  const k = (raw as { apiKey?: unknown }).apiKey;
+  return typeof k === "string" && k.trim().length > 0 ? k.trim() : "";
 };
 
 export type ElevenLabsVoiceSettings = {
@@ -26,7 +32,7 @@ type GenerateSceneVoiceInput = {
   secretId: string;
   /** 씬 계획 길이(렌더에서 씬 연장 시 사용). TTS 속도 조절에는 쓰지 않음. */
   targetDurationSec?: number;
-  /** ElevenLabs TTS URL에 쓰이는 보이스 id(프로필에서 오거나 시크릿 기본값) */
+  /** ElevenLabs TTS URL에 쓰이는 보이스 id(Voice Profile·씬 입력에서만; 시크릿 미사용) */
   voiceId?: string;
   modelId?: string;
   voiceSettings?: ElevenLabsVoiceSettings;
@@ -83,24 +89,21 @@ const resolveVoiceSettings = (
     : undefined;
 };
 
-const resolveVoiceConfig = (
-  input: GenerateSceneVoiceInput,
-  secret: ElevenLabsSecret | null,
-  // eslint-disable-next-line complexity
-) => {
+const resolveVoiceConfig = (input: GenerateSceneVoiceInput) => {
   const trimmedVoiceId =
     typeof input.voiceId === "string" && input.voiceId.trim().length > 0
       ? input.voiceId.trim()
       : undefined;
-  const resolvedVoiceId = trimmedVoiceId ?? secret?.voiceId;
+  const resolvedVoiceId = trimmedVoiceId;
   const trimmedModelId =
     typeof input.modelId === "string" && input.modelId.trim().length > 0
       ? input.modelId.trim()
       : undefined;
-  const resolvedModelId = trimmedModelId ?? secret?.modelId ?? DEFAULT_MODEL_ID;
-  const endpoint = (
-    secret?.endpoint ?? "https://api.elevenlabs.io/v1/text-to-speech/{voiceId}"
-  ).replace("{voiceId}", resolvedVoiceId ?? "");
+  const resolvedModelId = trimmedModelId ?? DEFAULT_MODEL_ID;
+  const endpoint = ELEVENLABS_TTS_ENDPOINT_TEMPLATE.replace(
+    "{voiceId}",
+    resolvedVoiceId ?? "",
+  );
 
   return {
     resolvedVoiceId,
@@ -123,17 +126,13 @@ const buildRequestBody = (
 
 const buildMockResponse = async (
   input: GenerateSceneVoiceInput,
-  secret: ElevenLabsSecret | null,
   audioKey: string,
   rawKey: string,
   estimatedDurationSec: number,
   candidateId: string,
   createdAt: string,
 ) => {
-  const { resolvedVoiceId, resolvedModelId } = resolveVoiceConfig(
-    input,
-    secret,
-  );
+  const { resolvedVoiceId, resolvedModelId } = resolveVoiceConfig(input);
   await putBufferToS3(audioKey, input.text, "text/plain");
   await putJsonToS3(rawKey, {
     mocked: true,
@@ -269,7 +268,7 @@ const logVoiceFailure = async (input: {
 
 const fetchAndPersistElevenLabsTts = async (input: {
   input: GenerateSceneVoiceInput;
-  secret: ElevenLabsSecret;
+  apiKey: string;
   endpoint: string;
   resolvedVoiceId?: string;
   resolvedModelId: string;
@@ -282,7 +281,7 @@ const fetchAndPersistElevenLabsTts = async (input: {
 }): Promise<Record<string, unknown>> => {
   const {
     input: voiceInput,
-    secret,
+    apiKey,
     endpoint,
     resolvedVoiceId,
     resolvedModelId,
@@ -296,7 +295,7 @@ const fetchAndPersistElevenLabsTts = async (input: {
   try {
     const arrayBuffer = await fetchVoiceAudio({
       endpoint,
-      apiKey: secret.apiKey,
+      apiKey,
       requestBody: buildRequestBody(
         voiceInput,
         resolvedModelId,
@@ -347,12 +346,11 @@ const fetchAndPersistElevenLabsTts = async (input: {
 export const generateSceneVoice = async (
   input: GenerateSceneVoiceInput,
 ): Promise<Record<string, unknown>> => {
-  const secret = await getSecretJson<ElevenLabsSecret>(input.secretId);
+  const apiKey = await loadElevenLabsApiKey(input.secretId);
   const { candidateId, createdAt, audioKey, rawKey } =
     createVoiceCandidateMeta(input);
   const { resolvedVoiceId, resolvedModelId, endpoint } = resolveVoiceConfig(
     input,
-    secret,
   );
   const resolvedVoiceSettings = resolveVoiceSettings(input);
   const estimatedDurationSec = estimateResolvedVoiceDurationSec(
@@ -360,10 +358,9 @@ export const generateSceneVoice = async (
     resolvedVoiceSettings?.speed,
   );
 
-  if (!secret?.apiKey || !resolvedVoiceId) {
+  if (!apiKey || !resolvedVoiceId) {
     return buildMockResponse(
       input,
-      secret,
       audioKey,
       rawKey,
       estimatedDurationSec,
@@ -374,7 +371,7 @@ export const generateSceneVoice = async (
 
   return fetchAndPersistElevenLabsTts({
     input,
-    secret,
+    apiKey,
     endpoint,
     resolvedVoiceId,
     resolvedModelId,
