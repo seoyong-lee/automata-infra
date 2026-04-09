@@ -5,11 +5,12 @@ import type {
   LlmStepSettings,
 } from "./types";
 
+/** Bedrock on-demand often requires system inference profile IDs (`global.*`), not bare `anthropic.*` model IDs. */
 export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
   "job-plan": {
     stepKey: "job-plan",
     provider: "bedrock",
-    model: "anthropic.claude-sonnet-4-6-v1:0",
+    model: "global.anthropic.claude-sonnet-4-6",
     temperature: 0.7,
     maxOutputTokens: 700,
     secretIdEnvVar: "BEDROCK_LLM_SECRET_ID",
@@ -17,7 +18,7 @@ export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
   "scene-json": {
     stepKey: "scene-json",
     provider: "bedrock",
-    model: "anthropic.claude-sonnet-4-6-v1:0",
+    model: "global.anthropic.claude-sonnet-4-6",
     temperature: 0.5,
     maxOutputTokens: 2400,
     secretIdEnvVar: "BEDROCK_LLM_SECRET_ID",
@@ -25,7 +26,7 @@ export const defaultStepConfigs: Record<LlmStepKey, LlmStepConfig> = {
   metadata: {
     stepKey: "metadata",
     provider: "bedrock",
-    model: "anthropic.claude-haiku-4-5-v1:0",
+    model: "global.anthropic.claude-haiku-4-5-20251001-v1:0",
     temperature: 0.3,
     maxOutputTokens: 700,
     secretIdEnvVar: "BEDROCK_LLM_SECRET_ID",

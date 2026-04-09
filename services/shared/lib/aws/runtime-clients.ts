@@ -50,6 +50,11 @@ export {
 
 export const ddbClient = DynamoDBDocumentClient.from(
   new DynamoDBClient({ region }),
+  {
+    marshallOptions: {
+      removeUndefinedValues: true,
+    },
+  },
 );
 export const s3Client = new S3Client({ region });
 export const secretsClient = new SecretsManagerClient({ region });

@@ -5,7 +5,7 @@ export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {
   const alignedScene = alignSceneNarrationAndSubtitle(scene);
   const hasNarration =
     !alignedScene.disableNarration && alignedScene.narration.trim().length > 0;
-  return {
+  const base = {
     visualType: alignedScene.videoPrompt ? "image+motion" : "image",
     durationSec: alignedScene.durationSec,
     narration: alignedScene.narration,
@@ -15,9 +15,15 @@ export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {
     visualNeed: alignedScene.visualNeed,
     imagePrompt: alignedScene.imagePrompt,
     videoPrompt: alignedScene.videoPrompt,
-    voiceS3Key: hasNarration ? undefined : null,
-    voiceSelectedCandidateId: hasNarration ? undefined : null,
-    voiceDurationSec: hasNarration ? undefined : null,
-    validationStatus: "PENDING",
+    validationStatus: "PENDING" as const,
   };
+  if (!hasNarration) {
+    return {
+      ...base,
+      voiceS3Key: null,
+      voiceSelectedCandidateId: null,
+      voiceDurationSec: null,
+    };
+  }
+  return base;
 };
