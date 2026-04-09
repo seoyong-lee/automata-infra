@@ -7,22 +7,26 @@ export function visualBaseFilter(outputSettings, canvasSettings, mediaFrameSetti
   const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
   const videoScale = canvasSettings.videoScale;
   const cropMode = canvasSettings.videoCropMode;
-  const frameWidth = Math.max(
+  const outW = Math.max(2, Math.round(Number(outputSettings.width) || 1080));
+  const outH = Math.max(2, Math.round(Number(outputSettings.height) || 1920));
+  let frameWidth = Math.max(
     2,
     Math.round(outputSettings.width * mediaFrameSettings.width),
   );
-  const frameHeight = Math.max(
+  let frameHeight = Math.max(
     2,
     Math.round(outputSettings.height * mediaFrameSettings.height),
   );
-  const frameX = Math.max(
+  let frameX = Math.max(
     0,
     Math.round(outputSettings.width * mediaFrameSettings.x),
   );
-  const frameY = Math.max(
+  let frameY = Math.max(
     0,
     Math.round(outputSettings.height * mediaFrameSettings.y),
   );
+  frameWidth = Math.min(frameWidth, Math.max(2, outW - frameX));
+  frameHeight = Math.min(frameHeight, Math.max(2, outH - frameY));
   const containScale = Math.min(videoScale, 1);
   const scaledWidth = Math.max(
     2,
@@ -32,26 +36,31 @@ export function visualBaseFilter(outputSettings, canvasSettings, mediaFrameSetti
     2,
     Math.round(frameHeight * (cropMode === "contain" ? containScale : videoScale)),
   );
+  /** scale+pad can overshoot by 1px; pad then fails ("Padded dimensions cannot be smaller than input"). */
+  const padThenCropToFrame = [
+    `pad=w='max(iw\\,${frameWidth})':h='max(ih\\,${frameHeight})':x='(ow-iw)/2':y='(oh-ih)/2':${backgroundColor}`,
+    `crop=${frameWidth}:${frameHeight}:(iw-${frameWidth})/2:(ih-${frameHeight})/2`,
+  ];
   const filters =
     cropMode === "contain"
       ? [
           `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
-          `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
-          `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+          ...padThenCropToFrame,
+          `pad=${outW}:${outH}:${frameX}:${frameY}:${backgroundColor}`,
           `fps=${outputSettings.fps}`,
         ]
       : videoScale >= 1
         ? [
             `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
             `crop=${frameWidth}:${frameHeight}`,
-            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+            `pad=${outW}:${outH}:${frameX}:${frameY}:${backgroundColor}`,
             `fps=${outputSettings.fps}`,
           ]
         : [
             `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
             `crop=${scaledWidth}:${scaledHeight}`,
-            `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
-            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+            ...padThenCropToFrame,
+            `pad=${outW}:${outH}:${frameX}:${frameY}:${backgroundColor}`,
             `fps=${outputSettings.fps}`,
           ];
   return filters.join(",");
@@ -102,7 +111,7 @@ function buildOverlayScaleChain(pw, ph, fit, opacity) {
   } else if (f === "cover") {
     chain = `scale=${pw}:${ph}:force_original_aspect_ratio=increase,crop=${pw}:${ph}`;
   } else {
-    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=decrease,pad=${pw}:${ph}:(ow-iw)/2:(oh-ih)/2:${toFfmpegColor("#000000")}`;
+    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=decrease,pad=w='max(iw\\,${pw})':h='max(ih\\,${ph})':x='(ow-iw)/2':y='(oh-ih)/2':${toFfmpegColor("#000000")},crop=${pw}:${ph}:(iw-${pw})/2:(ih-${ph})/2`;
   }
   if (typeof opacity === "number" && opacity < 1 - 1e-6) {
     const a = Math.max(0, Math.min(1, opacity));
