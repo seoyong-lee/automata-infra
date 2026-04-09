@@ -1,0 +1,203 @@
+import path from "node:path";
+import { toFfmpegColor } from "../normalize/render-plan.mjs";
+import { subtitlesFilter } from "./scene-ass.mjs";
+
+export function visualBaseFilter(outputSettings, canvasSettings, mediaFrameSettings) {
+  const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
+  const videoScale = canvasSettings.videoScale;
+  const cropMode = canvasSettings.videoCropMode;
+  const frameWidth = Math.max(
+    2,
+    Math.round(outputSettings.width * mediaFrameSettings.width),
+  );
+  const frameHeight = Math.max(
+    2,
+    Math.round(outputSettings.height * mediaFrameSettings.height),
+  );
+  const frameX = Math.max(
+    0,
+    Math.round(outputSettings.width * mediaFrameSettings.x),
+  );
+  const frameY = Math.max(
+    0,
+    Math.round(outputSettings.height * mediaFrameSettings.y),
+  );
+  const containScale = Math.min(videoScale, 1);
+  const scaledWidth = Math.max(
+    2,
+    Math.round(frameWidth * (cropMode === "contain" ? containScale : videoScale)),
+  );
+  const scaledHeight = Math.max(
+    2,
+    Math.round(frameHeight * (cropMode === "contain" ? containScale : videoScale)),
+  );
+  const filters =
+    cropMode === "contain"
+      ? [
+          `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
+          `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+          `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+          `fps=${outputSettings.fps}`,
+        ]
+      : videoScale >= 1
+        ? [
+            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
+            `crop=${frameWidth}:${frameHeight}`,
+            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+            `fps=${outputSettings.fps}`,
+          ]
+        : [
+            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
+            `crop=${scaledWidth}:${scaledHeight}`,
+            `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
+            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
+            `fps=${outputSettings.fps}`,
+          ];
+  return filters.join(",");
+}
+
+function formatExprFloat(value) {
+  return Number(value).toFixed(4);
+}
+
+function buildOverlayScaleChain(pw, ph, fit, opacity) {
+  const f = fit ?? "contain";
+  let chain;
+  if (f === "stretch") {
+    chain = `scale=${pw}:${ph}`;
+  } else if (f === "cover") {
+    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=increase,crop=${pw}:${ph}`;
+  } else {
+    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=decrease,pad=${pw}:${ph}:(ow-iw)/2:(oh-ih)/2:${toFfmpegColor("#000000")}`;
+  }
+  if (typeof opacity === "number" && opacity < 1 - 1e-6) {
+    const a = Math.max(0, Math.min(1, opacity));
+    chain += `,format=yuva420p,colorchannelmixer=aa=${formatExprFloat(a)}`;
+  }
+  return chain;
+}
+
+/**
+ * @returns {Promise<Array<{
+ *   localPath: string,
+ *   px: number, py: number, pw: number, ph: number,
+ *   fit: string, opacity?: number,
+ *   localStart: number, localEnd: number,
+ *   zIndex: number,
+ *   scaleChain: string,
+ * }>>}
+ */
+export async function prepareSceneImageOverlays({
+  scene,
+  overlays,
+  durationSec,
+  totalDurationSec,
+  workDir,
+  sceneKey,
+  outputSettings,
+  storageRepo,
+}) {
+  const clipGlobalStart = Number(scene.startSec ?? 0);
+  const clipGlobalEnd = clipGlobalStart + Math.max(0.05, Number(durationSec));
+  const totalEnd = Math.max(
+    clipGlobalEnd,
+    Number(totalDurationSec ?? clipGlobalEnd),
+  );
+  const wOut = outputSettings.width;
+  const hOut = outputSettings.height;
+  const rows = [];
+  for (const overlay of overlays ?? []) {
+    if (overlay?.type !== "image") {
+      continue;
+    }
+    const src = String(overlay.src ?? "").trim();
+    if (!src) {
+      continue;
+    }
+    const overlayStart = Number(overlay.startSec ?? 0);
+    const overlayEnd = Number(
+      overlay.endSec !== undefined && overlay.endSec !== null
+        ? overlay.endSec
+        : totalEnd,
+    );
+    const activeStart = Math.max(clipGlobalStart, overlayStart);
+    const activeEnd = Math.min(clipGlobalEnd, overlayEnd);
+    if (activeEnd <= activeStart + 1e-4) {
+      continue;
+    }
+    const localStart = activeStart - clipGlobalStart;
+    const localEnd = activeEnd - clipGlobalStart;
+    const pw = Math.max(
+      2,
+      Math.round(Number(overlay.placement?.width ?? 0.2) * wOut),
+    );
+    const ph = Math.max(
+      2,
+      Math.round(Number(overlay.placement?.height ?? 0.2) * hOut),
+    );
+    const px = Math.round(Number(overlay.placement?.x ?? 0) * wOut);
+    const py = Math.round(Number(overlay.placement?.y ?? 0) * hOut);
+    const ext = path.extname(src) || ".png";
+    const safeId = String(overlay.overlayId).replace(/[^a-zA-Z0-9_-]/g, "_");
+    const localPath = path.join(workDir, `overlay-${sceneKey}-${safeId}${ext}`);
+    await storageRepo.downloadObject(src, localPath);
+    rows.push({
+      localPath,
+      px,
+      py,
+      pw,
+      ph,
+      fit: overlay.fit ?? "contain",
+      opacity: overlay.opacity,
+      localStart,
+      localEnd,
+      zIndex: Number(overlay.zIndex ?? 6),
+      scaleChain: buildOverlayScaleChain(pw, ph, overlay.fit ?? "contain", overlay.opacity),
+    });
+  }
+  rows.sort((a, b) => a.zIndex - b.zIndex);
+  return rows;
+}
+
+export function buildImageOverlayFilterComplex({
+  baseVf,
+  preparedOverlays,
+  hasAss,
+  assPath,
+  hasVoice,
+  voiceGraph,
+}) {
+  const parts = [];
+  parts.push(`[0:v]${baseVf}[vbase]`);
+  let cur = "vbase";
+  let inputIdx = 2;
+  for (let i = 0; i < preparedOverlays.length; i++) {
+    const o = preparedOverlays[i];
+    const olab = `sol${i}`;
+    const vlab = `vim${i}`;
+    parts.push(`[${inputIdx}:v]${o.scaleChain}[${olab}]`);
+    const ls = formatExprFloat(o.localStart);
+    const le = formatExprFloat(o.localEnd);
+    parts.push(
+      `[${cur}][${olab}]overlay=${o.px}:${o.py}:enable='between(t\\,${ls}\\,${le})'[${vlab}]`,
+    );
+    cur = vlab;
+    inputIdx += 1;
+  }
+  if (hasAss && assPath) {
+    parts.push(`[${cur}]${subtitlesFilter(assPath)}[vout]`);
+  } else {
+    parts.push(`[${cur}]format=yuv420p[vout]`);
+  }
+  if (hasVoice) {
+    parts.push(voiceGraph);
+  }
+  return {
+    filterComplex: parts.join(";"),
+    overlayInputCount: preparedOverlays.length,
+  };
+}
+
+export function sceneImageOverlaySceneKey(scene) {
+  return `scene-${scene.sceneId}`;
+}

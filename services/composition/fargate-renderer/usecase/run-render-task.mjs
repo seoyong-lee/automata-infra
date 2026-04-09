@@ -22,6 +22,12 @@ import {
   subtitlesFilter,
   writeSceneAss,
 } from "./scene-ass.mjs";
+import {
+  buildImageOverlayFilterComplex,
+  prepareSceneImageOverlays,
+  sceneImageOverlaySceneKey,
+  visualBaseFilter,
+} from "./image-scene-overlays.mjs";
 
 const VOICE_TAIL_PAD_SEC = 0.15;
 /** Silence before TTS starts (avoids perceived fade-in at scene cut). */
@@ -34,60 +40,11 @@ function voiceInputFilterGraph(durationSec) {
 }
 
 function visualFilter(outputSettings, canvasSettings, mediaFrameSettings, assPath) {
-  const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
-  const videoScale = canvasSettings.videoScale;
-  const cropMode = canvasSettings.videoCropMode;
-  const frameWidth = Math.max(
-    2,
-    Math.round(outputSettings.width * mediaFrameSettings.width),
-  );
-  const frameHeight = Math.max(
-    2,
-    Math.round(outputSettings.height * mediaFrameSettings.height),
-  );
-  const frameX = Math.max(
-    0,
-    Math.round(outputSettings.width * mediaFrameSettings.x),
-  );
-  const frameY = Math.max(
-    0,
-    Math.round(outputSettings.height * mediaFrameSettings.y),
-  );
-  const containScale = Math.min(videoScale, 1);
-  const scaledWidth = Math.max(
-    2,
-    Math.round(frameWidth * (cropMode === "contain" ? containScale : videoScale)),
-  );
-  const scaledHeight = Math.max(
-    2,
-    Math.round(frameHeight * (cropMode === "contain" ? containScale : videoScale)),
-  );
-  const filters =
-    cropMode === "contain"
-      ? [
-          `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=decrease`,
-          `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
-          `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
-          `fps=${outputSettings.fps}`,
-        ]
-      : videoScale >= 1
-        ? [
-            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
-            `crop=${frameWidth}:${frameHeight}`,
-            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
-            `fps=${outputSettings.fps}`,
-          ]
-        : [
-            `scale=${scaledWidth}:${scaledHeight}:force_original_aspect_ratio=increase`,
-            `crop=${scaledWidth}:${scaledHeight}`,
-            `pad=${frameWidth}:${frameHeight}:(ow-iw)/2:(oh-ih)/2:${backgroundColor}`,
-            `pad=${outputSettings.width}:${outputSettings.height}:${frameX}:${frameY}:${backgroundColor}`,
-            `fps=${outputSettings.fps}`,
-          ];
+  const base = visualBaseFilter(outputSettings, canvasSettings, mediaFrameSettings);
   if (assPath) {
-    filters.push(subtitlesFilter(assPath));
+    return `${base},${subtitlesFilter(assPath)}`;
   }
-  return filters.join(",");
+  return base;
 }
 
 async function createSceneSegment(input) {
@@ -102,6 +59,7 @@ async function createSceneSegment(input) {
     overlays,
     storageRepo,
     mediaToolsRepo,
+    totalDurationSec: planTotalDurationSec,
   } = input;
   const plannedDurationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
@@ -136,7 +94,76 @@ async function createSceneSegment(input) {
     mediaFrameSettings,
     hasAss ? assPath : "",
   );
+  const totalDurationSec = Number(planTotalDurationSec ?? durationSec);
+  const preparedOverlays = await prepareSceneImageOverlays({
+    scene,
+    overlays,
+    durationSec,
+    totalDurationSec,
+    workDir,
+    sceneKey: sceneImageOverlaySceneKey(scene),
+    outputSettings,
+    storageRepo,
+  });
+  const useImageOverlays = preparedOverlays.length > 0;
+  const overlayExtraInputs = useImageOverlays
+    ? preparedOverlays.flatMap((o) => ["-loop", "1", "-i", o.localPath])
+    : [];
+  const overlayFilterComplex = useImageOverlays
+    ? buildImageOverlayFilterComplex({
+        baseVf: visualBaseFilter(
+          outputSettings,
+          canvasSettings,
+          mediaFrameSettings,
+        ),
+        preparedOverlays,
+        hasAss: Boolean(hasAss),
+        assPath: hasAss ? assPath : "",
+        hasVoice,
+        voiceGraph: hasVoice ? voiceInputFilterGraph(durationSec) : "",
+      }).filterComplex
+    : "";
+  const commonVideoEncodeTail = [
+    "-t",
+    String(durationSec),
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    "-c:a",
+    "aac",
+    "-ar",
+    "48000",
+    "-ac",
+    "2",
+    "-movflags",
+    "+faststart",
+    segmentPath,
+  ];
   const encodeFromImage = async (imagePath) => {
+    if (useImageOverlays) {
+      await mediaToolsRepo.runCommand("ffmpeg", [
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        imagePath,
+        ...(hasVoice
+          ? ["-i", voicePath]
+          : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+        ...overlayExtraInputs,
+        "-filter_complex",
+        overlayFilterComplex,
+        "-map",
+        "[vout]",
+        "-map",
+        hasVoice ? "[aout]" : "1:a:0",
+        ...commonVideoEncodeTail,
+      ]);
+      return;
+    }
     await mediaToolsRepo.runCommand("ffmpeg", [
       "-y",
       "-loop",
@@ -155,23 +182,7 @@ async function createSceneSegment(input) {
       "0:v:0",
       "-map",
       hasVoice ? "[aout]" : "1:a:0",
-      "-t",
-      String(durationSec),
-      "-c:v",
-      "libx264",
-      "-preset",
-      "veryfast",
-      "-pix_fmt",
-      "yuv420p",
-      "-c:a",
-      "aac",
-      "-ar",
-      "48000",
-      "-ac",
-      "2",
-      "-movflags",
-      "+faststart",
-      segmentPath,
+      ...commonVideoEncodeTail,
     ]);
   };
 
@@ -183,44 +194,51 @@ async function createSceneSegment(input) {
       );
       await storageRepo.downloadObject(scene.videoClipS3Key, videoPath);
       try {
-        await mediaToolsRepo.runCommand("ffmpeg", [
-          "-y",
-          "-fflags",
-          "+genpts",
-          "-stream_loop",
-          "-1",
-          "-i",
-          videoPath,
-          ...(hasVoice
-            ? ["-i", voicePath]
-            : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-          ...(hasVoice
-            ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
-            : []),
-          "-vf",
-          vf,
-          "-map",
-          "0:v:0",
-          "-map",
-          hasVoice ? "[aout]" : "1:a:0",
-          "-t",
-          String(durationSec),
-          "-c:v",
-          "libx264",
-          "-preset",
-          "veryfast",
-          "-pix_fmt",
-          "yuv420p",
-          "-c:a",
-          "aac",
-          "-ar",
-          "48000",
-          "-ac",
-          "2",
-          "-movflags",
-          "+faststart",
-          segmentPath,
-        ]);
+        if (useImageOverlays) {
+          await mediaToolsRepo.runCommand("ffmpeg", [
+            "-y",
+            "-fflags",
+            "+genpts",
+            "-stream_loop",
+            "-1",
+            "-i",
+            videoPath,
+            ...(hasVoice
+              ? ["-i", voicePath]
+              : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+            ...overlayExtraInputs,
+            "-filter_complex",
+            overlayFilterComplex,
+            "-map",
+            "[vout]",
+            "-map",
+            hasVoice ? "[aout]" : "1:a:0",
+            ...commonVideoEncodeTail,
+          ]);
+        } else {
+          await mediaToolsRepo.runCommand("ffmpeg", [
+            "-y",
+            "-fflags",
+            "+genpts",
+            "-stream_loop",
+            "-1",
+            "-i",
+            videoPath,
+            ...(hasVoice
+              ? ["-i", voicePath]
+              : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
+            ...(hasVoice
+              ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
+              : []),
+            "-vf",
+            vf,
+            "-map",
+            "0:v:0",
+            "-map",
+            hasVoice ? "[aout]" : "1:a:0",
+            ...commonVideoEncodeTail,
+          ]);
+        }
         return { segmentPath, durationSec };
       } catch (videoError) {
         await storageRepo.putJson(
@@ -435,6 +453,7 @@ export async function runRenderTask(input) {
       canvasSettings,
       mediaFrameSettings,
       overlays: renderPlan.overlays,
+      totalDurationSec: renderPlan.totalDurationSec,
       storageRepo,
       mediaToolsRepo,
     });

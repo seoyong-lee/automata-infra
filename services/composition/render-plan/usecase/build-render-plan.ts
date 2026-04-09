@@ -316,6 +316,35 @@ const buildUserTextOverlays = (
   );
 };
 
+const buildUserImageOverlays = (
+  renderSettings: JobRenderSettings | undefined,
+): RenderPlanOverlay[] => {
+  const list = renderSettings?.imageOverlays;
+  if (!list?.length) {
+    return [];
+  }
+  return list.map((overlay) => ({
+    overlayId: overlay.overlayId,
+    type: "image" as const,
+    src: overlay.src,
+    placement: {
+      x: Math.min(1 - overlay.width, Math.max(0, overlay.x)),
+      y: Math.min(1 - overlay.height, Math.max(0, overlay.y)),
+      width: overlay.width,
+      height: overlay.height,
+    },
+    ...(typeof overlay.opacity === "number"
+      ? { opacity: overlay.opacity }
+      : {}),
+    ...(overlay.fit ? { fit: overlay.fit } : {}),
+    zIndex: overlay.zIndex ?? 6,
+    ...(typeof overlay.startSec === "number"
+      ? { startSec: overlay.startSec }
+      : {}),
+    ...(typeof overlay.endSec === "number" ? { endSec: overlay.endSec } : {}),
+  }));
+};
+
 const buildDefaultOverlays = (
   event: RenderPlanEvent,
   resolvedPolicy?: ResolvedPolicy,
@@ -434,6 +463,7 @@ export const resolveRenderPolicyConfig = (
     sceneGapSec: resolveSceneGapSec(resolvedPolicy),
     defaultOverlays: [
       ...buildDefaultOverlays(event, resolvedPolicy),
+      ...buildUserImageOverlays(effectiveRenderSettings),
       ...buildUserTextOverlays(effectiveRenderSettings, output),
     ],
   };

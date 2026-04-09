@@ -332,6 +332,10 @@ type RenderSettings {
   videoFrameWidth: Float
   videoFrameHeight: Float
   textOverlays: [RenderTextOverlay!]
+  """
+  S3 키(잡 에셋 버킷). Fargate 렌더 시 씬 타임라인에 맞춰 합성된다.
+  """
+  imageOverlays: [RenderImageOverlay!]
 }
 
 type RenderTextOverlay {
@@ -345,6 +349,20 @@ type RenderTextOverlay {
   fontSize: Int
   color: String
   maxLines: Int
+}
+
+type RenderImageOverlay {
+  overlayId: ID!
+  src: String!
+  x: Float!
+  y: Float!
+  width: Float!
+  height: Float!
+  opacity: Float
+  fit: String
+  zIndex: Int
+  startSec: Float
+  endSec: Float
 }
 
 type SceneStartTransition {
@@ -1002,6 +1020,7 @@ input RenderSettingsInput {
   videoFrameWidth: Float
   videoFrameHeight: Float
   textOverlays: [RenderTextOverlayInput!]
+  imageOverlays: [RenderImageOverlayInput!]
 }
 
 input RenderTextOverlayInput {
@@ -1015,6 +1034,20 @@ input RenderTextOverlayInput {
   fontSize: Int
   color: String
   maxLines: Int
+}
+
+input RenderImageOverlayInput {
+  overlayId: ID!
+  src: String!
+  x: Float!
+  y: Float!
+  width: Float!
+  height: Float!
+  opacity: Float
+  fit: String
+  zIndex: Int
+  startSec: Float
+  endSec: Float
 }
 
 input PushJobRenderSettingsToContentPresetInput {

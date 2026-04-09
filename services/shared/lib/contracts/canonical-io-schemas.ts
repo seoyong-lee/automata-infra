@@ -372,6 +372,7 @@ export type SceneJsonInput = z.infer<typeof sceneJsonSchema>;
 export type UpdateSceneJsonInput = z.infer<typeof updateSceneJsonInputSchema>;
 export {
   jobRenderSettingsSchema,
+  type JobRenderImageOverlay,
   type JobRenderSettings,
   type JobRenderTextOverlay,
 } from "./render-settings";

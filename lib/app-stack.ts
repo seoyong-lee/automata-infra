@@ -509,6 +509,8 @@ export class AppStack extends Stack {
     this.llmConfigTable.grantReadWriteData(deleteContentPresetResolver);
     this.llmConfigTable.grantReadWriteData(updateLlmSettingsResolver);
     this.llmConfigTable.grantReadWriteData(upsertContentPresetResolver);
+    this.jobsTable.grantReadData(pushJobRenderSettingsToContentPresetResolver);
+    this.assetsBucket.grantRead(pushJobRenderSettingsToContentPresetResolver);
     this.llmConfigTable.grantReadData(listVoiceProfilesResolver);
     this.llmConfigTable.grantReadWriteData(upsertVoiceProfileResolver);
     this.assetsBucket.grantReadWrite(upsertVoiceProfileResolver);

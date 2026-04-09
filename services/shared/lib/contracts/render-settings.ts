@@ -38,6 +38,25 @@ export const jobRenderTextOverlaySchema = z
   })
   .strict();
 
+const overlayBoxScalarSchema = z.number().min(0.05).max(1);
+
+export const jobRenderImageOverlaySchema = z
+  .object({
+    overlayId: nonEmpty,
+    /** S3 object key (same bucket as job assets). */
+    src: z.string().trim().min(1).max(512),
+    x: normalizedFrameScalarSchema,
+    y: normalizedFrameScalarSchema,
+    width: overlayBoxScalarSchema,
+    height: overlayBoxScalarSchema,
+    opacity: z.number().min(0).max(1).optional(),
+    fit: z.enum(["contain", "cover", "stretch"]).optional(),
+    zIndex: z.number().int().optional(),
+    startSec: z.number().min(0).optional(),
+    endSec: z.number().min(0).optional(),
+  })
+  .strict();
+
 export const jobRenderSettingsSchema = z
   .object({
     subtitleEnabled: z.boolean().optional(),
@@ -57,8 +76,10 @@ export const jobRenderSettingsSchema = z
     videoFrameWidth: z.number().min(0.1).max(1).optional(),
     videoFrameHeight: z.number().min(0.1).max(1).optional(),
     textOverlays: z.array(jobRenderTextOverlaySchema).max(12).optional(),
+    imageOverlays: z.array(jobRenderImageOverlaySchema).max(12).optional(),
   })
   .strict();
 
 export type JobRenderTextOverlay = z.infer<typeof jobRenderTextOverlaySchema>;
+export type JobRenderImageOverlay = z.infer<typeof jobRenderImageOverlaySchema>;
 export type JobRenderSettings = z.infer<typeof jobRenderSettingsSchema>;
