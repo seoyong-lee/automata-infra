@@ -1,4 +1,5 @@
 import { SceneJson } from "../../../types/render/scene-json";
+import { resolveSceneAiVideoPrompt } from "../../shared/lib/resolve-scene-ai-video-prompt";
 import { alignSceneNarrationAndSubtitle } from "../../shared/lib/scene-text";
 
 export const mapSceneAssetItem = (scene: SceneJson["scenes"][number]) => {

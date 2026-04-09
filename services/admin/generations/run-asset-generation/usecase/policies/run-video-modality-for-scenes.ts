@@ -1,4 +1,5 @@
 import { getBufferFromS3 } from "../../../../../shared/lib/aws/runtime";
+import { resolveSceneAiVideoPrompt } from "../../../../../shared/lib/resolve-scene-ai-video-prompt";
 import { getSceneAsset } from "../../../../../shared/lib/store/video-jobs";
 import { generateSceneVideos } from "../../../../../video-generation/usecase/generate-scene-videos";
 import { saveVideoAssets } from "../../../../../video-generation/repo/save-video-assets";
@@ -30,10 +31,8 @@ export const runVideoModalityForScenes = async (
   scenes: SceneDefinition[],
 ) => {
   const bytePlusSecretId = process.env.BYTEPLUS_VIDEO_SECRET_ID?.trim();
-  const selectedScenes = scenes.filter(
-    (scene) =>
-      typeof scene.videoPrompt === "string" &&
-      scene.videoPrompt.trim().length > 0,
+  const selectedScenes = scenes.filter((scene) =>
+    Boolean(resolveSceneAiVideoPrompt(scene)),
   );
   const videoScenes = await Promise.all(
     selectedScenes.map(async (scene) => {
@@ -52,7 +51,7 @@ export const runVideoModalityForScenes = async (
           : undefined;
       return {
         sceneId: scene.sceneId,
-        videoPrompt: scene.videoPrompt,
+        videoPrompt: resolveSceneAiVideoPrompt(scene),
         targetDurationSec: resolveTargetVideoDurationSec({
           scene,
           voiceDurationSec,

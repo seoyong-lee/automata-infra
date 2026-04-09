@@ -2,7 +2,9 @@ import {
   listSceneAssets,
   updateJobMeta,
 } from "../../../../shared/lib/store/video-jobs";
+import { sceneHasAiVideoTextPrompt } from "../../../../shared/lib/resolve-scene-ai-video-prompt";
 import type { SceneJson } from "../../../../../types/render/scene-json";
+import { loadAssetGenerationPolicy } from "../repo/load-asset-generation-policy";
 
 const isNonEmptyS3Key = (v: unknown): v is string =>
   typeof v === "string" && v.trim().length > 0;
@@ -15,6 +17,7 @@ export const finalizeSceneAssetsReadiness = async (input: {
   jobId: string;
   sceneJson: SceneJson;
 }): Promise<void> => {
+  const policy = await loadAssetGenerationPolicy(input.jobId);
   const rows = await listSceneAssets(input.jobId);
   const bySceneId = new Map(rows.map((r) => [r.sceneId, r]));
   const reasons: string[] = [];
@@ -31,7 +34,7 @@ export const finalizeSceneAssetsReadiness = async (input: {
     if (!isNonEmptyS3Key(row.voiceS3Key)) {
       reasons.push(`scene ${scene.sceneId}: voice missing`);
     }
-    const needsVideo = Boolean(scene.videoPrompt?.trim());
+    const needsVideo = policy.allowVideo && sceneHasAiVideoTextPrompt(scene);
     if (needsVideo && !isNonEmptyS3Key(row.videoClipS3Key)) {
       reasons.push(`scene ${scene.sceneId}: video missing`);
     }
@@ -54,6 +57,7 @@ export const recomputeSceneAssetsReadiness = async (input: {
   jobId: string;
   sceneJson: SceneJson;
 }): Promise<void> => {
+  const policy = await loadAssetGenerationPolicy(input.jobId);
   const rows = await listSceneAssets(input.jobId);
   const bySceneId = new Map(rows.map((r) => [r.sceneId, r]));
   const reasons: string[] = [];
@@ -70,7 +74,7 @@ export const recomputeSceneAssetsReadiness = async (input: {
     if (!isNonEmptyS3Key(row.voiceS3Key)) {
       reasons.push(`scene ${scene.sceneId}: voice missing`);
     }
-    const needsVideo = Boolean(scene.videoPrompt?.trim());
+    const needsVideo = policy.allowVideo && sceneHasAiVideoTextPrompt(scene);
     if (needsVideo && !isNonEmptyS3Key(row.videoClipS3Key)) {
       reasons.push(`scene ${scene.sceneId}: video missing`);
     }

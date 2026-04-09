@@ -2,6 +2,7 @@ import {
   generateSceneBytePlusVideo,
   generateSceneVideo,
 } from "../../shared/lib/providers/media";
+import { resolveSceneAiVideoPrompt } from "../../shared/lib/resolve-scene-ai-video-prompt";
 
 type VideoAsset = Record<string, unknown>;
 
@@ -22,6 +23,7 @@ export const generateSceneVideos = async (
     scenes: Array<{
       sceneId: number;
       videoPrompt?: string;
+      imagePrompt?: string;
       targetDurationSec?: number;
       durationSec?: number;
       selectedImageS3Key?: string;
@@ -39,7 +41,8 @@ export const generateSceneVideos = async (
     deps.generateSceneVideo ?? resolveSceneVideoGenerator(input.provider);
 
   for (const scene of input.scenes) {
-    if (!scene.videoPrompt) {
+    const prompt = resolveSceneAiVideoPrompt(scene);
+    if (!prompt) {
       continue;
     }
     const targetDurationSec =
@@ -50,7 +53,7 @@ export const generateSceneVideos = async (
     const asset = await requestSceneVideo({
       jobId: input.jobId,
       sceneId: scene.sceneId,
-      prompt: scene.videoPrompt,
+      prompt,
       targetDurationSec,
       selectedImageS3Key: scene.selectedImageS3Key,
       selectedImageDataUri: scene.selectedImageDataUri,
