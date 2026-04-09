@@ -2,6 +2,7 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
+import { softenMarkdownFencesForPrompt } from "../../shared/lib/llm/soften-markdown-fences-for-prompt";
 import type { ResolvedPolicy } from "../../shared/lib/contracts/content-presets";
 import {
   expectNumber,
@@ -106,7 +107,7 @@ export const generateJobPlanSeed = async (input: {
       variant: input.variant ?? "",
       ...(input.presetId ? { presetId: input.presetId } : {}),
       ...presetVariables,
-      creativeBrief: input.creativeBrief ?? "",
+      creativeBrief: softenMarkdownFencesForPrompt(input.creativeBrief ?? ""),
     },
     ...(promptTemplateOverride ? { promptTemplateOverride } : {}),
     validate: validateJobPlanSeed,

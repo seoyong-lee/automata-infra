@@ -2,6 +2,7 @@ import {
   generateStepStructuredData,
   type GenerateStructuredData,
 } from "../../shared/lib/llm";
+import { softenMarkdownFencesForPrompt } from "../../shared/lib/llm/soften-markdown-fences-for-prompt";
 import { parseSceneJsonInput } from "../../shared/lib/contracts/canonical-io-schemas";
 import type {
   ContentPresetPromptOverride,
@@ -115,7 +116,7 @@ export const buildSceneJson = async (
       stylePreset: event.stylePreset,
       ...(event.presetId ? { presetId: event.presetId } : {}),
       ...presetVariables,
-      creativeBrief: event.creativeBrief ?? "",
+      creativeBrief: softenMarkdownFencesForPrompt(event.creativeBrief ?? ""),
     },
     ...(promptTemplateOverride ? { promptTemplateOverride } : {}),
     validate: validateSceneJson,

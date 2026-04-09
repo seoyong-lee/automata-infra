@@ -30,6 +30,14 @@ const optionalCreativeBrief = z
     const t = s.trim();
     return t.length === 0 ? undefined : t;
   });
+
+/** GraphQL/클라이언트가 선택 필드를 `null`로 보내는 경우가 있어 optional boolean은 null을 허용한다. */
+const optionalBooleanAllowingNull = z.preprocess((v) => {
+  if (v === null) {
+    return undefined;
+  }
+  return v;
+}, z.boolean().optional());
 export const sceneStartTransitionTypeSchema = z.enum([
   "cut",
   "fade",
@@ -176,7 +184,7 @@ export const sceneDefinitionSchema = z
     sceneId: z.number().finite().int().positive(),
     durationSec: z.number().finite().positive(),
     narration: z.string(),
-    disableNarration: z.boolean().optional(),
+    disableNarration: optionalBooleanAllowingNull,
     imagePrompt: nonEmpty,
     videoPrompt: z.string().optional(),
     subtitle: nonEmpty,
