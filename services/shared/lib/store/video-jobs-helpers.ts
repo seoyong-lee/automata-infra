@@ -103,6 +103,31 @@ export const listJobScopedItems = async <T>(input: {
   });
 };
 
+/** begins_with(SK, prefix)로 파티션을 페이지 단위로 전부 조회 (후보 행이 많아도 누락 없음) */
+export const listAllJobScopedItemsWithSkPrefix = async <T>(
+  jobId: string,
+  skPrefix: string,
+  scanIndexForward = true,
+): Promise<T[]> => {
+  const all: T[] = [];
+  let nextToken: string | undefined;
+  do {
+    const page = await queryVideoJobsPage<T>({
+      keyConditionExpression: "PK = :pk AND begins_with(SK, :skPrefix)",
+      expressionAttributeValues: {
+        ":pk": jobPk(jobId),
+        ":skPrefix": skPrefix,
+      },
+      scanIndexForward,
+      limit: 100,
+      nextToken,
+    });
+    all.push(...page.items);
+    nextToken = encodeNextToken(page.lastEvaluatedKey) ?? undefined;
+  } while (nextToken);
+  return all;
+};
+
 export const listAllJobScopedItems = async (
   jobId: string,
 ): Promise<Record<string, unknown>[]> => {

@@ -7,7 +7,7 @@ import {
 import {
   getJobScopedItem,
   getSceneCandidateItem,
-  listJobScopedItems,
+  listAllJobScopedItemsWithSkPrefix,
   listSceneCandidateItems,
   putJobScopedItem,
   putSceneCandidateItem,
@@ -166,14 +166,15 @@ export const listSceneVoiceCandidates = async (
 export const listSceneAssets = async (
   jobId: string,
 ): Promise<SceneAssetItem[]> => {
-  const items = await listJobScopedItems<SceneAssetItem>({
+  const items = await listAllJobScopedItemsWithSkPrefix<SceneAssetItem>(
     jobId,
-    skPrefix: "SCENE#",
-    scanIndexForward: true,
-    limit: 100,
-  });
+    "SCENE#",
+    true,
+  );
 
   return items
-    .filter((item) => /^SCENE#\d+$/.test(item.SK))
+    .filter(
+      (item) => typeof item.SK === "string" && /^SCENE#\d+$/.test(item.SK),
+    )
     .sort((left, right) => left.sceneId - right.sceneId);
 };
