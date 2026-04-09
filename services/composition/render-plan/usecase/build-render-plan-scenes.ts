@@ -32,6 +32,47 @@ const resolveSceneDurationSec = (
   return Math.max(plannedDurationSec, minimumNarrationDurationSec);
 };
 
+/** Heavier Hangul ≈ more TTS time than raw character count. */
+const estimateSpeechTimingUnits = (part: string): number => {
+  let u = 0;
+  for (const char of part.replace(/\s+/g, "")) {
+    if (/[\uAC00-\uD7A3]/.test(char)) {
+      u += 1.12;
+    } else if (/[\u3131-\u318E]/.test(char)) {
+      u += 0.4;
+    } else if (/[A-Za-z]/.test(char)) {
+      u += 0.42;
+    } else if (/[0-9]/.test(char)) {
+      u += 0.45;
+    } else {
+      u += 0.5;
+    }
+  }
+  return Math.max(1, u);
+};
+
+const splitLongSubtitleByWords = (normalized: string): string[] => {
+  const bySpace = normalized.split(/\s+/).filter((w) => w.length > 0);
+  if (bySpace.length <= 6) {
+    return [];
+  }
+  const out: string[] = [];
+  let buf = "";
+  for (const w of bySpace) {
+    const next = buf ? `${buf} ${w}` : w;
+    if (next.length > 44 && buf) {
+      out.push(buf);
+      buf = w;
+    } else {
+      buf = next;
+    }
+  }
+  if (buf) {
+    out.push(buf);
+  }
+  return out.length > 1 ? out : [];
+};
+
 const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
   const normalized = subtitle.replace(/\s+/g, " ").trim();
   if (!normalized) {
@@ -44,10 +85,20 @@ const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
   if (sentences.length > 1) {
     return sentences;
   }
-  return normalized
-    .split(/[,;:]/)
+  const byClause = normalized
+    .split(/[,;，、:]/)
     .map((part) => part.trim())
     .filter((part) => part.length > 0);
+  if (byClause.length > 1) {
+    return byClause;
+  }
+  if (normalized.length > 52) {
+    const wordChunks = splitLongSubtitleByWords(normalized);
+    if (wordChunks.length > 1) {
+      return wordChunks;
+    }
+  }
+  return [normalized];
 };
 
 /** Phrase-level segments; durations scale with character weight over the scene (voice) window. */
@@ -71,9 +122,7 @@ const buildSubtitleSegments = (input: {
   }
 
   const totalDurationSec = input.endSec - input.startSec;
-  const weights = parts.map((part) =>
-    Math.max(1, part.replace(/\s+/g, "").length),
-  );
+  const weights = parts.map((part) => estimateSpeechTimingUnits(part));
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
   let cursorSec = input.startSec;
 

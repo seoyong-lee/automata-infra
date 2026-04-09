@@ -200,6 +200,7 @@ const estimateTextUnits = (value: string): number => {
 };
 
 const MAX_SUBTITLE_DISPLAY_LINES = 2;
+const MIN_SUBTITLE_CHUNK_SEC = 0.32;
 const ELLIPSIS = "…";
 
 const splitLongToken = (token: string, maxUnits: number): string[] => {
@@ -282,6 +283,96 @@ const firstLineAndRestTokens = (
   return { first, restTokens };
 };
 
+/** Full text preserved: each chunk is at most two on-screen lines (one \\N). */
+const splitIntoTwoLineChunks = (
+  normalized: string,
+  maxUnits: number,
+): string[] => {
+  const text = normalized.replace(/\s+/g, " ").trim();
+  if (!text) {
+    return [];
+  }
+  const chunks: string[] = [];
+  let remaining = text;
+  for (let guard = 0; guard < 400 && remaining.length > 0; guard++) {
+    const { first, restTokens } = firstLineAndRestTokens(remaining, maxUnits);
+    const restJoined = restTokens.join(" ").trim();
+    if (!restJoined) {
+      if (first) {
+        chunks.push(first);
+      }
+      break;
+    }
+    const secondPass = firstLineAndRestTokens(restJoined, maxUnits);
+    const line2 = secondPass.first;
+    const afterTwo = secondPass.restTokens.join(" ").trim();
+    if (first && line2) {
+      chunks.push(`${first}\n${line2}`);
+    } else if (first) {
+      chunks.push(first);
+    } else if (line2) {
+      chunks.push(line2);
+    }
+    if (afterTwo === remaining) {
+      if (afterTwo) {
+        chunks.push(afterTwo);
+      }
+      break;
+    }
+    remaining = afterTwo;
+  }
+  return chunks;
+};
+
+const assignSubtitleDisplayChunks = (
+  startSec: number,
+  endSec: number,
+  chunks: string[],
+): Array<{ startSec: number; endSec: number; text: string }> => {
+  const totalDur = Math.max(0.05, endSec - startSec);
+  if (chunks.length === 0) {
+    return [];
+  }
+  if (chunks.length === 1) {
+    return [{ startSec, endSec, text: chunks[0]! }];
+  }
+  const weights = chunks.map((c) => Math.max(1, estimateTextUnits(c)));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  let cursor = startSec;
+  const out: Array<{ startSec: number; endSec: number; text: string }> = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const isLast = i === chunks.length - 1;
+    const ideal = (totalDur * weights[i]!) / totalW;
+    const remaining = endSec - cursor;
+    const tail = chunks.length - i - 1;
+    const reserve = tail * MIN_SUBTITLE_CHUNK_SEC;
+    const dur = isLast
+      ? remaining
+      : Math.max(
+          MIN_SUBTITLE_CHUNK_SEC,
+          Math.min(
+            ideal,
+            Math.max(MIN_SUBTITLE_CHUNK_SEC, remaining - reserve),
+          ),
+        );
+    out.push({ startSec: cursor, endSec: cursor + dur, text: chunks[i]! });
+    cursor += dur;
+  }
+  if (out.length > 0) {
+    out[out.length - 1]!.endSec = endSec;
+  }
+  return out;
+};
+
+const resolveSubtitleMaxUnits = (
+  style: RenderPlanSubtitleStyle,
+  output: RenderPlanOutput,
+): number => {
+  const widthPx = output.size.width * style.maxWidth;
+  const fontSize = Math.max(12, style.fontSize);
+  return Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+};
+
 const wrapTextToWidthUnlimited = (
   normalized: string,
   maxUnits: number,
@@ -335,12 +426,8 @@ const wrapTextToWidth = (
     return normalized;
   }
   if (maxLines === MAX_SUBTITLE_DISPLAY_LINES) {
-    const { first, restTokens } = firstLineAndRestTokens(normalized, maxUnits);
-    const rest = restTokens.join(" ").trim();
-    if (!rest) {
-      return first;
-    }
-    return `${first}\n${truncateWithEllipsis(rest, maxUnits)}`;
+    const chunks = splitIntoTwoLineChunks(normalized, maxUnits);
+    return chunks[0] ?? normalized;
   }
   return wrapTextToWidthUnlimited(normalized, maxUnits);
 };
@@ -356,20 +443,6 @@ const wrapOverlayText = (
     Math.floor(widthPx / Math.max(fontSize * 0.9, 1)),
   );
   return wrapTextToWidth(overlay.text, maxUnits);
-};
-
-const wrapSubtitleText = (
-  text: string,
-  style: RenderPlanSubtitleStyle,
-  output: RenderPlanOutput,
-): string => {
-  const widthPx = output.size.width * style.maxWidth;
-  const fontSize = Math.max(12, style.fontSize);
-  const maxUnits = Math.max(
-    6,
-    Math.floor(widthPx / Math.max(fontSize * 0.9, 1)),
-  );
-  return wrapTextToWidth(text, maxUnits, MAX_SUBTITLE_DISPLAY_LINES);
 };
 
 const buildTextOverlayEvents = (
@@ -443,25 +516,30 @@ export const buildSubtitleAss = (
   const output = renderPlan.output ?? DEFAULT_RENDER_OUTPUT;
   const style = renderPlan.subtitles.style;
   const basePosition = resolveSubtitleBasePosition(style, output);
-  const subtitleEvents = renderPlan.scenes
-    .flatMap((scene) =>
-      buildSceneSubtitleSegments(scene).map((segment) => ({
-        startSec: segment.startSec,
-        endSec: segment.endSec,
-        subtitle: segment.text.trim(),
-      })),
-    )
-    .filter(
-      (scene) =>
-        scene.subtitle.length > 0 &&
-        typeof scene.startSec === "number" &&
-        typeof scene.endSec === "number" &&
-        scene.endSec > scene.startSec,
-    )
-    .map(
-      (scene) =>
-        `Dialogue: 0,${formatAssTimestamp(scene.startSec)},${formatAssTimestamp(scene.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(wrapSubtitleText(scene.subtitle, style, output))}`,
-    );
+  const maxUnits = resolveSubtitleMaxUnits(style, output);
+  const subtitleEvents = renderPlan.scenes.flatMap((scene) =>
+    buildSceneSubtitleSegments(scene).flatMap((segment) => {
+      const trimmed = segment.text.trim();
+      if (
+        !trimmed ||
+        typeof segment.startSec !== "number" ||
+        typeof segment.endSec !== "number" ||
+        segment.endSec <= segment.startSec
+      ) {
+        return [];
+      }
+      const chunks = splitIntoTwoLineChunks(trimmed, maxUnits);
+      const timed = assignSubtitleDisplayChunks(
+        segment.startSec,
+        segment.endSec,
+        chunks,
+      );
+      return timed.map(
+        (row) =>
+          `Dialogue: 0,${formatAssTimestamp(row.startSec)},${formatAssTimestamp(row.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(row.text)}`,
+      );
+    }),
+  );
   const overlayEvents = buildTextOverlayEvents(renderPlan);
 
   return [

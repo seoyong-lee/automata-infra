@@ -126,6 +126,7 @@ function estimateTextUnits(value) {
 }
 
 const MAX_SUBTITLE_DISPLAY_LINES = 2;
+const MIN_SUBTITLE_CHUNK_SEC = 0.32;
 const ELLIPSIS = "…";
 
 function splitLongToken(token, maxUnits) {
@@ -205,6 +206,76 @@ function firstLineAndRestTokens(normalized, maxUnits) {
   return { first, restTokens };
 }
 
+function splitIntoTwoLineChunks(normalized, maxUnits) {
+  const text = String(normalized).replace(/\s+/g, " ").trim();
+  if (!text) {
+    return [];
+  }
+  const chunks = [];
+  let remaining = text;
+  for (let guard = 0; guard < 400 && remaining.length > 0; guard++) {
+    const { first, restTokens } = firstLineAndRestTokens(remaining, maxUnits);
+    const restJoined = restTokens.join(" ").trim();
+    if (!restJoined) {
+      if (first) {
+        chunks.push(first);
+      }
+      break;
+    }
+    const secondPass = firstLineAndRestTokens(restJoined, maxUnits);
+    const line2 = secondPass.first;
+    const afterTwo = secondPass.restTokens.join(" ").trim();
+    if (first && line2) {
+      chunks.push(`${first}\n${line2}`);
+    } else if (first) {
+      chunks.push(first);
+    } else if (line2) {
+      chunks.push(line2);
+    }
+    if (afterTwo === remaining) {
+      if (afterTwo) {
+        chunks.push(afterTwo);
+      }
+      break;
+    }
+    remaining = afterTwo;
+  }
+  return chunks;
+}
+
+function assignSubtitleDisplayChunks(startSec, endSec, chunks) {
+  const totalDur = Math.max(0.05, endSec - startSec);
+  if (chunks.length === 0) {
+    return [];
+  }
+  if (chunks.length === 1) {
+    return [{ startSec, endSec, text: chunks[0] }];
+  }
+  const weights = chunks.map((c) => Math.max(1, estimateTextUnits(c)));
+  const totalW = weights.reduce((a, b) => a + b, 0);
+  let cursor = startSec;
+  const out = [];
+  for (let i = 0; i < chunks.length; i++) {
+    const isLast = i === chunks.length - 1;
+    const ideal = (totalDur * weights[i]) / totalW;
+    const remaining = endSec - cursor;
+    const tail = chunks.length - i - 1;
+    const reserve = tail * MIN_SUBTITLE_CHUNK_SEC;
+    const dur = isLast
+      ? remaining
+      : Math.max(
+          MIN_SUBTITLE_CHUNK_SEC,
+          Math.min(ideal, Math.max(MIN_SUBTITLE_CHUNK_SEC, remaining - reserve)),
+        );
+    out.push({ startSec: cursor, endSec: cursor + dur, text: chunks[i] });
+    cursor += dur;
+  }
+  if (out.length > 0) {
+    out[out.length - 1].endSec = endSec;
+  }
+  return out;
+}
+
 function wrapTextToWidthUnlimited(normalized, maxUnits) {
   if (estimateTextUnits(normalized) <= maxUnits) {
     return normalized;
@@ -251,20 +322,21 @@ function wrapTextToWidth(text, maxUnits, maxLines = Number.POSITIVE_INFINITY) {
     return normalized;
   }
   if (maxLines === MAX_SUBTITLE_DISPLAY_LINES) {
-    const { first, restTokens } = firstLineAndRestTokens(normalized, maxUnits);
-    const rest = restTokens.join(" ").trim();
-    if (!rest) {
-      return first;
-    }
-    return `${first}\n${truncateWithEllipsis(rest, maxUnits)}`;
+    const chunks = splitIntoTwoLineChunks(normalized, maxUnits);
+    return chunks[0] ?? normalized;
   }
   return wrapTextToWidthUnlimited(normalized, maxUnits);
 }
 
-function wrapSubtitleText(text, subtitleSettings, outputSettings) {
-  const widthPx = outputSettings.width * Number(subtitleSettings.style.maxWidth ?? 0.88);
+function resolveSubtitleMaxUnits(subtitleSettings, outputSettings) {
+  const widthPx =
+    outputSettings.width * Number(subtitleSettings.style.maxWidth ?? 0.88);
   const fontSize = Math.max(12, Number(subtitleSettings.style.fontSize ?? 32));
-  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  return Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+}
+
+function wrapSubtitleText(text, subtitleSettings, outputSettings) {
+  const maxUnits = resolveSubtitleMaxUnits(subtitleSettings, outputSettings);
   return wrapTextToWidth(text, maxUnits, MAX_SUBTITLE_DISPLAY_LINES);
 }
 
@@ -404,10 +476,11 @@ export async function writeSceneAss(
       (resolveSubtitleBaseYRatio(subtitleSettings.style.position) +
         subtitleSettings.style.offsetY),
   );
+  const maxUnits = resolveSubtitleMaxUnits(subtitleSettings, outputSettings);
   const subtitleEvents =
     !subtitleSettings.burnIn || subtitleSegments.length === 0
       ? []
-      : subtitleSegments.map((segment, segmentIndex) => {
+      : subtitleSegments.flatMap((segment) => {
           const sceneStart = Number(scene.startSec ?? 0);
           const rawLocalStart = segment.startSec - sceneStart;
           const segmentStartSec = Math.max(0, rawLocalStart + leadInSec);
@@ -429,7 +502,20 @@ export async function writeSceneAss(
                   )
                 : Math.min(safeRenderedDuration, plannedLocalEnd),
           );
-          return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(wrapSubtitleText(segment.text, subtitleSettings, outputSettings))}`;
+          const trimmed = String(segment.text ?? "").trim();
+          if (!trimmed) {
+            return [];
+          }
+          const chunks = splitIntoTwoLineChunks(trimmed, maxUnits);
+          const timed = assignSubtitleDisplayChunks(
+            segmentStartSec,
+            segmentEndSec,
+            chunks,
+          );
+          return timed.map(
+            (row) =>
+              `Dialogue: 0,${formatAssTime(row.startSec)},${formatAssTime(row.endSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(row.text)}`,
+          );
         });
   if (subtitleEvents.length === 0 && overlayEvents.length === 0) {
     return false;

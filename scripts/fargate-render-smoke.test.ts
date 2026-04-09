@@ -420,14 +420,20 @@ void test("subtitle ass wraps long subtitle and title overlay text", () => {
   });
 
   assert.match(ass, /강아지가 사람과 함께\\N살기 시작했던 이유/);
-  const subtitleDialogueLine = ass
+  const subtitleDialogues = ass
     .split("\n")
-    .find((line) => line.startsWith("Dialogue: 0,") && line.includes("자막이"));
-  assert.ok(subtitleDialogueLine);
-  const subtitleBreaks = subtitleDialogueLine.match(/\\N/g) ?? [];
+    .filter((line) => line.startsWith("Dialogue: 0,") && line.includes("자막"));
+  assert.ok(subtitleDialogues.length >= 1);
+  for (const line of subtitleDialogues) {
+    const subtitleBreaks = line.match(/\\N/g) ?? [];
+    assert.ok(
+      subtitleBreaks.length <= 1,
+      "each subtitle card uses at most two lines (one line break)",
+    );
+  }
   assert.ok(
-    subtitleBreaks.length <= 1,
-    "subtitle burn-in should use at most two lines (one line break)",
+    !ass.includes("…"),
+    "subtitle pipeline must not truncate with ellipsis",
   );
   assert.match(ass, /\\an5/);
 });
