@@ -379,6 +379,7 @@ export class AppStack extends Stack {
 
     const requestUploadResolver = uploadGroupHandler;
     const requestAssetUploadResolver = uploadGroupHandler;
+    const completeSceneImageUploadResolver = uploadGroupHandler;
     const completeSceneVideoUploadResolver = uploadGroupHandler;
     const extractYoutubeTranscriptResolver = uploadGroupHandler;
     const requestTranscriptUploadResolver = transcriptsHandler;
@@ -450,6 +451,7 @@ export class AppStack extends Stack {
     this.jobsTable.grantReadWriteData(createVideoTranscriptFromUploadResolver);
     this.jobsTable.grantReadWriteData(createVideoTranscriptFromYoutubeResolver);
     this.jobsTable.grantReadWriteData(getTranscriptResolver);
+    this.jobsTable.grantReadWriteData(completeSceneImageUploadResolver);
     this.jobsTable.grantReadWriteData(completeSceneVideoUploadResolver);
     this.jobsTable.grantReadWriteData(extractYoutubeTranscriptResolver);
     this.jobsTable.grantReadWriteData(getJobDraftResolver);
@@ -612,6 +614,7 @@ export class AppStack extends Stack {
       requestTranscriptUploadResolver,
       createVideoTranscriptFromUploadResolver,
       createVideoTranscriptFromYoutubeResolver,
+      completeSceneImageUploadResolver,
       completeSceneVideoUploadResolver,
       extractYoutubeTranscriptResolver,
       getTranscriptResolver,

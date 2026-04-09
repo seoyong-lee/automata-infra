@@ -20,6 +20,7 @@ type CreatePublishGraphqlApiProps = {
   requestTranscriptUploadResolver: lambda.IFunction;
   createVideoTranscriptFromUploadResolver: lambda.IFunction;
   createVideoTranscriptFromYoutubeResolver: lambda.IFunction;
+  completeSceneImageUploadResolver: lambda.IFunction;
   completeSceneVideoUploadResolver: lambda.IFunction;
   extractYoutubeTranscriptResolver: lambda.IFunction;
   getTranscriptResolver: lambda.IFunction;
@@ -171,6 +172,13 @@ export const createPublishGraphqlApi = (
     "createVideoTranscriptFromYoutube",
     "Mutation",
     props.createVideoTranscriptFromYoutubeResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "CompleteSceneImageUpload",
+    "completeSceneImageUpload",
+    "Mutation",
+    props.completeSceneImageUploadResolver,
   );
   addLambdaResolver(
     graphqlApi,

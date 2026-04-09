@@ -1,4 +1,5 @@
 import { Handler } from "aws-lambda";
+import { run as completeSceneImageUpload } from "./complete-scene-image-upload";
 import { run as completeSceneVideoUpload } from "./complete-scene-video-upload";
 import { run as extractYoutubeTranscript } from "./extract-youtube-transcript";
 import { run as requestAssetUpload } from "./request-asset-upload";
@@ -39,6 +40,12 @@ export const run: Handler<
   switch (fieldName) {
     case "extractYoutubeTranscript":
       return extractYoutubeTranscript(
+        event as GroupedGraphqlResolverEvent,
+        {} as never,
+        () => undefined,
+      );
+    case "completeSceneImageUpload":
+      return completeSceneImageUpload(
         event as GroupedGraphqlResolverEvent,
         {} as never,
         () => undefined,

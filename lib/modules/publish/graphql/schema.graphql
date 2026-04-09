@@ -51,6 +51,12 @@ type Mutation {
   createVideoTranscriptFromYoutube(
     input: CreateVideoTranscriptFromYoutubeInput!
   ): VideoTranscriptRecord!
+  """
+  SCENE_IMAGE용 presigned PUT 완료 후 호출한다. Dynamo 씬 행의 imageS3Key를 갱신한다.
+  """
+  completeSceneImageUpload(
+    input: CompleteSceneImageUploadInput!
+  ): JobDraftDetail!
   completeSceneVideoUpload(
     input: CompleteSceneVideoUploadInput!
   ): JobDraftDetail!
@@ -812,6 +818,15 @@ input CreateVideoTranscriptFromUploadInput {
 input CreateVideoTranscriptFromYoutubeInput {
   youtubeUrl: String!
   languageCode: String
+}
+
+input CompleteSceneImageUploadInput {
+  jobId: ID!
+  sceneId: Int!
+  """
+  requestAssetUpload가 반환한 키(경로는 assets/{jobId}/manual/image/scene-{sceneId}/...)
+  """
+  s3Key: String!
 }
 
 input CompleteSceneVideoUploadInput {
