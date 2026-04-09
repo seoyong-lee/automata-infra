@@ -186,22 +186,24 @@ export async function prepareSceneImageOverlays({
         ph = Math.max(2, Math.round(0.2 * hOut));
       }
     }
+    const pwSafe = Math.min(pw, wOut);
+    const phSafe = Math.min(ph, hOut);
     let px = Math.round(Number(overlay.placement?.x ?? 0) * wOut);
     let py = Math.round(Number(overlay.placement?.y ?? 0) * hOut);
-    py = Math.min(hOut - ph, Math.max(0, py));
-    px = Math.min(wOut - pw, Math.max(0, px));
+    px = Math.min(Math.max(0, wOut - pwSafe), Math.max(0, px));
+    py = Math.min(Math.max(0, hOut - phSafe), Math.max(0, py));
     rows.push({
       localPath,
       px,
       py,
-      pw,
-      ph,
+      pw: pwSafe,
+      ph: phSafe,
       fit: overlay.fit ?? "contain",
       opacity: overlay.opacity,
       localStart,
       localEnd,
       zIndex: Number(overlay.zIndex ?? 6),
-      scaleChain: buildOverlayScaleChain(pw, ph, overlay.fit ?? "contain", overlay.opacity),
+      scaleChain: `${buildOverlayScaleChain(pwSafe, phSafe, overlay.fit ?? "contain", overlay.opacity)},fps=${Math.max(1, Math.round(Number(outputSettings.fps) || 30))}`,
     });
   }
   rows.sort((a, b) => a.zIndex - b.zIndex);
@@ -211,13 +213,21 @@ export async function prepareSceneImageOverlays({
 export function buildImageOverlayFilterComplex({
   baseVf,
   preparedOverlays,
+  /** Scene segment length (sec); used to omit overlay `enable=` when the image spans the whole clip. */
+  segmentDurationSec,
   hasAss,
   assPath,
   hasVoice,
   voiceGraph,
 }) {
   const parts = [];
-  parts.push(`[0:v]${baseVf}[vbase]`);
+  // setpts after scale/pad/fps: placing it before the chain breaks some `-stream_loop -1` clips (empty/black video).
+  parts.push(`[0:v]${baseVf},setpts=PTS-STARTPTS[vbase]`);
+  const rawClipDur = Number(segmentDurationSec);
+  const clipDur =
+    Number.isFinite(rawClipDur) && rawClipDur > 0
+      ? Math.max(0.05, rawClipDur)
+      : null;
   let cur = "vbase";
   let inputIdx = 2;
   for (let i = 0; i < preparedOverlays.length; i++) {
@@ -227,8 +237,15 @@ export function buildImageOverlayFilterComplex({
     parts.push(`[${inputIdx}:v]${o.scaleChain}[${olab}]`);
     const ls = formatExprFloat(o.localStart);
     const le = formatExprFloat(o.localEnd);
+    const spansFullClip =
+      clipDur !== null &&
+      o.localStart <= 0.02 &&
+      o.localEnd >= clipDur - 0.02;
+    const enableClause = spansFullClip
+      ? ""
+      : `:enable='between(t\\,${ls}\\,${le})'`;
     parts.push(
-      `[${cur}][${olab}]overlay=${o.px}:${o.py}:enable='between(t\\,${ls}\\,${le})'[${vlab}]`,
+      `[${cur}][${olab}]overlay=${o.px}:${o.py}${enableClause}[${vlab}]`,
     );
     cur = vlab;
     inputIdx += 1;

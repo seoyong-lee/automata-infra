@@ -117,6 +117,7 @@ async function createSceneSegment(input) {
           mediaFrameSettings,
         ),
         preparedOverlays,
+        segmentDurationSec: durationSec,
         hasAss: Boolean(hasAss),
         assPath: hasAss ? assPath : "",
         hasVoice,
