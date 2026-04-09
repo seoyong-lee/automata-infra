@@ -24,6 +24,7 @@ type GenerateSceneVoiceInput = {
   sceneId: number;
   text: string;
   secretId: string;
+  /** 씬 계획 길이(렌더에서 씬 연장 시 사용). TTS 속도 조절에는 쓰지 않음. */
   targetDurationSec?: number;
   /** ElevenLabs TTS URL에 쓰이는 보이스 id(프로필에서 오거나 시크릿 기본값) */
   voiceId?: string;
@@ -35,8 +36,8 @@ type GenerateSceneVoiceInput = {
 
 const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
 const DEFAULT_SPEED = 1;
-const MIN_AUTO_SPEED = 0.7;
-const MAX_AUTO_SPEED = 1.2;
+const MIN_VOICE_SPEED = 0.7;
+const MAX_VOICE_SPEED = 1.2;
 const ESTIMATED_SPOKEN_CHARS_PER_SEC = 4.5;
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -54,14 +55,15 @@ export const estimateResolvedVoiceDurationSec = (
   text: string,
   speed = DEFAULT_SPEED,
 ): number => {
-  const safeSpeed = clamp(speed, MIN_AUTO_SPEED, MAX_AUTO_SPEED);
+  const safeSpeed = clamp(speed, MIN_VOICE_SPEED, MAX_VOICE_SPEED);
   return estimateSpeechDurationSec(text) / safeSpeed;
 };
 
 export const estimateMinimumVoiceDurationSec = (text: string): number => {
-  return estimateResolvedVoiceDurationSec(text, MAX_AUTO_SPEED);
+  return estimateResolvedVoiceDurationSec(text, MAX_VOICE_SPEED);
 };
 
+/** 프로필 등에서 온 설정만 전달. 씬 duration에 맞춰 말 속도를 올리지 않음(렌더에서 씬 길이 조정). */
 const resolveVoiceSettings = (
   input: GenerateSceneVoiceInput,
 ): ElevenLabsVoiceSettings | undefined => {
@@ -69,35 +71,16 @@ const resolveVoiceSettings = (
   const hasBaseSettings = Object.values(baseSettings).some(
     (value) => value !== undefined,
   );
-  const baseSpeed =
-    typeof baseSettings.speed === "number" &&
-    Number.isFinite(baseSettings.speed)
-      ? baseSettings.speed
-      : DEFAULT_SPEED;
-  const estimatedDurationSec = estimateSpeechDurationSec(input.text);
-  const targetDurationSec =
-    typeof input.targetDurationSec === "number" && input.targetDurationSec > 0
-      ? input.targetDurationSec
-      : undefined;
-  const autoSpeed =
-    targetDurationSec && estimatedDurationSec > targetDurationSec
-      ? estimatedDurationSec / targetDurationSec
-      : baseSpeed;
-  const requiresSpeedAdjustment =
-    targetDurationSec !== undefined && estimatedDurationSec > targetDurationSec;
-  if (!hasBaseSettings && !requiresSpeedAdjustment) {
+  if (!hasBaseSettings) {
     return undefined;
   }
-  const resolvedSpeed = clamp(
-    Math.max(baseSpeed, autoSpeed),
-    MIN_AUTO_SPEED,
-    MAX_AUTO_SPEED,
-  );
-  const resolved = {
-    ...baseSettings,
-    speed: resolvedSpeed,
-  };
-
+  const resolved = { ...baseSettings };
+  if (
+    typeof resolved.speed === "number" &&
+    Number.isFinite(resolved.speed)
+  ) {
+    resolved.speed = clamp(resolved.speed, MIN_VOICE_SPEED, MAX_VOICE_SPEED);
+  }
   return Object.values(resolved).some((value) => value !== undefined)
     ? resolved
     : undefined;
