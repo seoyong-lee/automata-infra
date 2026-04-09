@@ -5,8 +5,8 @@
   "packageManager": "yarn@1.22.22",
   "scripts": {
     "build": "tsc",
-    "lint": "eslint . --ext .ts",
-    "lint:fix": "eslint . --ext .ts --fix",
+    "lint": "eslint . --ext .ts && eslint services/composition/fargate-renderer --ext .mjs",
+    "lint:fix": "eslint . --ext .ts --fix && eslint services/composition/fargate-renderer --ext .mjs --fix",
     "check:service-boundaries": "ts-node scripts/service-boundary-guards.ts",
     "synth": "tsc && cdk synth -c @envFile=env/config.json",
     "diff": "tsc && cdk diff -c @envFile=env/config.json",

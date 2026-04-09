@@ -335,11 +335,6 @@ function resolveSubtitleMaxUnits(subtitleSettings, outputSettings) {
   return Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
 }
 
-function wrapSubtitleText(text, subtitleSettings, outputSettings) {
-  const maxUnits = resolveSubtitleMaxUnits(subtitleSettings, outputSettings);
-  return wrapTextToWidth(text, maxUnits, MAX_SUBTITLE_DISPLAY_LINES);
-}
-
 function wrapOverlayText(text, overlay, outputSettings) {
   const widthPx =
     outputSettings.width * Math.max(0.2, Number(overlay.placement?.width ?? 0.72));
@@ -488,7 +483,8 @@ export async function writeSceneAss(
           const sceneEndGlobal = Number(scene.endSec ?? sceneStart + sceneDuration(scene));
           const singleFullScene =
             subtitleSegments.length === 1 && rawLocalStart <= 0.001;
-          const isLastSegment = segmentIndex === subtitleSegments.length - 1;
+          const lastSegment = subtitleSegments[subtitleSegments.length - 1];
+          const isLastSegment = Boolean(lastSegment && segment === lastSegment);
           const lastSegmentThroughSceneEnd =
             isLastSegment && segment.endSec >= sceneEndGlobal - 1e-3;
           const segmentEndSec = Math.max(
