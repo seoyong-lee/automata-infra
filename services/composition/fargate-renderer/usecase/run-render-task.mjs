@@ -24,6 +24,14 @@ import {
 } from "./scene-ass.mjs";
 
 const VOICE_TAIL_PAD_SEC = 0.15;
+/** Silence before TTS starts (avoids perceived fade-in at scene cut). */
+const TTS_LEAD_IN_SEC = 0.5;
+
+function voiceInputFilterGraph(durationSec) {
+  const delayMs = Math.round(TTS_LEAD_IN_SEC * 1000);
+  // Single delay works for mono TTS; stereo uses same offset per channel.
+  return `[1:a]adelay=${delayMs},apad=whole_dur=${durationSec}[aout]`;
+}
 
 function visualFilter(outputSettings, canvasSettings, mediaFrameSettings, assPath) {
   const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
@@ -111,6 +119,7 @@ async function createSceneSegment(input) {
     if (typeof probed === "number" && probed > 0) {
       durationSec = seconds(Math.max(plannedDurationSec, probed + VOICE_TAIL_PAD_SEC));
     }
+    durationSec = seconds(durationSec + TTS_LEAD_IN_SEC);
   }
   const hasAss = await writeSceneAss(
     scene,
@@ -119,6 +128,7 @@ async function createSceneSegment(input) {
     assPath,
     overlays,
     durationSec,
+    hasVoice ? TTS_LEAD_IN_SEC : 0,
   );
   const vf = visualFilter(
     outputSettings,
@@ -143,10 +153,7 @@ async function createSceneSegment(input) {
           ? ["-i", voicePath]
           : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
         ...(hasVoice
-          ? [
-              "-filter_complex",
-              `[1:a]apad=whole_dur=${durationSec}[aout]`,
-            ]
+          ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
           : []),
         "-vf",
         vf,
@@ -190,10 +197,7 @@ async function createSceneSegment(input) {
           ? ["-i", voicePath]
           : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
         ...(hasVoice
-          ? [
-              "-filter_complex",
-              `[1:a]apad=whole_dur=${durationSec}[aout]`,
-            ]
+          ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
           : []),
         "-vf",
         vf,
@@ -240,12 +244,7 @@ async function createSceneSegment(input) {
     ...(hasVoice
       ? ["-i", voicePath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-    ...(hasVoice
-      ? [
-          "-filter_complex",
-          `[1:a]apad=whole_dur=${durationSec}[aout]`,
-        ]
-      : []),
+    ...(hasVoice ? ["-filter_complex", voiceInputFilterGraph(durationSec)] : []),
     "-vf",
     hasAss ? subtitlesFilter(assPath) : "null",
     "-map",

@@ -384,7 +384,9 @@ export async function writeSceneAss(
   assPath,
   overlays = [],
   renderedDurationSec = sceneDuration(scene),
+  ttsLeadInSec = 0,
 ) {
+  const leadInSec = Math.max(0, Number(ttsLeadInSec) || 0);
   const safeRenderedDuration = Math.max(0.1, Number(renderedDurationSec));
   const subtitleSegments = normalizeSceneSubtitleSegments(scene);
   const overlayEvents = getSceneTextOverlayEvents(
@@ -407,11 +409,12 @@ export async function writeSceneAss(
       ? []
       : subtitleSegments.map((segment, segmentIndex) => {
           const sceneStart = Number(scene.startSec ?? 0);
-          const segmentStartSec = Math.max(0, segment.startSec - sceneStart);
-          const plannedLocalEnd = segment.endSec - sceneStart;
+          const rawLocalStart = segment.startSec - sceneStart;
+          const segmentStartSec = Math.max(0, rawLocalStart + leadInSec);
+          const plannedLocalEnd = segment.endSec - sceneStart + leadInSec;
           const sceneEndGlobal = Number(scene.endSec ?? sceneStart + sceneDuration(scene));
           const singleFullScene =
-            subtitleSegments.length === 1 && segmentStartSec <= 0.001;
+            subtitleSegments.length === 1 && rawLocalStart <= 0.001;
           const isLastSegment = segmentIndex === subtitleSegments.length - 1;
           const lastSegmentThroughSceneEnd =
             isLastSegment && segment.endSec >= sceneEndGlobal - 1e-3;
