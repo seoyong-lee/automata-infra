@@ -2,6 +2,8 @@ import path from "node:path";
 import { promises as fs } from "node:fs";
 import { seconds } from "../normalize/render-plan.mjs";
 
+const SOUNDTRACK_VOLUME = 0.38;
+
 const CUT_TRANSITION_EPSILON_SEC = 0.001;
 const DEFAULT_SCENE_TRANSITION_DURATION_SEC = 0.45;
 const MAX_SCENE_TRANSITION_DURATION_SEC = 1.5;
@@ -251,7 +253,7 @@ export async function mixSoundtrack(
     "-i",
     soundtrackPath,
     "-filter_complex",
-    `[1:a]volume=0.18,atrim=0:${totalDurationSec},afade=t=out:st=${fadeStart}:d=${fadeDuration}[bgm];[0:a][bgm]amix=inputs=2:normalize=0:duration=first[aout]`,
+    `[1:a]volume=${SOUNDTRACK_VOLUME},atrim=0:${totalDurationSec},afade=t=out:st=${fadeStart}:d=${fadeDuration}[bgm];[0:a][bgm]amix=inputs=2:normalize=0:duration=first[aout]`,
     "-map",
     "0:v:0",
     "-map",

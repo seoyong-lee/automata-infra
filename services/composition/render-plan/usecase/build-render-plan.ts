@@ -96,6 +96,9 @@ const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   strokeWidth: 2,
   position: "bottom",
 };
+/** Silence between scenes after narration ends (rendered as a gap segment). */
+const SCENE_GAP_AFTER_NARRATION_SEC = 0.5;
+
 const DEFAULT_CANVAS: RenderPlanCanvas = {
   backgroundColor: "#000000",
   videoScale: 1,
@@ -242,18 +245,8 @@ const resolveSubtitleFont = (
   };
 };
 
-const resolveSceneGapSec = (resolvedPolicy?: ResolvedPolicy): number => {
-  const layoutMode = resolvedPolicy?.capabilities.layoutMode;
-  if (layoutMode === "template") {
-    return 0.2;
-  }
-  if (layoutMode === "still-motion") {
-    return 0.1;
-  }
-  if (layoutMode === "cinematic") {
-    return 0.35;
-  }
-  return 0.5;
+const resolveSceneGapSec = (_resolvedPolicy?: ResolvedPolicy): number => {
+  return SCENE_GAP_AFTER_NARRATION_SEC;
 };
 
 const resolvePreviewMaxDurationSec = (

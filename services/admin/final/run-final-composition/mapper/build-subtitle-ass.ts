@@ -166,11 +166,7 @@ const resolveTextOverlayPosition = (
   const yRatio = overlay.placement.y + overlay.placement.height / 2;
   return {
     x: clamp(Math.round(output.size.width * xRatio), 0, output.size.width),
-    y: clamp(
-      Math.round(output.size.height * yRatio),
-      0,
-      output.size.height,
-    ),
+    y: clamp(Math.round(output.size.height * yRatio), 0, output.size.height),
     alignment: resolveTextOverlayAlignment(align),
   };
 };
@@ -203,6 +199,9 @@ const estimateTextUnits = (value: string): number => {
   return [...value].reduce((sum, char) => sum + estimateCharUnits(char), 0);
 };
 
+const MAX_SUBTITLE_DISPLAY_LINES = 2;
+const ELLIPSIS = "…";
+
 const splitLongToken = (token: string, maxUnits: number): string[] => {
   const parts: string[] = [];
   let current = "";
@@ -224,11 +223,69 @@ const splitLongToken = (token: string, maxUnits: number): string[] => {
   return parts;
 };
 
-const wrapTextToWidth = (text: string, maxUnits: number): string => {
-  const normalized = text.replace(/\s+/g, " ").trim();
-  if (!normalized) {
+const truncateWithEllipsis = (text: string, maxUnits: number): string => {
+  const trimmed = text.replace(/\s+/g, " ").trim();
+  if (!trimmed) {
     return "";
   }
+  if (estimateTextUnits(trimmed) <= maxUnits) {
+    return trimmed;
+  }
+  const ellUnits = estimateTextUnits(ELLIPSIS);
+  const budget = Math.max(1, maxUnits - ellUnits);
+  let low = 0;
+  let high = [...trimmed].length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const slice = [...trimmed].slice(0, mid).join("");
+    if (estimateTextUnits(slice) <= budget) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  const slice = [...trimmed].slice(0, low).join("").replace(/\s+$/, "");
+  return slice ? `${slice}${ELLIPSIS}` : ELLIPSIS;
+};
+
+const firstLineAndRestTokens = (
+  normalized: string,
+  maxUnits: number,
+): { first: string; restTokens: string[] } => {
+  const tokens = normalized.split(" ");
+  let current = "";
+  let i = 0;
+  for (; i < tokens.length; i++) {
+    const token = tokens[i]!;
+    const candidate = current ? `${current} ${token}` : token;
+    if (estimateTextUnits(candidate) <= maxUnits) {
+      current = candidate;
+    } else {
+      break;
+    }
+  }
+  if (current) {
+    return { first: current, restTokens: tokens.slice(i) };
+  }
+  if (i >= tokens.length) {
+    return { first: "", restTokens: [] };
+  }
+  const token = tokens[i]!;
+  const pieces = splitLongToken(token, maxUnits);
+  const first = pieces[0] ?? "";
+  const tailFromWord = pieces.length > 1 ? pieces.slice(1).join("") : "";
+  const restTokens: string[] = [];
+  if (tailFromWord) {
+    restTokens.push(tailFromWord);
+  }
+  restTokens.push(...tokens.slice(i + 1));
+  return { first, restTokens };
+};
+
+const wrapTextToWidthUnlimited = (
+  normalized: string,
+  maxUnits: number,
+): string => {
   if (estimateTextUnits(normalized) <= maxUnits) {
     return normalized;
   }
@@ -253,7 +310,39 @@ const wrapTextToWidth = (text: string, maxUnits: number): string => {
   if (current) {
     lines.push(current);
   }
-  return lines.join("\\N");
+  return lines.join("\n");
+};
+
+const wrapTextToWidth = (
+  text: string,
+  maxUnits: number,
+  maxLines: number = Number.POSITIVE_INFINITY,
+): string => {
+  const normalized = text.replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (!Number.isFinite(maxLines) || maxLines > 99) {
+    return wrapTextToWidthUnlimited(normalized, maxUnits);
+  }
+  if (maxLines < 1) {
+    return "";
+  }
+  if (maxLines === 1) {
+    return truncateWithEllipsis(normalized, maxUnits);
+  }
+  if (estimateTextUnits(normalized) <= maxUnits) {
+    return normalized;
+  }
+  if (maxLines === MAX_SUBTITLE_DISPLAY_LINES) {
+    const { first, restTokens } = firstLineAndRestTokens(normalized, maxUnits);
+    const rest = restTokens.join(" ").trim();
+    if (!rest) {
+      return first;
+    }
+    return `${first}\n${truncateWithEllipsis(rest, maxUnits)}`;
+  }
+  return wrapTextToWidthUnlimited(normalized, maxUnits);
 };
 
 const wrapOverlayText = (
@@ -262,7 +351,10 @@ const wrapOverlayText = (
 ): string => {
   const widthPx = output.size.width * Math.max(0.2, overlay.placement.width);
   const fontSize = resolveOverlayFontSize(overlay, output);
-  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
+  const maxUnits = Math.max(
+    6,
+    Math.floor(widthPx / Math.max(fontSize * 0.9, 1)),
+  );
   return wrapTextToWidth(overlay.text, maxUnits);
 };
 
@@ -273,8 +365,11 @@ const wrapSubtitleText = (
 ): string => {
   const widthPx = output.size.width * style.maxWidth;
   const fontSize = Math.max(12, style.fontSize);
-  const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
-  return wrapTextToWidth(text, maxUnits);
+  const maxUnits = Math.max(
+    6,
+    Math.floor(widthPx / Math.max(fontSize * 0.9, 1)),
+  );
+  return wrapTextToWidth(text, maxUnits, MAX_SUBTITLE_DISPLAY_LINES);
 };
 
 const buildTextOverlayEvents = (
@@ -330,7 +425,9 @@ export const hasSubtitleAssEntries = (
   renderPlan: Pick<RenderPlan, "scenes" | "overlays">,
 ) => {
   return (
-    renderPlan.scenes.some((scene) => buildSceneSubtitleSegments(scene).length > 0) ||
+    renderPlan.scenes.some(
+      (scene) => buildSceneSubtitleSegments(scene).length > 0,
+    ) ||
     (renderPlan.overlays ?? []).some(
       (overlay) => overlay.type === "text" && overlay.text.trim().length > 0,
     )

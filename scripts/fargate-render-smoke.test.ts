@@ -170,7 +170,7 @@ void test("render plan preserves explicit subtitle font and crop settings", () =
   assert.equal(renderPlan.subtitles.style.offset.y, 0.12);
 });
 
-void test("render plan splits subtitle text into timed sentence segments", () => {
+void test("render plan splits subtitle text into timed phrase segments", () => {
   const event = {
     jobId: "job_segments",
     sceneJson: {
@@ -419,8 +419,16 @@ void test("subtitle ass wraps long subtitle and title overlay text", () => {
     ],
   });
 
-  assert.match(ass, /강아지가 사람과 함께\\\\N살기 시작했던 이유/);
-  assert.match(ass, /줄바꿈되어야 합니다/);
+  assert.match(ass, /강아지가 사람과 함께\\N살기 시작했던 이유/);
+  const subtitleDialogueLine = ass
+    .split("\n")
+    .find((line) => line.startsWith("Dialogue: 0,") && line.includes("자막이"));
+  assert.ok(subtitleDialogueLine);
+  const subtitleBreaks = subtitleDialogueLine.match(/\\N/g) ?? [];
+  assert.ok(
+    subtitleBreaks.length <= 1,
+    "subtitle burn-in should use at most two lines (one line break)",
+  );
   assert.match(ass, /\\an5/);
 });
 

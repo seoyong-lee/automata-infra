@@ -23,6 +23,8 @@ import {
   writeSceneAss,
 } from "./scene-ass.mjs";
 
+const VOICE_TAIL_PAD_SEC = 0.15;
+
 function visualFilter(outputSettings, canvasSettings, mediaFrameSettings, assPath) {
   const backgroundColor = toFfmpegColor(canvasSettings.backgroundColor);
   const videoScale = canvasSettings.videoScale;
@@ -93,15 +95,30 @@ async function createSceneSegment(input) {
     storageRepo,
     mediaToolsRepo,
   } = input;
-  const durationSec = sceneDuration(scene);
+  const plannedDurationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
   const assPath = path.join(workDir, `scene-${scene.sceneId}.ass`);
+  const voiceKey = typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : "";
+  const voicePath = path.join(
+    workDir,
+    `voice-${scene.sceneId}${path.extname(voiceKey) || ".mp3"}`,
+  );
+  const hasVoice = Boolean(voiceKey);
+  let durationSec = plannedDurationSec;
+  if (hasVoice) {
+    await storageRepo.downloadObject(voiceKey, voicePath);
+    const probed = await mediaToolsRepo.getMediaDurationSec(voicePath);
+    if (typeof probed === "number" && probed > 0) {
+      durationSec = seconds(Math.max(plannedDurationSec, probed + VOICE_TAIL_PAD_SEC));
+    }
+  }
   const hasAss = await writeSceneAss(
     scene,
     subtitleSettings,
     outputSettings,
     assPath,
     overlays,
+    durationSec,
   );
   const vf = visualFilter(
     outputSettings,
@@ -109,15 +126,6 @@ async function createSceneSegment(input) {
     mediaFrameSettings,
     hasAss ? assPath : "",
   );
-  const voiceKey = typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : "";
-  const voicePath = path.join(
-    workDir,
-    `voice-${scene.sceneId}${path.extname(voiceKey) || ".mp3"}`,
-  );
-  const hasVoice = Boolean(voiceKey);
-  if (hasVoice) {
-    await storageRepo.downloadObject(voiceKey, voicePath);
-  }
   try {
     if (typeof scene.videoClipS3Key === "string" && scene.videoClipS3Key) {
       const videoPath = path.join(
@@ -135,7 +143,10 @@ async function createSceneSegment(input) {
           ? ["-i", voicePath]
           : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
         ...(hasVoice
-          ? ["-filter_complex", `[1:a]apad=pad_dur=${durationSec}[aout]`]
+          ? [
+              "-filter_complex",
+              `[1:a]apad=whole_dur=${durationSec}[aout]`,
+            ]
           : []),
         "-vf",
         vf,
@@ -161,7 +172,7 @@ async function createSceneSegment(input) {
         "+faststart",
         segmentPath,
       ]);
-      return segmentPath;
+      return { segmentPath, durationSec };
     }
     if (typeof scene.imageS3Key === "string" && scene.imageS3Key) {
       const imagePath = path.join(
@@ -179,7 +190,10 @@ async function createSceneSegment(input) {
           ? ["-i", voicePath]
           : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
         ...(hasVoice
-          ? ["-filter_complex", `[1:a]apad=pad_dur=${durationSec}[aout]`]
+          ? [
+              "-filter_complex",
+              `[1:a]apad=whole_dur=${durationSec}[aout]`,
+            ]
           : []),
         "-vf",
         vf,
@@ -205,7 +219,7 @@ async function createSceneSegment(input) {
         "+faststart",
         segmentPath,
       ]);
-      return segmentPath;
+      return { segmentPath, durationSec };
     }
   } catch (error) {
     await storageRepo.putJson(
@@ -227,7 +241,10 @@ async function createSceneSegment(input) {
       ? ["-i", voicePath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
     ...(hasVoice
-      ? ["-filter_complex", `[1:a]apad=pad_dur=${durationSec}[aout]`]
+      ? [
+          "-filter_complex",
+          `[1:a]apad=whole_dur=${durationSec}[aout]`,
+        ]
       : []),
     "-vf",
     hasAss ? subtitlesFilter(assPath) : "null",
@@ -253,7 +270,7 @@ async function createSceneSegment(input) {
     "+faststart",
     segmentPath,
   ]);
-  return segmentPath;
+  return { segmentPath, durationSec };
 }
 
 async function createGapSegment(input) {
@@ -376,10 +393,11 @@ export async function runRenderTask(input) {
   const subtitleSettings = resolveSubtitleSettings(renderPlan);
   const workDir = await fs.mkdtemp(path.join(tmpdir(), `render-${jobId}-`));
   const segmentInputs = [];
+  const scenes = renderPlan.scenes ?? [];
 
-  for (const scene of renderPlan.scenes ?? []) {
-    const durationSec = sceneDuration(scene);
-    const segmentPath = await createSceneSegment({
+  for (let index = 0; index < scenes.length; index += 1) {
+    const scene = scenes[index];
+    const { segmentPath, durationSec } = await createSceneSegment({
       jobId,
       scene,
       workDir,
@@ -396,6 +414,29 @@ export async function runRenderTask(input) {
       segmentPath,
       durationSec,
     });
+    const gapAfterSec = Number(scene.gapAfterSec ?? 0);
+    const hasNext = index < scenes.length - 1;
+    if (hasNext && gapAfterSec > 0.001) {
+      const gapPath = await createGapSegment({
+        jobId,
+        index: `after-${scene.sceneId}`,
+        durationSec: gapAfterSec,
+        workDir,
+        outputSettings,
+        canvasSettings,
+        previousSegmentPath: segmentPath,
+        storageRepo,
+        mediaToolsRepo,
+      });
+      segmentInputs.push({
+        scene: {
+          sceneId: `gap-after-${scene.sceneId}`,
+          startTransition: { type: "cut" },
+        },
+        segmentPath: gapPath,
+        durationSec: seconds(gapAfterSec),
+      });
+    }
   }
 
   if (!segmentInputs.length) {
@@ -413,10 +454,14 @@ export async function runRenderTask(input) {
     workDir,
     storageRepo,
   );
+  const stitchedDurationSec = segmentInputs.reduce(
+    (sum, entry) => sum + Number(entry.durationSec ?? 0),
+    0,
+  );
   await mixSoundtrack(
     concatenatedPath,
     soundtrackPath,
-    Number(renderPlan.totalDurationSec ?? 1),
+    Math.max(0.1, stitchedDurationSec),
     finalVideoPath,
     mediaToolsRepo,
   );

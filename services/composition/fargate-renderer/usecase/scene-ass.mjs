@@ -44,7 +44,7 @@ function escapeAssText(value) {
     .replace(/\\/g, "\\\\")
     .replace(/\{/g, "\\{")
     .replace(/\}/g, "\\}")
-    .replace(/\r?\n/g, "\\N");
+    .replace(/\r\n|\r|\n/g, "\\N");
 }
 
 function resolveSubtitleAlignment(position) {
@@ -125,6 +125,9 @@ function estimateTextUnits(value) {
   return [...String(value)].reduce((sum, char) => sum + estimateCharUnits(char), 0);
 }
 
+const MAX_SUBTITLE_DISPLAY_LINES = 2;
+const ELLIPSIS = "…";
+
 function splitLongToken(token, maxUnits) {
   const parts = [];
   let current = "";
@@ -146,11 +149,63 @@ function splitLongToken(token, maxUnits) {
   return parts;
 }
 
-function wrapTextToWidth(text, maxUnits) {
-  const normalized = String(text).replace(/\s+/g, " ").trim();
-  if (!normalized) {
+function truncateWithEllipsis(text, maxUnits) {
+  const trimmed = String(text).replace(/\s+/g, " ").trim();
+  if (!trimmed) {
     return "";
   }
+  if (estimateTextUnits(trimmed) <= maxUnits) {
+    return trimmed;
+  }
+  const ellUnits = estimateTextUnits(ELLIPSIS);
+  const budget = Math.max(1, maxUnits - ellUnits);
+  let low = 0;
+  let high = [...trimmed].length;
+  while (low < high) {
+    const mid = Math.ceil((low + high) / 2);
+    const slice = [...trimmed].slice(0, mid).join("");
+    if (estimateTextUnits(slice) <= budget) {
+      low = mid;
+    } else {
+      high = mid - 1;
+    }
+  }
+  const slice = [...trimmed].slice(0, low).join("").replace(/\s+$/, "");
+  return slice ? `${slice}${ELLIPSIS}` : ELLIPSIS;
+}
+
+function firstLineAndRestTokens(normalized, maxUnits) {
+  const tokens = normalized.split(" ");
+  let current = "";
+  let i = 0;
+  for (; i < tokens.length; i++) {
+    const token = tokens[i];
+    const candidate = current ? `${current} ${token}` : token;
+    if (estimateTextUnits(candidate) <= maxUnits) {
+      current = candidate;
+    } else {
+      break;
+    }
+  }
+  if (current) {
+    return { first: current, restTokens: tokens.slice(i) };
+  }
+  if (i >= tokens.length) {
+    return { first: "", restTokens: [] };
+  }
+  const token = tokens[i];
+  const pieces = splitLongToken(token, maxUnits);
+  const first = pieces[0] ?? "";
+  const tailFromWord = pieces.length > 1 ? pieces.slice(1).join("") : "";
+  const restTokens = [];
+  if (tailFromWord) {
+    restTokens.push(tailFromWord);
+  }
+  restTokens.push(...tokens.slice(i + 1));
+  return { first, restTokens };
+}
+
+function wrapTextToWidthUnlimited(normalized, maxUnits) {
   if (estimateTextUnits(normalized) <= maxUnits) {
     return normalized;
   }
@@ -175,14 +230,42 @@ function wrapTextToWidth(text, maxUnits) {
   if (current) {
     lines.push(current);
   }
-  return lines.join("\\N");
+  return lines.join("\n");
+}
+
+function wrapTextToWidth(text, maxUnits, maxLines = Number.POSITIVE_INFINITY) {
+  const normalized = String(text).replace(/\s+/g, " ").trim();
+  if (!normalized) {
+    return "";
+  }
+  if (!Number.isFinite(maxLines) || maxLines > 99) {
+    return wrapTextToWidthUnlimited(normalized, maxUnits);
+  }
+  if (maxLines < 1) {
+    return "";
+  }
+  if (maxLines === 1) {
+    return truncateWithEllipsis(normalized, maxUnits);
+  }
+  if (estimateTextUnits(normalized) <= maxUnits) {
+    return normalized;
+  }
+  if (maxLines === MAX_SUBTITLE_DISPLAY_LINES) {
+    const { first, restTokens } = firstLineAndRestTokens(normalized, maxUnits);
+    const rest = restTokens.join(" ").trim();
+    if (!rest) {
+      return first;
+    }
+    return `${first}\n${truncateWithEllipsis(rest, maxUnits)}`;
+  }
+  return wrapTextToWidthUnlimited(normalized, maxUnits);
 }
 
 function wrapSubtitleText(text, subtitleSettings, outputSettings) {
   const widthPx = outputSettings.width * Number(subtitleSettings.style.maxWidth ?? 0.88);
   const fontSize = Math.max(12, Number(subtitleSettings.style.fontSize ?? 32));
   const maxUnits = Math.max(6, Math.floor(widthPx / Math.max(fontSize * 0.9, 1)));
-  return wrapTextToWidth(text, maxUnits);
+  return wrapTextToWidth(text, maxUnits, MAX_SUBTITLE_DISPLAY_LINES);
 }
 
 function wrapOverlayText(text, overlay, outputSettings) {
@@ -223,9 +306,18 @@ function resolveOverlayMargins(overlay, outputSettings) {
   };
 }
 
-function getSceneTextOverlayEvents(scene, overlays, outputSettings) {
+function getSceneTextOverlayEvents(
+  scene,
+  overlays,
+  outputSettings,
+  renderedDurationSec,
+) {
   const sceneStartSec = Number(scene.startSec ?? 0);
-  const sceneEndSec = Number(scene.endSec ?? sceneDuration(scene));
+  const plannedEndSec = Number(scene.endSec ?? sceneStartSec + sceneDuration(scene));
+  const sceneEndSec = Math.min(
+    plannedEndSec,
+    sceneStartSec + Math.max(0.1, Number(renderedDurationSec)),
+  );
   return (Array.isArray(overlays) ? overlays : [])
     .filter((overlay) => overlay?.type === "text")
     .filter((overlay) => String(overlay.text ?? "").trim().length > 0)
@@ -291,9 +383,16 @@ export async function writeSceneAss(
   outputSettings,
   assPath,
   overlays = [],
+  renderedDurationSec = sceneDuration(scene),
 ) {
+  const safeRenderedDuration = Math.max(0.1, Number(renderedDurationSec));
   const subtitleSegments = normalizeSceneSubtitleSegments(scene);
-  const overlayEvents = getSceneTextOverlayEvents(scene, overlays, outputSettings);
+  const overlayEvents = getSceneTextOverlayEvents(
+    scene,
+    overlays,
+    outputSettings,
+    safeRenderedDuration,
+  );
   const alignment = resolveSubtitleAlignment(subtitleSettings.style.position);
   const posX = Math.round(
     outputSettings.width * (0.5 + subtitleSettings.style.offsetX),
@@ -306,14 +405,26 @@ export async function writeSceneAss(
   const subtitleEvents =
     !subtitleSettings.burnIn || subtitleSegments.length === 0
       ? []
-      : subtitleSegments.map((segment) => {
-          const segmentStartSec = Math.max(
-            0,
-            segment.startSec - Number(scene.startSec ?? 0),
-          );
+      : subtitleSegments.map((segment, segmentIndex) => {
+          const sceneStart = Number(scene.startSec ?? 0);
+          const segmentStartSec = Math.max(0, segment.startSec - sceneStart);
+          const plannedLocalEnd = segment.endSec - sceneStart;
+          const sceneEndGlobal = Number(scene.endSec ?? sceneStart + sceneDuration(scene));
+          const singleFullScene =
+            subtitleSegments.length === 1 && segmentStartSec <= 0.001;
+          const isLastSegment = segmentIndex === subtitleSegments.length - 1;
+          const lastSegmentThroughSceneEnd =
+            isLastSegment && segment.endSec >= sceneEndGlobal - 1e-3;
           const segmentEndSec = Math.max(
             segmentStartSec + 0.05,
-            segment.endSec - Number(scene.startSec ?? 0),
+            singleFullScene
+              ? safeRenderedDuration
+              : lastSegmentThroughSceneEnd
+                ? Math.min(
+                    safeRenderedDuration,
+                    Math.max(plannedLocalEnd, safeRenderedDuration),
+                  )
+                : Math.min(safeRenderedDuration, plannedLocalEnd),
           );
           return `Dialogue: 0,${formatAssTime(segmentStartSec)},${formatAssTime(segmentEndSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(wrapSubtitleText(segment.text, subtitleSettings, outputSettings))}`;
         });

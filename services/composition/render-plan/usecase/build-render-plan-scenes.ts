@@ -50,6 +50,7 @@ const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
     .filter((part) => part.length > 0);
 };
 
+/** Phrase-level segments; durations scale with character weight over the scene (voice) window. */
 const buildSubtitleSegments = (input: {
   subtitle: string;
   startSec: number;
