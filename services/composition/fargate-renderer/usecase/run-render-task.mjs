@@ -408,10 +408,15 @@ export async function runRenderTask(input) {
       storageRepo,
       mediaToolsRepo,
     });
+    const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
+    const segmentDurationSec =
+      typeof probedSeg === "number" && probedSeg > 0
+        ? seconds(probedSeg)
+        : durationSec;
     segmentInputs.push({
       scene,
       segmentPath,
-      durationSec,
+      durationSec: segmentDurationSec,
     });
     const gapAfterSec = Number(scene.gapAfterSec ?? 0);
     const hasNext = index < scenes.length - 1;
@@ -427,13 +432,18 @@ export async function runRenderTask(input) {
         storageRepo,
         mediaToolsRepo,
       });
+      const probedGap = await mediaToolsRepo.getMediaDurationSec(gapPath);
+      const gapDurationSec =
+        typeof probedGap === "number" && probedGap > 0
+          ? seconds(probedGap)
+          : seconds(gapAfterSec);
       segmentInputs.push({
         scene: {
           sceneId: `gap-after-${scene.sceneId}`,
           startTransition: { type: "cut" },
         },
         segmentPath: gapPath,
-        durationSec: seconds(gapAfterSec),
+        durationSec: gapDurationSec,
       });
     }
   }

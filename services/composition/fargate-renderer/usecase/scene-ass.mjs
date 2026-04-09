@@ -376,11 +376,9 @@ function getSceneTextOverlayEvents(
   renderedDurationSec,
 ) {
   const sceneStartSec = Number(scene.startSec ?? 0);
-  const plannedEndSec = Number(scene.endSec ?? sceneStartSec + sceneDuration(scene));
-  const sceneEndSec = Math.min(
-    plannedEndSec,
-    sceneStartSec + Math.max(0.1, Number(renderedDurationSec)),
-  );
+  /** Per-scene clip length (may exceed planned scene.endSec when TTS runs long). */
+  const sceneEndSec =
+    sceneStartSec + Math.max(0.1, Number(renderedDurationSec));
   return (Array.isArray(overlays) ? overlays : [])
     .filter((overlay) => overlay?.type === "text")
     .filter((overlay) => String(overlay.text ?? "").trim().length > 0)
@@ -451,6 +449,24 @@ export async function writeSceneAss(
 ) {
   const leadInSec = Math.max(0, Number(ttsLeadInSec) || 0);
   const safeRenderedDuration = Math.max(0.1, Number(renderedDurationSec));
+  const sceneStartGlobal = Number(scene.startSec ?? 0);
+  const sceneEndPlannedGlobal = Number(
+    scene.endSec ?? sceneStartGlobal + sceneDuration(scene),
+  );
+  const plannedSpanSec = Math.max(
+    1e-3,
+    sceneEndPlannedGlobal - sceneStartGlobal,
+  );
+  const outputContentSpanSec = Math.max(
+    1e-3,
+    safeRenderedDuration - leadInSec,
+  );
+  /** Map global plan times into local ASS timeline [leadIn, safeRendered]. */
+  const mapPlanGlobalToAssLocal = (globalSec) => {
+    const u = (globalSec - sceneStartGlobal) / plannedSpanSec;
+    const clampedU = Math.max(0, Math.min(1, u));
+    return leadInSec + clampedU * outputContentSpanSec;
+  };
   const subtitleSegments = normalizeSceneSubtitleSegments(scene);
   const overlayEvents = getSceneTextOverlayEvents(
     scene,
@@ -472,27 +488,21 @@ export async function writeSceneAss(
     !subtitleSettings.burnIn || subtitleSegments.length === 0
       ? []
       : subtitleSegments.flatMap((segment) => {
-          const sceneStart = Number(scene.startSec ?? 0);
-          const rawLocalStart = segment.startSec - sceneStart;
-          const segmentStartSec = Math.max(0, rawLocalStart + leadInSec);
-          const plannedLocalEnd = segment.endSec - sceneStart + leadInSec;
-          const sceneEndGlobal = Number(scene.endSec ?? sceneStart + sceneDuration(scene));
-          const singleFullScene =
-            subtitleSegments.length === 1 && rawLocalStart <= 0.001;
+          const segmentStartSec = Math.max(
+            0,
+            mapPlanGlobalToAssLocal(segment.startSec),
+          );
+          const mappedEnd = mapPlanGlobalToAssLocal(segment.endSec);
           const lastSegment = subtitleSegments[subtitleSegments.length - 1];
           const isLastSegment = Boolean(lastSegment && segment === lastSegment);
-          const lastSegmentThroughSceneEnd =
-            isLastSegment && segment.endSec >= sceneEndGlobal - 1e-3;
+          const singleFullScene =
+            subtitleSegments.length === 1 &&
+            segment.startSec <= sceneStartGlobal + 1e-3;
           const segmentEndSec = Math.max(
             segmentStartSec + 0.05,
-            singleFullScene
+            singleFullScene || isLastSegment
               ? safeRenderedDuration
-              : lastSegmentThroughSceneEnd
-                ? Math.min(
-                    safeRenderedDuration,
-                    Math.max(plannedLocalEnd, safeRenderedDuration),
-                  )
-                : Math.min(safeRenderedDuration, plannedLocalEnd),
+              : Math.min(safeRenderedDuration, mappedEnd),
           );
           const trimmed = String(segment.text ?? "").trim();
           if (!trimmed) {
