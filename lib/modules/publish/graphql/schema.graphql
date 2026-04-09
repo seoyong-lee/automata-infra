@@ -354,10 +354,23 @@ type RenderTextOverlay {
 type RenderImageOverlay {
   overlayId: ID!
   src: String!
+  """
+  Full-frame canvas: left edge X, normalized 0–1.
+  """
   x: Float!
+  """
+  Full-frame canvas: top edge Y, normalized 0–1.
+  """
   y: Float!
+  """
+  Box width on the full output frame, normalized 0–1.
+  """
   width: Float!
-  height: Float!
+  """
+  Box height on the full output frame, normalized 0–1.
+  If omitted, height follows the image aspect ratio for the given width (Fargate ffprobe).
+  """
+  height: Float
   opacity: Float
   fit: String
   zIndex: Int
@@ -1039,10 +1052,23 @@ input RenderTextOverlayInput {
 input RenderImageOverlayInput {
   overlayId: ID!
   src: String!
+  """
+  Full-frame canvas: left edge X, normalized 0–1.
+  """
   x: Float!
+  """
+  Full-frame canvas: top edge Y, normalized 0–1.
+  """
   y: Float!
+  """
+  Box width on the full output frame, normalized 0–1.
+  """
   width: Float!
-  height: Float!
+  """
+  Box height on the full output frame, normalized 0–1.
+  Omit to keep intrinsic aspect ratio for width.
+  """
+  height: Float
   opacity: Float
   fit: String
   zIndex: Int

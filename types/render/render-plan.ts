@@ -89,12 +89,20 @@ export const renderPlanOverlayTimingSchema = z.object({
   endSec: z.number().min(0).optional(),
 });
 
+export const renderPlanImagePlacementSchema = z.object({
+  x: normalizedScalarSchema,
+  y: normalizedScalarSchema,
+  width: normalizedSizeSchema,
+  /** When omitted, Fargate derives pixel height from intrinsic aspect ratio and width. */
+  height: normalizedSizeSchema.optional(),
+});
+
 export const renderPlanImageOverlaySchema = z
   .object({
     overlayId: z.string().trim().min(1),
     type: z.literal("image"),
     src: z.string().trim().min(1),
-    placement: renderPlanOverlayPlacementSchema,
+    placement: renderPlanImagePlacementSchema,
     opacity: z.number().min(0).max(1).optional(),
     zIndex: z.number().int().optional(),
     fit: z.enum(["contain", "cover", "stretch"]).optional(),

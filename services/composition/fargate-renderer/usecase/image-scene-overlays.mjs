@@ -1,3 +1,4 @@
+import { execFileSync } from "node:child_process";
 import path from "node:path";
 import { toFfmpegColor } from "../normalize/render-plan.mjs";
 import { subtitlesFilter } from "./scene-ass.mjs";
@@ -58,6 +59,39 @@ export function visualBaseFilter(outputSettings, canvasSettings, mediaFrameSetti
 
 function formatExprFloat(value) {
   return Number(value).toFixed(4);
+}
+
+/**
+ * @param {string} filePath
+ * @returns { { w: number, h: number } | null }
+ */
+function probeImageSize(filePath) {
+  try {
+    const out = execFileSync(
+      "ffprobe",
+      [
+        "-v",
+        "error",
+        "-select_streams",
+        "v:0",
+        "-show_entries",
+        "stream=width,height",
+        "-of",
+        "csv=p=0:s=x",
+        filePath,
+      ],
+      { encoding: "utf8", maxBuffer: 1024 * 1024 },
+    );
+    const parts = out.trim().split("x");
+    const w = Number(parts[0]);
+    const h = Number(parts[1]);
+    if (!Number.isFinite(w) || !Number.isFinite(h) || w < 1 || h < 1) {
+      return null;
+    }
+    return { w, h };
+  } catch {
+    return null;
+  }
 }
 
 function buildOverlayScaleChain(pw, ph, fit, opacity) {
@@ -127,20 +161,35 @@ export async function prepareSceneImageOverlays({
     }
     const localStart = activeStart - clipGlobalStart;
     const localEnd = activeEnd - clipGlobalStart;
-    const pw = Math.max(
-      2,
-      Math.round(Number(overlay.placement?.width ?? 0.2) * wOut),
-    );
-    const ph = Math.max(
-      2,
-      Math.round(Number(overlay.placement?.height ?? 0.2) * hOut),
-    );
-    const px = Math.round(Number(overlay.placement?.x ?? 0) * wOut);
-    const py = Math.round(Number(overlay.placement?.y ?? 0) * hOut);
     const ext = path.extname(src) || ".png";
     const safeId = String(overlay.overlayId).replace(/[^a-zA-Z0-9_-]/g, "_");
     const localPath = path.join(workDir, `overlay-${sceneKey}-${safeId}${ext}`);
     await storageRepo.downloadObject(src, localPath);
+    const pw = Math.max(
+      2,
+      Math.round(Number(overlay.placement?.width ?? 0.2) * wOut),
+    );
+    const normH = overlay.placement?.height;
+    let ph;
+    if (
+      normH !== undefined &&
+      normH !== null &&
+      Number.isFinite(Number(normH)) &&
+      Number(normH) > 0
+    ) {
+      ph = Math.max(2, Math.round(Number(normH) * hOut));
+    } else {
+      const dim = probeImageSize(localPath);
+      if (dim && dim.w > 0) {
+        ph = Math.max(2, Math.round((pw * dim.h) / dim.w));
+      } else {
+        ph = Math.max(2, Math.round(0.2 * hOut));
+      }
+    }
+    let px = Math.round(Number(overlay.placement?.x ?? 0) * wOut);
+    let py = Math.round(Number(overlay.placement?.y ?? 0) * hOut);
+    py = Math.min(hOut - ph, Math.max(0, py));
+    px = Math.min(wOut - pw, Math.max(0, px));
     rows.push({
       localPath,
       px,

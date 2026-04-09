@@ -323,26 +323,55 @@ const buildUserImageOverlays = (
   if (!list?.length) {
     return [];
   }
-  return list.map((overlay) => ({
-    overlayId: overlay.overlayId,
-    type: "image" as const,
-    src: overlay.src,
-    placement: {
-      x: Math.min(1 - overlay.width, Math.max(0, overlay.x)),
-      y: Math.min(1 - overlay.height, Math.max(0, overlay.y)),
-      width: overlay.width,
-      height: overlay.height,
-    },
-    ...(typeof overlay.opacity === "number"
-      ? { opacity: overlay.opacity }
-      : {}),
-    ...(overlay.fit ? { fit: overlay.fit } : {}),
-    zIndex: overlay.zIndex ?? 6,
-    ...(typeof overlay.startSec === "number"
-      ? { startSec: overlay.startSec }
-      : {}),
-    ...(typeof overlay.endSec === "number" ? { endSec: overlay.endSec } : {}),
-  }));
+  return list.map((overlay) => {
+    const w = overlay.width;
+    const h = overlay.height;
+    const x = Math.min(1 - w, Math.max(0, overlay.x));
+    const y =
+      typeof h === "number"
+        ? Math.min(1 - h, Math.max(0, overlay.y))
+        : Math.min(1, Math.max(0, overlay.y));
+    return {
+      overlayId: overlay.overlayId,
+      type: "image" as const,
+      src: overlay.src,
+      placement: {
+        x,
+        y,
+        width: w,
+        ...(typeof h === "number" ? { height: h } : {}),
+      },
+      ...(typeof overlay.opacity === "number"
+        ? { opacity: overlay.opacity }
+        : {}),
+      ...(overlay.fit ? { fit: overlay.fit } : {}),
+      zIndex: overlay.zIndex ?? 6,
+      ...(typeof overlay.startSec === "number"
+        ? { startSec: overlay.startSec }
+        : {}),
+      ...(typeof overlay.endSec === "number" ? { endSec: overlay.endSec } : {}),
+    };
+  });
+};
+
+const mergeRenderPlanOverlays = (
+  defaultOverlays: RenderPlanOverlay[],
+  eventOverlays: RenderPlanOverlay[] | undefined,
+): RenderPlanOverlay[] => {
+  const extra = eventOverlays ?? [];
+  const combined =
+    extra.length > 0 ? [...defaultOverlays, ...extra] : defaultOverlays;
+  return combined
+    .map((overlay, index) => ({ overlay, index }))
+    .sort((a, b) => {
+      const za = a.overlay.zIndex ?? 0;
+      const zb = b.overlay.zIndex ?? 0;
+      if (za !== zb) {
+        return za - zb;
+      }
+      return a.index - b.index;
+    })
+    .map(({ overlay }) => overlay);
 };
 
 const buildDefaultOverlays = (
@@ -488,10 +517,10 @@ export const buildRenderPlan = (
     subtitles: config.subtitles,
     totalDurationSec: builtScenes.totalDurationSec,
     scenes: builtScenes.scenes,
-    overlays:
-      event.overlays && event.overlays.length > 0
-        ? event.overlays
-        : config.defaultOverlays,
+    overlays: mergeRenderPlanOverlays(
+      config.defaultOverlays,
+      event.overlays,
+    ),
     soundtrackMood: resolveSoundtrackMood(event),
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };

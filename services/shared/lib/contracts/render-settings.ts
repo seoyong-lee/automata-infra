@@ -38,7 +38,8 @@ export const jobRenderTextOverlaySchema = z
   })
   .strict();
 
-const overlayBoxScalarSchema = z.number().min(0.05).max(1);
+/** Normalized width/height of the overlay box on the full output frame (not the video inset). */
+const overlayBoxScalarSchema = z.number().min(0.01).max(1);
 
 export const jobRenderImageOverlaySchema = z
   .object({
@@ -48,7 +49,8 @@ export const jobRenderImageOverlaySchema = z
     x: normalizedFrameScalarSchema,
     y: normalizedFrameScalarSchema,
     width: overlayBoxScalarSchema,
-    height: overlayBoxScalarSchema,
+    /** Omit to preserve intrinsic aspect ratio for the given normalized width. */
+    height: overlayBoxScalarSchema.optional(),
     opacity: z.number().min(0).max(1).optional(),
     fit: z.enum(["contain", "cover", "stretch"]).optional(),
     zIndex: z.number().int().optional(),
