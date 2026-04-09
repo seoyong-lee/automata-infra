@@ -44,6 +44,9 @@ const DEFAULT_MODEL_ID = "eleven_multilingual_v2";
 const DEFAULT_SPEED = 1;
 const MIN_VOICE_SPEED = 0.7;
 const MAX_VOICE_SPEED = 1.2;
+/** ElevenLabs `voice_settings`: stability, similarity_boost, style — API는 [0, 1]만 허용 */
+const MIN_VOICE_UNIT = 0;
+const MAX_VOICE_UNIT = 1;
 const ESTIMATED_SPOKEN_CHARS_PER_SEC = 4.5;
 
 const clamp = (value: number, min: number, max: number): number =>
@@ -83,6 +86,29 @@ const resolveVoiceSettings = (
   const resolved = { ...baseSettings };
   if (typeof resolved.speed === "number" && Number.isFinite(resolved.speed)) {
     resolved.speed = clamp(resolved.speed, MIN_VOICE_SPEED, MAX_VOICE_SPEED);
+  }
+  if (
+    typeof resolved.stability === "number" &&
+    Number.isFinite(resolved.stability)
+  ) {
+    resolved.stability = clamp(
+      resolved.stability,
+      MIN_VOICE_UNIT,
+      MAX_VOICE_UNIT,
+    );
+  }
+  if (
+    typeof resolved.similarityBoost === "number" &&
+    Number.isFinite(resolved.similarityBoost)
+  ) {
+    resolved.similarityBoost = clamp(
+      resolved.similarityBoost,
+      MIN_VOICE_UNIT,
+      MAX_VOICE_UNIT,
+    );
+  }
+  if (typeof resolved.style === "number" && Number.isFinite(resolved.style)) {
+    resolved.style = clamp(resolved.style, MIN_VOICE_UNIT, MAX_VOICE_UNIT);
   }
   return Object.values(resolved).some((value) => value !== undefined)
     ? resolved
@@ -349,9 +375,8 @@ export const generateSceneVoice = async (
   const apiKey = await loadElevenLabsApiKey(input.secretId);
   const { candidateId, createdAt, audioKey, rawKey } =
     createVoiceCandidateMeta(input);
-  const { resolvedVoiceId, resolvedModelId, endpoint } = resolveVoiceConfig(
-    input,
-  );
+  const { resolvedVoiceId, resolvedModelId, endpoint } =
+    resolveVoiceConfig(input);
   const resolvedVoiceSettings = resolveVoiceSettings(input);
   const estimatedDurationSec = estimateResolvedVoiceDurationSec(
     input.text,

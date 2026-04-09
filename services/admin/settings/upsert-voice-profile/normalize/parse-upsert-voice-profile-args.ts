@@ -57,6 +57,23 @@ const parseOptionalSpeed = (value: unknown): number | undefined => {
   return parsed;
 };
 
+/** ElevenLabs voice_settings: stability, similarity_boost, style — [0, 1] */
+const parseOptionalElevenLabsUnit = (
+  value: unknown,
+  field: string,
+): number | undefined => {
+  const parsed = parseOptionalNumber(value, field);
+  if (parsed === undefined) {
+    return undefined;
+  }
+  if (parsed < 0 || parsed > 1) {
+    throw badUserInput(
+      `${field} must be between 0 and 1 for ElevenLabs (received ${parsed})`,
+    );
+  }
+  return parsed;
+};
+
 export const parseUpsertVoiceProfileArgs = (
   args: Record<string, unknown>,
 ): ParsedUpsertVoiceProfileArgs => {
@@ -87,12 +104,12 @@ export const parseUpsertVoiceProfileArgs = (
     description: parseOptionalString(input.description),
     language: parseOptionalString(input.language),
     speed: parseOptionalSpeed(input.speed),
-    stability: parseOptionalNumber(input.stability, "stability"),
-    similarityBoost: parseOptionalNumber(
+    stability: parseOptionalElevenLabsUnit(input.stability, "stability"),
+    similarityBoost: parseOptionalElevenLabsUnit(
       input.similarityBoost,
       "similarityBoost",
     ),
-    style: parseOptionalNumber(input.style, "style"),
+    style: parseOptionalElevenLabsUnit(input.style, "style"),
     useSpeakerBoost:
       typeof input.useSpeakerBoost === "boolean"
         ? input.useSpeakerBoost
