@@ -3,6 +3,7 @@ import * as ec2 from "aws-cdk-lib/aws-ec2";
 import * as ecrassets from "aws-cdk-lib/aws-ecr-assets";
 import * as ecs from "aws-cdk-lib/aws-ecs";
 import * as logs from "aws-cdk-lib/aws-logs";
+import * as secretsmanager from "aws-cdk-lib/aws-secretsmanager";
 import * as s3 from "aws-cdk-lib/aws-s3";
 import { Construct } from "constructs";
 
@@ -19,6 +20,10 @@ export type WorkflowRenderInfrastructure = {
 type CreateWorkflowRenderInfrastructureProps = {
   projectPrefix: string;
   assetsBucket: s3.Bucket;
+  /** Secrets Manager secret name; plain-text Netscape cookies file body → env `YT_DLP_COOKIES` */
+  youtubeYtDlpCookiesSecretId?: string;
+  /** Assets bucket object key for Netscape cookies file → env `YT_DLP_COOKIES_S3_KEY` */
+  ytDlpCookiesS3Key?: string;
 };
 
 export const createWorkflowRenderInfrastructure = (
@@ -66,6 +71,13 @@ export const createWorkflowRenderInfrastructure = (
   const logGroup = new logs.LogGroup(scope, "FargateRenderLogGroup", {
     logGroupName: `/aws/ecs/${props.projectPrefix}-fargate-renderer`,
   });
+  const youtubeYtDlpCookiesSecret = props.youtubeYtDlpCookiesSecretId
+    ? secretsmanager.Secret.fromSecretNameV2(
+        scope,
+        "YoutubeYtDlpCookiesSecret",
+        props.youtubeYtDlpCookiesSecretId,
+      )
+    : undefined;
   taskDefinition.addContainer("RendererContainer", {
     containerName,
     image: ecs.ContainerImage.fromAsset(process.cwd(), {
@@ -77,13 +89,7 @@ export const createWorkflowRenderInfrastructure = (
       ),
       platform: ecrassets.Platform.LINUX_AMD64,
       // Repo-root context: exclude .git so CDK hashing does not race on .git/index.lock (ENOENT during synth/deploy).
-      exclude: [
-        ".git",
-        "cdk.out",
-        "cdk.out-ts",
-        "node_modules",
-        ".cursor",
-      ],
+      exclude: [".git", "cdk.out", "cdk.out-ts", "node_modules", ".cursor"],
     }),
     logging: ecs.LogDrivers.awsLogs({
       logGroup,
@@ -91,7 +97,19 @@ export const createWorkflowRenderInfrastructure = (
     }),
     environment: {
       ASSETS_BUCKET_NAME: props.assetsBucket.bucketName,
+      ...(props.ytDlpCookiesS3Key
+        ? { YT_DLP_COOKIES_S3_KEY: props.ytDlpCookiesS3Key }
+        : {}),
     },
+    ...(youtubeYtDlpCookiesSecret
+      ? {
+          secrets: {
+            YT_DLP_COOKIES: ecs.Secret.fromSecretsManager(
+              youtubeYtDlpCookiesSecret,
+            ),
+          },
+        }
+      : {}),
   });
   props.assetsBucket.grantReadWrite(taskDefinition.taskRole);
   return {

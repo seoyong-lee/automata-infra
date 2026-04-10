@@ -76,6 +76,9 @@ const resolveFargateConfig = (
     const renderInfra = createWorkflowRenderInfrastructure(scope, {
       projectPrefix: props.projectPrefix,
       assetsBucket,
+      youtubeYtDlpCookiesSecretId:
+        props.envConfig.youtubeYtDlpCookiesSecretId?.trim(),
+      ytDlpCookiesS3Key: props.envConfig.youtubeYtDlpCookiesS3Key?.trim(),
     });
     return {
       clusterArn: renderInfra.cluster.clusterArn,

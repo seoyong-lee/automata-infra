@@ -22,6 +22,32 @@ async function runYtDlp(args, cwd) {
   }
 }
 
+/**
+ * YouTube often blocks datacenter IPs unless yt-dlp sends logged-in cookies.
+ * S3 key takes precedence over env `YT_DLP_COOKIES` (Secrets Manager injection).
+ */
+async function resolveYoutubeCookiesPath(workDir, storageRepo) {
+  const s3Key = process.env.YT_DLP_COOKIES_S3_KEY?.trim();
+  const cookieFile = path.join(workDir, "youtube-cookies.txt");
+  if (s3Key) {
+    await storageRepo.downloadObject(s3Key, cookieFile);
+    return cookieFile;
+  }
+  const fromEnv = process.env.YT_DLP_COOKIES;
+  if (fromEnv !== undefined && String(fromEnv).length > 0) {
+    await fs.writeFile(cookieFile, fromEnv, "utf8");
+    return cookieFile;
+  }
+  return undefined;
+}
+
+function withYoutubeCookies(args, cookiesPath) {
+  if (!cookiesPath) {
+    return args;
+  }
+  return ["--cookies", cookiesPath, ...args];
+}
+
 async function listVttFiles(workDir) {
   const entries = await fs.readdir(workDir);
   const candidates = await Promise.all(
@@ -103,23 +129,31 @@ export async function extractYoutubeTranscript(input) {
     : `assets/${input.jobId}/transcript/scene-${input.sceneId}/youtube`;
 
   try {
+    const cookiesPath = await resolveYoutubeCookiesPath(
+      workDir,
+      input.storageRepo,
+    );
+
     await runYtDlp(
-      [
-        "--skip-download",
-        "--no-progress",
-        "--no-warnings",
-        "--no-playlist",
-        "--restrict-filenames",
-        "--write-subs",
-        "--write-auto-subs",
-        "--sub-format",
-        "vtt",
-        "--sub-langs",
-        buildSubtitleLangs(input.preferredLanguage),
-        "--output",
-        `${baseName}.%(ext)s`,
-        input.youtubeUrl,
-      ],
+      withYoutubeCookies(
+        [
+          "--skip-download",
+          "--no-progress",
+          "--no-warnings",
+          "--no-playlist",
+          "--restrict-filenames",
+          "--write-subs",
+          "--write-auto-subs",
+          "--sub-format",
+          "vtt",
+          "--sub-langs",
+          buildSubtitleLangs(input.preferredLanguage),
+          "--output",
+          `${baseName}.%(ext)s`,
+          input.youtubeUrl,
+        ],
+        cookiesPath,
+      ),
       workDir,
     );
 
@@ -145,18 +179,21 @@ export async function extractYoutubeTranscript(input) {
     }
 
     await runYtDlp(
-      [
-        "--extract-audio",
-        "--audio-format",
-        "m4a",
-        "--no-progress",
-        "--no-warnings",
-        "--no-playlist",
-        "--restrict-filenames",
-        "--output",
-        `${baseName}.%(ext)s`,
-        input.youtubeUrl,
-      ],
+      withYoutubeCookies(
+        [
+          "--extract-audio",
+          "--audio-format",
+          "m4a",
+          "--no-progress",
+          "--no-warnings",
+          "--no-playlist",
+          "--restrict-filenames",
+          "--output",
+          `${baseName}.%(ext)s`,
+          input.youtubeUrl,
+        ],
+        cookiesPath,
+      ),
       workDir,
     );
     const audioCandidates = await listAudioFiles(workDir);

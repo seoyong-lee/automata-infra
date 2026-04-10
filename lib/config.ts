@@ -32,6 +32,16 @@ export type VideoFactoryEnvConfig = {
   googleOAuthSecretId?: string;
   /** YouTube Data API v3 브라우저/서버 키 — JSON `{ "apiKey": "..." }` in Secrets Manager */
   youtubeDataApiSecretId?: string;
+  /**
+   * Netscape 형식 쿠키 파일 본문을 담은 Secrets Manager 시크릿 이름 (Fargate yt-dlp용).
+   * ECS 컨테이너 환경변수 `YT_DLP_COOKIES`로 주입됩니다.
+   */
+  youtubeYtDlpCookiesSecretId?: string;
+  /**
+   * 에셋 버킷 내 Netscape 쿠키 파일 S3 키 (예: `config/yt-dlp-youtube-cookies.txt`).
+   * 설정 시 Secrets Manager 주입보다 우선합니다.
+   */
+  youtubeYtDlpCookiesS3Key?: string;
   youtubeSecrets?: Record<string, string>;
   channelConfigs?: Record<
     string,

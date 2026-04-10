@@ -81,6 +81,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.googleOAuthSecretId ?? `${projectPrefix}/google-oauth-admin`,
   youtubeDataApiSecretId:
     envConfig.youtubeDataApiSecretId ?? `${projectPrefix}/youtube`,
+  youtubeYtDlpCookiesSecretId: envConfig.youtubeYtDlpCookiesSecretId,
+  youtubeYtDlpCookiesS3Key: envConfig.youtubeYtDlpCookiesS3Key,
   youtubeSecrets: envConfig.youtubeSecrets ?? {},
   channelConfigs: envConfig.channelConfigs ?? {},
 };
