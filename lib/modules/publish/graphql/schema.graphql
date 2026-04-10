@@ -48,6 +48,13 @@ type Query {
   listYoutubeChannelsForSecret(
     input: ListYoutubeChannelsForSecretInput!
   ): [YoutubeChannelForSecret!]!
+  """
+  채널(contentId) 하위 잡 중 출고 대기 단계만 반환한다. 잡 메타 상태로부터 파생한다.
+  """
+  channelPublishQueue(
+    contentId: ID!
+    limit: Int
+  ): ChannelPublishQueueConnection!
 }
 
 type Mutation {
@@ -1812,6 +1819,11 @@ type ChannelPublishQueueItem {
   큐 적재 시 생성된 플랫폼별 발행 타깃(레거시 행은 빈 배열).
   """
   publishTargets: [PublishTarget!]!
+}
+
+type ChannelPublishQueueConnection {
+  items: [ChannelPublishQueueItem!]!
+  nextToken: String
 }
 
 input EnqueueToChannelPublishQueueInput {

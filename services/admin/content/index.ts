@@ -1,4 +1,5 @@
 import { Handler } from "aws-lambda";
+import { run as channelPublishQueue } from "./channel-publish-queue";
 import { run as attachJobToContent } from "./attach-job-to-content";
 import { run as createContent } from "./create-content";
 import { run as deleteContent } from "./delete-content";
@@ -15,6 +16,7 @@ import { type GroupedGraphqlResolverEvent } from "../shared/graphql-event";
 
 const routes: GroupedResolverRoutes = {
   adminContents: listContents,
+  channelPublishQueue,
   listYoutubeChannelsForSecret,
   createContent,
   updateContent,

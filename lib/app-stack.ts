@@ -432,6 +432,7 @@ export class AppStack extends Stack {
     const approvePipelineExecutionResolver = pipelineHandler;
 
     const listContentsResolver = contentHandler;
+    const channelPublishQueueResolver = contentHandler;
     const createContentResolver = contentHandler;
     const deleteContentResolver = contentHandler;
     const updateContentResolver = contentHandler;
@@ -626,6 +627,7 @@ export class AppStack extends Stack {
       userPool: auth.userPool,
       listContentsResolver,
       listYoutubeChannelsForSecretResolver: contentHandler,
+      channelPublishQueueResolver,
       listJobsResolver,
       getJobResolver,
       jobTimelineResolver,
