@@ -1,4 +1,9 @@
-export function createRenderTaskResult({ jobId, renderId, renderedAt }) {
+export function createRenderTaskResult({
+  jobId,
+  renderId,
+  renderedAt,
+  debugMp4BundlePrefix,
+}) {
   return {
     finalVideoS3Key: `rendered/${jobId}/history/${renderId}/final.mp4`,
     previewS3Key: `previews/${jobId}/history/${renderId}/preview.mp4`,
@@ -6,6 +11,9 @@ export function createRenderTaskResult({ jobId, renderId, renderedAt }) {
     provider: "fargate-ffmpeg",
     artifactsStored: true,
     renderedAt,
+    ...(typeof debugMp4BundlePrefix === "string" && debugMp4BundlePrefix
+      ? { debugMp4BundlePrefix }
+      : {}),
   };
 }
 

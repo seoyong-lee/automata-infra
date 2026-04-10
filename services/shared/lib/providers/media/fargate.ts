@@ -71,6 +71,18 @@ const requireEnv = (name: string): string => {
   return value;
 };
 
+/** Forwards Lambda env into the renderer container (RunTask overrides). */
+const fargateDebugMp4BundleOverride = (): Array<{
+  name: string;
+  value: string;
+}> => {
+  const v = process.env.FARGATE_DEBUG_MP4_BUNDLE?.trim().toLowerCase();
+  if (v === "1" || v === "true" || v === "yes") {
+    return [{ name: "FARGATE_DEBUG_MP4_BUNDLE", value: "1" }];
+  }
+  return [];
+};
+
 const getTaskConfig = () => {
   return {
     clusterArn: requireEnv("FARGATE_RENDER_CLUSTER_ARN"),
@@ -307,6 +319,7 @@ export const composeWithFargate = async (input: {
     containerEnvironment: [
       { name: "TASK_MODE", value: "RENDER" },
       { name: "RENDER_PLAN_S3_KEY", value: renderPlanS3Key },
+      ...fargateDebugMp4BundleOverride(),
     ],
   });
   const typedResult = result as FargateCompositionResult;

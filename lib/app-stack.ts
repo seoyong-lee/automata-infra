@@ -183,6 +183,9 @@ export class AppStack extends Stack {
       ),
       PREVIEW_DISTRIBUTION_DOMAIN:
         this.previewDistribution.distributionDomainName,
+      ...(props.envConfig.fargateDebugMp4Bundle
+        ? { FARGATE_DEBUG_MP4_BUNDLE: "1" }
+        : {}),
     };
 
     const pipelineHandler = createLambda(

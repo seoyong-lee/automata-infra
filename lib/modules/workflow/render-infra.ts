@@ -76,6 +76,14 @@ export const createWorkflowRenderInfrastructure = (
         "Dockerfile",
       ),
       platform: ecrassets.Platform.LINUX_AMD64,
+      // Repo-root context: exclude .git so CDK hashing does not race on .git/index.lock (ENOENT during synth/deploy).
+      exclude: [
+        ".git",
+        "cdk.out",
+        "cdk.out-ts",
+        "node_modules",
+        ".cursor",
+      ],
     }),
     logging: ecs.LogDrivers.awsLogs({
       logGroup,

@@ -18,6 +18,7 @@
   "defaultContentId": "history-en",
   "defaultLanguage": "en",
   "enableFargateComposition": true,
+  "fargateDebugMp4Bundle": true,
   "byteplusImageSecretId": "automata-studio/byteplus-image",
   "byteplusVideoSecretId": "automata-studio/byteplus-video",
   "runwaySecretId": "automata-studio/runway",

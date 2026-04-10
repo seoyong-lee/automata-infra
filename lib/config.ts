@@ -20,6 +20,8 @@ export type VideoFactoryEnvConfig = {
   channelId?: string;
   defaultLanguage: string;
   enableFargateComposition: boolean;
+  /** When true, composition Lambdas set FARGATE_DEBUG_MP4_BUNDLE for Fargate (extra MP4s under debug/{jobId}/…). */
+  fargateDebugMp4Bundle?: boolean;
   byteplusImageSecretId?: string;
   byteplusVideoSecretId?: string;
   pexelsSecretId?: string;

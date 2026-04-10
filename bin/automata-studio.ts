@@ -65,6 +65,7 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.defaultContentId ?? envConfig.channelId ?? "history-en",
   defaultLanguage: envConfig.defaultLanguage ?? "en",
   enableFargateComposition: envConfig.enableFargateComposition ?? false,
+  fargateDebugMp4Bundle: envConfig.fargateDebugMp4Bundle ?? false,
   byteplusImageSecretId:
     envConfig.byteplusImageSecretId ?? `${projectPrefix}/byteplus-image`,
   byteplusVideoSecretId:

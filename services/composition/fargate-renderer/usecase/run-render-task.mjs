@@ -1,3 +1,4 @@
+import { randomBytes } from "node:crypto";
 import { tmpdir } from "node:os";
 import path from "node:path";
 import { promises as fs } from "node:fs";
@@ -32,6 +33,47 @@ import {
 const VOICE_TAIL_PAD_SEC = 0.15;
 /** Silence before TTS starts (avoids perceived fade-in at scene cut). */
 const TTS_LEAD_IN_SEC = 0.5;
+
+function isDebugMp4BundleEnabled() {
+  const v = process.env.FARGATE_DEBUG_MP4_BUNDLE?.trim().toLowerCase();
+  return v === "1" || v === "true" || v === "yes";
+}
+
+/**
+ * Uploads segment MP4s, combined, and final under `debug/{jobId}/{bundleId}/` (unique bundleId per run).
+ * Enable with env `FARGATE_DEBUG_MP4_BUNDLE=1` for CDN vs pipeline triage (presigned URLs).
+ */
+async function uploadDebugMp4Bundle({ jobId, bundleId, storageRepo, files }) {
+  const base = `debug/${jobId}/${bundleId}`;
+  const keys = [];
+  const errors = [];
+  for (const { localPath, objectName } of files) {
+    try {
+      await fs.access(localPath);
+      const key = `${base}/${objectName}`;
+      await storageRepo.uploadFile(key, localPath, "video/mp4");
+      keys.push(key);
+    } catch (error) {
+      errors.push({
+        objectName,
+        message: error instanceof Error ? error.message : String(error),
+      });
+    }
+  }
+  try {
+    await storageRepo.putJson(`${base}/manifest.json`, {
+      jobId,
+      bundleId,
+      basePrefix: base,
+      at: new Date().toISOString(),
+      keys,
+      errors,
+    });
+  } catch {
+    // best-effort manifest
+  }
+  return base;
+}
 
 function extractFilterComplexFromFfmpegArgs(args) {
   const i = args.indexOf("-filter_complex");
@@ -143,6 +185,7 @@ async function createSceneSegment(input) {
     overlays,
     durationSec,
     hasVoice ? TTS_LEAD_IN_SEC : 0,
+    { jobId, storageRepo },
   );
   const vf = visualFilter(
     outputSettings,
@@ -631,6 +674,26 @@ export async function runRenderTask(input) {
     finalVideoPath,
     mediaToolsRepo,
   );
+
+  let debugMp4BundlePrefix;
+  if (isDebugMp4BundleEnabled()) {
+    const bundleId = `${Date.now()}-${randomBytes(4).toString("hex")}`;
+    const segmentFiles = segmentInputs.map(({ segmentPath }) => ({
+      localPath: segmentPath,
+      objectName: path.basename(segmentPath),
+    }));
+    debugMp4BundlePrefix = await uploadDebugMp4Bundle({
+      jobId,
+      bundleId,
+      storageRepo,
+      files: [
+        ...segmentFiles,
+        { localPath: concatenatedPath, objectName: "combined.mp4" },
+        { localPath: finalVideoPath, objectName: "final.mp4" },
+      ],
+    });
+  }
+
   await createPreview(finalVideoPath, renderPlan, previewPath, mediaToolsRepo);
   await createThumbnail(finalVideoPath, renderPlan, thumbnailPath, mediaToolsRepo);
 
@@ -640,6 +703,7 @@ export async function runRenderTask(input) {
     jobId,
     renderId,
     renderedAt,
+    ...(debugMp4BundlePrefix ? { debugMp4BundlePrefix } : {}),
   });
 
   await storageRepo.uploadFile(result.finalVideoS3Key, finalVideoPath, "video/mp4");

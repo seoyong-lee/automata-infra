@@ -485,6 +485,12 @@ function normalizeSceneSubtitleSegments(scene) {
   );
 }
 
+const ASS_DEBUG_MAX_CHARS = 200_000;
+
+/**
+ * @param {object | null | undefined} diag
+ * When `diag.storageRepo.putJson` and `diag.jobId` are set, writes ASS + timing metadata to S3 for subtitle triage.
+ */
 export async function writeSceneAss(
   scene,
   subtitleSettings,
@@ -493,6 +499,7 @@ export async function writeSceneAss(
   overlays = [],
   renderedDurationSec = sceneDuration(scene),
   ttsLeadInSec = 0,
+  diag = undefined,
 ) {
   const leadInSec = Math.max(0, Number(ttsLeadInSec) || 0);
   const safeRenderedDuration = Math.max(0.1, Number(renderedDurationSec));
@@ -621,6 +628,41 @@ Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text
 ${[...subtitleEvents, ...overlayEvents].join("\n")}
 `;
   await fs.writeFile(assPath, content, "utf8");
+  const putJson = diag?.storageRepo?.putJson;
+  const diagJobId = diag?.jobId;
+  if (typeof putJson === "function" && typeof diagJobId === "string" && diagJobId) {
+    const assContent =
+      content.length > ASS_DEBUG_MAX_CHARS
+        ? `${content.slice(0, ASS_DEBUG_MAX_CHARS)}\n\n…[truncated ${content.length - ASS_DEBUG_MAX_CHARS} chars]`
+        : content;
+    try {
+      await putJson(
+        `logs/${diagJobId}/composition/scene-${scene.sceneId}-ass-debug.json`,
+        {
+          at: new Date().toISOString(),
+          sceneId: scene.sceneId,
+          assPath,
+          sceneStartGlobal,
+          sceneEndPlannedGlobal,
+          plannedSpanSec,
+          outputContentSpanSec,
+          safeRenderedDuration,
+          leadInSec,
+          clearlyGlobalTimestamps,
+          segmentsLookLocal,
+          localSpanCeil,
+          minSegStart,
+          maxSegEnd,
+          subtitleSegmentsRaw: scene.subtitleSegments ?? null,
+          subtitleSegmentsNormalized: subtitleSegments,
+          subtitle: scene.subtitle ?? null,
+          assContent,
+        },
+      );
+    } catch {
+      /* best-effort diagnostic */
+    }
+  }
   return true;
 }
 
