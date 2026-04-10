@@ -1,10 +1,11 @@
+import type { LlmStepKey } from "../../../../shared/lib/llm";
 import { mapLlmStepSettingsDto } from "../../../shared/mapper/map-llm-step-settings";
 import type { LlmStepSettingsDto, LlmProvider } from "../../../shared/types";
 import { updateLlmStepSettings } from "../repo/update-llm-step-settings";
 
 export const updateAdminLlmStepSettings = async (input: {
   actor: string;
-  stepKey: "job-plan" | "scene-json" | "metadata";
+  stepKey: LlmStepKey;
   provider: LlmProvider;
   model: string;
   temperature: number;

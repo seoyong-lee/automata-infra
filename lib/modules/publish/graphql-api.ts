@@ -43,6 +43,7 @@ type CreatePublishGraphqlApiProps = {
   deleteContentResolver: lambda.IFunction;
   createDraftJobResolver: lambda.IFunction;
   updateJobBriefResolver: lambda.IFunction;
+  suggestJobYoutubePublishMetadataResolver: lambda.IFunction;
   runJobPlanResolver: lambda.IFunction;
   runSceneJsonResolver: lambda.IFunction;
   updateSceneJsonResolver: lambda.IFunction;
@@ -330,6 +331,13 @@ export const createPublishGraphqlApi = (
     "updateJobBrief",
     "Mutation",
     props.updateJobBriefResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SuggestJobYoutubePublishMetadata",
+    "suggestJobYoutubePublishMetadata",
+    "Mutation",
+    props.suggestJobYoutubePublishMetadataResolver,
   );
   addLambdaResolver(
     graphqlApi,

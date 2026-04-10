@@ -331,6 +331,7 @@ export class AppStack extends Stack {
       `${props.projectPrefix}-admin-jobs`,
       path.join(process.cwd(), "services/admin/jobs/handler.ts"),
       pipelineTriggerEnv,
+      Duration.seconds(60),
     );
     const generationsHandler = createLambda(
       this,
@@ -388,6 +389,7 @@ export class AppStack extends Stack {
     const getJobDraftResolver = jobsHandler;
     const createDraftJobResolver = jobsHandler;
     const updateJobBriefResolver = jobsHandler;
+    const suggestJobYoutubePublishMetadataResolver = jobsHandler;
     const deleteJobResolver = jobsHandler;
 
     const requestUploadResolver = uploadGroupHandler;
@@ -655,6 +657,7 @@ export class AppStack extends Stack {
       deleteContentResolver,
       createDraftJobResolver,
       updateJobBriefResolver,
+      suggestJobYoutubePublishMetadataResolver,
       runJobPlanResolver,
       runSceneJsonResolver,
       updateSceneJsonResolver,

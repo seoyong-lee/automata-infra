@@ -1,6 +1,10 @@
 export type LlmProvider = "openai" | "gemini" | "bedrock";
 
-export type LlmStepKey = "job-plan" | "scene-json" | "metadata";
+export type LlmStepKey =
+  | "job-plan"
+  | "scene-json"
+  | "metadata"
+  | "youtube-publish-metadata";
 
 export type PromptVariableValue = string | number | boolean | null | undefined;
 

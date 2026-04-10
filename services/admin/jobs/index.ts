@@ -6,6 +6,7 @@ import { run as getJobDraft } from "./get-job-draft";
 import { run as jobExecutions } from "./job-executions";
 import { run as jobTimeline } from "./job-timeline";
 import { run as listJobs } from "./list-jobs";
+import { run as suggestJobYoutubePublishMetadata } from "./suggest-job-youtube-publish-metadata";
 import { run as updateJobBrief } from "./update-job-brief";
 import {
   dispatchGroupedResolver,
@@ -21,6 +22,7 @@ const routes: GroupedResolverRoutes = {
   jobDraft: getJobDraft,
   createDraftJob,
   updateJobBrief,
+  suggestJobYoutubePublishMetadata,
   deleteJob,
 };
 

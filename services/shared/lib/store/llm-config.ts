@@ -91,6 +91,7 @@ export const listLlmStepSettings = async (): Promise<LlmStepSettings[]> => {
     loadDefaultLlmStepSettings("job-plan"),
     loadDefaultLlmStepSettings("scene-json"),
     loadDefaultLlmStepSettings("metadata"),
+    loadDefaultLlmStepSettings("youtube-publish-metadata"),
   ];
 
   if (!hasConfigTable()) {
