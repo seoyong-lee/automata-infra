@@ -476,7 +476,7 @@ void test("scene transition graph chains per-scene start transitions", async () 
   assert.equal(graph.audioLabel, "[aout]");
 });
 
-void test("inter-scene gap segments still chain xfade into next scene", async () => {
+void test("inter-scene gap segments skip xfade graph (concat path)", async () => {
   const { buildSceneTransitionGraph } =
     await import("../services/composition/fargate-renderer/usecase/finalize-render-output.mjs");
 
@@ -501,7 +501,5 @@ void test("inter-scene gap segments still chain xfade into next scene", async ()
     },
   ]);
 
-  assert.ok(graph);
-  assert.match(graph.filterComplex, /xfade=transition=fade:duration=0\.001/);
-  assert.match(graph.filterComplex, /xfade=transition=fadeblack/);
+  assert.equal(graph, null);
 });

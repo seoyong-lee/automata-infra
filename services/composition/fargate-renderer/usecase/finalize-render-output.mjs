@@ -50,6 +50,12 @@ function normalizeSegmentInput(segmentInput) {
   };
 }
 
+/** Freeze gaps (`gap-after-*`) make xfade offset math drift vs real stream length; long chains dup/drop then fail. */
+function segmentIsInterSceneGap(normalizedInput) {
+  const id = normalizedInput.scene?.sceneId;
+  return typeof id === "string" && id.startsWith("gap-after-");
+}
+
 export function resolveSceneStartTransition(scene) {
   const rawType = String(scene?.startTransition?.type ?? "cut")
     .trim()
@@ -72,6 +78,9 @@ export function resolveSceneStartTransition(scene) {
 export function buildSceneTransitionGraph(segmentInputs) {
   const normalizedInputs = segmentInputs.map(normalizeSegmentInput);
   if (normalizedInputs.length < 2) {
+    return null;
+  }
+  if (normalizedInputs.some(segmentIsInterSceneGap)) {
     return null;
   }
   const transitions = normalizedInputs
