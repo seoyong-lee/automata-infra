@@ -129,6 +129,15 @@ export const jobBriefInputSchema = z
     stylePreset: nonEmpty,
     /** 씬·내레이션 방향을 자유 서술로 적는 필드. Scene JSON 프롬프트에 포함된다. */
     creativeBrief: optionalCreativeBrief,
+    /**
+     * `updateJobBrief`가 S3 job brief에 함께 저장. `.strict()` 파서가 로드 시 허용해야 함
+     * (렌더 플랜 `resolveStoredRenderInputs` → `parseJobBriefInput`).
+     */
+    youtubePublishTitle: z.string().optional(),
+    youtubePublishDescription: z.string().optional(),
+    youtubePublishTags: z.array(z.string()).optional(),
+    youtubePublishCategoryId: z.number().optional(),
+    youtubePublishDefaultLanguage: z.string().optional(),
     presetSnapshot: presetSnapshotSchema.optional(),
     resolvedPolicy: resolvedPolicySchema.optional(),
     renderSettings: jobRenderSettingsSchema.optional(),
