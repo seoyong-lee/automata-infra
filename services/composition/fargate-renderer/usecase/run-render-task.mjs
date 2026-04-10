@@ -54,6 +54,20 @@ function resolveGapAfterSecFromPlan(scene, nextScene) {
   return Math.max(0, effective);
 }
 
+/** Align encode / concat metadata to whole output frames (same grid as render plan). */
+function snapDurationToOutputFps(sec, fps) {
+  const f = Number(fps);
+  const raw = Number(sec);
+  if (!Number.isFinite(raw) || raw <= 0) {
+    return seconds(0.1);
+  }
+  if (!Number.isFinite(f) || f <= 0) {
+    return seconds(raw);
+  }
+  const frames = Math.max(1, Math.round(raw * f));
+  return frames / f;
+}
+
 function isDebugMp4BundleEnabled() {
   const v = process.env.FARGATE_DEBUG_MP4_BUNDLE?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
@@ -197,6 +211,7 @@ async function createSceneSegment(input) {
     }
     durationSec = seconds(durationSec + TTS_LEAD_IN_SEC);
   }
+  durationSec = snapDurationToOutputFps(durationSec, outputSettings.fps);
   const hasAss = await writeSceneAss(
     scene,
     subtitleSettings,
@@ -495,7 +510,7 @@ async function createGapSegment(input) {
   const {
     jobId,
     index,
-    durationSec,
+    durationSec: rawGapDurationSec,
     workDir,
     outputSettings,
     canvasSettings,
@@ -503,6 +518,10 @@ async function createGapSegment(input) {
     storageRepo,
     mediaToolsRepo,
   } = input;
+  const durationSec = snapDurationToOutputFps(
+    rawGapDurationSec,
+    outputSettings.fps,
+  );
   const gapPath = path.join(workDir, `gap-${index}.mp4`);
   if (previousSegmentPath) {
     const freezeFramePath = path.join(workDir, `gap-${index}-freeze.png`);
@@ -629,10 +648,10 @@ export async function runRenderTask(input) {
       mediaToolsRepo,
     });
     const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
-    const segmentDurationSec =
-      typeof probedSeg === "number" && probedSeg > 0
-        ? seconds(probedSeg)
-        : durationSec;
+    const segmentDurationSec = snapDurationToOutputFps(
+      typeof probedSeg === "number" && probedSeg > 0 ? probedSeg : durationSec,
+      outputSettings.fps,
+    );
     segmentInputs.push({
       scene,
       segmentPath,
@@ -652,8 +671,11 @@ export async function runRenderTask(input) {
         storageRepo,
         mediaToolsRepo,
       });
-      // Planned length only: ffprobe on freeze+loop gaps can misreport duration and break xfade offset math.
-      const gapDurationSec = seconds(gapAfterSec);
+      // Planned length on frame grid (matches encoded gap; avoids bogus ffprobe on freeze clips).
+      const gapDurationSec = snapDurationToOutputFps(
+        gapAfterSec,
+        outputSettings.fps,
+      );
       try {
         const timelineGapSec = Math.max(
           0,
@@ -697,6 +719,31 @@ export async function runRenderTask(input) {
   const finalVideoPath = path.join(workDir, "final.mp4");
   const previewPath = path.join(workDir, "preview.mp4");
   const thumbnailPath = path.join(workDir, "thumbnail.jpg");
+
+  try {
+    const stitchedSumSec = segmentInputs.reduce(
+      (sum, entry) => sum + Number(entry.durationSec ?? 0),
+      0,
+    );
+    await storageRepo.putJson(
+      `logs/${jobId}/composition/segment-inputs.json`,
+      {
+        at: new Date().toISOString(),
+        stitchedSumSec,
+        segmentCount: segmentInputs.length,
+        segmentInputs: segmentInputs.map((s, i) => ({
+          index: i,
+          sceneId: s.scene?.sceneId ?? null,
+          startTransition: s.scene?.startTransition ?? null,
+          segmentFile: path.basename(s.segmentPath),
+          segmentPath: s.segmentPath,
+          durationSec: s.durationSec,
+        })),
+      },
+    );
+  } catch {
+    // best-effort concat triage
+  }
 
   await concatSegments(segmentInputs, workDir, concatenatedPath, mediaToolsRepo);
   const soundtrackPath = await maybeDownloadSoundtrack(

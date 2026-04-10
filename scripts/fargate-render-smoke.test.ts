@@ -475,3 +475,31 @@ void test("scene transition graph chains per-scene start transitions", async () 
   assert.equal(graph.videoLabel, "[vout]");
   assert.equal(graph.audioLabel, "[aout]");
 });
+
+void test("inter-scene gap segments skip xfade graph (concat path)", async () => {
+  const { buildSceneTransitionGraph } =
+    await import("../services/composition/fargate-renderer/usecase/finalize-render-output.mjs");
+
+  const graph = buildSceneTransitionGraph([
+    {
+      segmentPath: "/tmp/scene-1.mp4",
+      durationSec: 4,
+      scene: { sceneId: 1 },
+    },
+    {
+      segmentPath: "/tmp/gap-after-1.mp4",
+      durationSec: 0.5,
+      scene: { sceneId: "gap-after-1", startTransition: { type: "cut" } },
+    },
+    {
+      segmentPath: "/tmp/scene-2.mp4",
+      durationSec: 5,
+      scene: {
+        sceneId: 2,
+        startTransition: { type: "fadeblack", durationSec: 0.5 },
+      },
+    },
+  ]);
+
+  assert.equal(graph, null);
+});

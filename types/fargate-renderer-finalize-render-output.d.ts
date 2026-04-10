@@ -4,7 +4,7 @@ declare module "*.mjs" {
       segmentPath: string;
       durationSec?: number;
       scene?: {
-        sceneId?: number;
+        sceneId?: number | string;
         startTransition?: {
           type?: string;
           durationSec?: number;

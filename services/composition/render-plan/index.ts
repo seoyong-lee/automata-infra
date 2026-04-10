@@ -34,6 +34,7 @@ export const run: Handler<
       voiceAssets,
     },
     config.sceneGapSec,
+    config.output.fps,
   );
   const renderPlan = buildRenderPlan(event, builtScenes, config);
 

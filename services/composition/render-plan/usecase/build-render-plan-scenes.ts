@@ -14,6 +14,33 @@ import type {
 /** Avoid dozens of micro-phrases that break timing on short scenes. */
 const MAX_PHRASE_SEGMENTS = 14;
 
+/** Snap timeline to whole frames so start/end/gap are not irrational (ASS + xfade + concat stay aligned). */
+const snapTimelineToFps = (sec: number, fps: number): number => {
+  if (!Number.isFinite(fps) || fps <= 0) {
+    return Number(sec.toFixed(3));
+  }
+  if (!Number.isFinite(sec)) {
+    return 0;
+  }
+  return Math.round(sec * fps) / fps;
+};
+
+const snapSceneDurationToFps = (sec: number, fps: number): number => {
+  if (!Number.isFinite(fps) || fps <= 0) {
+    return Math.max(0.1, sec);
+  }
+  const frames = Math.max(1, Math.round(sec * fps));
+  return frames / fps;
+};
+
+const snapGapToFps = (sec: number, fps: number): number => {
+  if (!Number.isFinite(fps) || fps <= 0) {
+    return Math.max(0, sec);
+  }
+  const frames = Math.max(1, Math.round(sec * fps));
+  return frames / fps;
+};
+
 const resolveSceneDurationSec = (
   scene: RenderPlanSceneInput,
   voiceAsset?: RenderPlanVoiceAsset,
@@ -144,10 +171,7 @@ const buildSubtitleSegments = (input: {
   const weights = parts.map((part) => estimateSpeechTimingUnits(part));
   const totalWeight = weights.reduce((sum, weight) => sum + weight, 0);
   const n = parts.length;
-  const minGapSec = Math.min(
-    0.04,
-    totalDurationSec / Math.max(2 * n, 1),
-  );
+  const minGapSec = Math.min(0.04, totalDurationSec / Math.max(2 * n, 1));
   const edges: number[] = new Array(n + 1);
   edges[0] = input.startSec;
   let acc = 0;
@@ -230,28 +254,50 @@ const buildRenderPlanScene = (input: {
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
   sceneGapSec = 0.5,
+  timelineFps = 30,
 ): BuiltRenderPlanScenes => {
   let cursorSec = 0;
   const imageAssets = event.imageAssets ?? [];
   const videoAssets = event.videoAssets ?? [];
   const voiceAssets = event.voiceAssets ?? [];
+  const sceneCount = event.sceneJson.scenes.length;
 
   const scenes = event.sceneJson.scenes.map((scene, index) => {
     const alignedScene = alignSceneNarrationAndSubtitle(
       scene,
     ) as RenderPlanSceneInput;
-    const builtScene = buildRenderPlanScene({
+    const startSec = snapTimelineToFps(cursorSec, timelineFps);
+    const baseScene = buildRenderPlanScene({
       scene: alignedScene,
       index,
-      sceneCount: event.sceneJson.scenes.length,
-      startSec: cursorSec,
+      sceneCount,
+      startSec,
       sceneGapSec,
       imageAssets,
       videoAssets,
       voiceAssets,
     });
-    cursorSec = builtScene.endSec + builtScene.gapAfterSec;
-    return builtScene;
+    const durationSec = snapSceneDurationToFps(
+      baseScene.durationSec,
+      timelineFps,
+    );
+    const endSec = snapTimelineToFps(startSec + durationSec, timelineFps);
+    const gapAfterSec =
+      index < sceneCount - 1 ? snapGapToFps(sceneGapSec, timelineFps) : 0;
+    const subtitleSegments = buildSubtitleSegments({
+      subtitle: alignedScene.subtitle,
+      startSec,
+      endSec,
+    });
+    cursorSec = snapTimelineToFps(endSec + gapAfterSec, timelineFps);
+    return {
+      ...baseScene,
+      startSec,
+      endSec,
+      durationSec,
+      gapAfterSec,
+      subtitleSegments,
+    };
   });
 
   return {
