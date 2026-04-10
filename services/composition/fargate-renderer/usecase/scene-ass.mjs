@@ -514,7 +514,39 @@ export async function writeSceneAss(
     const clampedU = Math.max(0, Math.min(1, u));
     return leadInSec + clampedU * outputContentSpanSec;
   };
+  /** Map scene-local segment times (0…scene duration) into ASS timeline. */
+  const mapSegmentLocalToAssTimeline = (localSec) => {
+    const u = localSec / plannedSpanSec;
+    const clampedU = Math.max(0, Math.min(1, u));
+    return leadInSec + clampedU * outputContentSpanSec;
+  };
   const subtitleSegments = normalizeSceneSubtitleSegments(scene);
+  const minSegStart =
+    subtitleSegments.length > 0
+      ? Math.min(...subtitleSegments.map((s) => s.startSec))
+      : 0;
+  const maxSegEnd =
+    subtitleSegments.length > 0
+      ? Math.max(...subtitleSegments.map((s) => s.endSec))
+      : 0;
+  /**
+   * subtitleSegments from buildRenderPlan use global timeline; some pipelines emit scene-local 0…duration.
+   * If we treat local times as global, mapPlanGlobalToAssLocal clamps most events to t=0 and only the last line shows.
+   */
+  const clearlyGlobalTimestamps =
+    subtitleSegments.length > 0 &&
+    minSegStart >= sceneStartGlobal - 0.5;
+  const localSpanCeil =
+    Math.max(plannedSpanSec, outputContentSpanSec) + 1.25;
+  const segmentsLookLocal =
+    subtitleSegments.length > 0 &&
+    !clearlyGlobalTimestamps &&
+    minSegStart >= -0.01 &&
+    maxSegEnd <= localSpanCeil;
+  const toAssTimeline = (sec) =>
+    segmentsLookLocal
+      ? mapSegmentLocalToAssTimeline(sec)
+      : mapPlanGlobalToAssLocal(sec);
   const overlayEvents = getSceneTextOverlayEvents(
     scene,
     overlays,
@@ -535,16 +567,15 @@ export async function writeSceneAss(
     !subtitleSettings.burnIn || subtitleSegments.length === 0
       ? []
       : subtitleSegments.flatMap((segment) => {
-          const segmentStartSec = Math.max(
-            0,
-            mapPlanGlobalToAssLocal(segment.startSec),
-          );
-          const mappedEnd = mapPlanGlobalToAssLocal(segment.endSec);
+          const segmentStartSec = Math.max(0, toAssTimeline(segment.startSec));
+          const mappedEnd = toAssTimeline(segment.endSec);
           const lastSegment = subtitleSegments[subtitleSegments.length - 1];
           const isLastSegment = Boolean(lastSegment && segment === lastSegment);
           const singleFullScene =
             subtitleSegments.length === 1 &&
-            segment.startSec <= sceneStartGlobal + 1e-3;
+            (segmentsLookLocal
+              ? segment.startSec <= 0.02
+              : segment.startSec <= sceneStartGlobal + 1e-3);
           const segmentEndSec = Math.max(
             segmentStartSec + 0.05,
             singleFullScene || isLastSegment
