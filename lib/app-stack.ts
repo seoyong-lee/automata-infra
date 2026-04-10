@@ -459,6 +459,7 @@ export class AppStack extends Stack {
         resources: ["*"],
       }),
     );
+    this.llmConfigTable.grantReadData(uploadGroupHandler);
     this.jobsTable.grantReadData(listContentsResolver);
     this.jobsTable.grantReadData(listJobsResolver);
     this.jobsTable.grantReadData(getJobResolver);
