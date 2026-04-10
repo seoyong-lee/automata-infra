@@ -49,3 +49,13 @@ export const syncYoutubeChannelMetadataInputSchema = z
 export type SyncYoutubeChannelMetadataInput = z.infer<
   typeof syncYoutubeChannelMetadataInputSchema
 >;
+
+export const listYoutubeChannelsForSecretInputSchema = z
+  .object({
+    youtubeSecretName: z.string().trim().min(1),
+  })
+  .strict();
+
+export type ListYoutubeChannelsForSecretInput = z.infer<
+  typeof listYoutubeChannelsForSecretInputSchema
+>;

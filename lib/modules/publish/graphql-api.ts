@@ -11,6 +11,7 @@ type CreatePublishGraphqlApiProps = {
   projectPrefix: string;
   userPool: import("aws-cdk-lib/aws-cognito").IUserPool;
   listContentsResolver: lambda.IFunction;
+  listYoutubeChannelsForSecretResolver: lambda.IFunction;
   listJobsResolver: lambda.IFunction;
   getJobResolver: lambda.IFunction;
   jobTimelineResolver: lambda.IFunction;
@@ -105,6 +106,13 @@ export const createPublishGraphqlApi = (
     "adminContents",
     "Query",
     props.listContentsResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ListYoutubeChannelsForSecret",
+    "listYoutubeChannelsForSecret",
+    "Query",
+    props.listYoutubeChannelsForSecretResolver,
   );
   addLambdaResolver(
     graphqlApi,

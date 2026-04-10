@@ -623,6 +623,7 @@ export class AppStack extends Stack {
       projectPrefix: props.projectPrefix,
       userPool: auth.userPool,
       listContentsResolver,
+      listYoutubeChannelsForSecretResolver: contentHandler,
       listJobsResolver,
       getJobResolver,
       jobTimelineResolver,

@@ -41,6 +41,13 @@ type Query {
     nextToken: String
   ): AssetPoolAssetConnection!
   getTranscript(transcriptId: ID!): VideoTranscriptRecord!
+  """
+  Secrets Manager의 YouTube OAuth JSON으로 `channels.list(mine:true)`를 호출해,
+  해당 토큰이 접근할 수 있는 채널 목록을 반환한다 (다중 페이지 병합).
+  """
+  listYoutubeChannelsForSecret(
+    input: ListYoutubeChannelsForSecretInput!
+  ): [YoutubeChannelForSecret!]!
 }
 
 type Mutation {
@@ -998,6 +1005,20 @@ input UpdateContentInput {
   youtubeNotifySubscribers: Boolean
   youtubeMadeForKids: Boolean
   youtubeUploadFormat: String
+}
+
+type YoutubeChannelForSecret {
+  externalChannelId: ID!
+  title: String!
+  description: String
+  customUrl: String
+}
+
+input ListYoutubeChannelsForSecretInput {
+  """
+  Secrets Manager 시크릿 이름 또는 ARN (`getSecretJson`과 동일).
+  """
+  youtubeSecretName: String!
 }
 
 input SyncYoutubeChannelMetadataInput {

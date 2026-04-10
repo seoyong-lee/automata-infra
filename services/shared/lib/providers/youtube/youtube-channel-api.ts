@@ -59,6 +59,76 @@ const mapListedChannelToSnapshot = (
   };
 };
 
+export type YoutubeChannelListItem = {
+  externalChannelId: string;
+  title: string;
+  description: string;
+  customUrl?: string;
+};
+
+const mapChannelListRow = (
+  ch: ListedChannel & { id?: string | null },
+): YoutubeChannelListItem | undefined => {
+  if (!ch.id) {
+    return undefined;
+  }
+  const cu = ch.snippet?.customUrl;
+  return {
+    externalChannelId: ch.id,
+    title: ch.snippet?.title ?? "",
+    description: ch.snippet?.description ?? "",
+    customUrl: typeof cu === "string" && cu.trim() ? cu.trim() : undefined,
+  };
+};
+
+type YoutubeDataClient = ReturnType<typeof createYoutubeDataClient>;
+type DataApiKeyParam = ReturnType<typeof optionalDataApiKeyParam>;
+
+const listMineChannelsPage = async (
+  youtube: YoutubeDataClient,
+  keyParam: DataApiKeyParam,
+  pageToken: string | undefined,
+) =>
+  youtube.channels.list({
+    part: ["snippet"],
+    mine: true,
+    maxResults: 50,
+    pageToken,
+    ...keyParam,
+  });
+
+const appendChannelListRows = (
+  items: Array<ListedChannel & { id?: string | null }> | undefined,
+  out: YoutubeChannelListItem[],
+) => {
+  for (const ch of items ?? []) {
+    const row = mapChannelListRow(ch);
+    if (row) {
+      out.push(row);
+    }
+  }
+};
+
+/**
+ * `channels.list(mine:true)` — 토큰이 접근 가능한 채널 전부 (nextPageToken 순회).
+ * `syncYoutubeChannelMetadata`와 달리 `youtube_channel_id` 제약을 적용하지 않는다.
+ */
+export const listAuthenticatedYoutubeChannels = async (input: {
+  secret: YoutubeOAuthSecret;
+  dataApiKey?: string;
+}): Promise<YoutubeChannelListItem[]> => {
+  const youtube = createYoutubeDataClient(input.secret);
+  const keyParam = optionalDataApiKeyParam(input.dataApiKey);
+  const out: YoutubeChannelListItem[] = [];
+  let pageToken: string | undefined;
+  do {
+    const res = await listMineChannelsPage(youtube, keyParam, pageToken);
+    appendChannelListRows(res.data.items, out);
+    pageToken = res.data.nextPageToken ?? undefined;
+  } while (pageToken);
+  return out;
+};
+
 export const fetchAuthenticatedChannelSnapshot = async (input: {
   secret: YoutubeOAuthSecret;
   /** Secrets Manager `automata-studio/youtube` 등 — OAuth와 함께 `key` 쿼리로 전달 */

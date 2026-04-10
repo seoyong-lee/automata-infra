@@ -46,7 +46,8 @@ type AuditOperation =
   | "deleteContent"
   | "adminContents"
   | "syncYoutubeChannelMetadata"
-  | "pushYoutubeChannelToGoogle";
+  | "pushYoutubeChannelToGoogle"
+  | "listYoutubeChannelsForSecret";
 
 type ResolverAuditLogInput = {
   operation: AuditOperation | string;
