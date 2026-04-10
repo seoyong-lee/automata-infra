@@ -546,11 +546,17 @@ async function createGapSegment(input) {
     workDir,
     outputSettings,
     canvasSettings,
+    mediaFrameSettings,
     previousSegmentPath,
     freezeFrameSourcePath,
     storageRepo,
     mediaToolsRepo,
   } = input;
+  const gapVisualFilter = visualBaseFilter(
+    outputSettings,
+    canvasSettings,
+    mediaFrameSettings,
+  );
   const durationSec = snapDurationToOutputFps(
     rawGapDurationSec,
     outputSettings.fps,
@@ -594,7 +600,7 @@ async function createGapSegment(input) {
           "-i",
           "anullsrc=channel_layout=stereo:sample_rate=48000",
           "-vf",
-          `fps=${outputSettings.fps}`,
+          gapVisualFilter,
           "-t",
           String(seconds(durationSec)),
           "-map",
@@ -723,6 +729,7 @@ export async function runRenderTask(input) {
         workDir,
         outputSettings,
         canvasSettings,
+        mediaFrameSettings,
         previousSegmentPath: segmentPath,
         freezeFrameSourcePath: gapFreezeSourcePath,
         storageRepo,
