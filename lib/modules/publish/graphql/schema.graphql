@@ -1009,9 +1009,12 @@ input UpdateContentInput {
 
 type YoutubeChannelForSecret {
   externalChannelId: ID!
+  """YouTube 채널 ID (`externalChannelId`와 동일). 클라이언트 호환용."""
+  channelId: ID!
   title: String!
   description: String
   customUrl: String
+  thumbnailUrl: String
 }
 
 input ListYoutubeChannelsForSecretInput {

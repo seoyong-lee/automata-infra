@@ -34,11 +34,18 @@ const optionalDataApiKeyParam = (
   return trimmed ? { key: trimmed } : {};
 };
 
+type ThumbnailRef = { url?: string | null };
+
 type ListedChannel = {
   snippet?: {
     title?: string | null;
     description?: string | null;
     customUrl?: string | null;
+    thumbnails?: {
+      default?: ThumbnailRef;
+      medium?: ThumbnailRef;
+      high?: ThumbnailRef;
+    } | null;
   };
   brandingSettings?: { channel?: { keywords?: string | null } };
 };
@@ -61,9 +68,32 @@ const mapListedChannelToSnapshot = (
 
 export type YoutubeChannelListItem = {
   externalChannelId: string;
+  channelId: string;
   title: string;
   description: string;
   customUrl?: string;
+  thumbnailUrl?: string;
+};
+
+const pickSnippetThumbnailUrl = (
+  thumbnails:
+    | {
+        default?: ThumbnailRef;
+        medium?: ThumbnailRef;
+        high?: ThumbnailRef;
+      }
+    | null
+    | undefined,
+): string | undefined => {
+  if (!thumbnails) {
+    return undefined;
+  }
+  const url =
+    thumbnails.high?.url ??
+    thumbnails.medium?.url ??
+    thumbnails.default?.url ??
+    undefined;
+  return typeof url === "string" && url.trim() ? url.trim() : undefined;
 };
 
 const mapChannelListRow = (
@@ -73,11 +103,16 @@ const mapChannelListRow = (
     return undefined;
   }
   const cu = ch.snippet?.customUrl;
+  const thumbnailUrl = pickSnippetThumbnailUrl(
+    ch.snippet?.thumbnails ?? undefined,
+  );
   return {
     externalChannelId: ch.id,
+    channelId: ch.id,
     title: ch.snippet?.title ?? "",
     description: ch.snippet?.description ?? "",
     customUrl: typeof cu === "string" && cu.trim() ? cu.trim() : undefined,
+    thumbnailUrl,
   };
 };
 
