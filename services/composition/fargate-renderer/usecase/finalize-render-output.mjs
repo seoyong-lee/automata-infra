@@ -50,12 +50,6 @@ function normalizeSegmentInput(segmentInput) {
   };
 }
 
-/** Freeze gaps use synthetic string ids (`gap-after-{sceneId}`). */
-function segmentIsInterSceneGap(normalizedInput) {
-  const id = normalizedInput.scene?.sceneId;
-  return typeof id === "string" && id.startsWith("gap-after-");
-}
-
 export function resolveSceneStartTransition(scene) {
   const rawType = String(scene?.startTransition?.type ?? "cut")
     .trim()
@@ -78,11 +72,6 @@ export function resolveSceneStartTransition(scene) {
 export function buildSceneTransitionGraph(segmentInputs) {
   const normalizedInputs = segmentInputs.map(normalizeSegmentInput);
   if (normalizedInputs.length < 2) {
-    return null;
-  }
-  // xfade chains use nominal durationSec per clip; freeze gap clips + long chains easily
-  // desync vs real stream length and can drop or "freeze" whole scenes in the output.
-  if (normalizedInputs.some(segmentIsInterSceneGap)) {
     return null;
   }
   const transitions = normalizedInputs
