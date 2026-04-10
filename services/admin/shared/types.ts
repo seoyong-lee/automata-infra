@@ -123,6 +123,11 @@ export type AdminJobDto = {
   language: string;
   targetDurationSec: number;
   videoTitle: string;
+  youtubePublishTitle?: string;
+  youtubePublishDescription?: string;
+  youtubePublishTags?: string[];
+  youtubePublishCategoryId?: number;
+  youtubePublishDefaultLanguage?: string;
   retryCount: number;
   createdAt: string;
   updatedAt: string;
@@ -190,6 +195,12 @@ export type JobBriefDto = {
   stylePreset: string;
   /** 자유 서술 기획 메모. Scene JSON 프롬프트에 반영. */
   creativeBrief?: string;
+  /** YouTube 업로드용; Scene JSON·LLM으로 채운 뒤 `updateJobBrief`로 저장 */
+  youtubePublishTitle?: string;
+  youtubePublishDescription?: string;
+  youtubePublishTags?: string[];
+  youtubePublishCategoryId?: number;
+  youtubePublishDefaultLanguage?: string;
   presetSnapshot?: PresetSnapshot;
   resolvedPolicy?: ResolvedPolicy;
   renderSettings?: JobRenderSettings;
@@ -261,6 +272,17 @@ export type CreateContentInputDto = {
   defaultVisibility?: "private" | "unlisted" | "public";
   defaultCategoryId?: number;
   playlistId?: string;
+  youtubeExternalChannelId?: string;
+  youtubeChannelTitle?: string;
+  youtubeChannelDescription?: string;
+  youtubeChannelCustomUrl?: string;
+  youtubeChannelKeywords?: string;
+  youtubeChannelSyncedAt?: string;
+  youtubeDefaultTags?: string[];
+  youtubeDefaultLanguage?: string;
+  youtubeNotifySubscribers?: boolean;
+  youtubeMadeForKids?: boolean;
+  youtubeUploadFormat?: "standard" | "shorts";
 };
 
 export type UpdateContentInputDto = {
@@ -273,6 +295,17 @@ export type UpdateContentInputDto = {
   defaultCategoryId?: number;
   playlistId?: string;
   clearYoutubePublish?: boolean;
+  youtubeExternalChannelId?: string;
+  youtubeChannelTitle?: string;
+  youtubeChannelDescription?: string;
+  youtubeChannelCustomUrl?: string;
+  youtubeChannelKeywords?: string;
+  youtubeChannelSyncedAt?: string;
+  youtubeDefaultTags?: string[];
+  youtubeDefaultLanguage?: string;
+  youtubeNotifySubscribers?: boolean;
+  youtubeMadeForKids?: boolean;
+  youtubeUploadFormat?: "standard" | "shorts";
 };
 
 export type ContentDto = {
@@ -288,6 +321,17 @@ export type ContentDto = {
   playlistId?: string;
   youtubeUpdatedAt?: string;
   youtubeUpdatedBy?: string;
+  youtubeExternalChannelId?: string;
+  youtubeChannelTitle?: string;
+  youtubeChannelDescription?: string;
+  youtubeChannelCustomUrl?: string;
+  youtubeChannelKeywords?: string;
+  youtubeChannelSyncedAt?: string;
+  youtubeDefaultTags?: string[];
+  youtubeDefaultLanguage?: string;
+  youtubeNotifySubscribers?: boolean;
+  youtubeMadeForKids?: boolean;
+  youtubeUploadFormat?: "standard" | "shorts";
 };
 
 export type SceneJsonSceneDto = {

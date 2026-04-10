@@ -8,6 +8,7 @@ import {
   resolvedPolicySchema,
 } from "./content-presets";
 import { jobRenderSettingsSchema } from "./render-settings";
+import { contentYoutubeChannelExtensionSchema } from "./youtube-channel-publish";
 
 const isoDateSchema = z
   .string()
@@ -193,6 +194,7 @@ export const createContentInputSchema = z
     defaultCategoryId: z.number().int().positive().optional(),
     playlistId: z.string().trim().min(1).optional(),
   })
+  .merge(contentYoutubeChannelExtensionSchema)
   .strict();
 
 export const updateContentInputSchema = z
@@ -207,6 +209,7 @@ export const updateContentInputSchema = z
     playlistId: z.string().optional(),
     clearYoutubePublish: z.boolean().optional(),
   })
+  .merge(contentYoutubeChannelExtensionSchema.partial())
   .strict();
 
 export const runJobPlanInputSchema = z

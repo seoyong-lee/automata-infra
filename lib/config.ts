@@ -30,6 +30,8 @@ export type VideoFactoryEnvConfig = {
   elevenLabsSecretId: string;
   shotstackSecretId: string;
   googleOAuthSecretId?: string;
+  /** YouTube Data API v3 브라우저/서버 키 — JSON `{ "apiKey": "..." }` in Secrets Manager */
+  youtubeDataApiSecretId?: string;
   youtubeSecrets?: Record<string, string>;
   channelConfigs?: Record<
     string,
@@ -40,6 +42,17 @@ export type VideoFactoryEnvConfig = {
       defaultVisibility?: "private" | "unlisted" | "public";
       defaultCategoryId?: number;
       playlistId?: string;
+      youtubeExternalChannelId?: string;
+      youtubeChannelTitle?: string;
+      youtubeChannelDescription?: string;
+      youtubeChannelCustomUrl?: string;
+      youtubeChannelKeywords?: string;
+      youtubeChannelSyncedAt?: string;
+      youtubeDefaultTags?: string[];
+      youtubeDefaultLanguage?: string;
+      youtubeNotifySubscribers?: boolean;
+      youtubeMadeForKids?: boolean;
+      youtubeUploadFormat?: "standard" | "shorts";
     }
   >;
 };

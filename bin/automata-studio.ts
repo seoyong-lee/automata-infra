@@ -79,6 +79,8 @@ const resolvedEnvConfig: VideoFactoryEnvConfig = {
     envConfig.shotstackSecretId ?? `${projectPrefix}/shotstack`,
   googleOAuthSecretId:
     envConfig.googleOAuthSecretId ?? `${projectPrefix}/google-oauth-admin`,
+  youtubeDataApiSecretId:
+    envConfig.youtubeDataApiSecretId ?? `${projectPrefix}/youtube`,
   youtubeSecrets: envConfig.youtubeSecrets ?? {},
   channelConfigs: envConfig.channelConfigs ?? {},
 };

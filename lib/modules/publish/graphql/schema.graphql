@@ -1,3 +1,7 @@
+# Admin GraphQL — codegen/클라이언트는 이 파일을 경로로 직접 참조하거나 `cp`로 복사하세요.
+# 메일·슬랙·포맷터에 붙였다가 다시 복사하면 타입명이 줄 중간에서 끊어져
+# (예: ContentPresetPromptOverridesInput → ContentPresetPromptOverrid + esInput) 파싱이 깨집니다.
+
 schema {
   query: Query
   mutation: Mutation
@@ -76,6 +80,16 @@ type Mutation {
   upsertVoiceProfile(input: UpsertVoiceProfileInput!): VoiceProfile!
   createContent(input: CreateContentInput!): Content!
   updateContent(input: UpdateContentInput!): Content!
+  """
+  YouTube Data API v3 `channels.list(mine:true)`로 채널 스냅샷을 가져와 Dynamo 콘텐츠(채널) 행에 저장한다.
+  OAuth 스코프에 `youtube.readonly` 이상이 필요하다.
+  """
+  syncYoutubeChannelMetadata(input: SyncYoutubeChannelMetadataInput!): Content!
+  """
+  `channels.update`(snippet·brandingSettings 병합)로 Google 측 채널 메타를 갱신한 뒤 로컬 스냅샷을 다시 동기화한다.
+  `youtube` 스코프(쓰기)가 필요하다.
+  """
+  pushYoutubeChannelToGoogle(input: PushYoutubeChannelToGoogleInput!): Content!
   deleteContent(contentId: ID!): DeleteContentResult!
   createDraftJob(input: CreateDraftJobInput!): AdminJob!
   attachJobToContent(input: AttachJobToContentInput!): AdminJob!
@@ -138,6 +152,11 @@ type AdminJob {
   language: String!
   targetDurationSec: Int!
   videoTitle: String!
+  youtubePublishTitle: String
+  youtubePublishDescription: String
+  youtubePublishTags: [String!]
+  youtubePublishCategoryId: Int
+  youtubePublishDefaultLanguage: String
   retryCount: Int!
   createdAt: AWSDateTime!
   updatedAt: AWSDateTime!
@@ -309,6 +328,15 @@ type JobBrief {
   자유 서술 기획 메모. Scene JSON 생성 시 프롬프트에 반영된다.
   """
   creativeBrief: String
+  """
+  YouTube 업로드 제목. 비어 있으면 `videoTitle`(메타) / Scene JSON 제목 흐름을 따른다.
+  Scene JSON·내레이션 요약으로 LLM 생성 후 저장하는 용도.
+  """
+  youtubePublishTitle: String
+  youtubePublishDescription: String
+  youtubePublishTags: [String!]
+  youtubePublishCategoryId: Int
+  youtubePublishDefaultLanguage: String
   presetSnapshot: PresetSnapshot
   resolvedPolicy: ResolvedPolicy
   renderSettings: RenderSettings
@@ -355,19 +383,19 @@ type RenderImageOverlay {
   overlayId: ID!
   src: String!
   """
-  Full-frame canvas: left edge X, normalized 0–1.
+  Full-frame canvas: left edge X, normalized 0-1.
   """
   x: Float!
   """
-  Full-frame canvas: top edge Y, normalized 0–1.
+  Full-frame canvas: top edge Y, normalized 0-1.
   """
   y: Float!
   """
-  Box width on the full output frame, normalized 0–1.
+  Box width on the full output frame, normalized 0-1.
   """
   width: Float!
   """
-  Box height on the full output frame, normalized 0–1.
+  Box height on the full output frame, normalized 0-1.
   If omitted, height follows the image aspect ratio for the given width (Fargate ffprobe).
   """
   height: Float
@@ -713,6 +741,17 @@ type Content {
   playlistId: String
   youtubeUpdatedAt: AWSDateTime
   youtubeUpdatedBy: String
+  youtubeExternalChannelId: String
+  youtubeChannelTitle: String
+  youtubeChannelDescription: String
+  youtubeChannelCustomUrl: String
+  youtubeChannelKeywords: String
+  youtubeChannelSyncedAt: AWSDateTime
+  youtubeDefaultTags: [String!]
+  youtubeDefaultLanguage: String
+  youtubeNotifySubscribers: Boolean
+  youtubeMadeForKids: Boolean
+  youtubeUploadFormat: String
 }
 
 type ContentConnection {
@@ -925,6 +964,17 @@ input CreateContentInput {
   defaultVisibility: String
   defaultCategoryId: Int
   playlistId: String
+  youtubeExternalChannelId: String
+  youtubeChannelTitle: String
+  youtubeChannelDescription: String
+  youtubeChannelCustomUrl: String
+  youtubeChannelKeywords: String
+  youtubeChannelSyncedAt: AWSDateTime
+  youtubeDefaultTags: [String!]
+  youtubeDefaultLanguage: String
+  youtubeNotifySubscribers: Boolean
+  youtubeMadeForKids: Boolean
+  youtubeUploadFormat: String
 }
 
 input UpdateContentInput {
@@ -937,6 +987,28 @@ input UpdateContentInput {
   defaultCategoryId: Int
   playlistId: String
   clearYoutubePublish: Boolean
+  youtubeExternalChannelId: String
+  youtubeChannelTitle: String
+  youtubeChannelDescription: String
+  youtubeChannelCustomUrl: String
+  youtubeChannelKeywords: String
+  youtubeChannelSyncedAt: AWSDateTime
+  youtubeDefaultTags: [String!]
+  youtubeDefaultLanguage: String
+  youtubeNotifySubscribers: Boolean
+  youtubeMadeForKids: Boolean
+  youtubeUploadFormat: String
+}
+
+input SyncYoutubeChannelMetadataInput {
+  contentId: ID!
+}
+
+input PushYoutubeChannelToGoogleInput {
+  contentId: ID!
+  title: String
+  description: String
+  channelKeywords: String
 }
 
 input CreateDraftJobInput {
@@ -1053,19 +1125,19 @@ input RenderImageOverlayInput {
   overlayId: ID!
   src: String!
   """
-  Full-frame canvas: left edge X, normalized 0–1.
+  Full-frame canvas: left edge X, normalized 0-1.
   """
   x: Float!
   """
-  Full-frame canvas: top edge Y, normalized 0–1.
+  Full-frame canvas: top edge Y, normalized 0-1.
   """
   y: Float!
   """
-  Box width on the full output frame, normalized 0–1.
+  Box width on the full output frame, normalized 0-1.
   """
   width: Float!
   """
-  Box height on the full output frame, normalized 0–1.
+  Box height on the full output frame, normalized 0-1.
   Omit to keep intrinsic aspect ratio for width.
   """
   height: Float
@@ -1093,6 +1165,11 @@ input UpdateJobBriefInput {
   targetDurationSec: Int!
   stylePreset: String
   creativeBrief: String
+  youtubePublishTitle: String
+  youtubePublishDescription: String
+  youtubePublishTags: [String!]
+  youtubePublishCategoryId: Int
+  youtubePublishDefaultLanguage: String
   renderSettings: RenderSettingsInput
 }
 

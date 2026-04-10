@@ -37,6 +37,8 @@ type CreatePublishGraphqlApiProps = {
   getJobDraftResolver: lambda.IFunction;
   createContentResolver: lambda.IFunction;
   updateContentResolver: lambda.IFunction;
+  syncYoutubeChannelMetadataResolver: lambda.IFunction;
+  pushYoutubeChannelToGoogleResolver: lambda.IFunction;
   deleteContentResolver: lambda.IFunction;
   createDraftJobResolver: lambda.IFunction;
   updateJobBriefResolver: lambda.IFunction;
@@ -285,6 +287,20 @@ export const createPublishGraphqlApi = (
     "updateContent",
     "Mutation",
     props.updateContentResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "SyncYoutubeChannelMetadata",
+    "syncYoutubeChannelMetadata",
+    "Mutation",
+    props.syncYoutubeChannelMetadataResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "PushYoutubeChannelToGoogle",
+    "pushYoutubeChannelToGoogle",
+    "Mutation",
+    props.pushYoutubeChannelToGoogleResolver,
   );
   addLambdaResolver(
     graphqlApi,

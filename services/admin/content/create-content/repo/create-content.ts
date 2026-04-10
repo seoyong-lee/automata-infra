@@ -15,12 +15,23 @@ export const createContentRecord = async (input: {
   const contentId = `cnt_${randomUUID().replace(/-/g, "")}`;
   const d = input.draft;
   const hasYoutube =
-    d.youtubeSecretName !== null ||
-    d.youtubeAccountType !== null ||
-    d.autoPublishEnabled !== null ||
-    d.defaultVisibility !== null ||
-    d.defaultCategoryId !== null ||
-    d.playlistId !== null;
+    d.youtubeSecretName != null ||
+    d.youtubeAccountType != null ||
+    d.autoPublishEnabled != null ||
+    d.defaultVisibility != null ||
+    d.defaultCategoryId != null ||
+    d.playlistId != null ||
+    d.youtubeExternalChannelId != null ||
+    d.youtubeChannelTitle != null ||
+    d.youtubeChannelDescription != null ||
+    d.youtubeChannelCustomUrl != null ||
+    d.youtubeChannelKeywords != null ||
+    d.youtubeChannelSyncedAt != null ||
+    d.youtubeDefaultTags != null ||
+    d.youtubeDefaultLanguage != null ||
+    d.youtubeNotifySubscribers != null ||
+    d.youtubeMadeForKids != null ||
+    d.youtubeUploadFormat != null;
 
   const item: ContentItem = {
     PK: `CONTENT#${contentId}`,
@@ -39,6 +50,17 @@ export const createContentRecord = async (input: {
           defaultVisibility: d.defaultVisibility,
           defaultCategoryId: d.defaultCategoryId,
           playlistId: d.playlistId,
+          youtubeExternalChannelId: d.youtubeExternalChannelId,
+          youtubeChannelTitle: d.youtubeChannelTitle,
+          youtubeChannelDescription: d.youtubeChannelDescription,
+          youtubeChannelCustomUrl: d.youtubeChannelCustomUrl,
+          youtubeChannelKeywords: d.youtubeChannelKeywords,
+          youtubeChannelSyncedAt: d.youtubeChannelSyncedAt,
+          youtubeDefaultTags: d.youtubeDefaultTags,
+          youtubeDefaultLanguage: d.youtubeDefaultLanguage,
+          youtubeNotifySubscribers: d.youtubeNotifySubscribers,
+          youtubeMadeForKids: d.youtubeMadeForKids,
+          youtubeUploadFormat: d.youtubeUploadFormat,
           youtubeUpdatedAt: input.now,
           youtubeUpdatedBy: input.actor,
         }

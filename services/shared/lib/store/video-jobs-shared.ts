@@ -23,6 +23,16 @@ export type JobMetaItem = {
   language: string;
   targetDurationSec: number;
   videoTitle: string;
+  /** YouTube `videos.insert` 제목 오버라이드; 없으면 `videoTitle` 사용 */
+  youtubePublishTitle?: string;
+  /** 업로드 설명; 없으면 시스템 기본(콘텐츠·잡 ID) 설명 */
+  youtubePublishDescription?: string;
+  /** 잡 단위 태그; 채널 `youtubeDefaultTags`와 병합 */
+  youtubePublishTags?: string[];
+  /** 카테고리 ID; 없으면 채널 기본 */
+  youtubePublishCategoryId?: number;
+  /** `snippet.defaultLanguage`; 없으면 채널 기본 */
+  youtubePublishDefaultLanguage?: string;
   estimatedCost: number;
   providerCosts: Record<string, number>;
   reviewMode: boolean;
@@ -77,6 +87,18 @@ export type ContentItem = {
   playlistId?: string;
   youtubeUpdatedAt?: string;
   youtubeUpdatedBy?: string;
+  /** YouTube Data API v3 연동 — `services/shared/lib/contracts/youtube-channel-publish` 와 동일 의미 */
+  youtubeExternalChannelId?: string;
+  youtubeChannelTitle?: string;
+  youtubeChannelDescription?: string;
+  youtubeChannelCustomUrl?: string;
+  youtubeChannelKeywords?: string;
+  youtubeChannelSyncedAt?: string;
+  youtubeDefaultTags?: string[];
+  youtubeDefaultLanguage?: string;
+  youtubeNotifySubscribers?: boolean;
+  youtubeMadeForKids?: boolean;
+  youtubeUploadFormat?: "standard" | "shorts";
 };
 
 export const CONTENT_CATALOG_GSI_PK = "CONTENT_CATALOG";

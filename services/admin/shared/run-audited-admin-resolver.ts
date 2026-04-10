@@ -7,6 +7,7 @@ import type { GraphqlResolverEvent } from "./types";
 export type ResolverAuditFields = {
   jobId?: string;
   action?: string;
+  contentId?: string;
 };
 
 export type ResolverAuditFieldInput<TParsed, TResult> = {

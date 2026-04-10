@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { contentYoutubeChannelExtensionSchema } from "../contracts/youtube-channel-publish";
 
 const visibilitySchema = z.enum(["private", "unlisted", "public"]);
 const fallbackUpdatedAt = "1970-01-01T00:00:00.000Z";
@@ -14,6 +15,7 @@ const channelConfigSchema = z
     defaultCategoryId: z.number().int().positive().optional(),
     playlistId: z.string().trim().min(1).optional(),
   })
+  .merge(contentYoutubeChannelExtensionSchema)
   .strict();
 
 const channelConfigsSchema = z.record(z.string(), channelConfigSchema);

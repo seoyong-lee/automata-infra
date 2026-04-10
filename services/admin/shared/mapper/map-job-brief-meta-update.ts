@@ -1,5 +1,27 @@
 import type { ContentBriefDto, JobBriefDto } from "../types";
 
+const jobYoutubePublishForMeta = (
+  jobBrief: JobBriefDto,
+): Record<string, unknown> => {
+  const o: Record<string, unknown> = {};
+  if (jobBrief.youtubePublishTitle !== undefined) {
+    o.youtubePublishTitle = jobBrief.youtubePublishTitle;
+  }
+  if (jobBrief.youtubePublishDescription !== undefined) {
+    o.youtubePublishDescription = jobBrief.youtubePublishDescription;
+  }
+  if (jobBrief.youtubePublishTags !== undefined) {
+    o.youtubePublishTags = jobBrief.youtubePublishTags;
+  }
+  if (jobBrief.youtubePublishCategoryId !== undefined) {
+    o.youtubePublishCategoryId = jobBrief.youtubePublishCategoryId;
+  }
+  if (jobBrief.youtubePublishDefaultLanguage !== undefined) {
+    o.youtubePublishDefaultLanguage = jobBrief.youtubePublishDefaultLanguage;
+  }
+  return o;
+};
+
 export const mapJobBriefMetaUpdate = (jobBrief: JobBriefDto) => {
   return {
     jobBriefS3Key: undefined,
@@ -11,6 +33,7 @@ export const mapJobBriefMetaUpdate = (jobBrief: JobBriefDto) => {
     language: jobBrief.targetLanguage,
     targetDurationSec: jobBrief.targetDurationSec,
     videoTitle: jobBrief.titleIdea,
+    ...jobYoutubePublishForMeta(jobBrief),
   };
 };
 
@@ -39,5 +62,6 @@ export const mapJobPlanMetaUpdate = (jobPlan: JobBriefDto) => {
     language: jobPlan.targetLanguage,
     targetDurationSec: jobPlan.targetDurationSec,
     videoTitle: jobPlan.titleIdea,
+    ...jobYoutubePublishForMeta(jobPlan),
   };
 };

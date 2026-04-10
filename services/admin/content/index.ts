@@ -3,6 +3,8 @@ import { run as attachJobToContent } from "./attach-job-to-content";
 import { run as createContent } from "./create-content";
 import { run as deleteContent } from "./delete-content";
 import { run as listContents } from "./list-contents";
+import { run as pushYoutubeChannelToGoogle } from "./push-youtube-channel-to-google";
+import { run as syncYoutubeChannelMetadata } from "./sync-youtube-channel-metadata";
 import { run as updateContent } from "./update-content";
 import {
   dispatchGroupedResolver,
@@ -16,6 +18,8 @@ const routes: GroupedResolverRoutes = {
   updateContent,
   deleteContent,
   attachJobToContent,
+  syncYoutubeChannelMetadata,
+  pushYoutubeChannelToGoogle,
 };
 
 export const run: Handler<GroupedGraphqlResolverEvent, unknown> = async (

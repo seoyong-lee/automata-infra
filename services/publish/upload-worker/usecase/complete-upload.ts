@@ -1,10 +1,15 @@
 import { GetObjectCommand, S3Client } from "@aws-sdk/client-s3";
-import { google } from "googleapis";
-import { z } from "zod";
+import type { youtube_v3 } from "googleapis";
 import {
   getAssetsBucketName,
   getSecretJson,
 } from "../../../shared/lib/aws/runtime";
+import {
+  createYoutubeDataClient,
+  type YoutubeOAuthSecret,
+  youtubeOAuthSecretSchema,
+} from "../../../shared/lib/providers/youtube/youtube-oauth";
+import { loadYoutubeDataApiKey } from "../../../shared/lib/providers/youtube/load-youtube-data-api-key";
 import { getResolvedChannelPublishConfig } from "../../../shared/lib/store/channel-publish-config";
 import {
   type JobMetaItem,
@@ -15,15 +20,6 @@ import { persistUploadedRecord } from "../repo/persist-uploaded-record";
 
 const region = process.env.AWS_REGION ?? "ap-northeast-2";
 const s3Client = new S3Client({ region });
-
-const youtubeOAuthSecretSchema = z
-  .object({
-    client_id: z.string().trim().min(1),
-    client_secret: z.string().trim().min(1),
-    refresh_token: z.string().trim().min(1),
-    youtube_channel_id: z.string().trim().min(1).optional(),
-  })
-  .strict();
 
 const buildVideoDescription = (input: {
   contentId: string;
@@ -51,7 +47,9 @@ const getUploadJob = async (
   return job as JobMetaItem & { finalVideoS3Key: string };
 };
 
-const getYoutubeSecret = async (secretName: string) => {
+const getYoutubeSecret = async (
+  secretName: string,
+): Promise<YoutubeOAuthSecret> => {
   const secretPayload = await getSecretJson<unknown>(secretName);
   return youtubeOAuthSecretSchema.parse(secretPayload);
 };
@@ -69,46 +67,122 @@ const getVideoBody = async (s3Key: string): Promise<NodeJS.ReadableStream> => {
   return asset.Body as NodeJS.ReadableStream;
 };
 
-const createYoutubeClient = (
-  secret: z.infer<typeof youtubeOAuthSecretSchema>,
-) => {
-  const auth = new google.auth.OAuth2(secret.client_id, secret.client_secret);
-  auth.setCredentials({
-    refresh_token: secret.refresh_token,
+const buildSnippetTags = (input: {
+  defaultTags?: string[];
+  uploadFormat?: "standard" | "shorts";
+}): string[] | undefined => {
+  const tags = [...(input.defaultTags ?? [])];
+  if (
+    input.uploadFormat === "shorts" &&
+    !tags.some((t) => t.toLowerCase() === "shorts")
+  ) {
+    tags.push("Shorts");
+  }
+  const unique = [...new Set(tags)];
+  return unique.length ? unique : undefined;
+};
+
+const resolveYoutubeVideoTitle = (job: JobMetaItem): string => {
+  const custom = job.youtubePublishTitle?.trim();
+  return custom && custom.length > 0 ? custom : job.videoTitle;
+};
+
+const resolveYoutubeVideoDescription = (
+  job: JobMetaItem,
+  jobId: string,
+): string => {
+  const custom = job.youtubePublishDescription?.trim();
+  if (custom && custom.length > 0) {
+    return custom;
+  }
+  return buildVideoDescription({
+    contentId: job.contentId ?? "unknown",
+    contentType: job.contentType,
+    jobId,
   });
-  return google.youtube({
-    version: "v3",
-    auth,
+};
+
+const buildVideoInsertSnippet = (input: {
+  job: JobMetaItem;
+  jobId: string;
+  defaultCategoryId?: number;
+  defaultTags?: string[];
+  defaultLanguage?: string;
+  uploadFormat?: "standard" | "shorts";
+}): youtube_v3.Schema$VideoSnippet => {
+  const snippetTags = buildSnippetTags({
+    defaultTags: input.defaultTags,
+    uploadFormat: input.uploadFormat,
   });
+  return {
+    title: resolveYoutubeVideoTitle(input.job),
+    description: resolveYoutubeVideoDescription(input.job, input.jobId),
+    categoryId: String(input.defaultCategoryId ?? 22),
+    ...(snippetTags ? { tags: snippetTags } : {}),
+    ...(input.defaultLanguage
+      ? { defaultLanguage: input.defaultLanguage }
+      : {}),
+  };
+};
+
+const buildVideoInsertStatus = (input: {
+  job: JobMetaItem;
+  defaultVisibility: string;
+  madeForKids?: boolean;
+}): youtube_v3.Schema$VideoStatus => {
+  const publishAt = input.job.publishAt;
+  const effectiveVisibility = publishAt ? "private" : input.defaultVisibility;
+  const status: youtube_v3.Schema$VideoStatus = {
+    privacyStatus: effectiveVisibility,
+    publishAt: publishAt ?? undefined,
+  };
+  if (input.madeForKids !== undefined) {
+    status.selfDeclaredMadeForKids = input.madeForKids;
+  }
+  return status;
 };
 
 const uploadVideo = async (input: {
   job: JobMetaItem;
   jobId: string;
-  secret: z.infer<typeof youtubeOAuthSecretSchema>;
+  secret: YoutubeOAuthSecret;
   videoBody: NodeJS.ReadableStream;
   defaultVisibility: string;
   defaultCategoryId?: number;
+  defaultTags?: string[];
+  defaultLanguage?: string;
+  uploadFormat?: "standard" | "shorts";
+  notifySubscribers?: boolean;
+  madeForKids?: boolean;
+  dataApiKey?: string;
 }) => {
-  const youtube = createYoutubeClient(input.secret);
-  const publishAt = input.job.publishAt;
-  const effectiveVisibility = publishAt ? "private" : input.defaultVisibility;
+  const youtube = createYoutubeDataClient(input.secret);
+  const notifySubscribers =
+    input.notifySubscribers ??
+    (input.uploadFormat === "shorts" ? false : undefined);
+  const keyOpt =
+    input.dataApiKey && input.dataApiKey.trim()
+      ? { key: input.dataApiKey.trim() }
+      : {};
+
   const inserted = await youtube.videos.insert({
     part: ["snippet", "status"],
+    ...(notifySubscribers === undefined ? {} : { notifySubscribers }),
+    ...keyOpt,
     requestBody: {
-      snippet: {
-        title: input.job.videoTitle,
-        description: buildVideoDescription({
-          contentId: input.job.contentId ?? "unknown",
-          contentType: input.job.contentType,
-          jobId: input.jobId,
-        }),
-        categoryId: String(input.defaultCategoryId ?? 22),
-      },
-      status: {
-        privacyStatus: effectiveVisibility,
-        publishAt,
-      },
+      snippet: buildVideoInsertSnippet({
+        job: input.job,
+        jobId: input.jobId,
+        defaultCategoryId: input.defaultCategoryId,
+        defaultTags: input.defaultTags,
+        defaultLanguage: input.defaultLanguage,
+        uploadFormat: input.uploadFormat,
+      }),
+      status: buildVideoInsertStatus({
+        job: input.job,
+        defaultVisibility: input.defaultVisibility,
+        madeForKids: input.madeForKids,
+      }),
     },
     media: {
       body: input.videoBody,
@@ -118,6 +192,8 @@ const uploadVideo = async (input: {
   if (!youtubeVideoId) {
     throw new Error("youtube upload returned no video id");
   }
+  const publishAt = input.job.publishAt;
+  const effectiveVisibility = publishAt ? "private" : input.defaultVisibility;
   return {
     youtube,
     youtubeVideoId,
@@ -127,15 +203,21 @@ const uploadVideo = async (input: {
 };
 
 const maybeAddToPlaylist = async (input: {
-  youtube: ReturnType<typeof google.youtube>;
+  youtube: ReturnType<typeof createYoutubeDataClient>;
   playlistId?: string;
   youtubeVideoId: string;
+  dataApiKey?: string;
 }) => {
   if (!input.playlistId) {
     return;
   }
+  const keyOpt =
+    input.dataApiKey && input.dataApiKey.trim()
+      ? { key: input.dataApiKey.trim() }
+      : {};
   await input.youtube.playlistItems.insert({
     part: ["snippet"],
+    ...keyOpt,
     requestBody: {
       snippet: {
         playlistId: input.playlistId,
@@ -148,6 +230,53 @@ const maybeAddToPlaylist = async (input: {
   });
 };
 
+const uploadFinalVideoToYoutube = async (input: {
+  job: JobMetaItem & { finalVideoS3Key: string };
+  jobId: string;
+  channelConfig: NonNullable<
+    Awaited<ReturnType<typeof getResolvedChannelPublishConfig>>
+  >;
+  dataApiKey?: string;
+}) => {
+  const secretName = input.channelConfig.youtubeSecretName;
+  if (!secretName) {
+    throw new Error(
+      `youtube secret not configured for content ${input.job.contentId}`,
+    );
+  }
+  const secret = await getYoutubeSecret(secretName);
+  const videoBody = await getVideoBody(input.job.finalVideoS3Key);
+  const mergedTags = [
+    ...(input.channelConfig.youtubeDefaultTags ?? []),
+    ...(input.job.youtubePublishTags ?? []),
+  ];
+  const uploaded = await uploadVideo({
+    job: input.job,
+    jobId: input.jobId,
+    secret,
+    videoBody,
+    defaultVisibility: input.channelConfig.defaultVisibility ?? "private",
+    defaultCategoryId:
+      input.job.youtubePublishCategoryId ??
+      input.channelConfig.defaultCategoryId,
+    defaultTags: mergedTags,
+    defaultLanguage:
+      input.job.youtubePublishDefaultLanguage ??
+      input.channelConfig.youtubeDefaultLanguage,
+    uploadFormat: input.channelConfig.youtubeUploadFormat,
+    notifySubscribers: input.channelConfig.youtubeNotifySubscribers,
+    madeForKids: input.channelConfig.youtubeMadeForKids,
+    dataApiKey: input.dataApiKey,
+  });
+  await maybeAddToPlaylist({
+    youtube: uploaded.youtube,
+    playlistId: input.channelConfig.playlistId,
+    youtubeVideoId: uploaded.youtubeVideoId,
+    dataApiKey: input.dataApiKey,
+  });
+  return uploaded;
+};
+
 export const completeUpload = async (jobId: string) => {
   const job = await getUploadJob(jobId);
   const contentId = job.contentId;
@@ -155,25 +284,16 @@ export const completeUpload = async (jobId: string) => {
     throw new Error("job has no contentId; cannot resolve publish config");
   }
   const channelConfig = await getResolvedChannelPublishConfig(contentId);
-  const secretName = channelConfig?.youtubeSecretName;
-  if (!secretName) {
-    throw new Error(`youtube secret not configured for content ${contentId}`);
+  if (!channelConfig) {
+    throw new Error(`publish config not found for content ${contentId}`);
   }
 
-  const secret = await getYoutubeSecret(secretName);
-  const videoBody = await getVideoBody(job.finalVideoS3Key);
-  const uploaded = await uploadVideo({
+  const dataApiKey = await loadYoutubeDataApiKey();
+  const uploaded = await uploadFinalVideoToYoutube({
     job,
     jobId,
-    secret,
-    videoBody,
-    defaultVisibility: channelConfig?.defaultVisibility ?? "private",
-    defaultCategoryId: channelConfig?.defaultCategoryId,
-  });
-  await maybeAddToPlaylist({
-    youtube: uploaded.youtube,
-    playlistId: channelConfig?.playlistId,
-    youtubeVideoId: uploaded.youtubeVideoId,
+    channelConfig,
+    dataApiKey,
   });
 
   const uploadedAt = new Date().toISOString();

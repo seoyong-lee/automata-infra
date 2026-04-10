@@ -17,6 +17,17 @@ const stripYoutubeFields = (item: ContentItem): ContentItem => {
   delete next.playlistId;
   delete next.youtubeUpdatedAt;
   delete next.youtubeUpdatedBy;
+  delete next.youtubeExternalChannelId;
+  delete next.youtubeChannelTitle;
+  delete next.youtubeChannelDescription;
+  delete next.youtubeChannelCustomUrl;
+  delete next.youtubeChannelKeywords;
+  delete next.youtubeChannelSyncedAt;
+  delete next.youtubeDefaultTags;
+  delete next.youtubeDefaultLanguage;
+  delete next.youtubeNotifySubscribers;
+  delete next.youtubeMadeForKids;
+  delete next.youtubeUploadFormat;
   return next;
 };
 
@@ -27,6 +38,17 @@ const YOUTUBE_DRAFT_FIELD_KEYS: Array<keyof UpdateContentInputDto> = [
   "defaultVisibility",
   "defaultCategoryId",
   "playlistId",
+  "youtubeExternalChannelId",
+  "youtubeChannelTitle",
+  "youtubeChannelDescription",
+  "youtubeChannelCustomUrl",
+  "youtubeChannelKeywords",
+  "youtubeChannelSyncedAt",
+  "youtubeDefaultTags",
+  "youtubeDefaultLanguage",
+  "youtubeNotifySubscribers",
+  "youtubeMadeForKids",
+  "youtubeUploadFormat",
 ];
 
 const hasYoutubeDraftFields = (d: UpdateContentInputDto): boolean =>
@@ -34,7 +56,7 @@ const hasYoutubeDraftFields = (d: UpdateContentInputDto): boolean =>
 
 const setOptionalTrimmedString = (
   target: ContentItem,
-  key: "youtubeSecretName" | "youtubeAccountType" | "playlistId",
+  key: "youtubeSecretName" | "youtubeAccountType" | "playlistId" | "youtubeExternalChannelId" | "youtubeChannelCustomUrl" | "youtubeChannelSyncedAt" | "youtubeDefaultLanguage",
   value: string | undefined,
 ): void => {
   if (value === undefined) {
@@ -44,6 +66,21 @@ const setOptionalTrimmedString = (
     delete target[key];
   } else {
     target[key] = value.trim();
+  }
+};
+
+const setOptionalMultilineString = (
+  target: ContentItem,
+  key: "youtubeChannelTitle" | "youtubeChannelDescription" | "youtubeChannelKeywords",
+  value: string | undefined,
+): void => {
+  if (value === undefined) {
+    return;
+  }
+  if (value.trim() === "") {
+    delete target[key];
+  } else {
+    target[key] = value;
   }
 };
 
@@ -65,6 +102,49 @@ const applyYoutubeDraftToContent = (
     next.defaultCategoryId = d.defaultCategoryId;
   }
   setOptionalTrimmedString(next, "playlistId", d.playlistId);
+  setOptionalTrimmedString(
+    next,
+    "youtubeExternalChannelId",
+    d.youtubeExternalChannelId,
+  );
+  setOptionalMultilineString(next, "youtubeChannelTitle", d.youtubeChannelTitle);
+  setOptionalMultilineString(
+    next,
+    "youtubeChannelDescription",
+    d.youtubeChannelDescription,
+  );
+  setOptionalTrimmedString(
+    next,
+    "youtubeChannelCustomUrl",
+    d.youtubeChannelCustomUrl,
+  );
+  setOptionalMultilineString(
+    next,
+    "youtubeChannelKeywords",
+    d.youtubeChannelKeywords,
+  );
+  setOptionalTrimmedString(
+    next,
+    "youtubeChannelSyncedAt",
+    d.youtubeChannelSyncedAt,
+  );
+  if (d.youtubeDefaultTags !== undefined) {
+    next.youtubeDefaultTags = d.youtubeDefaultTags;
+  }
+  setOptionalTrimmedString(
+    next,
+    "youtubeDefaultLanguage",
+    d.youtubeDefaultLanguage,
+  );
+  if (d.youtubeNotifySubscribers !== undefined) {
+    next.youtubeNotifySubscribers = d.youtubeNotifySubscribers;
+  }
+  if (d.youtubeMadeForKids !== undefined) {
+    next.youtubeMadeForKids = d.youtubeMadeForKids;
+  }
+  if (d.youtubeUploadFormat !== undefined) {
+    next.youtubeUploadFormat = d.youtubeUploadFormat;
+  }
   next.youtubeUpdatedAt = now;
   next.youtubeUpdatedBy = actor;
 };

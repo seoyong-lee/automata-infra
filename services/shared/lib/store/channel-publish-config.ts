@@ -204,6 +204,81 @@ const mergedPlaylistAndAuditFields = (
     firstDefined(content.youtubeUpdatedBy, legacy?.updatedBy) ?? "catalog",
 });
 
+const mergedYoutubeApiExtensionFields = (
+  content: ContentItem,
+  legacy: ChannelPublishConfigRecord | undefined,
+  envPack: ReturnType<typeof getChannelPublishConfig>,
+): Pick<
+  ChannelPublishConfigRecord,
+  | "youtubeExternalChannelId"
+  | "youtubeChannelTitle"
+  | "youtubeChannelDescription"
+  | "youtubeChannelCustomUrl"
+  | "youtubeChannelKeywords"
+  | "youtubeChannelSyncedAt"
+  | "youtubeDefaultTags"
+  | "youtubeDefaultLanguage"
+  | "youtubeNotifySubscribers"
+  | "youtubeMadeForKids"
+  | "youtubeUploadFormat"
+> => ({
+  youtubeExternalChannelId: firstDefined(
+    content.youtubeExternalChannelId,
+    legacy?.youtubeExternalChannelId,
+    envPack?.youtubeExternalChannelId,
+  ),
+  youtubeChannelTitle: firstDefined(
+    content.youtubeChannelTitle,
+    legacy?.youtubeChannelTitle,
+    envPack?.youtubeChannelTitle,
+  ),
+  youtubeChannelDescription: firstDefined(
+    content.youtubeChannelDescription,
+    legacy?.youtubeChannelDescription,
+    envPack?.youtubeChannelDescription,
+  ),
+  youtubeChannelCustomUrl: firstDefined(
+    content.youtubeChannelCustomUrl,
+    legacy?.youtubeChannelCustomUrl,
+    envPack?.youtubeChannelCustomUrl,
+  ),
+  youtubeChannelKeywords: firstDefined(
+    content.youtubeChannelKeywords,
+    legacy?.youtubeChannelKeywords,
+    envPack?.youtubeChannelKeywords,
+  ),
+  youtubeChannelSyncedAt: firstDefined(
+    content.youtubeChannelSyncedAt,
+    legacy?.youtubeChannelSyncedAt,
+    envPack?.youtubeChannelSyncedAt,
+  ),
+  youtubeDefaultTags: firstDefined(
+    content.youtubeDefaultTags,
+    legacy?.youtubeDefaultTags,
+    envPack?.youtubeDefaultTags,
+  ),
+  youtubeDefaultLanguage: firstDefined(
+    content.youtubeDefaultLanguage,
+    legacy?.youtubeDefaultLanguage,
+    envPack?.youtubeDefaultLanguage,
+  ),
+  youtubeNotifySubscribers: firstDefined(
+    content.youtubeNotifySubscribers,
+    legacy?.youtubeNotifySubscribers,
+    envPack?.youtubeNotifySubscribers,
+  ),
+  youtubeMadeForKids: firstDefined(
+    content.youtubeMadeForKids,
+    legacy?.youtubeMadeForKids,
+    envPack?.youtubeMadeForKids,
+  ),
+  youtubeUploadFormat: firstDefined(
+    content.youtubeUploadFormat,
+    legacy?.youtubeUploadFormat,
+    envPack?.youtubeUploadFormat,
+  ),
+});
+
 function mergeContentWithFallbacks(
   content: ContentItem,
   legacy: ChannelPublishConfigRecord | undefined,
@@ -221,6 +296,7 @@ function mergeContentWithFallbacks(
       contentId,
     ),
     ...mergedPublishDefaultFields(content, legacy, envPack),
+    ...mergedYoutubeApiExtensionFields(content, legacy, envPack),
     ...mergedPlaylistAndAuditFields(
       content,
       legacy,
@@ -242,6 +318,17 @@ const stripYoutubeFields = (item: ContentItem): ContentItem => {
   delete next.playlistId;
   delete next.youtubeUpdatedAt;
   delete next.youtubeUpdatedBy;
+  delete next.youtubeExternalChannelId;
+  delete next.youtubeChannelTitle;
+  delete next.youtubeChannelDescription;
+  delete next.youtubeChannelCustomUrl;
+  delete next.youtubeChannelKeywords;
+  delete next.youtubeChannelSyncedAt;
+  delete next.youtubeDefaultTags;
+  delete next.youtubeDefaultLanguage;
+  delete next.youtubeNotifySubscribers;
+  delete next.youtubeMadeForKids;
+  delete next.youtubeUploadFormat;
   return next;
 };
 
@@ -371,6 +458,17 @@ export const putChannelPublishConfig = async (
       defaultVisibility: input.defaultVisibility,
       defaultCategoryId: input.defaultCategoryId,
       playlistId: input.playlistId,
+      youtubeExternalChannelId: input.youtubeExternalChannelId,
+      youtubeChannelTitle: input.youtubeChannelTitle,
+      youtubeChannelDescription: input.youtubeChannelDescription,
+      youtubeChannelCustomUrl: input.youtubeChannelCustomUrl,
+      youtubeChannelKeywords: input.youtubeChannelKeywords,
+      youtubeChannelSyncedAt: input.youtubeChannelSyncedAt,
+      youtubeDefaultTags: input.youtubeDefaultTags,
+      youtubeDefaultLanguage: input.youtubeDefaultLanguage,
+      youtubeNotifySubscribers: input.youtubeNotifySubscribers,
+      youtubeMadeForKids: input.youtubeMadeForKids,
+      youtubeUploadFormat: input.youtubeUploadFormat,
       youtubeUpdatedAt: updatedAt,
       youtubeUpdatedBy: input.actor,
       updatedAt,

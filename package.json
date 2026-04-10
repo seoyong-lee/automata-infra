@@ -16,6 +16,7 @@
     "test:generation": "node --test -r ts-node/register scripts/generation.test.ts",
     "test:fargate-render": "node --test -r ts-node/register scripts/fargate-render-smoke.test.ts",
     "migrate:scene-subtitles": "ts-node scripts/migrate-scene-subtitles.ts",
+    "secrets:youtube-data-api": "ts-node scripts/put-youtube-data-api-secret.ts",
     "clean": "rm -rf cdk.out cdk.out-ts"
   },
   "dependencies": {

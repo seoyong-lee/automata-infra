@@ -170,6 +170,7 @@ export class AppStack extends Stack {
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
       SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,
+      YOUTUBE_DATA_API_SECRET_ID: props.envConfig.youtubeDataApiSecretId ?? "",
       FARGATE_RENDER_CLUSTER_ARN: this.renderClusterArn,
       FARGATE_RENDER_TASK_DEFINITION_FAMILY: this.renderTaskDefinitionFamily,
       FARGATE_RENDER_CONTAINER_NAME: this.renderContainerName,
@@ -345,6 +346,12 @@ export class AppStack extends Stack {
       path.join(process.cwd(), "services/admin/content/handler.ts"),
       environment,
     );
+    contentHandler.addToRolePolicy(
+      new iam.PolicyStatement({
+        actions: ["secretsmanager:GetSecretValue"],
+        resources: ["*"],
+      }),
+    );
     const settingsHandler = createLambda(
       this,
       "AdminSettingsLambda",
@@ -423,6 +430,8 @@ export class AppStack extends Stack {
     const createContentResolver = contentHandler;
     const deleteContentResolver = contentHandler;
     const updateContentResolver = contentHandler;
+    const syncYoutubeChannelMetadataResolver = contentHandler;
+    const pushYoutubeChannelToGoogleResolver = contentHandler;
     const attachJobToContentResolver = contentHandler;
 
     const uploadHandler = uploadGroupHandler;
@@ -637,6 +646,8 @@ export class AppStack extends Stack {
       getJobDraftResolver,
       createContentResolver,
       updateContentResolver,
+      syncYoutubeChannelMetadataResolver,
+      pushYoutubeChannelToGoogleResolver,
       deleteContentResolver,
       createDraftJobResolver,
       updateJobBriefResolver,

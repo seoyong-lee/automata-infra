@@ -44,7 +44,9 @@ type AuditOperation =
   | "createContent"
   | "updateContent"
   | "deleteContent"
-  | "adminContents";
+  | "adminContents"
+  | "syncYoutubeChannelMetadata"
+  | "pushYoutubeChannelToGoogle";
 
 type ResolverAuditLogInput = {
   operation: AuditOperation | string;
@@ -53,6 +55,7 @@ type ResolverAuditLogInput = {
   actor: string;
   jobId?: string;
   action?: string;
+  contentId?: string;
   errorCode?: string;
   errorMessage?: string;
   /** 매핑 전 원본 에러 메시지(디버깅). */

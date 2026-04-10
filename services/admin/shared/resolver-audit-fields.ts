@@ -65,3 +65,14 @@ export const resolveActionAuditFields = <TParsed, TResult>(input: {
       (input.parsedPath ? readAuditPath(parsed, input.parsedPath) : undefined),
   });
 };
+
+export const resolveContentIdAuditFields = <TParsed, TResult>(input?: {
+  parsedPath?: string;
+  resultPath?: string;
+}): ResolverAuditFieldsResolver<TParsed, TResult> => {
+  return ({ parsed, result }) => ({
+    contentId:
+      readAuditPath(result, input?.resultPath ?? "contentId") ??
+      readAuditPath(parsed, input?.parsedPath ?? "contentId"),
+  });
+};

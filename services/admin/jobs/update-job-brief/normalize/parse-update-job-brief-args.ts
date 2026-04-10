@@ -1,6 +1,7 @@
 import { badUserInput } from "../../../shared/errors";
 import type { UpdateJobBriefInputDto } from "../../../shared/types";
 import { jobRenderSettingsSchema } from "../../../../shared/lib/contracts/canonical-io-schemas";
+import { parseOptionalYoutubePublishFields } from "./parse-youtube-publish-fields-for-job-brief";
 
 const asString = (value: unknown, field: string): string => {
   if (typeof value !== "string" || value.trim().length === 0) {
@@ -90,6 +91,7 @@ export const parseUpdateJobBriefArgs = (
       ...(input.renderSettings !== undefined
         ? { renderSettings: asOptionalRenderSettings(input.renderSettings) }
         : {}),
+      ...parseOptionalYoutubePublishFields(input),
     },
   };
 };
