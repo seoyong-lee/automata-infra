@@ -109,9 +109,10 @@ function buildOverlayScaleChain(pw, ph, fit, opacity) {
   if (f === "stretch") {
     chain = `scale=${pw}:${ph}`;
   } else if (f === "cover") {
-    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=increase,crop=${pw}:${ph}`;
+    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=increase,crop=${pw}:${ph}:(iw-${pw})/2:(ih-${ph})/2`;
   } else {
-    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=decrease,pad=w='max(iw\\,${pw})':h='max(ih\\,${ph})':x='(ow-iw)/2':y='(oh-ih)/2':${toFfmpegColor("#000000")},crop=${pw}:${ph}:(iw-${pw})/2:(ih-${ph})/2`;
+    /** contain: scale only; center inside placement box via overlay x/y expressions (avoids pad/crop FFmpeg bugs). */
+    chain = `scale=${pw}:${ph}:force_original_aspect_ratio=decrease`;
   }
   if (typeof opacity === "number" && opacity < 1 - 1e-6) {
     const a = Math.max(0, Math.min(1, opacity));
@@ -212,7 +213,12 @@ export async function prepareSceneImageOverlays({
       localStart,
       localEnd,
       zIndex: Number(overlay.zIndex ?? 6),
-      scaleChain: `${buildOverlayScaleChain(pwSafe, phSafe, overlay.fit ?? "contain", overlay.opacity)},fps=${Math.max(1, Math.round(Number(outputSettings.fps) || 30))}`,
+      scaleChain: buildOverlayScaleChain(
+        pwSafe,
+        phSafe,
+        overlay.fit ?? "contain",
+        overlay.opacity,
+      ),
     });
   }
   rows.sort((a, b) => a.zIndex - b.zIndex);
@@ -253,8 +259,13 @@ export function buildImageOverlayFilterComplex({
     const enableClause = spansFullClip
       ? ""
       : `:enable='between(t\\,${ls}\\,${le})'`;
+    const fit = o.fit ?? "contain";
+    const overlayXY =
+      fit === "contain"
+        ? `x='${o.px}+(${o.pw}-overlay_w)/2':y='${o.py}+(${o.ph}-overlay_h)/2'`
+        : `x=${o.px}:y=${o.py}`;
     parts.push(
-      `[${cur}][${olab}]overlay=${o.px}:${o.py}${enableClause}[${vlab}]`,
+      `[${cur}][${olab}]overlay=${overlayXY}${enableClause}[${vlab}]`,
     );
     cur = vlab;
     inputIdx += 1;
