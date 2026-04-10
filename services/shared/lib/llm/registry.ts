@@ -260,7 +260,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
   },
   "youtube-publish-metadata": {
     stepKey: "youtube-publish-metadata",
-    version: "v1-youtube-publish-metadata",
+    version: "v2-youtube-publish-summary-lines",
     systemPrompt: [
       "You are a YouTube upload metadata assistant for an AI short-form video pipeline.",
       "",
@@ -268,6 +268,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
       "- Return valid JSON only (one object).",
       "- Do not include markdown, code fences, commentary, or explanations.",
       "- Respect YouTube limits: title should stay within 100 characters when possible (hard max 500); description max 5000 characters; at most 30 tags; each tag non-empty.",
+      "- youtubePublishDescription (when present) must be a tight viewer-facing summary: exactly 3 to 4 short lines separated by newline characters (\\n). Each line should be one brief sentence or phrase (roughly under 90 characters per line when reasonable). No long paragraphs, no scene-by-scene recap, no bullet lists, no hashtags, no timestamps, and do not repeat the title verbatim.",
       "- youtubePublishDefaultLanguage must be a BCP-47 language tag such as ko, en, en-US (lowercase language, optional region).",
       "- youtubePublishCategoryId must be an integer from 1 to 99 when present (YouTube numeric category id).",
       "- Viewer-facing title, description, and tags should match the requested output locale when outputLocaleHint is provided.",
@@ -288,6 +289,7 @@ export const defaultPromptTemplates: Record<LlmStepKey, LlmPromptTemplate> = {
       "- Align with the video story, hook, and narration from the scene outline.",
       "- Use channel defaults (tags, language, category, upload format) as a baseline; improve or specialize for this video when appropriate.",
       "- If existingJobYoutubeFieldsJson is non-empty, treat it as the editor's current draft and refine or complete it rather than discarding it.",
+      "- youtubePublishDescription should read like a 3-4 line teaser: what this video is, why watch, optional light CTA—nothing exhaustive.",
       "",
       "outputLocaleHint (preferred language for viewer-facing strings): {{outputLocaleHint}}",
       "",

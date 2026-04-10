@@ -1,4 +1,7 @@
-import { jobYoutubePublishMetadataSchema } from "../../../../shared/lib/contracts/job-youtube-publish";
+import {
+  jobYoutubePublishMetadataSchema,
+  type JobYoutubePublishMetadata,
+} from "../../../../shared/lib/contracts/job-youtube-publish";
 import { generateStepStructuredData } from "../../../../shared/lib/llm";
 import { softenMarkdownFencesForPrompt } from "../../../../shared/lib/llm/soften-markdown-fences-for-prompt";
 import type { JobMetaItem } from "../../../../shared/lib/store/video-jobs-shared";
@@ -73,6 +76,41 @@ const buildJobMetaHintsPayload = (job: JobMetaItem) => {
   };
 };
 
+/** Keep LLM descriptions short even if the model ignores line-count hints. */
+const clampYoutubePublishDescriptionSummary = (raw: string): string => {
+  const text = raw.trim();
+  if (!text) {
+    return text;
+  }
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+  if (lines.length >= 2) {
+    return lines.slice(0, 4).join("\n");
+  }
+
+  const single = lines[0] ?? text;
+  const sentences = single
+    .split(/(?<=[.!?。！？…])\s+/u)
+    .map((s) => s.trim())
+    .filter((s) => s.length > 0);
+  if (sentences.length > 4) {
+    return sentences.slice(0, 4).join(" ").trim();
+  }
+
+  const maxChars = 400;
+  if (single.length > maxChars) {
+    const cut = single.slice(0, maxChars - 1).trimEnd();
+    const lastSpace = cut.lastIndexOf(" ");
+    const base = lastSpace > 180 ? cut.slice(0, lastSpace) : cut;
+    return `${base}…`;
+  }
+
+  return single;
+};
+
 const hasAnyYoutubeField = (o: Partial<Record<string, unknown>>): boolean => {
   if (typeof o.youtubePublishTitle === "string" && o.youtubePublishTitle) {
     return true;
@@ -120,7 +158,7 @@ export const suggestAdminJobYoutubePublishMetadata = async (
     ctx.sceneJson.language ||
     "";
 
-  const result = await generateStepStructuredData({
+  const result = await generateStepStructuredData<JobYoutubePublishMetadata>({
     jobId: input.jobId,
     stepKey: "youtube-publish-metadata",
     variables: {
@@ -154,5 +192,14 @@ export const suggestAdminJobYoutubePublishMetadata = async (
     throw badUserInput("LLM returned no usable YouTube metadata fields");
   }
 
-  return result.output;
+  const out = result.output;
+  const desc = out.youtubePublishDescription;
+  if (typeof desc === "string" && desc.trim().length > 0) {
+    return {
+      ...out,
+      youtubePublishDescription: clampYoutubePublishDescriptionSummary(desc),
+    };
+  }
+
+  return out;
 };
