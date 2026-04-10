@@ -6,6 +6,7 @@ import {
 import { buildRenderPlanScenes } from "./usecase/build-render-plan-scenes";
 import {
   persistRenderPlan,
+  persistRenderPlanGapDiagnostics,
   resolveRenderPlanAssets,
   resolveStoredRenderInputs,
 } from "./repo/render-plan-store";
@@ -37,6 +38,16 @@ export const run: Handler<
   const renderPlan = buildRenderPlan(event, builtScenes, config);
 
   await persistRenderPlan(event.jobId, renderPlan);
+  try {
+    await persistRenderPlanGapDiagnostics(event.jobId, {
+      sceneGapSec: config.sceneGapSec,
+      renderPlanS3Key: renderPlan.outputKey,
+      totalDurationSec: builtScenes.totalDurationSec,
+      scenes: builtScenes.scenes,
+    });
+  } catch {
+    // best-effort; render plan is already persisted
+  }
 
   return {
     ...event,

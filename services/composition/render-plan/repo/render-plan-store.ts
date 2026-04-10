@@ -14,6 +14,7 @@ import {
   putRenderArtifact,
   updateJobMeta,
 } from "../../../shared/lib/store/video-jobs";
+import type { RenderPlanScene } from "../../../../types/render/render-plan";
 import type {
   ResolvedRenderPlanAssets,
   RenderPlanEvent,
@@ -67,6 +68,31 @@ export const persistRenderPlan = async (
     },
     "RENDER_PLAN_READY",
   );
+};
+
+/** `sceneGapSec` passed into `buildRenderPlanScenes` and per-scene gaps (S3 triage). */
+export const persistRenderPlanGapDiagnostics = async (
+  jobId: string,
+  input: {
+    sceneGapSec: number;
+    renderPlanS3Key: string;
+    totalDurationSec: number;
+    scenes: RenderPlanScene[];
+  },
+): Promise<void> => {
+  await putJsonToS3(`logs/${jobId}/composition/render-plan-gap-diagnostics.json`, {
+    at: new Date().toISOString(),
+    sceneGapSec: input.sceneGapSec,
+    renderPlanS3Key: input.renderPlanS3Key,
+    totalDurationSec: input.totalDurationSec,
+    scenes: input.scenes.map((s) => ({
+      sceneId: s.sceneId,
+      startSec: s.startSec,
+      endSec: s.endSec,
+      durationSec: s.durationSec,
+      gapAfterSec: s.gapAfterSec,
+    })),
+  });
 };
 
 const resolveStoredVoiceDurationSec = async (

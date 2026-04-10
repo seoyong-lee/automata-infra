@@ -34,6 +34,26 @@ const VOICE_TAIL_PAD_SEC = 0.15;
 /** Silence before TTS starts (avoids perceived fade-in at scene cut). */
 const TTS_LEAD_IN_SEC = 0.5;
 
+/**
+ * If `gapAfterSec` is inflated vs the global timeline (`next.startSec - scene.endSec`), trust the timeline.
+ * Prevents one-off corrupt plan fields from producing long freeze gaps while keeping normal 0.5s gaps.
+ */
+function resolveGapAfterSecFromPlan(scene, nextScene) {
+  const fieldGap = Number(scene?.gapAfterSec ?? 0);
+  if (!nextScene) {
+    return Math.max(0, fieldGap);
+  }
+  const timelineGap = Math.max(
+    0,
+    Number(nextScene.startSec ?? 0) - Number(scene.endSec ?? 0),
+  );
+  let effective = fieldGap;
+  if (Number.isFinite(timelineGap) && fieldGap > timelineGap + 0.05) {
+    effective = timelineGap;
+  }
+  return Math.max(0, effective);
+}
+
 function isDebugMp4BundleEnabled() {
   const v = process.env.FARGATE_DEBUG_MP4_BUNDLE?.trim().toLowerCase();
   return v === "1" || v === "true" || v === "yes";
@@ -618,9 +638,9 @@ export async function runRenderTask(input) {
       segmentPath,
       durationSec: segmentDurationSec,
     });
-    const gapAfterSec = Number(scene.gapAfterSec ?? 0);
-    const hasNext = index < scenes.length - 1;
-    if (hasNext && gapAfterSec > 0.001) {
+    const nextScene = index < scenes.length - 1 ? scenes[index + 1] : undefined;
+    const gapAfterSec = resolveGapAfterSecFromPlan(scene, nextScene);
+    if (nextScene && gapAfterSec > 0.001) {
       const gapPath = await createGapSegment({
         jobId,
         index: `after-${scene.sceneId}`,
@@ -632,11 +652,32 @@ export async function runRenderTask(input) {
         storageRepo,
         mediaToolsRepo,
       });
-      const probedGap = await mediaToolsRepo.getMediaDurationSec(gapPath);
-      const gapDurationSec =
-        typeof probedGap === "number" && probedGap > 0
-          ? seconds(probedGap)
-          : seconds(gapAfterSec);
+      // Planned length only: ffprobe on freeze+loop gaps can misreport duration and break xfade offset math.
+      const gapDurationSec = seconds(gapAfterSec);
+      try {
+        const timelineGapSec = Math.max(
+          0,
+          Number(nextScene.startSec ?? 0) - Number(scene.endSec ?? 0),
+        );
+        await storageRepo.putJson(
+          `logs/${jobId}/composition/gap-after-${scene.sceneId}.json`,
+          {
+            at: new Date().toISOString(),
+            sceneId: scene.sceneId,
+            sceneStartSec: scene.startSec,
+            sceneEndSec: scene.endSec,
+            gapAfterSecFromPlan: Number(scene.gapAfterSec ?? 0),
+            gapAfterSecEffective: gapAfterSec,
+            timelineGapSec,
+            nextSceneId: nextScene.sceneId,
+            nextStartSec: nextScene.startSec,
+            gapDurationSecForConcat: gapDurationSec,
+            gapPath: path.basename(gapPath),
+          },
+        );
+      } catch {
+        // best-effort gap triage
+      }
       segmentInputs.push({
         scene: {
           sceneId: `gap-after-${scene.sceneId}`,
