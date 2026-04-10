@@ -417,7 +417,7 @@ export type BackgroundMusicAssetDto = {
 
 export type AssetPoolAssetDto = {
   assetId: string;
-  assetType: "image" | "video";
+  assetType: "image" | "video" | "audio";
   sourceType: "pool" | "stock" | "ai" | "internal";
   provider?: string;
   storageKey: string;

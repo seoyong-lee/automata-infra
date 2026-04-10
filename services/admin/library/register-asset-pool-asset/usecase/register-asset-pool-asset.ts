@@ -16,7 +16,12 @@ const assertContentTypeMatches = (
   if (!contentType) {
     return;
   }
-  const expectedPrefix = assetType === "image" ? "image/" : "video/";
+  const expectedPrefix =
+    assetType === "image"
+      ? "image/"
+      : assetType === "video"
+        ? "video/"
+        : "audio/";
   if (!contentType.toLowerCase().startsWith(expectedPrefix)) {
     throw badUserInput(
       `storageKey must point to a ${expectedPrefix}* object for ${assetType} assets`,
@@ -52,9 +57,16 @@ const resolveThumbnailKey = (
   return input.assetType === "image" ? input.storageKey : undefined;
 };
 
+const LIBRARY_BGM_PREFIX = "library/bgm/";
+
 export const registerAssetPoolAsset = async (
   input: RegisterAssetPoolAssetInput,
 ): Promise<AssetPoolAssetDto> => {
+  if (input.assetType === "audio" && !input.storageKey.startsWith(LIBRARY_BGM_PREFIX)) {
+    throw badUserInput(
+      `audio pool assets must use storageKey under ${LIBRARY_BGM_PREFIX}`,
+    );
+  }
   const thumbnailKey = resolveThumbnailKey(input);
   const storageContentType = await requireExistingObject(input.storageKey);
   assertContentTypeMatches(input.assetType, storageContentType);

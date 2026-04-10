@@ -4,6 +4,7 @@ import { run as runJobPlan } from "./run-job-plan";
 import { run as runSceneJson } from "./run-scene-json";
 import { run as searchSceneStockAssets } from "./search-scene-stock-assets";
 import { run as selectSceneImageCandidate } from "./select-scene-image-candidate";
+import { run as clearSceneVideo } from "./clear-scene-video";
 import { run as selectSceneVideoCandidate } from "./select-scene-video-candidate";
 import { run as selectSceneVoiceCandidate } from "./select-scene-voice-candidate";
 import { run as setJobBackgroundMusic } from "./set-job-background-music";
@@ -24,6 +25,7 @@ const routes: GroupedResolverRoutes = {
   searchSceneStockAssets,
   selectSceneImageCandidate,
   selectSceneVideoCandidate,
+  clearSceneVideo,
   selectSceneVoiceCandidate,
   setJobDefaultVoiceProfile,
   setJobBackgroundMusic,

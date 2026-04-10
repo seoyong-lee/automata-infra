@@ -36,6 +36,7 @@ type CreatePublishGraphqlApiProps = {
   upsertVoiceProfileResolver: lambda.IFunction;
   assetPoolAssetsResolver: lambda.IFunction;
   registerAssetPoolAssetResolver: lambda.IFunction;
+  requestLibraryBgmUploadResolver: lambda.IFunction;
   getJobDraftResolver: lambda.IFunction;
   createContentResolver: lambda.IFunction;
   updateContentResolver: lambda.IFunction;
@@ -52,6 +53,7 @@ type CreatePublishGraphqlApiProps = {
   searchSceneStockAssetsResolver: lambda.IFunction;
   selectSceneImageCandidateResolver: lambda.IFunction;
   selectSceneVideoCandidateResolver: lambda.IFunction;
+  clearSceneVideoResolver: lambda.IFunction;
   selectSceneVoiceCandidateResolver: lambda.IFunction;
   setJobDefaultVoiceProfileResolver: lambda.IFunction;
   setJobBackgroundMusicResolver: lambda.IFunction;
@@ -293,6 +295,13 @@ export const createPublishGraphqlApi = (
   );
   addLambdaResolver(
     graphqlApi,
+    "RequestLibraryBgmUpload",
+    "requestLibraryBgmUpload",
+    "Mutation",
+    props.requestLibraryBgmUploadResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
     "CreateContent",
     "createContent",
     "Mutation",
@@ -395,6 +404,13 @@ export const createPublishGraphqlApi = (
     "selectSceneVideoCandidate",
     "Mutation",
     props.selectSceneVideoCandidateResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "ClearSceneVideo",
+    "clearSceneVideo",
+    "Mutation",
+    props.clearSceneVideoResolver,
   );
   addLambdaResolver(
     graphqlApi,

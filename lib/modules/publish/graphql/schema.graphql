@@ -32,6 +32,9 @@ type Query {
   contentPresets(includeInactive: Boolean): [ContentPreset!]!
   llmSettings: LlmSettings!
   voiceProfiles: [VoiceProfile!]!
+  """
+  에셋 풀(이미지·영상·공유 BGM). 공유 배경음은 assetType: audio, storageKey는 library/bgm/…
+  """
   assetPoolAssets(
     assetType: AssetPoolAssetType
     sourceType: AssetPoolSourceType
@@ -135,6 +138,10 @@ type Mutation {
   selectSceneVideoCandidate(
     input: SelectSceneVideoCandidateInput!
   ): JobDraftDetail!
+  """
+  씬에 연결된 영상(클립·선택 후보·트랜스크립트 메타)을 해제한다. 잡 S3 경로(assets|logs/{jobId}/) 객체는 best-effort 삭제.
+  """
+  clearSceneVideo(input: ClearSceneVideoInput!): JobDraftDetail!
   selectSceneVoiceCandidate(
     input: SelectSceneVoiceCandidateInput!
   ): JobDraftDetail!
@@ -155,6 +162,12 @@ type Mutation {
   approvePipelineExecution(input: ApprovePipelineExecutionInput!): AdminJob!
   deleteJob(jobId: ID!): DeleteJobResult!
   registerAssetPoolAsset(input: RegisterAssetPoolAssetInput!): AssetPoolAsset!
+  """
+  공유 BGM 라이브러리(library/bgm/) presigned PUT. 완료 후 registerAssetPoolAsset(assetType: audio, storageKey)로 등록한다.
+  """
+  requestLibraryBgmUpload(
+    input: RequestLibraryBgmUploadInput!
+  ): LibraryBgmUploadRequest!
 }
 
 type AdminJob {
@@ -895,6 +908,7 @@ enum AssetUploadCategory {
 enum AssetPoolAssetType {
   image
   video
+  audio
 }
 
 enum AssetPoolSourceType {
@@ -919,6 +933,11 @@ input RequestAssetUploadInput {
 }
 
 input RequestTranscriptUploadInput {
+  fileName: String!
+  contentType: String!
+}
+
+input RequestLibraryBgmUploadInput {
   fileName: String!
   contentType: String!
 }
@@ -1320,6 +1339,9 @@ input SetJobDefaultVoiceProfileInput {
 
 input SetJobBackgroundMusicInput {
   jobId: ID!
+  """
+  assets/{jobId}/bgm/… 또는 공유 라이브러리 library/bgm/… 키.
+  """
   s3Key: String
 }
 
@@ -1339,6 +1361,11 @@ input SelectSceneVideoCandidateInput {
   jobId: ID!
   sceneId: Int!
   candidateId: ID!
+}
+
+input ClearSceneVideoInput {
+  jobId: ID!
+  sceneId: Int!
 }
 
 input SelectSceneVoiceCandidateInput {
@@ -1370,6 +1397,13 @@ type AssetUploadRequest {
 
 type TranscriptUploadRequest {
   transcriptId: ID!
+  uploadUrl: String!
+  s3Key: String!
+  fileName: String!
+  contentType: String!
+}
+
+type LibraryBgmUploadRequest {
   uploadUrl: String!
   s3Key: String!
   fileName: String!

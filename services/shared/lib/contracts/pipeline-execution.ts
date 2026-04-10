@@ -62,6 +62,7 @@ const DEFAULT_MAX_RUNTIME_SEC_BY_STAGE: Record<JobExecutionStageType, number> =
   {
     JOB_PLAN: 300,
     SCENE_JSON: 600,
+    /** Lambda 상한 15분과 맞춤. 씬 영상은 generate-scene-videos 병렬화로 벽시계 시간 단축 */
     ASSET_GENERATION: 900,
     FINAL_COMPOSITION: 900,
   };

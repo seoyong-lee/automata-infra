@@ -521,8 +521,7 @@ export class AppStack extends Stack {
     this.assetsBucket.grantReadWrite(runFinalCompositionResolver);
     this.assetsBucket.grantReadWrite(deleteJobResolver);
     this.assetsBucket.grantReadWrite(attachJobToContentResolver);
-    this.assetsBucket.grantRead(assetPoolAssetsResolver);
-    this.assetsBucket.grantRead(registerAssetPoolAssetResolver);
+    this.assetsBucket.grantReadWrite(libraryHandler);
     this.llmConfigTable.grantReadData(getLlmSettingsResolver);
     this.llmConfigTable.grantReadData(listContentPresetsResolver);
     this.llmConfigTable.grantReadWriteData(deleteContentPresetResolver);
@@ -652,6 +651,7 @@ export class AppStack extends Stack {
       upsertVoiceProfileResolver,
       assetPoolAssetsResolver,
       registerAssetPoolAssetResolver,
+      requestLibraryBgmUploadResolver: libraryHandler,
       getJobDraftResolver,
       createContentResolver,
       updateContentResolver,
@@ -668,6 +668,7 @@ export class AppStack extends Stack {
       searchSceneStockAssetsResolver,
       selectSceneImageCandidateResolver,
       selectSceneVideoCandidateResolver,
+      clearSceneVideoResolver: generationsHandler,
       selectSceneVoiceCandidateResolver,
       setJobDefaultVoiceProfileResolver,
       setJobBackgroundMusicResolver,

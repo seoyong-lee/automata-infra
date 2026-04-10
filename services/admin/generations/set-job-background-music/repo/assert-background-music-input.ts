@@ -2,10 +2,15 @@ import { headObjectFromS3 } from "../../../../shared/lib/aws/runtime";
 import { badUserInput, notFound } from "../../../shared/errors";
 
 const ALLOWED_AUDIO_EXTENSION_RE = /\.(mp3|wav|m4a|aac|ogg)$/i;
+const LIBRARY_BGM_PREFIX = "library/bgm/";
 
 const validateBackgroundMusicKey = (jobId: string, s3Key: string): void => {
-  if (!s3Key.startsWith(`assets/${jobId}/bgm/`)) {
-    throw badUserInput("s3Key must point to this job's bgm upload path");
+  const jobBgm = s3Key.startsWith(`assets/${jobId}/bgm/`);
+  const libraryBgm = s3Key.startsWith(LIBRARY_BGM_PREFIX);
+  if (!jobBgm && !libraryBgm) {
+    throw badUserInput(
+      "s3Key must be this job's assets/{jobId}/bgm/… path or a shared library/bgm/… key",
+    );
   }
   if (!ALLOWED_AUDIO_EXTENSION_RE.test(s3Key)) {
     throw badUserInput("s3Key must reference a supported audio file");

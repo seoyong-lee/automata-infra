@@ -2,7 +2,7 @@ import { z } from "zod";
 
 const nonEmpty = z.string().trim().min(1);
 
-export const assetPoolAssetTypeSchema = z.enum(["image", "video"]);
+export const assetPoolAssetTypeSchema = z.enum(["image", "video", "audio"]);
 export const assetPoolSourceTypeSchema = z.enum([
   "pool",
   "stock",
