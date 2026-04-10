@@ -490,8 +490,6 @@ const ASS_DEBUG_MAX_CHARS = 200_000;
 /**
  * @param {object | null | undefined} diag
  * When `diag.storageRepo.putJson` and `diag.jobId` are set, writes ASS + timing metadata to S3 for subtitle triage.
- * Optional `diag.voiceBodyDurationSec`: probed narration length + tail pad (no TTS lead-in). When the planned scene
- * span is longer than this, subtitle times are compressed into the speech window so phrase cues track audio better.
  */
 export async function writeSceneAss(
   scene,
@@ -513,19 +511,10 @@ export async function writeSceneAss(
     1e-3,
     sceneEndPlannedGlobal - sceneStartGlobal,
   );
-  const availableAfterLeadIn = Math.max(1e-3, safeRenderedDuration - leadInSec);
-  let outputContentSpanSec = availableAfterLeadIn;
-  const voiceBodyRaw = Number(diag?.voiceBodyDurationSec);
-  if (
-    leadInSec > 0 &&
-    Number.isFinite(voiceBodyRaw) &&
-    voiceBodyRaw > 0.05
-  ) {
-    const vb = Math.min(voiceBodyRaw, availableAfterLeadIn);
-    if (vb + 0.02 < plannedSpanSec) {
-      outputContentSpanSec = Math.max(1e-3, vb);
-    }
-  }
+  const outputContentSpanSec = Math.max(
+    1e-3,
+    safeRenderedDuration - leadInSec,
+  );
   /** Map global plan times into local ASS timeline [leadIn, safeRendered]. */
   const mapPlanGlobalToAssLocal = (globalSec) => {
     const u = (globalSec - sceneStartGlobal) / plannedSpanSec;
@@ -659,11 +648,6 @@ ${[...subtitleEvents, ...overlayEvents].join("\n")}
           outputContentSpanSec,
           safeRenderedDuration,
           leadInSec,
-          voiceBodyDurationSecDiag:
-            Number.isFinite(voiceBodyRaw) && voiceBodyRaw > 0
-              ? voiceBodyRaw
-              : null,
-          outputContentSpanSec,
           clearlyGlobalTimestamps,
           segmentsLookLocal,
           localSpanCeil,

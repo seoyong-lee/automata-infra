@@ -203,36 +203,15 @@ async function createSceneSegment(input) {
   );
   const hasVoice = Boolean(voiceKey);
   let durationSec = plannedDurationSec;
-  /** Narration + tail pad in seconds (no lead-in); drives subtitle compression vs plan when speech is shorter. */
-  let voiceBodyDurationSec;
   if (hasVoice) {
     await storageRepo.downloadObject(voiceKey, voicePath);
     const probed = await mediaToolsRepo.getMediaDurationSec(voicePath);
     if (typeof probed === "number" && probed > 0) {
-      voiceBodyDurationSec = seconds(probed + VOICE_TAIL_PAD_SEC);
-      durationSec = seconds(Math.max(plannedDurationSec, voiceBodyDurationSec));
-    } else if (
-      typeof scene.voiceDurationSec === "number" &&
-      Number.isFinite(scene.voiceDurationSec) &&
-      scene.voiceDurationSec > 0
-    ) {
-      voiceBodyDurationSec = seconds(scene.voiceDurationSec + VOICE_TAIL_PAD_SEC);
-      durationSec = seconds(Math.max(plannedDurationSec, voiceBodyDurationSec));
+      durationSec = seconds(Math.max(plannedDurationSec, probed + VOICE_TAIL_PAD_SEC));
     }
     durationSec = seconds(durationSec + TTS_LEAD_IN_SEC);
   }
   durationSec = snapDurationToOutputFps(durationSec, outputSettings.fps);
-  if (voiceBodyDurationSec !== undefined) {
-    voiceBodyDurationSec = snapDurationToOutputFps(
-      voiceBodyDurationSec,
-      outputSettings.fps,
-    );
-    const maxBody = Math.max(
-      0.05,
-      durationSec - (hasVoice ? TTS_LEAD_IN_SEC : 0),
-    );
-    voiceBodyDurationSec = Math.min(voiceBodyDurationSec, maxBody);
-  }
   const hasAss = await writeSceneAss(
     scene,
     subtitleSettings,
@@ -241,13 +220,7 @@ async function createSceneSegment(input) {
     overlays,
     durationSec,
     hasVoice ? TTS_LEAD_IN_SEC : 0,
-    {
-      jobId,
-      storageRepo,
-      ...(voiceBodyDurationSec !== undefined
-        ? { voiceBodyDurationSec }
-        : {}),
-    },
+    { jobId, storageRepo },
   );
   const vf = visualFilter(
     outputSettings,
@@ -438,7 +411,7 @@ async function createSceneSegment(input) {
             ...commonVideoEncodeTail,
           ]);
         }
-        return { segmentPath, durationSec, gapFreezeSourcePath: videoPath };
+        return { segmentPath, durationSec };
       } catch (videoError) {
         await storageRepo.putJson(
           `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-video.json`,
@@ -458,7 +431,7 @@ async function createSceneSegment(input) {
           );
           await storageRepo.downloadObject(scene.imageS3Key, imagePath);
           await encodeFromImage(imagePath);
-          return { segmentPath, durationSec, gapFreezeSourcePath: imagePath };
+          return { segmentPath, durationSec };
         }
         throw videoError;
       }
@@ -470,7 +443,7 @@ async function createSceneSegment(input) {
       );
       await storageRepo.downloadObject(scene.imageS3Key, imagePath);
       await encodeFromImage(imagePath);
-      return { segmentPath, durationSec, gapFreezeSourcePath: imagePath };
+      return { segmentPath, durationSec };
     }
   } catch (error) {
     await storageRepo.putJson(
@@ -533,11 +506,6 @@ async function createSceneSegment(input) {
   return { segmentPath, durationSec };
 }
 
-/**
- * Inter-scene gap: hold last frame. Prefer `freezeFrameSourcePath` when set (raw clip EOF) so
- * looped scene encodes (`-stream_loop -1`) do not freeze on a looped "early" frame; fall back
- * to the encoded `previousSegmentPath` tail.
- */
 async function createGapSegment(input) {
   const {
     jobId,
@@ -546,98 +514,73 @@ async function createGapSegment(input) {
     workDir,
     outputSettings,
     canvasSettings,
-    mediaFrameSettings,
     previousSegmentPath,
-    freezeFrameSourcePath,
     storageRepo,
     mediaToolsRepo,
   } = input;
-  const gapVisualFilter = visualBaseFilter(
-    outputSettings,
-    canvasSettings,
-    mediaFrameSettings,
-  );
   const durationSec = snapDurationToOutputFps(
     rawGapDurationSec,
     outputSettings.fps,
   );
   const gapPath = path.join(workDir, `gap-${index}.mp4`);
-  const freezeCandidates = [freezeFrameSourcePath, previousSegmentPath].filter(
-    (p) => typeof p === "string" && p.length > 0,
-  );
-  if (freezeCandidates.length > 0) {
+  if (previousSegmentPath) {
     const freezeFramePath = path.join(workDir, `gap-${index}-freeze.png`);
-    let extracted = false;
-    let lastError = null;
-    for (const src of freezeCandidates) {
-      try {
-        await mediaToolsRepo.runCommand("ffmpeg", [
-          "-y",
-          "-sseof",
-          "-0.04",
-          "-i",
-          src,
-          "-frames:v",
-          "1",
-          freezeFramePath,
-        ]);
-        extracted = true;
-        break;
-      } catch (e) {
-        lastError = e;
-      }
-    }
-    if (extracted) {
-      try {
-        await mediaToolsRepo.runCommand("ffmpeg", [
-          "-y",
-          "-loop",
-          "1",
-          "-i",
-          freezeFramePath,
-          "-f",
-          "lavfi",
-          "-i",
-          "anullsrc=channel_layout=stereo:sample_rate=48000",
-          "-vf",
-          gapVisualFilter,
-          "-t",
-          String(seconds(durationSec)),
-          "-map",
-          "0:v:0",
-          "-map",
-          "1:a:0",
-          "-c:v",
-          "libx264",
-          "-preset",
-          "veryfast",
-          "-pix_fmt",
-          "yuv420p",
-          "-c:a",
-          "aac",
-          "-ar",
-          "48000",
-          "-ac",
-          "2",
-          "-movflags",
-          "+faststart",
-          gapPath,
-        ]);
-        return gapPath;
-      } catch (error) {
-        lastError = error;
-      }
-    }
     try {
-      await storageRepo.putJson(`logs/${jobId}/composition/fargate-gap-${index}.json`, {
-        sceneId: index,
-        fallback: "solid-color",
-        freezeCandidatesTried: freezeCandidates.map((p) => path.basename(p)),
-        reason:
-          lastError instanceof Error ? lastError.message : String(lastError),
-      });
-    } catch {
-      // ignore
+      await mediaToolsRepo.runCommand("ffmpeg", [
+        "-y",
+        "-sseof",
+        "-0.04",
+        "-i",
+        previousSegmentPath,
+        "-frames:v",
+        "1",
+        freezeFramePath,
+      ]);
+      await mediaToolsRepo.runCommand("ffmpeg", [
+        "-y",
+        "-loop",
+        "1",
+        "-i",
+        freezeFramePath,
+        "-f",
+        "lavfi",
+        "-i",
+        "anullsrc=channel_layout=stereo:sample_rate=48000",
+        "-vf",
+        `fps=${outputSettings.fps}`,
+        "-t",
+        String(seconds(durationSec)),
+        "-map",
+        "0:v:0",
+        "-map",
+        "1:a:0",
+        "-c:v",
+        "libx264",
+        "-preset",
+        "veryfast",
+        "-pix_fmt",
+        "yuv420p",
+        "-c:a",
+        "aac",
+        "-ar",
+        "48000",
+        "-ac",
+        "2",
+        "-movflags",
+        "+faststart",
+        gapPath,
+      ]);
+      return gapPath;
+    } catch (error) {
+      try {
+        await storageRepo.putJson(`logs/${jobId}/composition/fargate-gap-${index}.json`, {
+          sceneId: index,
+          fallback: "solid-color",
+          reason: error instanceof Error ? error.message : String(error),
+        });
+      } catch {
+        // ignore
+      }
     }
   }
   await mediaToolsRepo.runCommand("ffmpeg", [
@@ -695,20 +638,19 @@ export async function runRenderTask(input) {
 
   for (let index = 0; index < scenes.length; index += 1) {
     const scene = scenes[index];
-    const { segmentPath, durationSec, gapFreezeSourcePath } =
-      await createSceneSegment({
-        jobId,
-        scene,
-        workDir,
-        outputSettings,
-        subtitleSettings,
-        canvasSettings,
-        mediaFrameSettings,
-        overlays: renderPlan.overlays,
-        totalDurationSec: renderPlan.totalDurationSec,
-        storageRepo,
-        mediaToolsRepo,
-      });
+    const { segmentPath, durationSec } = await createSceneSegment({
+      jobId,
+      scene,
+      workDir,
+      outputSettings,
+      subtitleSettings,
+      canvasSettings,
+      mediaFrameSettings,
+      overlays: renderPlan.overlays,
+      totalDurationSec: renderPlan.totalDurationSec,
+      storageRepo,
+      mediaToolsRepo,
+    });
     const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
     const segmentDurationSec = snapDurationToOutputFps(
       typeof probedSeg === "number" && probedSeg > 0 ? probedSeg : durationSec,
@@ -729,9 +671,7 @@ export async function runRenderTask(input) {
         workDir,
         outputSettings,
         canvasSettings,
-        mediaFrameSettings,
         previousSegmentPath: segmentPath,
-        freezeFrameSourcePath: gapFreezeSourcePath,
         storageRepo,
         mediaToolsRepo,
       });
