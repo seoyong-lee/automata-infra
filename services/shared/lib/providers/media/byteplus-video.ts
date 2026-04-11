@@ -18,7 +18,7 @@ import {
 
 export { resolveRequestedBytePlusDurationSec } from "./byteplus-video-config";
 
-export const generateSceneBytePlusVideo = async (input: {
+type GenerateSceneBytePlusVideoInput = {
   jobId: string;
   sceneId: number;
   prompt: string;
@@ -26,7 +26,73 @@ export const generateSceneBytePlusVideo = async (input: {
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
   secretId: string;
+};
+
+const attemptBytePlusSceneVideo = async (input: {
+  secret: BytePlusVideoSecret & { apiKey: string };
+  prompt: string;
+  targetDurationSec?: number;
+  selectedImageS3Key?: string;
+  selectedImageDataUri?: string;
+  videoKey: string;
+  rawKey: string;
+  candidateId: string;
+  createdAt: string;
 }): Promise<Record<string, unknown>> => {
+  const { secret } = input;
+  const endpoint = getRequiredEndpoint(secret);
+  const queryEndpointTemplate = getRequiredQueryEndpoint(secret);
+  const model = resolveVideoModel(secret);
+  const promptField = resolvePromptField(secret);
+  const imageField = secret.imageField?.trim();
+  const requestMeta = buildBytePlusRequestMeta({
+    secret,
+    targetDurationSec: input.targetDurationSec,
+    selectedImageDataUri: input.selectedImageDataUri,
+  });
+
+  try {
+    return await completeBytePlusVideo({
+      secret: { ...secret, apiKey: secret.apiKey },
+      endpoint,
+      queryEndpointTemplate,
+      videoKey: input.videoKey,
+      rawKey: input.rawKey,
+      model,
+      promptField,
+      imageField,
+      prompt: input.prompt,
+      targetDurationSec: input.targetDurationSec,
+      selectedImageS3Key: input.selectedImageS3Key,
+      selectedImageDataUri: input.selectedImageDataUri,
+      candidateId: input.candidateId,
+      createdAt: input.createdAt,
+    });
+  } catch (error) {
+    return failBytePlusVideo({
+      rawKey: input.rawKey,
+      endpoint,
+      queryEndpoint: queryEndpointTemplate,
+      model,
+      promptField,
+      imageField,
+      targetDurationSec: input.targetDurationSec,
+      resolvedDurationSec: resolveRequestedBytePlusDurationSec({
+        secret,
+        targetDurationSec: input.targetDurationSec,
+      }),
+      selectedImageS3Key: input.selectedImageS3Key,
+      selectedImageDataUri: input.selectedImageDataUri,
+      requestMeta,
+      prompt: input.prompt,
+      error,
+    });
+  }
+};
+
+export const generateSceneBytePlusVideo = async (
+  input: GenerateSceneBytePlusVideoInput,
+): Promise<Record<string, unknown>> => {
   const secret = await getSecretJson<BytePlusVideoSecret>(input.secretId);
   const candidateId = randomUUID();
   const createdAt = new Date().toISOString();
@@ -49,52 +115,15 @@ export const generateSceneBytePlusVideo = async (input: {
     });
   }
 
-  const endpoint = getRequiredEndpoint(secret);
-  const queryEndpointTemplate = getRequiredQueryEndpoint(secret);
-  const model = resolveVideoModel(secret);
-  const promptField = resolvePromptField(secret);
-  const imageField = secret.imageField?.trim();
-  const requestMeta = buildBytePlusRequestMeta({
+  return attemptBytePlusSceneVideo({
     secret,
+    prompt: input.prompt,
     targetDurationSec: input.targetDurationSec,
+    selectedImageS3Key: input.selectedImageS3Key,
     selectedImageDataUri: input.selectedImageDataUri,
+    videoKey,
+    rawKey,
+    candidateId,
+    createdAt,
   });
-
-  try {
-    return await completeBytePlusVideo({
-      secret: { ...secret, apiKey: secret.apiKey },
-      endpoint,
-      queryEndpointTemplate,
-      videoKey,
-      rawKey,
-      model,
-      promptField,
-      imageField,
-      prompt: input.prompt,
-      targetDurationSec: input.targetDurationSec,
-      selectedImageS3Key: input.selectedImageS3Key,
-      selectedImageDataUri: input.selectedImageDataUri,
-      candidateId,
-      createdAt,
-    });
-  } catch (error) {
-    return failBytePlusVideo({
-      rawKey,
-      endpoint,
-      queryEndpoint: queryEndpointTemplate,
-      model,
-      promptField,
-      imageField,
-      targetDurationSec: input.targetDurationSec,
-      resolvedDurationSec: resolveRequestedBytePlusDurationSec({
-        secret,
-        targetDurationSec: input.targetDurationSec,
-      }),
-      selectedImageS3Key: input.selectedImageS3Key,
-      selectedImageDataUri: input.selectedImageDataUri,
-      requestMeta,
-      prompt: input.prompt,
-      error,
-    });
-  }
 };

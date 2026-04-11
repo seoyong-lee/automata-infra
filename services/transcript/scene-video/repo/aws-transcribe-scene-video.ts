@@ -54,6 +54,10 @@ const resolveMediaFormat = (
   if (normalized.endsWith(".ogg")) {
     return "ogg";
   }
+  /** Batch Transcribe: mov/m4v는 API상 mp4 계열로 제출하는 경우가 많다. */
+  if (normalized.endsWith(".mov") || normalized.endsWith(".m4v")) {
+    return "mp4";
+  }
   return "mp4";
 };
 
