@@ -135,6 +135,7 @@ export const jobBriefInputSchema = z
      */
     youtubePublishTitle: z.string().optional(),
     youtubePublishDescription: z.string().optional(),
+    /** 레거시 S3 페이로드 호환용. 파싱 후 제거되며 저장 시 반영하지 않는다. */
     youtubePublishTags: z.array(z.string()).optional(),
     youtubePublishCategoryId: z.number().optional(),
     youtubePublishDefaultLanguage: z.string().optional(),
@@ -142,7 +143,8 @@ export const jobBriefInputSchema = z
     resolvedPolicy: resolvedPolicySchema.optional(),
     renderSettings: jobRenderSettingsSchema.optional(),
   })
-  .strict();
+  .strict()
+  .transform(({ youtubePublishTags: _legacyTags, ...rest }) => rest);
 
 const optionalCatalogContentId = z.preprocess((v) => {
   if (v === null || v === undefined || v === "") {

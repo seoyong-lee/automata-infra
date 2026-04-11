@@ -27,7 +27,7 @@ export type JobMetaItem = {
   youtubePublishTitle?: string;
   /** 업로드 설명; 없으면 시스템 기본(콘텐츠·잡 ID) 설명 */
   youtubePublishDescription?: string;
-  /** 잡 단위 태그; 채널 `youtubeDefaultTags`와 병합 */
+  /** @deprecated 레거시. 업로드 메타 태그는 설명 끝 해시태그로만 쓰며 API에서 더 이상 설정하지 않는다. */
   youtubePublishTags?: string[];
   /** 카테고리 ID; 없으면 채널 기본 */
   youtubePublishCategoryId?: number;

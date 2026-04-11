@@ -10,9 +10,6 @@ const jobYoutubePublishForMeta = (
   if (jobBrief.youtubePublishDescription !== undefined) {
     o.youtubePublishDescription = jobBrief.youtubePublishDescription;
   }
-  if (jobBrief.youtubePublishTags !== undefined) {
-    o.youtubePublishTags = jobBrief.youtubePublishTags;
-  }
   if (jobBrief.youtubePublishCategoryId !== undefined) {
     o.youtubePublishCategoryId = jobBrief.youtubePublishCategoryId;
   }
@@ -34,6 +31,8 @@ export const mapJobBriefMetaUpdate = (jobBrief: JobBriefDto) => {
     targetDurationSec: jobBrief.targetDurationSec,
     videoTitle: jobBrief.titleIdea,
     ...jobYoutubePublishForMeta(jobBrief),
+    /** 잡 단위 태그 필드는 폐기됨; 업로드 시 빈 목록으로 덮어 레거시 Dynamo 값을 제거한다. */
+    youtubePublishTags: [],
   };
 };
 
@@ -63,5 +62,6 @@ export const mapJobPlanMetaUpdate = (jobPlan: JobBriefDto) => {
     targetDurationSec: jobPlan.targetDurationSec,
     videoTitle: jobPlan.titleIdea,
     ...jobYoutubePublishForMeta(jobPlan),
+    youtubePublishTags: [],
   };
 };

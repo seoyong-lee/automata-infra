@@ -41,7 +41,6 @@ const buildJobBriefPayload = (jobBrief: JobBriefDto) => {
     targetDurationSec: jobBrief.targetDurationSec,
     youtubePublishTitle: jobBrief.youtubePublishTitle,
     youtubePublishDescription: jobBrief.youtubePublishDescription,
-    youtubePublishTags: jobBrief.youtubePublishTags,
     youtubePublishCategoryId: jobBrief.youtubePublishCategoryId,
     youtubePublishDefaultLanguage: jobBrief.youtubePublishDefaultLanguage,
   };
@@ -70,15 +69,43 @@ const buildJobMetaHintsPayload = (job: JobMetaItem) => {
     videoTitle: job.videoTitle,
     youtubePublishTitle: job.youtubePublishTitle,
     youtubePublishDescription: job.youtubePublishDescription,
-    youtubePublishTags: job.youtubePublishTags,
     youtubePublishCategoryId: job.youtubePublishCategoryId,
     youtubePublishDefaultLanguage: job.youtubePublishDefaultLanguage,
   };
 };
 
-/** Keep LLM descriptions short even if the model ignores line-count hints. */
-const clampYoutubePublishDescriptionSummary = (raw: string): string => {
-  const text = raw.trim();
+const isHashtagToken = (token: string): boolean =>
+  token.startsWith("#") && token.length > 1 && !token.slice(1).includes("#");
+
+const isHashtagOnlyLine = (line: string): boolean => {
+  const t = line.trim();
+  if (!t) {
+    return false;
+  }
+  const parts = t.split(/\s+/);
+  return parts.length > 0 && parts.every(isHashtagToken);
+};
+
+const splitTrailingHashtagSuffixFromSingleLine = (
+  line: string,
+): { body: string; hashtagLine: string | null } => {
+  const trimmed = line.trim();
+  const m = trimmed.match(/^(.+?)(\s+#\S+(?:\s+#\S+)*)$/u);
+  if (!m?.[1] || !m[2]) {
+    return { body: trimmed, hashtagLine: null };
+  }
+  const body = m[1].trimEnd();
+  const suffix = m[2].trim();
+  const tokens = suffix.split(/\s+/);
+  if (body.length === 0 || !tokens.every(isHashtagToken)) {
+    return { body: trimmed, hashtagLine: null };
+  }
+  return { body, hashtagLine: suffix };
+};
+
+/** Teaser body only (no trailing hashtag block). */
+const clampTeaserBodyText = (rawBody: string): string => {
+  const text = rawBody.trim();
   if (!text) {
     return text;
   }
@@ -111,6 +138,52 @@ const clampYoutubePublishDescriptionSummary = (raw: string): string => {
   return single;
 };
 
+/** Keep teaser lines short while preserving a final hashtag-only block (Korean YouTube style). */
+const clampYoutubePublishDescriptionSummary = (raw: string): string => {
+  const text = raw.trim();
+  if (!text) {
+    return text;
+  }
+
+  const lines = text
+    .split(/\r?\n/)
+    .map((l) => l.trim())
+    .filter((l) => l.length > 0);
+
+  let cut = lines.length;
+  while (cut > 0 && isHashtagOnlyLine(lines[cut - 1]!)) {
+    cut -= 1;
+  }
+  let suffixLines = lines.slice(cut);
+  let prefixLines = lines.slice(0, cut);
+
+  if (prefixLines.length === 0) {
+    return suffixLines.join("\n");
+  }
+
+  if (prefixLines.length === 1) {
+    const split = splitTrailingHashtagSuffixFromSingleLine(prefixLines[0]!);
+    if (split.hashtagLine) {
+      prefixLines = split.body ? [split.body] : [];
+      suffixLines = [...suffixLines, split.hashtagLine];
+    }
+  }
+
+  if (prefixLines.length === 0) {
+    return suffixLines.join("\n");
+  }
+
+  const clampedTeaser =
+    prefixLines.length >= 2
+      ? prefixLines.slice(0, 4).join("\n")
+      : clampTeaserBodyText(prefixLines[0]!);
+
+  if (suffixLines.length === 0) {
+    return clampedTeaser;
+  }
+  return `${clampedTeaser}\n\n${suffixLines.join("\n")}`;
+};
+
 const hasAnyYoutubeField = (o: Partial<Record<string, unknown>>): boolean => {
   if (typeof o.youtubePublishTitle === "string" && o.youtubePublishTitle) {
     return true;
@@ -119,9 +192,6 @@ const hasAnyYoutubeField = (o: Partial<Record<string, unknown>>): boolean => {
     typeof o.youtubePublishDescription === "string" &&
     o.youtubePublishDescription
   ) {
-    return true;
-  }
-  if (Array.isArray(o.youtubePublishTags) && o.youtubePublishTags.length > 0) {
     return true;
   }
   if (typeof o.youtubePublishCategoryId === "number") {
@@ -139,7 +209,6 @@ const hasAnyYoutubeField = (o: Partial<Record<string, unknown>>): boolean => {
 export type JobYoutubePublishMetadataSuggestionResult = {
   youtubePublishTitle?: string;
   youtubePublishDescription?: string;
-  youtubePublishTags?: string[];
   youtubePublishCategoryId?: number;
   youtubePublishDefaultLanguage?: string;
 };

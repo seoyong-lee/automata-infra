@@ -198,7 +198,6 @@ export type JobBriefDto = {
   /** YouTube 업로드용; Scene JSON·LLM으로 채운 뒤 `updateJobBrief`로 저장 */
   youtubePublishTitle?: string;
   youtubePublishDescription?: string;
-  youtubePublishTags?: string[];
   youtubePublishCategoryId?: number;
   youtubePublishDefaultLanguage?: string;
   presetSnapshot?: PresetSnapshot;

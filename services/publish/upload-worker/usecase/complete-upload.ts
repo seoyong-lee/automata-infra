@@ -246,10 +246,7 @@ const uploadFinalVideoToYoutube = async (input: {
   }
   const secret = await getYoutubeSecret(secretName);
   const videoBody = await getVideoBody(input.job.finalVideoS3Key);
-  const mergedTags = [
-    ...(input.channelConfig.youtubeDefaultTags ?? []),
-    ...(input.job.youtubePublishTags ?? []),
-  ];
+  const mergedTags = [...(input.channelConfig.youtubeDefaultTags ?? [])];
   const uploaded = await uploadVideo({
     job: input.job,
     jobId: input.jobId,

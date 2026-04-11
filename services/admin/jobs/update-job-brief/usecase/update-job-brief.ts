@@ -236,6 +236,7 @@ export const updateAdminJobBrief = async (input: {
       input.jobBrief.presetId !== undefined &&
       input.jobBrief.presetId !== existingPresetId,
   });
+  delete (merged as Record<string, unknown>).youtubePublishTags;
   await saveJobBrief({
     jobId: input.jobId,
     jobBrief: merged,

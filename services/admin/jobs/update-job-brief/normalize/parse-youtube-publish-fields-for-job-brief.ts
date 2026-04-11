@@ -6,7 +6,6 @@ type YoutubePublishFieldKeys = keyof Pick<
   UpdateJobBriefInputDto,
   | "youtubePublishTitle"
   | "youtubePublishDescription"
-  | "youtubePublishTags"
   | "youtubePublishCategoryId"
   | "youtubePublishDefaultLanguage"
 >;
@@ -28,24 +27,6 @@ const trimToPayload = (
   const t = value.trim();
   if (t.length > 0) {
     payload[key] = t;
-  }
-};
-
-const tagsToPayload = (
-  payload: Record<string, unknown>,
-  value: unknown,
-): void => {
-  if (value === undefined) {
-    return;
-  }
-  if (!Array.isArray(value)) {
-    throw badUserInput("youtubePublishTags must be an array");
-  }
-  const tags = value.filter(
-    (x): x is string => typeof x === "string" && x.trim().length > 0,
-  );
-  if (tags.length > 0) {
-    payload.youtubePublishTags = tags.map((x) => x.trim());
   }
 };
 
@@ -77,7 +58,6 @@ export const parseOptionalYoutubePublishFields = (
     "youtubePublishDescription",
     input.youtubePublishDescription,
   );
-  tagsToPayload(payload, input.youtubePublishTags);
   categoryToPayload(payload, input.youtubePublishCategoryId);
   trimToPayload(
     payload,
