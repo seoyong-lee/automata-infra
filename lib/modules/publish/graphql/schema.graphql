@@ -370,6 +370,10 @@ type JobBrief {
   YouTube 설명. LLM 제안 시 본문 다음 빈 줄 뒤 `#키워드` 형태의 해시태그 줄을 포함한다.
   """
   youtubePublishDescription: String
+  """
+  @deprecated 키워드는 설명 끝 해시태그로만 쓴다. 하위 호환용 필드(미사용 시 null 또는 빈 목록).
+  """
+  youtubePublishTags: [String!]
   youtubePublishCategoryId: Int
   youtubePublishDefaultLanguage: String
   presetSnapshot: PresetSnapshot
