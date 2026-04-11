@@ -18,6 +18,13 @@ const resolveSceneId = (
   if (typeof fromAsset === "number" && Number.isFinite(fromAsset)) {
     return fromAsset;
   }
+  if (typeof fromAsset === "string") {
+    const trimmed = fromAsset.trim();
+    if (/^\d+$/.test(trimmed)) {
+      const n = Number(trimmed);
+      return Number.isFinite(n) ? n : undefined;
+    }
+  }
   return sceneIdFromOrder;
 };
 

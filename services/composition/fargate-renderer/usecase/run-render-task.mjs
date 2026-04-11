@@ -54,6 +54,71 @@ function resolveGapAfterSecFromPlan(scene, nextScene) {
   return Math.max(0, effective);
 }
 
+/**
+ * 마지막 정지 화면용 PNG. `-sseof` 직후 한 장만 디코드하면 H.264 GOP 때문에
+ * 세그먼트 **시작** 근처 키프레임이 잡혀 Ken Burns 등이 "처음으로 돌아간" 것처럼 보일 수 있다.
+ * CFR 가정으로 `duration * fps`에서 마지막 프레임 인덱스를 잡고 `select=eq(n,…)`로 뽑는다.
+ */
+async function extractClosingFreezePng(input) {
+  const {
+    previousSegmentPath,
+    freezeFramePath,
+    segmentDurationSec,
+    fps,
+    mediaToolsRepo,
+  } = input;
+  const d = Number(segmentDurationSec);
+  const f = Number(fps);
+  if (Number.isFinite(d) && d > 0 && Number.isFinite(f) && f > 0) {
+    const approxCount = Math.max(1, Math.round(d * f));
+    const maxIndex = approxCount - 1;
+    for (let delta = 0; delta <= 20; delta += 1) {
+      const n = Math.max(0, maxIndex - delta);
+      try {
+        await fs.rm(freezeFramePath, { force: true });
+        await mediaToolsRepo.runCommand("ffmpeg", [
+          "-y",
+          "-i",
+          previousSegmentPath,
+          "-vf",
+          `select=eq(n\\,${n})`,
+          "-vsync",
+          "0",
+          "-frames:v",
+          "1",
+          freezeFramePath,
+        ]);
+        const stat = await fs.stat(freezeFramePath);
+        if (stat.size > 64) {
+          return { ok: true, method: "select-last-frame", frameIndex: n };
+        }
+      } catch {
+        // try next n
+      }
+    }
+  }
+  try {
+    await fs.rm(freezeFramePath, { force: true });
+    await mediaToolsRepo.runCommand("ffmpeg", [
+      "-y",
+      "-sseof",
+      "-0.04",
+      "-i",
+      previousSegmentPath,
+      "-frames:v",
+      "1",
+      freezeFramePath,
+    ]);
+    const stat = await fs.stat(freezeFramePath);
+    if (stat.size > 64) {
+      return { ok: true, method: "sseof-fallback" };
+    }
+  } catch {
+    // fall through
+  }
+  return { ok: false, method: "none" };
+}
+
 /** Align encode / concat metadata to whole output frames (same grid as render plan). */
 function snapDurationToOutputFps(sec, fps) {
   const f = Number(fps);
@@ -515,6 +580,7 @@ async function createGapSegment(input) {
     outputSettings,
     canvasSettings,
     previousSegmentPath,
+    previousSegmentDurationSec,
     storageRepo,
     mediaToolsRepo,
   } = input;
@@ -526,16 +592,16 @@ async function createGapSegment(input) {
   if (previousSegmentPath) {
     const freezeFramePath = path.join(workDir, `gap-${index}-freeze.png`);
     try {
-      await mediaToolsRepo.runCommand("ffmpeg", [
-        "-y",
-        "-sseof",
-        "-0.04",
-        "-i",
+      const freezeInfo = await extractClosingFreezePng({
         previousSegmentPath,
-        "-frames:v",
-        "1",
         freezeFramePath,
-      ]);
+        segmentDurationSec: previousSegmentDurationSec,
+        fps: outputSettings.fps,
+        mediaToolsRepo,
+      });
+      if (!freezeInfo.ok) {
+        throw new Error("closing freeze png not produced");
+      }
       await mediaToolsRepo.runCommand("ffmpeg", [
         "-y",
         "-loop",
@@ -576,6 +642,7 @@ async function createGapSegment(input) {
         await storageRepo.putJson(`logs/${jobId}/composition/fargate-gap-${index}.json`, {
           sceneId: index,
           fallback: "solid-color",
+          previousSegmentDurationSec,
           reason: error instanceof Error ? error.message : String(error),
         });
       } catch {
@@ -672,6 +739,7 @@ export async function runRenderTask(input) {
         outputSettings,
         canvasSettings,
         previousSegmentPath: segmentPath,
+        previousSegmentDurationSec: segmentDurationSec,
         storageRepo,
         mediaToolsRepo,
       });

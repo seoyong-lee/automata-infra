@@ -13,6 +13,21 @@ export type AssetGenerationContext = {
   sceneJsonS3Key: string;
 };
 
+const dedupeScenesBySceneId = <T extends { sceneId: number }>(
+  scenes: T[],
+): T[] => {
+  const seen = new Set<number>();
+  const out: T[] = [];
+  for (const scene of scenes) {
+    if (seen.has(scene.sceneId)) {
+      continue;
+    }
+    seen.add(scene.sceneId);
+    out.push(scene);
+  }
+  return out;
+};
+
 export const resolveAssetGenerationInputSnapshotId = async (
   jobId: string,
 ): Promise<string> => {
@@ -37,7 +52,7 @@ export const loadAssetGenerationContext = async (
     throw new Error("scene json payload not found");
   }
 
-  let scenes = sceneJson.scenes;
+  let scenes = dedupeScenesBySceneId(sceneJson.scenes);
   if (scope.targetSceneId !== undefined) {
     scenes = scenes.filter((scene) => scene.sceneId === scope.targetSceneId);
     if (scenes.length === 0) {

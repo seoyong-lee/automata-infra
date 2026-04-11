@@ -171,6 +171,67 @@ const buildSceneCandidatePrefix = (
   return `SCENE#${sceneId}#${kind}#`;
 };
 
+const normalizeStoredSceneId = (value: unknown): number | undefined => {
+  if (typeof value === "number" && Number.isFinite(value)) {
+    return value;
+  }
+  if (typeof value === "string" && /^\d+$/.test(value)) {
+    const n = Number(value);
+    return Number.isFinite(n) ? n : undefined;
+  }
+  return undefined;
+};
+
+const mediaKeyForCandidateDedupe = (
+  item: Record<string, unknown>,
+  kind: SceneCandidateKind,
+): string => {
+  if (kind === "IMAGE_CANDIDATE") {
+    const k = item.imageS3Key;
+    if (typeof k === "string" && k.length > 0) {
+      return `img:${k}`;
+    }
+  }
+  if (kind === "VIDEO_CANDIDATE") {
+    const k = item.videoClipS3Key;
+    if (typeof k === "string" && k.length > 0) {
+      return `vid:${k}`;
+    }
+  }
+  if (kind === "VOICE_CANDIDATE") {
+    const k = item.voiceS3Key;
+    if (typeof k === "string" && k.length > 0) {
+      return `voc:${k}`;
+    }
+  }
+  const id = item.candidateId;
+  return `id:${typeof id === "string" ? id : String(id)}`;
+};
+
+/** 동일 S3(또는 동일 음성 키)로 중복 적재된 후보 행이 있으면 최신 `createdAt` 하나만 남긴다. */
+const dedupeSceneCandidatesByMediaKey = <
+  TCandidate extends { createdAt: string },
+>(
+  items: TCandidate[],
+  kind: SceneCandidateKind,
+): TCandidate[] => {
+  const sorted = sortByCreatedAtDesc([...items]);
+  const seen = new Set<string>();
+  const out: TCandidate[] = [];
+  for (const item of sorted) {
+    const key = mediaKeyForCandidateDedupe(
+      item as Record<string, unknown>,
+      kind,
+    );
+    if (seen.has(key)) {
+      continue;
+    }
+    seen.add(key);
+    out.push(item);
+  }
+  return sortByCreatedAtDesc(out);
+};
+
 export const putSceneCandidateItem = async <TCandidate extends object>(input: {
   jobId: string;
   sceneId: number;
@@ -208,17 +269,30 @@ export const listSceneCandidateItems = async <
   sceneId: number;
   kind: SceneCandidateKind;
 }): Promise<TCandidate[]> => {
-  const items = await listJobScopedItems<TCandidate>({
-    jobId: input.jobId,
-    skPrefix: buildSceneCandidatePrefix(input.sceneId, input.kind),
-    scanIndexForward: false,
-    limit: 100,
-  });
+  const skPrefix = buildSceneCandidatePrefix(input.sceneId, input.kind);
+  const expectedPk = jobPk(input.jobId);
+  const items = await listAllJobScopedItemsWithSkPrefix<TCandidate>(
+    input.jobId,
+    skPrefix,
+    false,
+  );
 
   const forScene = items.filter((item) => {
-    const sid = (item as { sceneId?: unknown }).sceneId;
-    return typeof sid === "number" && sid === input.sceneId;
+    const row = item as { PK?: unknown; SK?: unknown; sceneId?: unknown };
+    if (row.PK !== undefined && String(row.PK) !== expectedPk) {
+      return false;
+    }
+    if (typeof row.SK !== "string" || !row.SK.startsWith(skPrefix)) {
+      return false;
+    }
+    const sid = normalizeStoredSceneId(row.sceneId);
+    if (sid !== undefined && sid !== input.sceneId) {
+      return false;
+    }
+    return true;
   });
 
-  return sortByCreatedAtDesc(forScene);
+  return sortByCreatedAtDesc(
+    dedupeSceneCandidatesByMediaKey(forScene, input.kind),
+  );
 };
