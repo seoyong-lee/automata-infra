@@ -366,6 +366,7 @@ export type SceneAssetDto = {
   stockVideoSearchQuery?: string;
   imageSelectedCandidateId?: string;
   videoSelectedCandidateId?: string;
+  videoSelectedAt?: string;
   voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   voiceDurationSec?: number;

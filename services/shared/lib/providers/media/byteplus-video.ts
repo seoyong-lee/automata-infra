@@ -1,3 +1,5 @@
+import { randomUUID } from "crypto";
+
 import { getSecretJson } from "../../aws/runtime";
 import {
   buildBytePlusRequestMeta,
@@ -26,8 +28,10 @@ export const generateSceneBytePlusVideo = async (input: {
   secretId: string;
 }): Promise<Record<string, unknown>> => {
   const secret = await getSecretJson<BytePlusVideoSecret>(input.secretId);
-  const videoKey = `assets/${input.jobId}/videos/scene-${input.sceneId}.mp4`;
-  const rawKey = `logs/${input.jobId}/provider/byteplus-video-scene-${input.sceneId}.json`;
+  const candidateId = randomUUID();
+  const createdAt = new Date().toISOString();
+  const videoKey = `assets/${input.jobId}/videos/scene-${input.sceneId}/${candidateId}.mp4`;
+  const rawKey = `logs/${input.jobId}/provider/byteplus-video-scene-${input.sceneId}-${candidateId}.json`;
 
   if (!secret?.apiKey) {
     const resolvedDurationSec = resolveRequestedBytePlusDurationSec({
@@ -40,6 +44,8 @@ export const generateSceneBytePlusVideo = async (input: {
       prompt: input.prompt,
       targetDurationSec: input.targetDurationSec,
       resolvedDurationSec,
+      candidateId,
+      createdAt,
     });
   }
 
@@ -68,6 +74,8 @@ export const generateSceneBytePlusVideo = async (input: {
       targetDurationSec: input.targetDurationSec,
       selectedImageS3Key: input.selectedImageS3Key,
       selectedImageDataUri: input.selectedImageDataUri,
+      candidateId,
+      createdAt,
     });
   } catch (error) {
     return failBytePlusVideo({

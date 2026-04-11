@@ -1,4 +1,4 @@
-import { createHash } from "crypto";
+import { createHash, randomUUID } from "crypto";
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
 import {
   fetchArrayBufferWithRetry,
@@ -93,6 +93,8 @@ type RunwayVideoContext = {
   headers: Record<string, string>;
   videoKey: string;
   rawKey: string;
+  candidateId: string;
+  createdAt: string;
 };
 
 const collectStringUrls = (value: unknown): string[] => {
@@ -141,6 +143,8 @@ const persistVideoFile = async (
 const resolveRunwayVideoContext = (
   input: Omit<RunwayVideoInput, "secretId">,
   secret: RunwayVideoSecret & { apiKey: string },
+  candidateId: string,
+  createdAt: string,
 ): RunwayVideoContext => {
   return {
     endpoint:
@@ -155,8 +159,10 @@ const resolveRunwayVideoContext = (
       "Content-Type": "application/json",
       "X-Runway-Version": "2024-11-06",
     },
-    videoKey: `assets/${input.jobId}/videos/scene-${input.sceneId}.mp4`,
-    rawKey: `logs/${input.jobId}/provider/video-scene-${input.sceneId}.json`,
+    videoKey: `assets/${input.jobId}/videos/scene-${input.sceneId}/${candidateId}.mp4`,
+    rawKey: `logs/${input.jobId}/provider/video-scene-${input.sceneId}-${candidateId}.json`,
+    candidateId,
+    createdAt,
   };
 };
 
@@ -187,8 +193,7 @@ const persistRunwayVideoResult = async (input: {
 };
 
 const putMockRunwayVideo = async (input: {
-  videoKey: string;
-  rawKey: string;
+  context: RunwayVideoContext;
   prompt: string;
   targetDurationSec?: number;
 }): Promise<Record<string, unknown>> => {
@@ -198,15 +203,17 @@ const putMockRunwayVideo = async (input: {
     clipManifest: true,
     targetDurationSec: input.targetDurationSec,
   };
-  await putJsonToS3(input.videoKey, mocked);
-  await putJsonToS3(input.rawKey, mocked);
+  await putJsonToS3(input.context.videoKey, mocked);
+  await putJsonToS3(input.context.rawKey, mocked);
   return {
     provider: "mock",
-    videoClipS3Key: input.videoKey,
-    providerLogS3Key: input.rawKey,
+    videoClipS3Key: input.context.videoKey,
+    providerLogS3Key: input.context.rawKey,
     promptHash: hashPrompt(input.prompt),
     mocked: true,
     targetDurationSec: input.targetDurationSec,
+    candidateId: input.context.candidateId,
+    createdAt: input.context.createdAt,
   };
 };
 
@@ -294,28 +301,38 @@ const completeRunwayVideo = async (input: {
     promptHash: hashPrompt(input.prompt),
     mocked: false,
     targetDurationSec: input.targetDurationSec,
+    candidateId: input.context.candidateId,
+    createdAt: input.context.createdAt,
   };
 };
 
 export const generateSceneVideo = async (
   input: RunwayVideoInput,
 ): Promise<Record<string, unknown>> => {
+  const candidateId = randomUUID();
+  const createdAt = new Date().toISOString();
   const secret = await getSecretJson<RunwayVideoSecret>(input.secretId);
   const fallbackContext = resolveRunwayVideoContext(
     input,
     secret ?? { apiKey: "" },
+    candidateId,
+    createdAt,
   );
 
   if (!secret?.apiKey) {
     return putMockRunwayVideo({
-      videoKey: fallbackContext.videoKey,
-      rawKey: fallbackContext.rawKey,
+      context: fallbackContext,
       prompt: input.prompt,
       targetDurationSec: input.targetDurationSec,
     });
   }
 
-  const context = resolveRunwayVideoContext(input, secret);
+  const context = resolveRunwayVideoContext(
+    input,
+    secret,
+    candidateId,
+    createdAt,
+  );
   try {
     return await completeRunwayVideo({
       context,

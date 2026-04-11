@@ -58,6 +58,14 @@ export const mapGeneratedVideoFields = (
   if (resolvedDurationSec !== undefined) {
     out.videoResolvedDurationSec = resolvedDurationSec;
   }
+  const candidateId = pickNonEmptyString(raw, "candidateId");
+  if (candidateId) {
+    out.videoSelectedCandidateId = candidateId;
+  }
+  const createdAt = pickNonEmptyString(raw, "createdAt");
+  if (createdAt) {
+    out.videoSelectedAt = createdAt;
+  }
 
   return out;
 };

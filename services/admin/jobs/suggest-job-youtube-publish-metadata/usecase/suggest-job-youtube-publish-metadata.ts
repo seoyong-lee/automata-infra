@@ -209,6 +209,8 @@ const hasAnyYoutubeField = (o: Partial<Record<string, unknown>>): boolean => {
 export type JobYoutubePublishMetadataSuggestionResult = {
   youtubePublishTitle?: string;
   youtubePublishDescription?: string;
+  /** 하위 호환: LLM은 더 이상 태그 배열을 내지 않으며 항상 빈 배열로 반환한다. */
+  youtubePublishTags: string[];
   youtubePublishCategoryId?: number;
   youtubePublishDefaultLanguage?: string;
 };
@@ -267,8 +269,9 @@ export const suggestAdminJobYoutubePublishMetadata = async (
     return {
       ...out,
       youtubePublishDescription: clampYoutubePublishDescriptionSummary(desc),
+      youtubePublishTags: [],
     };
   }
 
-  return out;
+  return { ...out, youtubePublishTags: [] };
 };

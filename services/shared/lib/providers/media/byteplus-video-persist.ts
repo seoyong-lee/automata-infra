@@ -31,6 +31,8 @@ export const putMockVideo = async (input: {
   prompt: string;
   targetDurationSec?: number;
   resolvedDurationSec?: number;
+  candidateId: string;
+  createdAt: string;
 }): Promise<Record<string, unknown>> => {
   const mocked = {
     mocked: true,
@@ -51,6 +53,8 @@ export const putMockVideo = async (input: {
     mocked: true,
     targetDurationSec: input.targetDurationSec,
     resolvedDurationSec: input.resolvedDurationSec,
+    candidateId: input.candidateId,
+    createdAt: input.createdAt,
   };
 };
 
@@ -140,6 +144,8 @@ export const completeBytePlusVideo = async (input: {
   targetDurationSec?: number;
   selectedImageS3Key?: string;
   selectedImageDataUri?: string;
+  candidateId: string;
+  createdAt: string;
 }): Promise<Record<string, unknown>> => {
   const { submitted, payload, resolvedQueryEndpoint, requestMeta } =
     await executeBytePlusVideoTask({
@@ -188,5 +194,7 @@ export const completeBytePlusVideo = async (input: {
       typeof requestMeta.duration === "number"
         ? requestMeta.duration
         : undefined,
+    candidateId: input.candidateId,
+    createdAt: input.createdAt,
   };
 };

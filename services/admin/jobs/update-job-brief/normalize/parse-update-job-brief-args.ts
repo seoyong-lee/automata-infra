@@ -65,6 +65,9 @@ const asOptionalRenderSettings = (
   return parsed.data;
 };
 
+/**
+ * `input.youtubePublishTags`는 GraphQL 하위 호환용으로 변수에 올 수 있으나 의도적으로 무시한다.
+ */
 export const parseUpdateJobBriefArgs = (
   args: Record<string, unknown>,
 ): { jobId: string; jobBrief: UpdateJobBriefInputDto } => {

@@ -387,6 +387,10 @@ LLM 제안 전용. 저장하려면 응답을 폼에 반영한 뒤 `updateJobBrie
 type JobYoutubePublishMetadataSuggestion {
   youtubePublishTitle: String
   youtubePublishDescription: String
+  """
+  @deprecated 항상 빈 목록. 키워드는 `youtubePublishDescription` 끝 해시태그만 사용한다. 클라이언트 쿼리 호환용 필드.
+  """
+  youtubePublishTags: [String!]
   youtubePublishCategoryId: Int
   youtubePublishDefaultLanguage: String
 }
@@ -509,6 +513,7 @@ type SceneAsset {
   stockVideoSearchQuery: String
   imageSelectedCandidateId: String
   videoSelectedCandidateId: String
+  videoSelectedAt: AWSDateTime
   voiceSelectedCandidateId: String
   voiceProfileId: String
   voiceDurationSec: Float
@@ -1246,6 +1251,10 @@ input UpdateJobBriefInput {
   creativeBrief: String
   youtubePublishTitle: String
   youtubePublishDescription: String
+  """
+  @deprecated 전송해도 저장·반영하지 않는다. 키워드는 `youtubePublishDescription` 끝 해시태그만 사용한다.
+  """
+  youtubePublishTags: [String!]
   youtubePublishCategoryId: Int
   youtubePublishDefaultLanguage: String
   renderSettings: RenderSettingsInput

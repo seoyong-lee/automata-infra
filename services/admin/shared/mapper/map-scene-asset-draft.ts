@@ -70,6 +70,7 @@ export const mapSceneAssetDraft = (asset: SceneAssetItem) => {
     videoSelectedCandidateId: asOptionalString(
       alignedAsset.videoSelectedCandidateId,
     ),
+    videoSelectedAt: asOptionalString(alignedAsset.videoSelectedAt),
     voiceSelectedCandidateId: asOptionalString(
       alignedAsset.voiceSelectedCandidateId,
     ),

@@ -148,6 +148,8 @@ export type SceneAssetItem = {
   videoTranscript?: SceneVideoTranscript;
   imageSelectedCandidateId?: string;
   videoSelectedCandidateId?: string;
+  /** AI/선택 시각(ISO). 이미지 `imageSelectedAt`과 대응. */
+  videoSelectedAt?: string;
   voiceSelectedCandidateId?: string;
   voiceProfileId?: string;
   validationStatus?: string;
