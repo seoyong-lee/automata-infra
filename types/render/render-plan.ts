@@ -160,8 +160,10 @@ export const renderPlanSchema = z.object({
   /**
    * Single full-timeline B-roll. Fargate advances the master sample position by each **encoded**
    * scene length (voice probe + trail gap + frame snap), not only plan `scene.startSec`, so
-   * stitched playback stays continuous when actual audio differs from plan duration. Past EOF
-   * it continues from file t=0. Per-scene `videoClipS3Key` is ignored when set.
+   * stitched playback stays continuous when actual audio differs from plan duration. With a
+   * master set, scene **voice** length ignores plan `durationSec` floor (probe + small tail),
+   * and inter-scene silence uses a fixed minimum gap instead of `gapAfterSec`. Past EOF the
+   * master continues from file t=0. Per-scene `videoClipS3Key` is ignored when set.
    */
   masterVideoS3Key: z.string().trim().min(1).optional(),
   outputKey: z.string().trim().min(1),

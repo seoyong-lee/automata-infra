@@ -33,6 +33,11 @@ import {
 const VOICE_TAIL_PAD_SEC = 0.15;
 /** Silence before TTS starts (avoids perceived fade-in at scene cut). */
 const TTS_LEAD_IN_SEC = 0.5;
+/**
+ * With job master B-roll, plan `gapAfterSec` is ignored; this is the fixed pad after voice
+ * before the next scene (tight concat + continuous master clock).
+ */
+const MASTER_VOICE_PACK_MIN_GAP_SEC = 0.15;
 
 /**
  * If `gapAfterSec` is inflated vs the global timeline (`next.startSec - scene.endSec`), trust the timeline.
@@ -451,7 +456,10 @@ async function createSceneSegment(input) {
     await storageRepo.downloadObject(voiceKey, voicePath);
     const probed = await mediaToolsRepo.getMediaDurationSec(voicePath);
     if (typeof probed === "number" && probed > 0) {
-      durationSec = seconds(Math.max(plannedDurationSec, probed + VOICE_TAIL_PAD_SEC));
+      const tail = probed + VOICE_TAIL_PAD_SEC;
+      durationSec = masterLocalPath
+        ? seconds(tail)
+        : seconds(Math.max(plannedDurationSec, tail));
     }
     durationSec = seconds(durationSec + TTS_LEAD_IN_SEC);
   }
@@ -976,8 +984,11 @@ export async function runRenderTask(input) {
       index < scenes.length - 1 ? scenes[index + 1] : undefined;
     const gapAfterSec = resolveGapAfterSecFromPlan(scene, nextScene);
     const trailGapSec =
-      isMasterMode && nextScene && gapAfterSec > 0.001
-        ? snapDurationToOutputFps(gapAfterSec, outputSettings.fps)
+      isMasterMode && nextScene
+        ? snapDurationToOutputFps(
+            MASTER_VOICE_PACK_MIN_GAP_SEC,
+            outputSettings.fps,
+          )
         : 0;
 
     const { segmentPath, durationSec } = await createSceneSegment({
