@@ -92,11 +92,18 @@ async function encodeMasterBrollClip(input) {
     masterLocalPath,
     outputDurSec,
     masterDurSec,
+    masterGlobalStartSec,
     workDir,
     mediaToolsRepo,
     storageRepo,
   } = input;
-  const globalStart = Math.max(0, Number(scene.startSec ?? 0));
+  const globalStart = Math.max(
+    0,
+    typeof masterGlobalStartSec === "number" &&
+      Number.isFinite(masterGlobalStartSec)
+      ? masterGlobalStartSec
+      : Number(scene.startSec ?? 0),
+  );
   const D = seconds(Math.max(0.05, outputDurSec));
   const outPath = path.join(workDir, `master-broll-${scene.sceneId}.mp4`);
 
@@ -427,6 +434,7 @@ async function createSceneSegment(input) {
     totalDurationSec: planTotalDurationSec,
     masterLocalPath,
     masterDurationSec,
+    masterGlobalStartSec,
     trailGapSec: inputTrailGapSec = 0,
   } = input;
   const plannedDurationSec = sceneDuration(scene);
@@ -594,6 +602,7 @@ async function createSceneSegment(input) {
           masterLocalPath,
           outputDurSec: segmentOutSec,
           masterDurSec: masterDurationSec,
+          masterGlobalStartSec,
           workDir,
           mediaToolsRepo,
           storageRepo,
@@ -956,6 +965,10 @@ export async function runRenderTask(input) {
   }
 
   const isMasterMode = Boolean(masterLocalPath);
+  let masterGlobalStartSec =
+    isMasterMode && scenes.length > 0
+      ? Math.max(0, Number(scenes[0]?.startSec ?? 0) || 0)
+      : 0;
 
   for (let index = 0; index < scenes.length; index += 1) {
     const scene = scenes[index];
@@ -981,7 +994,7 @@ export async function runRenderTask(input) {
       mediaToolsRepo,
       trailGapSec,
       ...(masterLocalPath
-        ? { masterLocalPath, masterDurationSec }
+        ? { masterLocalPath, masterDurationSec, masterGlobalStartSec }
         : {}),
     });
     const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
@@ -994,6 +1007,9 @@ export async function runRenderTask(input) {
       segmentPath,
       durationSec: segmentDurationSec,
     });
+    if (isMasterMode) {
+      masterGlobalStartSec += segmentDurationSec;
+    }
     if (!isMasterMode && nextScene && gapAfterSec > 0.001) {
       const gapPath = await createGapSegment({
         jobId,

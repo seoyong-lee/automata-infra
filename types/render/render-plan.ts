@@ -158,10 +158,10 @@ export const renderPlanSchema = z.object({
   soundtrackMood: z.string().trim().min(1).optional(),
   soundtrackSrc: z.string().trim().min(1).optional(),
   /**
-   * Single full-timeline B-roll aligned to global `scene.startSec` (same clock as the composition).
-   * Fargate plays the master from `startSec % duration` forward; past EOF it continues from file t=0
-   * until the scene (incl. voice) length is filled—no black pad from short clips. Per-scene
-   * `videoClipS3Key` is ignored when set.
+   * Single full-timeline B-roll. Fargate advances the master sample position by each **encoded**
+   * scene length (voice probe + trail gap + frame snap), not only plan `scene.startSec`, so
+   * stitched playback stays continuous when actual audio differs from plan duration. Past EOF
+   * it continues from file t=0. Per-scene `videoClipS3Key` is ignored when set.
    */
   masterVideoS3Key: z.string().trim().min(1).optional(),
   outputKey: z.string().trim().min(1),
