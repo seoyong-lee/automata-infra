@@ -54,19 +54,169 @@ function resolveGapAfterSecFromPlan(scene, nextScene) {
   return Math.max(0, effective);
 }
 
+const MASTER_CONCAT_MAX_PARTS = 24;
+
 /**
- * Job-level master B-roll: trim window on the shared timeline (render plan scene startSec/endSec).
+ * Cover outputDurSec of B-roll from global timeline position `globalStartSec` on a looping master
+ * (1:1 with global time; when past EOF, continue from t=0 of the file again).
  */
-function computeMasterTrimWindow(scene) {
-  const start = Math.max(0, Number(scene.startSec ?? 0));
-  const planned = sceneDuration(scene);
-  const endField = Number(scene.endSec);
-  const end =
-    Number.isFinite(endField) && endField > start + 1e-3
-      ? endField
-      : start + planned;
-  const trimLen = Math.max(0.1, end - start);
-  return { trimStart: start, trimLen: seconds(trimLen) };
+function buildMasterLoopParts(masterDurSec, globalStartSec, outputDurSec) {
+  const M = Number(masterDurSec);
+  const D = Math.max(0.05, Number(outputDurSec) || 0);
+  const S = Math.max(0, Number(globalStartSec) || 0);
+  if (!Number.isFinite(M) || M < 0.15) {
+    return [{ ss: S, t: D }];
+  }
+  let rem = D;
+  let pos = S % M;
+  const parts = [];
+  let guard = 0;
+  while (rem > 1e-3 && guard < 512) {
+    guard += 1;
+    const room = M - pos;
+    const take = Math.min(room, rem);
+    parts.push({ ss: pos, t: take });
+    rem -= take;
+    pos = 0;
+  }
+  return parts.length > 0 ? parts : [{ ss: 0, t: D }];
+}
+
+/**
+ * Encode one MP4 of exact length `outputDurSec` from master, wrapping at EOF instead of black.
+ */
+async function encodeMasterBrollClip(input) {
+  const {
+    jobId,
+    scene,
+    masterLocalPath,
+    outputDurSec,
+    masterDurSec,
+    workDir,
+    mediaToolsRepo,
+    storageRepo,
+  } = input;
+  const globalStart = Math.max(0, Number(scene.startSec ?? 0));
+  const D = seconds(Math.max(0.05, outputDurSec));
+  const outPath = path.join(workDir, `master-broll-${scene.sceneId}.mp4`);
+
+  const mDur =
+    typeof masterDurSec === "number" &&
+    Number.isFinite(masterDurSec) &&
+    masterDurSec > 0.2
+      ? masterDurSec
+      : null;
+
+  const loopFullMaster = async () => {
+    await mediaToolsRepo.runCommand("ffmpeg", [
+      "-y",
+      "-fflags",
+      "+genpts",
+      "-stream_loop",
+      "-1",
+      "-i",
+      masterLocalPath,
+      "-an",
+      "-t",
+      String(D),
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-pix_fmt",
+      "yuv420p",
+      outPath,
+    ]);
+  };
+
+  if (!mDur) {
+    try {
+      await storageRepo.putJson(
+        `logs/${jobId}/composition/master-broll-no-duration.json`,
+        {
+          sceneId: scene.sceneId,
+          note: "ffprobe duration missing; looping full master for scene length",
+        },
+      );
+    } catch {
+      // best-effort
+    }
+    await loopFullMaster();
+    return { videoPath: outPath, exactLength: true };
+  }
+
+  const parts = buildMasterLoopParts(mDur, globalStart, D);
+  if (parts.length > MASTER_CONCAT_MAX_PARTS) {
+    try {
+      await storageRepo.putJson(
+        `logs/${jobId}/composition/master-broll-many-wraps.json`,
+        {
+          sceneId: scene.sceneId,
+          partCount: parts.length,
+          note: "too many wrap segments; using full-file loop instead",
+        },
+      );
+    } catch {
+      // best-effort
+    }
+    await loopFullMaster();
+    return { videoPath: outPath, exactLength: true };
+  }
+
+  if (parts.length === 1) {
+    const { ss, t } = parts[0];
+    await mediaToolsRepo.runCommand("ffmpeg", [
+      "-y",
+      "-ss",
+      String(ss),
+      "-i",
+      masterLocalPath,
+      "-t",
+      String(t),
+      "-an",
+      "-c:v",
+      "libx264",
+      "-preset",
+      "veryfast",
+      "-pix_fmt",
+      "yuv420p",
+      outPath,
+    ]);
+    return { videoPath: outPath, exactLength: true };
+  }
+
+  const n = parts.length;
+  let fc = `[0:v]split=${n}`;
+  for (let i = 0; i < n; i += 1) {
+    fc += `[s${i}]`;
+  }
+  fc += ";";
+  const tails = [];
+  for (let i = 0; i < n; i += 1) {
+    const { ss, t } = parts[i];
+    fc += `[s${i}]trim=start=${ss}:duration=${t},setpts=PTS-STARTPTS[t${i}];`;
+    tails.push(`[t${i}]`);
+  }
+  fc += `${tails.join("")}concat=n=${n}:v=1:a=0[outv]`;
+
+  await mediaToolsRepo.runCommand("ffmpeg", [
+    "-y",
+    "-i",
+    masterLocalPath,
+    "-filter_complex",
+    fc,
+    "-map",
+    "[outv]",
+    "-an",
+    "-c:v",
+    "libx264",
+    "-preset",
+    "veryfast",
+    "-pix_fmt",
+    "yuv420p",
+    outPath,
+  ]);
+  return { videoPath: outPath, exactLength: true };
 }
 
 /**
@@ -276,6 +426,8 @@ async function createSceneSegment(input) {
     mediaToolsRepo,
     totalDurationSec: planTotalDurationSec,
     masterLocalPath,
+    masterDurationSec,
+    trailGapSec: inputTrailGapSec = 0,
   } = input;
   const plannedDurationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
@@ -296,13 +448,23 @@ async function createSceneSegment(input) {
     durationSec = seconds(durationSec + TTS_LEAD_IN_SEC);
   }
   durationSec = snapDurationToOutputFps(durationSec, outputSettings.fps);
+  const trailGapSec = masterLocalPath
+    ? snapDurationToOutputFps(
+        Math.max(0, Number(inputTrailGapSec) || 0),
+        outputSettings.fps,
+      )
+    : 0;
+  const segmentOutSec = snapDurationToOutputFps(
+    durationSec + trailGapSec,
+    outputSettings.fps,
+  );
   const hasAss = await writeSceneAss(
     scene,
     subtitleSettings,
     outputSettings,
     assPath,
     overlays,
-    durationSec,
+    segmentOutSec,
     hasVoice ? TTS_LEAD_IN_SEC : 0,
     { jobId, storageRepo },
   );
@@ -316,7 +478,7 @@ async function createSceneSegment(input) {
   const preparedOverlays = await prepareSceneImageOverlays({
     scene,
     overlays,
-    durationSec,
+    durationSec: segmentOutSec,
     totalDurationSec,
     workDir,
     sceneKey: sceneImageOverlaySceneKey(scene),
@@ -335,16 +497,16 @@ async function createSceneSegment(input) {
           mediaFrameSettings,
         ),
         preparedOverlays,
-        segmentDurationSec: durationSec,
+        segmentDurationSec: segmentOutSec,
         hasAss: Boolean(hasAss),
         assPath: hasAss ? assPath : "",
         hasVoice,
-        voiceGraph: hasVoice ? voiceInputFilterGraph(durationSec) : "",
+        voiceGraph: hasVoice ? voiceInputFilterGraph(segmentOutSec) : "",
       }).filterComplex
     : "";
   const commonVideoEncodeTail = [
     "-t",
-    String(durationSec),
+    String(segmentOutSec),
     "-c:v",
     "libx264",
     "-preset",
@@ -409,7 +571,7 @@ async function createSceneSegment(input) {
         ? ["-i", voicePath]
         : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
       ...(hasVoice
-        ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
+        ? ["-filter_complex", voiceInputFilterGraph(segmentOutSec)]
         : []),
       "-vf",
       vf,
@@ -423,42 +585,30 @@ async function createSceneSegment(input) {
 
   try {
     let videoPath;
+    let masterSegmentExactLength = false;
     if (masterLocalPath) {
       try {
-        const { trimStart, trimLen } = computeMasterTrimWindow(scene);
-        const slicePath = path.join(
-          workDir,
-          `master-slice-${scene.sceneId}.mp4`,
-        );
-        await mediaToolsRepo.runCommand("ffmpeg", [
-          "-y",
-          "-ss",
-          String(trimStart),
-          "-i",
+        const broll = await encodeMasterBrollClip({
+          jobId,
+          scene,
           masterLocalPath,
-          "-t",
-          String(trimLen),
-          "-map",
-          "0:v:0",
-          "-an",
-          "-c:v",
-          "libx264",
-          "-preset",
-          "veryfast",
-          "-pix_fmt",
-          "yuv420p",
-          slicePath,
-        ]);
-        videoPath = slicePath;
-      } catch (masterSliceError) {
+          outputDurSec: segmentOutSec,
+          masterDurSec: masterDurationSec,
+          workDir,
+          mediaToolsRepo,
+          storageRepo,
+        });
+        videoPath = broll.videoPath;
+        masterSegmentExactLength = broll.exactLength;
+      } catch (masterBrollError) {
         await storageRepo.putJson(
-          `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-master-slice.json`,
+          `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-master-broll.json`,
           {
             sceneId: scene.sceneId,
             reason:
-              masterSliceError instanceof Error
-                ? masterSliceError.message
-                : String(masterSliceError),
+              masterBrollError instanceof Error
+                ? masterBrollError.message
+                : String(masterBrollError),
           },
         );
       }
@@ -474,6 +624,7 @@ async function createSceneSegment(input) {
     }
 
     if (typeof videoPath === "string" && videoPath) {
+      const useStreamLoopVideo = !masterSegmentExactLength;
       let videoInputProbe = null;
       if (
         useImageOverlays &&
@@ -489,12 +640,9 @@ async function createSceneSegment(input) {
             label: "scene-video-overlays",
             args: [
               "-y",
-              "-fflags",
-              "+genpts",
-              "-stream_loop",
-              "-1",
-              "-i",
-              videoPath,
+              ...(useStreamLoopVideo
+                ? ["-fflags", "+genpts", "-stream_loop", "-1", "-i", videoPath]
+                : ["-fflags", "+genpts", "-i", videoPath]),
               ...(hasVoice
                 ? ["-i", voicePath]
                 : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
@@ -513,24 +661,22 @@ async function createSceneSegment(input) {
               mode: "videoClipWithImageOverlays",
               videoInputProbe,
               preparedOverlayCount: preparedOverlays.length,
-              durationSec,
+              contentDurationSec: durationSec,
+              segmentOutSec,
               hasAss: Boolean(hasAss),
             },
           });
         } else {
           await mediaToolsRepo.runCommand("ffmpeg", [
             "-y",
-            "-fflags",
-            "+genpts",
-            "-stream_loop",
-            "-1",
-            "-i",
-            videoPath,
+            ...(useStreamLoopVideo
+              ? ["-fflags", "+genpts", "-stream_loop", "-1", "-i", videoPath]
+              : ["-fflags", "+genpts", "-i", videoPath]),
             ...(hasVoice
               ? ["-i", voicePath]
               : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
             ...(hasVoice
-              ? ["-filter_complex", voiceInputFilterGraph(durationSec)]
+              ? ["-filter_complex", voiceInputFilterGraph(segmentOutSec)]
               : []),
             "-vf",
             vf,
@@ -541,7 +687,7 @@ async function createSceneSegment(input) {
             ...commonVideoEncodeTail,
           ]);
         }
-        return { segmentPath, durationSec };
+        return { segmentPath, durationSec: segmentOutSec };
       } catch (videoError) {
         await storageRepo.putJson(
           `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-video.json`,
@@ -561,7 +707,7 @@ async function createSceneSegment(input) {
           );
           await storageRepo.downloadObject(scene.imageS3Key, imagePath);
           await encodeFromImage(imagePath);
-          return { segmentPath, durationSec };
+          return { segmentPath, durationSec: segmentOutSec };
         }
         throw videoError;
       }
@@ -573,7 +719,7 @@ async function createSceneSegment(input) {
       );
       await storageRepo.downloadObject(scene.imageS3Key, imagePath);
       await encodeFromImage(imagePath);
-      return { segmentPath, durationSec };
+      return { segmentPath, durationSec: segmentOutSec };
     }
   } catch (error) {
     await storageRepo.putJson(
@@ -610,7 +756,9 @@ async function createSceneSegment(input) {
     ...(hasVoice
       ? ["-i", voicePath]
       : ["-f", "lavfi", "-i", "anullsrc=channel_layout=stereo:sample_rate=48000"]),
-    ...(hasVoice ? ["-filter_complex", voiceInputFilterGraph(durationSec)] : []),
+    ...(hasVoice
+      ? ["-filter_complex", voiceInputFilterGraph(segmentOutSec)]
+      : []),
     "-vf",
     hasAss ? subtitlesFilter(assPath) : "null",
     "-map",
@@ -618,7 +766,7 @@ async function createSceneSegment(input) {
     "-map",
     hasVoice ? "[aout]" : "1:a:0",
     "-t",
-    String(durationSec),
+    String(segmentOutSec),
     "-c:v",
     "libx264",
     "-preset",
@@ -635,7 +783,7 @@ async function createSceneSegment(input) {
     "+faststart",
     segmentPath,
   ]);
-  return { segmentPath, durationSec };
+  return { segmentPath, durationSec: segmentOutSec };
 }
 
 async function createGapSegment(input) {
@@ -771,6 +919,7 @@ export async function runRenderTask(input) {
   const scenes = renderPlan.scenes ?? [];
 
   let masterLocalPath;
+  let masterDurationSec;
   const masterKey =
     typeof renderPlan.masterVideoS3Key === "string"
       ? renderPlan.masterVideoS3Key.trim()
@@ -783,6 +932,10 @@ export async function runRenderTask(input) {
     try {
       await storageRepo.downloadObject(masterKey, candidatePath);
       masterLocalPath = candidatePath;
+      const probed = await mediaToolsRepo.getMediaDurationSec(candidatePath);
+      if (typeof probed === "number" && probed > 0) {
+        masterDurationSec = probed;
+      }
     } catch (masterDlError) {
       try {
         await storageRepo.putJson(
@@ -802,8 +955,18 @@ export async function runRenderTask(input) {
     }
   }
 
+  const isMasterMode = Boolean(masterLocalPath);
+
   for (let index = 0; index < scenes.length; index += 1) {
     const scene = scenes[index];
+    const nextScene =
+      index < scenes.length - 1 ? scenes[index + 1] : undefined;
+    const gapAfterSec = resolveGapAfterSecFromPlan(scene, nextScene);
+    const trailGapSec =
+      isMasterMode && nextScene && gapAfterSec > 0.001
+        ? snapDurationToOutputFps(gapAfterSec, outputSettings.fps)
+        : 0;
+
     const { segmentPath, durationSec } = await createSceneSegment({
       jobId,
       scene,
@@ -816,7 +979,10 @@ export async function runRenderTask(input) {
       totalDurationSec: renderPlan.totalDurationSec,
       storageRepo,
       mediaToolsRepo,
-      ...(masterLocalPath ? { masterLocalPath } : {}),
+      trailGapSec,
+      ...(masterLocalPath
+        ? { masterLocalPath, masterDurationSec }
+        : {}),
     });
     const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
     const segmentDurationSec = snapDurationToOutputFps(
@@ -828,9 +994,7 @@ export async function runRenderTask(input) {
       segmentPath,
       durationSec: segmentDurationSec,
     });
-    const nextScene = index < scenes.length - 1 ? scenes[index + 1] : undefined;
-    const gapAfterSec = resolveGapAfterSecFromPlan(scene, nextScene);
-    if (nextScene && gapAfterSec > 0.001) {
+    if (!isMasterMode && nextScene && gapAfterSec > 0.001) {
       const gapPath = await createGapSegment({
         jobId,
         index: `after-${scene.sceneId}`,
