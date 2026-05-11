@@ -28,6 +28,7 @@ const META_S3_FIELDS: (keyof JobMetaItem)[] = [
   "thumbnailS3Key",
   "previewS3Key",
   "backgroundMusicS3Key",
+  "masterVideoS3Key",
 ];
 
 const SCENE_S3_FIELDS = ["imageS3Key", "videoClipS3Key", "voiceS3Key"] as const;

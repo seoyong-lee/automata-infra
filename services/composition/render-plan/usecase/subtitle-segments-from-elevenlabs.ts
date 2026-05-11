@@ -14,6 +14,10 @@ const MIN_SEG_SEC = 0.05;
 const buildAlignedFullText = (a: ElevenLabsCharAlignment): string =>
   a.characters.join("");
 
+/** Collapse spaces + NFKC so vendor text matches scene JSON despite compatibility variants. */
+const canonText = (s: string): string =>
+  s.replace(/\s+/g, " ").trim().normalize("NFKC");
+
 const findPhraseRangeInAlignedText = (
   alignedText: string,
   phrase: string,
@@ -58,17 +62,54 @@ const timeRangeForCharIndices = (
   return { startSec, endSec };
 };
 
+const pickPhraseSourceForAlignment = (input: {
+  rawAligned: string;
+  subtitle: string;
+  narration?: string;
+  sourceText?: string;
+}): string | undefined => {
+  const key = canonText(input.rawAligned);
+  const tryKeys: string[] = [];
+  const push = (s: string | undefined) => {
+    if (typeof s !== "string") {
+      return;
+    }
+    const t = s.replace(/\s+/g, " ").trim();
+    if (t.length > 0) {
+      tryKeys.push(t);
+    }
+  };
+  push(input.subtitle);
+  push(input.narration);
+  push(input.sourceText);
+  for (const candidate of tryKeys) {
+    if (canonText(candidate) === key) {
+      return candidate;
+    }
+  }
+  return undefined;
+};
+
 /**
  * Builds subtitle segments from ElevenLabs character timestamps when the aligned
- * text matches the subtitle string; otherwise returns `undefined` (caller falls back).
+ * text matches subtitle, narration, or persisted `sourceText` (NFKC-normalized).
+ * Otherwise returns `undefined` (caller falls back to heuristic timing).
  */
 export const tryBuildSubtitleSegmentsFromElevenLabs = (input: {
   subtitle: string;
+  /** TTS source line; when subtitle differs only by compatibility chars, this still matches. */
+  narration?: string;
   sceneStartSec: number;
   sceneEndSec: number;
   elevenLabsDocument: ElevenLabsStoredAlignmentDocument;
 }): RenderPlanSubtitleSegment[] | undefined => {
-  const { subtitle, sceneStartSec, sceneEndSec, elevenLabsDocument } = input;
+  const {
+    subtitle,
+    narration,
+    sceneStartSec,
+    sceneEndSec,
+    elevenLabsDocument,
+  } = input;
   if (sceneEndSec <= sceneStartSec + 1e-6) {
     return undefined;
   }
@@ -76,18 +117,23 @@ export const tryBuildSubtitleSegmentsFromElevenLabs = (input: {
   if (!alignment) {
     return undefined;
   }
-  const unicodeNorm = (s: string) =>
-    s.replace(/\s+/g, " ").trim().normalize("NFC");
-  const alignedText = unicodeNorm(buildAlignedFullText(alignment));
-  const subtitleNorm = unicodeNorm(subtitle);
-  if (!subtitleNorm) {
-    return undefined;
-  }
-  if (alignedText !== subtitleNorm) {
+  const rawAligned = buildAlignedFullText(alignment);
+  const phraseSource = pickPhraseSourceForAlignment({
+    rawAligned,
+    subtitle,
+    narration,
+    sourceText:
+      typeof elevenLabsDocument.sourceText === "string"
+        ? elevenLabsDocument.sourceText
+        : undefined,
+  });
+  if (!phraseSource) {
     return undefined;
   }
 
-  let parts = splitSubtitleIntoPhrases(subtitleNorm);
+  let parts = splitSubtitleIntoPhrases(
+    phraseSource.replace(/\s+/g, " ").trim(),
+  );
   parts = mergePhraseParts(parts);
   if (parts.length === 0) {
     return undefined;
@@ -97,7 +143,7 @@ export const tryBuildSubtitleSegmentsFromElevenLabs = (input: {
   let searchFrom = 0;
   for (const part of parts) {
     const range = findPhraseRangeInAlignedText(
-      alignedText,
+      rawAligned,
       part,
       searchFrom,
     );
@@ -115,7 +161,10 @@ export const tryBuildSubtitleSegmentsFromElevenLabs = (input: {
     const globalStart = sceneStartSec + times.startSec;
     const globalEnd = sceneStartSec + times.endSec;
     const clippedStart = Math.max(sceneStartSec, globalStart);
-    const clippedEnd = Math.min(sceneEndSec, Math.max(clippedStart + MIN_SEG_SEC, globalEnd));
+    const clippedEnd = Math.min(
+      sceneEndSec,
+      Math.max(clippedStart + MIN_SEG_SEC, globalEnd),
+    );
     segments.push({
       text: part.trim(),
       startSec: clippedStart,

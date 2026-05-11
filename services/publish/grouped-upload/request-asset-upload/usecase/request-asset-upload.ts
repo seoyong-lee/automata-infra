@@ -39,6 +39,19 @@ const requireSceneId = (sceneId: number | undefined): number => {
   return sceneId;
 };
 
+const buildJobMasterVideoUploadKey = (
+  input: ParsedRequestAssetUploadArgs,
+  timestamp: number,
+): string => {
+  validateContentType(input.contentType, "video/");
+  if (!VIDEO_EXTENSION_RE.test(input.fileName)) {
+    throw badUserInput(
+      "job master video must be .mp4, .mov, .webm, or .m4v",
+    );
+  }
+  return `assets/${input.jobId}/master/${timestamp}-${sanitizeFileName(input.fileName, "master-video.mp4")}`;
+};
+
 const buildUploadKey = (input: ParsedRequestAssetUploadArgs): string => {
   const timestamp = Date.now();
   switch (input.category) {
@@ -84,6 +97,8 @@ const buildUploadKey = (input: ParsedRequestAssetUploadArgs): string => {
       }
       return `assets/${input.jobId}/manual/video/scene-${sceneId}/${timestamp}-${sanitizeFileName(input.fileName, "scene-video.mp4")}`;
     }
+    case "JOB_MASTER_VIDEO":
+      return buildJobMasterVideoUploadKey(input, timestamp);
     default: {
       const _exhaustive: never = input.category;
       throw new Error(`unsupported asset upload category: ${_exhaustive}`);

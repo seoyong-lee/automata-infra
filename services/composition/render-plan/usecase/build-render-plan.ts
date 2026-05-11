@@ -50,7 +50,8 @@ const LANDSCAPE_OUTPUT = {
   fps: 30,
 } as const;
 const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
-  fontFamily: "Clear Sans",
+  /** Same face for Hangul + Latin digits (Clear Sans mixes with Noto CJK and digits look oversized). */
+  fontFamily: "Noto Sans CJK KR",
   fontSize: 32,
   fontWeight: "regular",
   lineHeight: 1,
@@ -129,7 +130,7 @@ const subtitleFontFamilyByPreset: Record<string, string> = {
 
 const resolveFontFamilyFromPreset = (
   fontPreset?: string,
-  fallback = "Clear Sans",
+  fallback = "Noto Sans CJK KR",
 ): string => {
   const normalizedFontPreset = fontPreset?.trim().toLowerCase();
   if (!normalizedFontPreset || normalizedFontPreset === "default") {
@@ -523,6 +524,10 @@ export const buildRenderPlan = (
       event.overlays,
     ),
     soundtrackMood: resolveSoundtrackMood(event),
+    ...(typeof event.masterVideoS3Key === "string" &&
+    event.masterVideoS3Key.trim().length > 0
+      ? { masterVideoS3Key: event.masterVideoS3Key.trim() }
+      : {}),
     outputKey: `render-plans/${event.jobId}/render-plan.json`,
   };
 };

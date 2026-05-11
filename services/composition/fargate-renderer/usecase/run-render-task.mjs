@@ -55,6 +55,21 @@ function resolveGapAfterSecFromPlan(scene, nextScene) {
 }
 
 /**
+ * Job-level master B-roll: trim window on the shared timeline (render plan scene startSec/endSec).
+ */
+function computeMasterTrimWindow(scene) {
+  const start = Math.max(0, Number(scene.startSec ?? 0));
+  const planned = sceneDuration(scene);
+  const endField = Number(scene.endSec);
+  const end =
+    Number.isFinite(endField) && endField > start + 1e-3
+      ? endField
+      : start + planned;
+  const trimLen = Math.max(0.1, end - start);
+  return { trimStart: start, trimLen: seconds(trimLen) };
+}
+
+/**
  * 마지막 정지 화면용 PNG. `-sseof` 직후 한 장만 디코드하면 H.264 GOP 때문에
  * 세그먼트 **시작** 근처 키프레임이 잡혀 Ken Burns 등이 "처음으로 돌아간" 것처럼 보일 수 있다.
  * CFR 가정으로 `duration * fps`에서 마지막 프레임 인덱스를 잡고 `select=eq(n,…)`로 뽑는다.
@@ -260,6 +275,7 @@ async function createSceneSegment(input) {
     storageRepo,
     mediaToolsRepo,
     totalDurationSec: planTotalDurationSec,
+    masterLocalPath,
   } = input;
   const plannedDurationSec = sceneDuration(scene);
   const segmentPath = path.join(workDir, `scene-${scene.sceneId}.mp4`);
@@ -406,12 +422,58 @@ async function createSceneSegment(input) {
   };
 
   try {
-    if (typeof scene.videoClipS3Key === "string" && scene.videoClipS3Key) {
-      const videoPath = path.join(
+    let videoPath;
+    if (masterLocalPath) {
+      try {
+        const { trimStart, trimLen } = computeMasterTrimWindow(scene);
+        const slicePath = path.join(
+          workDir,
+          `master-slice-${scene.sceneId}.mp4`,
+        );
+        await mediaToolsRepo.runCommand("ffmpeg", [
+          "-y",
+          "-ss",
+          String(trimStart),
+          "-i",
+          masterLocalPath,
+          "-t",
+          String(trimLen),
+          "-map",
+          "0:v:0",
+          "-an",
+          "-c:v",
+          "libx264",
+          "-preset",
+          "veryfast",
+          "-pix_fmt",
+          "yuv420p",
+          slicePath,
+        ]);
+        videoPath = slicePath;
+      } catch (masterSliceError) {
+        await storageRepo.putJson(
+          `logs/${jobId}/composition/fargate-segment-${scene.sceneId}-master-slice.json`,
+          {
+            sceneId: scene.sceneId,
+            reason:
+              masterSliceError instanceof Error
+                ? masterSliceError.message
+                : String(masterSliceError),
+          },
+        );
+      }
+    } else if (
+      typeof scene.videoClipS3Key === "string" &&
+      scene.videoClipS3Key
+    ) {
+      videoPath = path.join(
         workDir,
         `visual-${scene.sceneId}${path.extname(scene.videoClipS3Key) || ".mp4"}`,
       );
       await storageRepo.downloadObject(scene.videoClipS3Key, videoPath);
+    }
+
+    if (typeof videoPath === "string" && videoPath) {
       let videoInputProbe = null;
       if (
         useImageOverlays &&
@@ -520,7 +582,8 @@ async function createSceneSegment(input) {
         sceneId: scene.sceneId,
         fallback: true,
         useImageOverlays,
-        hasVideoClip: Boolean(scene.videoClipS3Key),
+        hasVideoClip: Boolean(!masterLocalPath && scene.videoClipS3Key),
+        hasJobMasterVideo: Boolean(masterLocalPath),
         hasImageClip: Boolean(scene.imageS3Key),
         reason: error instanceof Error ? error.message : String(error),
         stack: error instanceof Error ? error.stack : undefined,
@@ -532,7 +595,8 @@ async function createSceneSegment(input) {
     {
       at: new Date().toISOString(),
       useImageOverlays,
-      hasVideoClip: Boolean(scene.videoClipS3Key),
+      hasVideoClip: Boolean(!masterLocalPath && scene.videoClipS3Key),
+      hasJobMasterVideo: Boolean(masterLocalPath),
       hasImageClip: Boolean(scene.imageS3Key),
       note: "Encoding solid canvas + optional subtitles (previous paths did not return a segment).",
     },
@@ -706,6 +770,38 @@ export async function runRenderTask(input) {
   const segmentInputs = [];
   const scenes = renderPlan.scenes ?? [];
 
+  let masterLocalPath;
+  const masterKey =
+    typeof renderPlan.masterVideoS3Key === "string"
+      ? renderPlan.masterVideoS3Key.trim()
+      : "";
+  if (masterKey) {
+    const candidatePath = path.join(
+      workDir,
+      `job-master${path.extname(masterKey) || ".mp4"}`,
+    );
+    try {
+      await storageRepo.downloadObject(masterKey, candidatePath);
+      masterLocalPath = candidatePath;
+    } catch (masterDlError) {
+      try {
+        await storageRepo.putJson(
+          `logs/${jobId}/composition/master-video-download.json`,
+          {
+            at: new Date().toISOString(),
+            masterVideoS3Key: masterKey,
+            reason:
+              masterDlError instanceof Error
+                ? masterDlError.message
+                : String(masterDlError),
+          },
+        );
+      } catch {
+        // best-effort triage
+      }
+    }
+  }
+
   for (let index = 0; index < scenes.length; index += 1) {
     const scene = scenes[index];
     const { segmentPath, durationSec } = await createSceneSegment({
@@ -720,6 +816,7 @@ export async function runRenderTask(input) {
       totalDurationSec: renderPlan.totalDurationSec,
       storageRepo,
       mediaToolsRepo,
+      ...(masterLocalPath ? { masterLocalPath } : {}),
     });
     const probedSeg = await mediaToolsRepo.getMediaDurationSec(segmentPath);
     const segmentDurationSec = snapDurationToOutputFps(

@@ -93,7 +93,14 @@ const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
   }
 };
 
-const warnWhenNoVisualAsset = (scene: SceneRef, warnings: string[]) => {
+const warnWhenNoVisualAsset = (
+  scene: SceneRef,
+  warnings: string[],
+  job: JobMetaItem | null,
+) => {
+  if (job?.masterVideoS3Key?.trim()) {
+    return;
+  }
   if (!hasRenderableVisualAsset(scene)) {
     warnings.push(
       `scene ${scene.sceneId}: no imageS3Key or videoClipS3Key (renderer uses solid canvas)`,
@@ -134,11 +141,36 @@ const validateVoiceAsset = async (
   }
 };
 
+const validateJobMasterVideo = async (
+  job: JobMetaItem | null,
+  errors: string[],
+  warnings: string[],
+) => {
+  const key = job?.masterVideoS3Key?.trim();
+  if (!key) {
+    return;
+  }
+  const meta = await readObjectMetadata(key);
+  if (!meta.exists) {
+    errors.push("job master video object not found");
+    return;
+  }
+  if (!isVideoOrJsonMime(meta.contentType)) {
+    warnings.push(
+      `job master video: uncommon content-type (${meta.contentType ?? "unknown"})`,
+    );
+  }
+};
+
 const validateVideoAsset = async (
   scene: SceneRef,
   errors: string[],
   warnings: string[],
+  job: JobMetaItem | null,
 ) => {
+  if (job?.masterVideoS3Key?.trim()) {
+    return;
+  }
   if (!scene.videoClipS3Key) {
     return;
   }
@@ -160,13 +192,15 @@ const validateSceneAssets = async (
   sceneRefs: SceneRef[],
   errors: string[],
   warnings: string[],
+  job: JobMetaItem | null,
 ) => {
+  await validateJobMasterVideo(job, errors, warnings);
   for (const scene of sceneRefs) {
     validateSceneBasics(scene, errors, warnings);
-    warnWhenNoVisualAsset(scene, warnings);
+    warnWhenNoVisualAsset(scene, warnings, job);
     await validateImageAsset(scene, errors);
     await validateVoiceAsset(scene, errors, warnings);
-    await validateVideoAsset(scene, errors, warnings);
+    await validateVideoAsset(scene, errors, warnings, job);
   }
 };
 
@@ -206,7 +240,7 @@ export const validateGeneratedAssets = async (input: ValidateInput) => {
     errors.push("total scene duration must be greater than 0");
   }
 
-  await validateSceneAssets(sceneRefs, errors, warnings);
+  await validateSceneAssets(sceneRefs, errors, warnings, input.job);
   validateDurationAgainstTarget(input.job, totalDurationSec, errors, warnings);
 
   return {

@@ -149,6 +149,7 @@ export type AdminJobDto = {
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
   backgroundMusicS3Key?: string;
+  masterVideoS3Key?: string;
 };
 
 export type RenderArtifactDto = {

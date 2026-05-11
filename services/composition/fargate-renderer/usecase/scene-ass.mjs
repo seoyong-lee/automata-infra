@@ -47,6 +47,25 @@ function escapeAssText(value) {
     .replace(/\r\n|\r|\n/g, "\\N");
 }
 
+/** Clear Sans has no Hangul; libass mixes faces so Latin digits render oversized next to Noto CJK. */
+function resolveAssSubtitleFontFamily(name) {
+  const raw = String(name ?? "").trim();
+  if (!raw || /^clear\s*sans$/i.test(raw)) {
+    return "Noto Sans CJK KR";
+  }
+  return raw.replace(/,/g, " ");
+}
+
+/** Force one font for the whole line (avoids digit vs Hangul fallback mismatch). */
+function buildSubtitleInlineFontTags(subtitleSettings) {
+  const st = subtitleSettings?.style ?? {};
+  const fn = resolveAssSubtitleFontFamily(st.fontFamily ?? "Noto Sans CJK KR");
+  const fs = Math.max(12, Math.round(Number(st.fontSize) || 32));
+  const bold = st.fontWeight === "bold" ? 1 : 0;
+  const shadow = clampNumber(st.shadowDepth, 0, 8, 3);
+  return `\\fn${fn}\\fs${fs}\\b${bold}\\c${assColor(st.color ?? "#000000", Number(st.opacity ?? 1))}\\3c${assColor(st.strokeColor ?? "#ffffff", 1)}\\bord${Math.max(0, Number(st.strokeWidth ?? 0))}\\shad${shadow}`;
+}
+
 function resolveSubtitleAlignment(position) {
   if (position === "top") {
     return 8;
@@ -521,6 +540,17 @@ export async function writeSceneAss(
     const clampedU = Math.max(0, Math.min(1, u));
     return leadInSec + clampedU * outputContentSpanSec;
   };
+  /**
+   * When TTS has a lead-in pad, subtitles are timed to wall-clock under the scene (e.g. ElevenLabs).
+   * Proportional rescale vs `plannedSpanSec` drifts from real audio; map 1:1 after lead-in.
+   */
+  const mapVoiceSyncedGlobalToAss = (globalSec) => {
+    const direct = leadInSec + (globalSec - sceneStartGlobal);
+    return Math.max(
+      leadInSec,
+      Math.min(safeRenderedDuration - 0.02, direct),
+    );
+  };
   /** Map scene-local segment times (0…scene duration) into ASS timeline. */
   const mapSegmentLocalToAssTimeline = (localSec) => {
     const u = localSec / plannedSpanSec;
@@ -550,10 +580,15 @@ export async function writeSceneAss(
     !clearlyGlobalTimestamps &&
     minSegStart >= -0.01 &&
     maxSegEnd <= localSpanCeil;
-  const toAssTimeline = (sec) =>
-    segmentsLookLocal
-      ? mapSegmentLocalToAssTimeline(sec)
-      : mapPlanGlobalToAssLocal(sec);
+  const toAssTimeline = (sec) => {
+    if (segmentsLookLocal) {
+      return mapSegmentLocalToAssTimeline(sec);
+    }
+    if (leadInSec > 1e-6) {
+      return mapVoiceSyncedGlobalToAss(sec);
+    }
+    return mapPlanGlobalToAssLocal(sec);
+  };
   const overlayEvents = getSceneTextOverlayEvents(
     scene,
     overlays,
@@ -569,6 +604,7 @@ export async function writeSceneAss(
       (resolveSubtitleBaseYRatio(subtitleSettings.style.position) +
         subtitleSettings.style.offsetY),
   );
+  const subtitleInlineTags = buildSubtitleInlineFontTags(subtitleSettings);
   const maxUnits = resolveSubtitleMaxUnits(subtitleSettings, outputSettings);
   const subtitleEvents =
     !subtitleSettings.burnIn || subtitleSegments.length === 0
@@ -601,7 +637,7 @@ export async function writeSceneAss(
           );
           return timed.map(
             (row) =>
-              `Dialogue: 0,${formatAssTime(row.startSec)},${formatAssTime(row.endSec)},Default,,0,0,0,,{\\pos(${posX},${posY})}${escapeAssText(row.text)}`,
+              `Dialogue: 0,${formatAssTime(row.startSec)},${formatAssTime(row.endSec)},Default,,0,0,0,,{\\pos(${posX},${posY})${subtitleInlineTags}}${escapeAssText(row.text)}`,
           );
         });
   if (subtitleEvents.length === 0 && overlayEvents.length === 0) {
@@ -627,7 +663,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},${subtitleShadowDepth},${alignment},${subtitleMargins.left},${subtitleMargins.right},48,1
+Style: Default,${resolveAssSubtitleFontFamily(subtitleSettings.style.fontFamily)},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},${subtitleShadowDepth},${alignment},${subtitleMargins.left},${subtitleMargins.right},48,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text

@@ -15,6 +15,7 @@ export type RenderPipelineContext = {
     voiceAlignmentS3Key?: string;
   }>;
   backgroundMusicS3Key?: string;
+  masterVideoS3Key?: string;
 };
 
 export const loadRenderPipelineContext = async (
@@ -64,6 +65,10 @@ export const loadRenderPipelineContext = async (
     backgroundMusicS3Key:
       typeof job.backgroundMusicS3Key === "string"
         ? job.backgroundMusicS3Key
+        : undefined,
+    masterVideoS3Key:
+      typeof job.masterVideoS3Key === "string"
+        ? job.masterVideoS3Key
         : undefined,
   };
 };

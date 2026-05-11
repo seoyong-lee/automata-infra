@@ -157,6 +157,11 @@ export const renderPlanSchema = z.object({
   overlays: z.array(renderPlanOverlaySchema).default([]),
   soundtrackMood: z.string().trim().min(1).optional(),
   soundtrackSrc: z.string().trim().min(1).optional(),
+  /**
+   * Single full-timeline video; each scene uses the slice [startSec, endSec] on this file as B-roll
+   * while per-scene voice/subtitles still apply. Per-scene `videoClipS3Key` is ignored when set.
+   */
+  masterVideoS3Key: z.string().trim().min(1).optional(),
   outputKey: z.string().trim().min(1),
   subtitleAssS3Key: z.string().trim().min(1).optional(),
 });

@@ -1,13 +1,29 @@
 import { z } from "zod";
 import { badUserInput } from "../../../shared/errors";
 
+const optionalTrimmedSearchText = z
+  .string()
+  .trim()
+  .max(400)
+  .optional()
+  .transform((value) => (value && value.length > 0 ? value : undefined));
+
 const searchSceneStockAssetsInputSchema = z
   .object({
     jobId: z.string().trim().min(1),
     targetSceneId: z.number().int().nonnegative().optional(),
+    sceneId: z.number().int().nonnegative().optional(),
     modality: z.enum(["ALL", "IMAGE", "VIDEO"]).optional(),
+    query: optionalTrimmedSearchText,
+    pexelsQuery: optionalTrimmedSearchText,
   })
-  .strict();
+  .strict()
+  .transform((data) => ({
+    jobId: data.jobId,
+    targetSceneId: data.targetSceneId ?? data.sceneId,
+    modality: data.modality,
+    query: data.query ?? data.pexelsQuery,
+  }));
 
 export type SearchSceneStockAssetsInputDto = z.infer<
   typeof searchSceneStockAssetsInputSchema

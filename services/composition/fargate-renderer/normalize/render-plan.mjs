@@ -66,7 +66,7 @@ export function resolveSubtitleSettings(renderPlan) {
       renderPlan.burnInSubtitles ??
       true,
     style: {
-      fontFamily: style.fontFamily ?? "Clear Sans",
+      fontFamily: style.fontFamily ?? "Noto Sans CJK KR",
       fontSize: Number(style.fontSize ?? 32),
       fontWeight: style.fontWeight === "bold" ? "bold" : "regular",
       lineHeight: Number(style.lineHeight ?? 1),

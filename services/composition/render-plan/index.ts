@@ -24,11 +24,17 @@ export const run: Handler<
 > = async (event) => {
   const storedInputs = await resolveStoredRenderInputs(event.jobId);
   const config = resolveRenderPolicyConfig(event, storedInputs);
+  const mergedEvent: RenderPlanEvent = {
+    ...event,
+    ...(storedInputs.masterVideoS3Key && !event.masterVideoS3Key
+      ? { masterVideoS3Key: storedInputs.masterVideoS3Key }
+      : {}),
+  };
   const { imageAssets, voiceAssets, videoAssets } =
-    await resolveRenderPlanAssets(event);
+    await resolveRenderPlanAssets(mergedEvent);
   const builtScenes = buildRenderPlanScenes(
     {
-      ...event,
+      ...mergedEvent,
       imageAssets,
       videoAssets,
       voiceAssets,
@@ -36,7 +42,7 @@ export const run: Handler<
     config.sceneGapSec,
     config.output.fps,
   );
-  const renderPlan = buildRenderPlan(event, builtScenes, config);
+  const renderPlan = buildRenderPlan(mergedEvent, builtScenes, config);
 
   await persistRenderPlan(event.jobId, renderPlan);
   try {
@@ -51,7 +57,7 @@ export const run: Handler<
   }
 
   return {
-    ...event,
+    ...mergedEvent,
     status: "RENDER_PLAN_READY",
     renderPlan,
   };

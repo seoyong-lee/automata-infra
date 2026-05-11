@@ -145,6 +145,7 @@ const buildSubtitleSegments = (input: {
 
 const resolveSubtitleSegmentsForScene = (input: {
   subtitle: string;
+  narration?: string;
   startSec: number;
   endSec: number;
   voiceAsset?: RenderPlanVoiceAsset;
@@ -153,6 +154,7 @@ const resolveSubtitleSegmentsForScene = (input: {
   if (doc) {
     const fromVendor = tryBuildSubtitleSegmentsFromElevenLabs({
       subtitle: input.subtitle,
+      narration: input.narration,
       sceneStartSec: input.startSec,
       sceneEndSec: input.endSec,
       elevenLabsDocument: doc,
@@ -252,6 +254,7 @@ export const buildRenderPlanScenes = (
       index < sceneCount - 1 ? snapGapToFps(sceneGapSec, timelineFps) : 0;
     const subtitleSegments = resolveSubtitleSegmentsForScene({
       subtitle: alignedScene.subtitle,
+      narration: alignedScene.narration,
       startSec,
       endSec,
       voiceAsset,

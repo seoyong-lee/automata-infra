@@ -12,9 +12,14 @@ const searchImageCandidatesForScene = async (input: {
   language: string;
   secretId: string;
   searchStockImages: SearchStockImageFn;
+  pexelsQueryOverride?: string;
 }): Promise<void> => {
   const prompt = buildSceneStockSearchPrompt(input.scene, "image");
-  const query = derivePexelsSearchQuery(prompt);
+  const query =
+    typeof input.pexelsQueryOverride === "string" &&
+    input.pexelsQueryOverride.trim().length > 0
+      ? input.pexelsQueryOverride.trim().replace(/\s+/g, " ")
+      : derivePexelsSearchQuery(prompt);
   if (!query) {
     await upsertSceneAsset(input.jobId, input.scene.sceneId, {
       stockImageSearchStatus: "UNSUITABLE_PROMPT",
@@ -23,10 +28,16 @@ const searchImageCandidatesForScene = async (input: {
     return;
   }
 
+  const promptForHash =
+    typeof input.pexelsQueryOverride === "string" &&
+    input.pexelsQueryOverride.trim().length > 0
+      ? `[pexels-query] ${query}`
+      : prompt;
+
   const assets = await input.searchStockImages({
     jobId: input.jobId,
     sceneId: input.scene.sceneId,
-    prompt,
+    prompt: promptForHash,
     query,
     language: input.language,
     secretId: input.secretId,
@@ -44,6 +55,7 @@ export const searchImageCandidatesAcrossScenes = async (input: {
   language: string;
   secretId: string;
   searchStockImages: SearchStockImageFn;
+  pexelsQueryOverride?: string;
 }): Promise<void> => {
   await runWithConcurrency(input.scenes, 2, (scene) =>
     searchImageCandidatesForScene({
@@ -52,6 +64,7 @@ export const searchImageCandidatesAcrossScenes = async (input: {
       language: input.language,
       secretId: input.secretId,
       searchStockImages: input.searchStockImages,
+      pexelsQueryOverride: input.pexelsQueryOverride,
     }),
   );
 };

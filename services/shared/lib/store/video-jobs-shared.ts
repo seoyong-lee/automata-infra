@@ -58,6 +58,8 @@ export type JobMetaItem = {
   approvedAssetExecutionId?: string;
   defaultVoiceProfileId?: string;
   backgroundMusicS3Key?: string;
+  /** One continuous B-roll; Fargate trims per-scene [startSec, endSec]. */
+  masterVideoS3Key?: string;
   createdAt: string;
   updatedAt: string;
   GSI1PK: string;

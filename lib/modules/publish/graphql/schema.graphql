@@ -149,6 +149,10 @@ type Mutation {
     input: SetJobDefaultVoiceProfileInput!
   ): JobDraftDetail!
   setJobBackgroundMusic(input: SetJobBackgroundMusicInput!): JobDraftDetail!
+  """
+  잡 전체 단일 B-roll 영상. 렌더 시 씬 타임라인 [startSec,endSec] 구간만 잘라 쓰고, 씬별 음성·자막은 기존과 동일.
+  """
+  setJobMasterVideo(input: SetJobMasterVideoInput!): JobDraftDetail!
   setSceneVoiceProfile(input: SetSceneVoiceProfileInput!): JobDraftDetail!
   """
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
@@ -211,6 +215,7 @@ type AdminJob {
   approvedAssetExecutionId: String
   defaultVoiceProfileId: String
   backgroundMusicS3Key: String
+  masterVideoS3Key: String
 }
 
 type ContentPresetCapabilities {
@@ -913,6 +918,8 @@ enum AssetUploadCategory {
   SCENE_IMAGE
   SCENE_VOICE
   SCENE_VIDEO
+  """잡 단일 마스터 B-roll → assets/{jobId}/master/…"""
+  JOB_MASTER_VIDEO
 }
 
 enum AssetPoolAssetType {
@@ -1325,7 +1332,20 @@ input RunAssetGenerationInput {
 input SearchSceneStockAssetsInput {
   jobId: ID!
   targetSceneId: Int
+  """
+  targetSceneId와 동일(호환). 둘 다 있으면 targetSceneId를 사용합니다.
+  """
+  sceneId: Int
   modality: StockSearchModality
+  """
+  비어 있지 않으면 이 문자열을 Pexels 검색어로 그대로 사용합니다.
+  생략·공백이면 씬의 imagePrompt/videoPrompt에서 검색어를 자동 구성합니다.
+  """
+  query: String
+  """
+  query와 동일(우선순위: query > pexelsQuery). 일부 클라이언트·레거시 변수명 호환.
+  """
+  pexelsQuery: String
 }
 
 input UpsertVoiceProfileInput {
@@ -1355,6 +1375,12 @@ input SetJobBackgroundMusicInput {
   """
   assets/{jobId}/bgm/… 또는 공유 라이브러리 library/bgm/… 키.
   """
+  s3Key: String
+}
+
+input SetJobMasterVideoInput {
+  jobId: ID!
+  """assets/{jobId}/master/… 업로드 키. 비우면 마스터 모드를 해제한다."""
   s3Key: String
 }
 

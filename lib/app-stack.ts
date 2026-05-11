@@ -423,6 +423,7 @@ export class AppStack extends Stack {
     const selectSceneVoiceCandidateResolver = generationsHandler;
     const setJobDefaultVoiceProfileResolver = generationsHandler;
     const setJobBackgroundMusicResolver = generationsHandler;
+    const setJobMasterVideoResolver = generationsHandler;
     const setSceneVoiceProfileResolver = generationsHandler;
 
     const runFinalCompositionResolver = finalHandler;
@@ -672,6 +673,7 @@ export class AppStack extends Stack {
       selectSceneVoiceCandidateResolver,
       setJobDefaultVoiceProfileResolver,
       setJobBackgroundMusicResolver,
+      setJobMasterVideoResolver,
       setSceneVoiceProfileResolver,
       runFinalCompositionResolver,
       cancelFinalCompositionResolver,

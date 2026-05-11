@@ -45,6 +45,8 @@ export type RenderPlanEvent = {
     /** In-memory alignment payload (e.g. after S3 load). */
     elevenLabsAlignment?: ElevenLabsStoredAlignmentDocument;
   }>;
+  /** Job-level single B-roll; merged from job meta in render-plan Lambda when omitted. */
+  masterVideoS3Key?: string;
   overlays?: RenderPlanOverlay[];
 };
 
@@ -61,6 +63,7 @@ export type RenderPolicyConfig = {
 export type StoredRenderInputs = {
   resolvedPolicy?: ResolvedPolicy;
   renderSettings?: JobRenderSettings;
+  masterVideoS3Key?: string;
 };
 
 export type RenderPlanSceneInput =

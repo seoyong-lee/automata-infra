@@ -104,6 +104,23 @@ const resolveOverlayMargins = (
   };
 };
 
+const resolveAssSubtitleFontFamily = (name: string | undefined): string => {
+  const raw = String(name ?? "").trim();
+  if (!raw || /^clear\s*sans$/i.test(raw)) {
+    return "Noto Sans CJK KR";
+  }
+  return raw.replace(/,/g, " ");
+};
+
+/** Inline tags so libass does not substitute a different font for ASCII digits vs Hangul. */
+const buildSubtitleInlineFontTags = (style: RenderPlanSubtitleStyle): string => {
+  const fn = resolveAssSubtitleFontFamily(style.fontFamily);
+  const fs = Math.max(12, Math.round(style.fontSize));
+  const bold = style.fontWeight === "bold" ? 1 : 0;
+  const shadow = Math.max(0, Math.min(8, Math.round(style.shadowDepth ?? 3)));
+  return `\\fn${fn}\\fs${fs}\\b${bold}\\c${toAssColor(style.color, style.opacity)}\\3c${toAssColor(style.strokeColor, 1)}\\bord${Math.max(0, style.strokeWidth)}\\shad${shadow}`;
+};
+
 const buildAssStyleLine = (
   style: RenderPlanSubtitleStyle,
   output: RenderPlanOutput,
@@ -115,7 +132,7 @@ const buildAssStyleLine = (
   );
   return [
     "Style: Default",
-    style.fontFamily.replace(/,/g, " "),
+    resolveAssSubtitleFontFamily(style.fontFamily),
     Math.round(style.fontSize),
     toAssColor(style.color, style.opacity),
     toAssColor(style.color, style.opacity),
@@ -525,6 +542,7 @@ export const buildSubtitleAss = (
   const output = renderPlan.output ?? DEFAULT_RENDER_OUTPUT;
   const style = renderPlan.subtitles.style;
   const basePosition = resolveSubtitleBasePosition(style, output);
+  const subtitleInlineTags = buildSubtitleInlineFontTags(style);
   const maxUnits = resolveSubtitleMaxUnits(style, output);
   const subtitleEvents = renderPlan.scenes.flatMap((scene) =>
     buildSceneSubtitleSegments(scene).flatMap((segment) => {
@@ -545,7 +563,7 @@ export const buildSubtitleAss = (
       );
       return timed.map(
         (row) =>
-          `Dialogue: 0,${formatAssTimestamp(row.startSec)},${formatAssTimestamp(row.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})}${escapeAssText(row.text)}`,
+          `Dialogue: 0,${formatAssTimestamp(row.startSec)},${formatAssTimestamp(row.endSec)},Default,,0,0,0,,{\\an${basePosition.alignment}\\pos(${basePosition.x},${basePosition.y})${subtitleInlineTags}}${escapeAssText(row.text)}`,
       );
     }),
   );

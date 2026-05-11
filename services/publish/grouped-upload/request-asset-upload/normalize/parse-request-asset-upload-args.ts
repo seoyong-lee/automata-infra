@@ -6,6 +6,7 @@ const ASSET_UPLOAD_CATEGORIES = new Set([
   "SCENE_IMAGE",
   "SCENE_VOICE",
   "SCENE_VIDEO",
+  "JOB_MASTER_VIDEO",
 ] as const);
 
 export type AssetUploadCategory =
@@ -13,7 +14,8 @@ export type AssetUploadCategory =
   | "REFERENCE_IMAGE"
   | "SCENE_IMAGE"
   | "SCENE_VOICE"
-  | "SCENE_VIDEO";
+  | "SCENE_VIDEO"
+  | "JOB_MASTER_VIDEO";
 
 export type ParsedRequestAssetUploadArgs = {
   jobId: string;

@@ -30,6 +30,10 @@ export const resolveStoredRenderInputs = async (
   if (!job) {
     return {};
   }
+  const masterVideoS3Key =
+    typeof job.masterVideoS3Key === "string" && job.masterVideoS3Key.trim().length > 0
+      ? job.masterVideoS3Key.trim()
+      : undefined;
   if (job.jobBriefS3Key) {
     const payload = await getJsonFromS3(job.jobBriefS3Key);
     if (payload) {
@@ -37,6 +41,7 @@ export const resolveStoredRenderInputs = async (
       return {
         resolvedPolicy: parsed.resolvedPolicy,
         renderSettings: parsed.renderSettings,
+        ...(masterVideoS3Key ? { masterVideoS3Key } : {}),
       };
     }
   }
@@ -47,11 +52,12 @@ export const resolveStoredRenderInputs = async (
       if (parsed.resolvedPolicy) {
         return {
           resolvedPolicy: parsed.resolvedPolicy,
+          ...(masterVideoS3Key ? { masterVideoS3Key } : {}),
         };
       }
     }
   }
-  return {};
+  return masterVideoS3Key ? { masterVideoS3Key } : {};
 };
 
 export const persistRenderPlan = async (

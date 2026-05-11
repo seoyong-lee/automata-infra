@@ -43,6 +43,8 @@ export const searchSceneStockAssetsUsecase = async (
   const searchStockVideos =
     deps.searchStockVideos ?? searchPexelsVideoCandidates;
 
+  const pexelsQueryOverride = parsed.query;
+
   if (
     (scope.modality === "all" || scope.modality === "image") &&
     policy.allowImage
@@ -53,6 +55,7 @@ export const searchSceneStockAssetsUsecase = async (
       language: sceneJson.language,
       secretId,
       searchStockImages,
+      pexelsQueryOverride,
     });
   }
 
@@ -66,6 +69,7 @@ export const searchSceneStockAssetsUsecase = async (
       language: sceneJson.language,
       secretId,
       searchStockVideos,
+      pexelsQueryOverride,
     });
   }
 

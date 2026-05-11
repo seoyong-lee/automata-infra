@@ -12,9 +12,14 @@ const searchVideoCandidatesForScene = async (input: {
   language: string;
   secretId: string;
   searchStockVideos: SearchStockVideoFn;
+  pexelsQueryOverride?: string;
 }): Promise<void> => {
   const prompt = buildSceneStockSearchPrompt(input.scene, "video");
-  const query = derivePexelsSearchQuery(prompt);
+  const query =
+    typeof input.pexelsQueryOverride === "string" &&
+    input.pexelsQueryOverride.trim().length > 0
+      ? input.pexelsQueryOverride.trim().replace(/\s+/g, " ")
+      : derivePexelsSearchQuery(prompt);
   if (!query) {
     await upsertSceneAsset(input.jobId, input.scene.sceneId, {
       stockVideoSearchStatus: "UNSUITABLE_PROMPT",
@@ -23,10 +28,16 @@ const searchVideoCandidatesForScene = async (input: {
     return;
   }
 
+  const promptForHash =
+    typeof input.pexelsQueryOverride === "string" &&
+    input.pexelsQueryOverride.trim().length > 0
+      ? `[pexels-query] ${query}`
+      : prompt;
+
   const assets = await input.searchStockVideos({
     jobId: input.jobId,
     sceneId: input.scene.sceneId,
-    prompt,
+    prompt: promptForHash,
     query,
     language: input.language,
     targetDurationSec: input.scene.durationSec,
@@ -45,6 +56,7 @@ export const searchVideoCandidatesAcrossScenes = async (input: {
   language: string;
   secretId: string;
   searchStockVideos: SearchStockVideoFn;
+  pexelsQueryOverride?: string;
 }): Promise<void> => {
   // Video downloads hold large buffers in memory, so keep scene processing serial.
   await runWithConcurrency(input.scenes, 1, (scene) =>
@@ -54,6 +66,7 @@ export const searchVideoCandidatesAcrossScenes = async (input: {
       language: input.language,
       secretId: input.secretId,
       searchStockVideos: input.searchStockVideos,
+      pexelsQueryOverride: input.pexelsQueryOverride,
     }),
   );
 };
