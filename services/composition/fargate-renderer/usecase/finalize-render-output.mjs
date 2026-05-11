@@ -183,6 +183,12 @@ async function concatWithoutTransitions(
   ]);
 }
 
+/**
+ * Stitches scene segments into one MP4 for the full render output.
+ * Does not apply per-scene `startTransition` (xfade / acrossfade): the stitched
+ * deliverable stays hard-cut between segments so continuous B-roll and timeline
+ * alignment are not altered by transition effects.
+ */
 export async function concatSegments(
   segmentInputs,
   workDir,
@@ -190,39 +196,10 @@ export async function concatSegments(
   mediaToolsRepo,
 ) {
   const normalizedInputs = segmentInputs.map(normalizeSegmentInput);
-  const transitionGraph = buildSceneTransitionGraph(normalizedInputs);
-  const segmentPaths = normalizedInputs.map((segmentInput) => segmentInput.segmentPath);
-
-  if (!transitionGraph) {
-    await concatWithoutTransitions(segmentPaths, workDir, outputPath, mediaToolsRepo);
-    return;
-  }
-
-  await mediaToolsRepo.runCommand("ffmpeg", [
-    "-y",
-    ...segmentPaths.flatMap((segmentPath) => ["-i", segmentPath]),
-    "-filter_complex",
-    transitionGraph.filterComplex,
-    "-map",
-    transitionGraph.videoLabel,
-    "-map",
-    transitionGraph.audioLabel,
-    "-c:v",
-    "libx264",
-    "-preset",
-    "veryfast",
-    "-pix_fmt",
-    "yuv420p",
-    "-c:a",
-    "aac",
-    "-ar",
-    "48000",
-    "-ac",
-    "2",
-    "-movflags",
-    "+faststart",
-    outputPath,
-  ]);
+  const segmentPaths = normalizedInputs.map(
+    (segmentInput) => segmentInput.segmentPath,
+  );
+  await concatWithoutTransitions(segmentPaths, workDir, outputPath, mediaToolsRepo);
 }
 
 export async function maybeDownloadSoundtrack(
