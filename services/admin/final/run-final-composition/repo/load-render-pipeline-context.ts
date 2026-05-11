@@ -12,6 +12,7 @@ export type RenderPipelineContext = {
     sceneId: number;
     voiceS3Key?: string;
     voiceDurationSec?: number;
+    voiceAlignmentS3Key?: string;
   }>;
   backgroundMusicS3Key?: string;
 };
@@ -54,6 +55,10 @@ export const loadRenderPipelineContext = async (
       voiceDurationSec:
         typeof asset.voiceDurationSec === "number"
           ? asset.voiceDurationSec
+          : undefined,
+      voiceAlignmentS3Key:
+        typeof asset.voiceAlignmentS3Key === "string"
+          ? asset.voiceAlignmentS3Key
           : undefined,
     })),
     backgroundMusicS3Key:

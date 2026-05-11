@@ -608,6 +608,12 @@ export async function writeSceneAss(
     return false;
   }
   const assBold = subtitleSettings.style.fontWeight === "bold" ? -1 : 0;
+  const subtitleShadowDepth = clampNumber(
+    subtitleSettings.style.shadowDepth,
+    0,
+    8,
+    3,
+  );
   const subtitleMargins = resolveHorizontalMargins(
     outputSettings.width,
     subtitleSettings.style.maxWidth,
@@ -621,7 +627,7 @@ ScaledBorderAndShadow: yes
 
 [V4+ Styles]
 Format: Name,Fontname,Fontsize,PrimaryColour,SecondaryColour,OutlineColour,BackColour,Bold,Italic,Underline,StrikeOut,ScaleX,ScaleY,Spacing,Angle,BorderStyle,Outline,Shadow,Alignment,MarginL,MarginR,MarginV,Encoding
-Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},0,${alignment},${subtitleMargins.left},${subtitleMargins.right},48,1
+Style: Default,${subtitleSettings.style.fontFamily},${subtitleSettings.style.fontSize},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.color, subtitleSettings.style.opacity)},${assColor(subtitleSettings.style.strokeColor, 1)},&H00000000&,${assBold},0,0,0,100,100,0,0,1,${subtitleSettings.style.strokeWidth},${subtitleShadowDepth},${alignment},${subtitleMargins.left},${subtitleMargins.right},48,1
 
 [Events]
 Format: Layer,Start,End,Style,Name,MarginL,MarginR,MarginV,Effect,Text

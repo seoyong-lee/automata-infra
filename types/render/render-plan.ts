@@ -39,6 +39,8 @@ export const renderPlanSubtitleStyleSchema = z.object({
   color: z.string().trim().min(1),
   strokeColor: z.string().trim().min(1),
   strokeWidth: z.number().min(0),
+  /** ASS `Shadow` depth (0 = off; typical readable drop shadow 2–4). */
+  shadowDepth: z.number().int().min(0).max(8).optional(),
   position: z.enum(["top", "center", "bottom"]),
   offset: z.object({
     x: normalizedScalarSchema,

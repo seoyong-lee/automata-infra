@@ -136,6 +136,8 @@ export type SceneAssetItem = {
   storyBeat?: string;
   visualNeed?: SceneVisualNeed;
   voiceDurationSec?: number;
+  /** ElevenLabs character alignment JSON (`*.alignment.json`). */
+  voiceAlignmentS3Key?: string;
   imagePrompt?: string;
   videoPrompt?: string;
   stockImageSearchStatus?: string;
@@ -218,6 +220,7 @@ export type SceneVoiceCandidateItem = {
   mocked?: boolean;
   voiceDurationSec?: number;
   voiceProfileId?: string;
+  voiceAlignmentS3Key?: string;
   createdAt: string;
 };
 

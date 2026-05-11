@@ -93,20 +93,26 @@ const validateImageAsset = async (scene: SceneRef, errors: string[]) => {
   }
 };
 
-const validateVisualAssetPresence = (scene: SceneRef, errors: string[]) => {
+const warnWhenNoVisualAsset = (scene: SceneRef, warnings: string[]) => {
   if (!hasRenderableVisualAsset(scene)) {
-    errors.push(
-      `scene ${scene.sceneId}: either imageS3Key or videoClipS3Key is required`,
+    warnings.push(
+      `scene ${scene.sceneId}: no imageS3Key or videoClipS3Key (renderer uses solid canvas)`,
     );
   }
 };
 
-const validateVoiceAsset = async (scene: SceneRef, errors: string[]) => {
+const validateVoiceAsset = async (
+  scene: SceneRef,
+  errors: string[],
+  warnings: string[],
+) => {
   if (scene.disableNarration || !hasNarration(scene.narration)) {
     return;
   }
   if (!scene.voiceS3Key) {
-    errors.push(`scene ${scene.sceneId}: voiceS3Key is missing`);
+    warnings.push(
+      `scene ${scene.sceneId}: voiceS3Key missing with narration (renderer uses silence)`,
+    );
     return;
   }
 
@@ -157,9 +163,9 @@ const validateSceneAssets = async (
 ) => {
   for (const scene of sceneRefs) {
     validateSceneBasics(scene, errors, warnings);
-    validateVisualAssetPresence(scene, errors);
+    warnWhenNoVisualAsset(scene, warnings);
     await validateImageAsset(scene, errors);
-    await validateVoiceAsset(scene, errors);
+    await validateVoiceAsset(scene, errors, warnings);
     await validateVideoAsset(scene, errors, warnings);
   }
 };

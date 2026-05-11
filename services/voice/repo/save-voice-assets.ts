@@ -52,6 +52,10 @@ const persistVoiceCandidate = async (
       typeof typedAsset.voiceProfileId === "string"
         ? typedAsset.voiceProfileId
         : undefined,
+    voiceAlignmentS3Key:
+      typeof typedAsset.voiceAlignmentS3Key === "string"
+        ? typedAsset.voiceAlignmentS3Key
+        : undefined,
   });
 };
 

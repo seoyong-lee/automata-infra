@@ -10,8 +10,8 @@ const isNonEmptyS3Key = (v: unknown): v is string =>
   typeof v === "string" && v.trim().length > 0;
 
 /**
- * Admin 일괄 에셋 생성 완료 후, 씬별로 이미지·(조건부)영상·음성 키가 모두 있는지 검사한 뒤에만 ASSETS_READY로 올린다.
- * (음성 저장 콜백 순서만으로 READY를 올리지 않음)
+ * Admin 일괄 에셋 생성 완료 후, 씬 행 존재 및 (정책상 필요 시) 영상만 검사한 뒤 ASSETS_READY로 올린다.
+ * 이미지·음성 없이도 최종 렌더(솔리드/무음 폴백) 가능하므로 필수로 두지 않음.
  */
 export const finalizeSceneAssetsReadiness = async (input: {
   jobId: string;
@@ -27,12 +27,6 @@ export const finalizeSceneAssetsReadiness = async (input: {
     if (!row) {
       reasons.push(`scene ${scene.sceneId}: missing scene asset row`);
       continue;
-    }
-    if (!isNonEmptyS3Key(row.imageS3Key)) {
-      reasons.push(`scene ${scene.sceneId}: image missing`);
-    }
-    if (!isNonEmptyS3Key(row.voiceS3Key)) {
-      reasons.push(`scene ${scene.sceneId}: voice missing`);
     }
     const needsVideo = policy.allowVideo && sceneHasAiVideoTextPrompt(scene);
     if (needsVideo && !isNonEmptyS3Key(row.videoClipS3Key)) {
@@ -50,7 +44,7 @@ export const finalizeSceneAssetsReadiness = async (input: {
 };
 
 /**
- * 부분 재생성 후: 전체 씬 기준으로 아직 비었으면 ASSET_GENERATING + lastError, 모두 채워지면 ASSETS_READY.
+ * 부분 재생성 후: 씬 행·조건부 영상만 검사. 이미지·음성 없음은 ASSETS_READY 허용.
  * (throw 없음 — 부분 실행 파이프라인용)
  */
 export const recomputeSceneAssetsReadiness = async (input: {
@@ -67,12 +61,6 @@ export const recomputeSceneAssetsReadiness = async (input: {
     if (!row) {
       reasons.push(`scene ${scene.sceneId}: missing scene asset row`);
       continue;
-    }
-    if (!isNonEmptyS3Key(row.imageS3Key)) {
-      reasons.push(`scene ${scene.sceneId}: image missing`);
-    }
-    if (!isNonEmptyS3Key(row.voiceS3Key)) {
-      reasons.push(`scene ${scene.sceneId}: voice missing`);
     }
     const needsVideo = policy.allowVideo && sceneHasAiVideoTextPrompt(scene);
     if (needsVideo && !isNonEmptyS3Key(row.videoClipS3Key)) {

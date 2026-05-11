@@ -8,6 +8,8 @@ import {
   parseContentBrief,
   parseJobBriefInput,
 } from "../../../shared/lib/contracts/canonical-io-schemas";
+import { elevenLabsStoredAlignmentDocumentSchema } from "../../../shared/lib/contracts/elevenlabs-tts-alignment";
+import type { ElevenLabsStoredAlignmentDocument } from "../../../shared/lib/contracts/elevenlabs-tts-alignment";
 import {
   getJobMeta,
   listSceneAssets,
@@ -95,6 +97,17 @@ export const persistRenderPlanGapDiagnostics = async (
   });
 };
 
+const loadElevenLabsAlignmentDocument = async (
+  key: string,
+): Promise<ElevenLabsStoredAlignmentDocument | undefined> => {
+  const raw = await getJsonFromS3(key);
+  if (!raw || typeof raw !== "object") {
+    return undefined;
+  }
+  const parsed = elevenLabsStoredAlignmentDocumentSchema.safeParse(raw);
+  return parsed.success ? parsed.data : undefined;
+};
+
 const resolveStoredVoiceDurationSec = async (
   voiceS3Key?: string,
 ): Promise<number | undefined> => {
@@ -122,6 +135,54 @@ export const resolveRenderPlanAssets = async (
   event: RenderPlanEvent,
 ): Promise<ResolvedRenderPlanAssets> => {
   const sceneAssets = await listSceneAssets(event.jobId);
+  const voiceAlignmentKeyBySceneId = new Map(
+    sceneAssets
+      .map((scene) => {
+        const key =
+          typeof scene.voiceAlignmentS3Key === "string"
+            ? scene.voiceAlignmentS3Key.trim()
+            : "";
+        return key ? ([scene.sceneId, key] as const) : null;
+      })
+      .filter((entry): entry is readonly [number, string] => entry !== null),
+  );
+
+  const resolveVoiceAlignmentKey = (
+    sceneId: number,
+    explicit?: string,
+  ): string | undefined => {
+    const trimmed = explicit?.trim();
+    if (trimmed) {
+      return trimmed;
+    }
+    return voiceAlignmentKeyBySceneId.get(sceneId);
+  };
+
+  const enrichVoiceAsset = async (row: {
+    sceneId: number;
+    voiceS3Key?: string;
+    voiceDurationSec?: number;
+    voiceAlignmentS3Key?: string;
+  }) => {
+    const voiceDurationSec =
+      (await resolveStoredVoiceDurationSec(row.voiceS3Key)) ??
+      row.voiceDurationSec;
+    const alignmentKey = resolveVoiceAlignmentKey(
+      row.sceneId,
+      row.voiceAlignmentS3Key,
+    );
+    const elevenLabsAlignment = alignmentKey
+      ? await loadElevenLabsAlignmentDocument(alignmentKey)
+      : undefined;
+    return {
+      sceneId: row.sceneId,
+      voiceS3Key: row.voiceS3Key,
+      voiceDurationSec,
+      ...(alignmentKey ? { voiceAlignmentS3Key: alignmentKey } : {}),
+      ...(elevenLabsAlignment ? { elevenLabsAlignment } : {}),
+    };
+  };
+
   const imageAssets =
     event.imageAssets ??
     sceneAssets.map((scene) => ({
@@ -131,26 +192,31 @@ export const resolveRenderPlanAssets = async (
     }));
   const voiceAssets = event.voiceAssets
     ? await Promise.all(
-        event.voiceAssets.map(async (scene) => ({
-          ...scene,
-          voiceDurationSec:
-            (await resolveStoredVoiceDurationSec(scene.voiceS3Key)) ??
-            scene.voiceDurationSec,
-        })),
+        event.voiceAssets.map((scene) =>
+          enrichVoiceAsset({
+            sceneId: scene.sceneId,
+            voiceS3Key: scene.voiceS3Key,
+            voiceDurationSec: scene.voiceDurationSec,
+            voiceAlignmentS3Key: scene.voiceAlignmentS3Key,
+          }),
+        ),
       )
     : await Promise.all(
-        sceneAssets.map(async (scene) => {
+        sceneAssets.map((scene) => {
           const voiceS3Key =
             typeof scene.voiceS3Key === "string" ? scene.voiceS3Key : undefined;
-          return {
+          return enrichVoiceAsset({
             sceneId: scene.sceneId,
             voiceS3Key,
             voiceDurationSec:
-              (await resolveStoredVoiceDurationSec(voiceS3Key)) ??
-              (typeof scene.voiceDurationSec === "number"
+              typeof scene.voiceDurationSec === "number"
                 ? scene.voiceDurationSec
-                : undefined),
-          };
+                : undefined,
+            voiceAlignmentS3Key:
+              typeof scene.voiceAlignmentS3Key === "string"
+                ? scene.voiceAlignmentS3Key
+                : undefined,
+          });
         }),
       );
   const videoAssets =

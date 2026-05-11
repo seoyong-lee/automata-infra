@@ -59,6 +59,7 @@ const DEFAULT_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   color: "#000000",
   strokeColor: "#ffffff",
   strokeWidth: 2,
+  shadowDepth: 3,
   position: "center",
   offset: {
     x: -0.019,
@@ -97,7 +98,7 @@ const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   position: "bottom",
 };
 /** Silence between scenes after narration ends (rendered as a gap segment). */
-const SCENE_GAP_AFTER_NARRATION_SEC = 0.5;
+const SCENE_GAP_AFTER_NARRATION_SEC = 0;
 
 const DEFAULT_CANVAS: RenderPlanCanvas = {
   backgroundColor: "#000000",

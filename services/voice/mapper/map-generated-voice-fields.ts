@@ -17,6 +17,12 @@ export const mapGeneratedVoiceFields = (
   if (typeof raw.providerLogS3Key === "string") {
     out.voiceProviderLogS3Key = raw.providerLogS3Key;
   }
+  if (
+    typeof raw.voiceAlignmentS3Key === "string" &&
+    raw.voiceAlignmentS3Key.length > 0
+  ) {
+    out.voiceAlignmentS3Key = raw.voiceAlignmentS3Key;
+  }
   if (typeof raw.mocked === "boolean") {
     out.voiceMocked = raw.mocked;
   }

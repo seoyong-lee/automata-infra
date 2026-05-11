@@ -90,8 +90,8 @@ void test("render plan includes ffmpeg-friendly defaults and extends scenes for 
   assert.equal(renderPlan.subtitles.style.fontWeight, "regular");
   assert.equal(renderPlan.preview.maxDurationSec, 12);
   assert.equal(renderPlan.scenes[0]?.durationSec, 6.2);
-  assert.equal(renderPlan.scenes[0]?.gapAfterSec, 0.5);
-  assert.equal(renderPlan.scenes[1]?.startSec, 6.7);
+  assert.equal(renderPlan.scenes[0]?.gapAfterSec, 0);
+  assert.equal(renderPlan.scenes[1]?.startSec, 6.2);
   assert.equal(renderPlan.scenes[1]?.startTransition?.type, "fadeblack");
   assert.equal(renderPlan.scenes[1]?.startTransition?.durationSec, 0.6);
   assert.equal(renderPlan.overlays.length, 1);

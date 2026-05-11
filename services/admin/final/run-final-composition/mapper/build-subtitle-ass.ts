@@ -131,7 +131,7 @@ const buildAssStyleLine = (
     0,
     1,
     Math.max(0, style.strokeWidth),
-    0,
+    Math.max(0, Math.min(8, Math.round(style.shadowDepth ?? 3))),
     resolveSubtitleAlignment(style.position),
     margins.left,
     margins.right,

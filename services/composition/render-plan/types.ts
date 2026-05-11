@@ -10,6 +10,7 @@ import type {
   SceneStartTransition,
 } from "../../shared/lib/contracts/canonical-io-schemas";
 import type { ResolvedPolicy } from "../../shared/lib/contracts/content-presets";
+import type { ElevenLabsStoredAlignmentDocument } from "../../shared/lib/contracts/elevenlabs-tts-alignment";
 
 export type RenderPlanEvent = {
   jobId: string;
@@ -39,6 +40,10 @@ export type RenderPlanEvent = {
     sceneId: number;
     voiceS3Key?: string;
     voiceDurationSec?: number;
+    /** S3 JSON written at TTS time; loaded in `resolveRenderPlanAssets`. */
+    voiceAlignmentS3Key?: string;
+    /** In-memory alignment payload (e.g. after S3 load). */
+    elevenLabsAlignment?: ElevenLabsStoredAlignmentDocument;
   }>;
   overlays?: RenderPlanOverlay[];
 };

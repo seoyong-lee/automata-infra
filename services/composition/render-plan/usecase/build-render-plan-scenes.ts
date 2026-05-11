@@ -10,9 +10,11 @@ import type {
   RenderPlanSceneInput,
   RenderPlanVoiceAsset,
 } from "../types";
-
-/** Avoid dozens of micro-phrases that break timing on short scenes. */
-const MAX_PHRASE_SEGMENTS = 14;
+import {
+  mergePhraseParts,
+  splitSubtitleIntoPhrases,
+} from "./subtitle-phrase-parts";
+import { tryBuildSubtitleSegmentsFromElevenLabs } from "./subtitle-segments-from-elevenlabs";
 
 /** Snap timeline to whole frames so start/end/gap are not irrational (ASS + xfade + concat stay aligned). */
 const snapTimelineToFps = (sec: number, fps: number): number => {
@@ -34,8 +36,11 @@ const snapSceneDurationToFps = (sec: number, fps: number): number => {
 };
 
 const snapGapToFps = (sec: number, fps: number): number => {
+  if (!Number.isFinite(sec) || sec <= 0) {
+    return 0;
+  }
   if (!Number.isFinite(fps) || fps <= 0) {
-    return Math.max(0, sec);
+    return sec;
   }
   const frames = Math.max(1, Math.round(sec * fps));
   return frames / fps;
@@ -82,68 +87,6 @@ const estimateSpeechTimingUnits = (part: string): number => {
     }
   }
   return Math.max(1, u);
-};
-
-const splitLongSubtitleByWords = (normalized: string): string[] => {
-  const bySpace = normalized.split(/\s+/).filter((w) => w.length > 0);
-  if (bySpace.length <= 6) {
-    return [];
-  }
-  const out: string[] = [];
-  let buf = "";
-  for (const w of bySpace) {
-    const next = buf ? `${buf} ${w}` : w;
-    if (next.length > 44 && buf) {
-      out.push(buf);
-      buf = w;
-    } else {
-      buf = next;
-    }
-  }
-  if (buf) {
-    out.push(buf);
-  }
-  return out.length > 1 ? out : [];
-};
-
-const splitSubtitleIntoPhrases = (subtitle: string): string[] => {
-  const normalized = subtitle.replace(/\s+/g, " ").trim();
-  if (!normalized) {
-    return [];
-  }
-  const sentenceMatches = normalized.match(/[^.!?。！？\n]+[.!?。！？]?/g);
-  const sentences = (sentenceMatches ?? [normalized])
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-  if (sentences.length > 1) {
-    return sentences;
-  }
-  const byClause = normalized
-    .split(/[,;，、:]/)
-    .map((part) => part.trim())
-    .filter((part) => part.length > 0);
-  if (byClause.length > 1) {
-    return byClause;
-  }
-  if (normalized.length > 52) {
-    const wordChunks = splitLongSubtitleByWords(normalized);
-    if (wordChunks.length > 1) {
-      return wordChunks;
-    }
-  }
-  return [normalized];
-};
-
-const mergePhraseParts = (parts: string[]): string[] => {
-  if (parts.length <= MAX_PHRASE_SEGMENTS) {
-    return parts;
-  }
-  const merged: string[] = [];
-  const groupSize = Math.ceil(parts.length / MAX_PHRASE_SEGMENTS);
-  for (let i = 0; i < parts.length; i += groupSize) {
-    merged.push(parts.slice(i, i + groupSize).join(" "));
-  }
-  return merged;
 };
 
 /** Phrase-level segments; timeline is a strict partition of [startSec, endSec] by speech-weight. */
@@ -200,6 +143,31 @@ const buildSubtitleSegments = (input: {
   }));
 };
 
+const resolveSubtitleSegmentsForScene = (input: {
+  subtitle: string;
+  startSec: number;
+  endSec: number;
+  voiceAsset?: RenderPlanVoiceAsset;
+}): RenderPlanSubtitleSegment[] => {
+  const doc = input.voiceAsset?.elevenLabsAlignment;
+  if (doc) {
+    const fromVendor = tryBuildSubtitleSegmentsFromElevenLabs({
+      subtitle: input.subtitle,
+      sceneStartSec: input.startSec,
+      sceneEndSec: input.endSec,
+      elevenLabsDocument: doc,
+    });
+    if (fromVendor?.length) {
+      return fromVendor;
+    }
+  }
+  return buildSubtitleSegments({
+    subtitle: input.subtitle,
+    startSec: input.startSec,
+    endSec: input.endSec,
+  });
+};
+
 const buildRenderPlanScene = (input: {
   scene: RenderPlanSceneInput;
   index: number;
@@ -240,11 +208,6 @@ const buildRenderPlanScene = (input: {
       : {}),
     disableNarration: input.scene.disableNarration,
     subtitle: input.scene.subtitle,
-    subtitleSegments: buildSubtitleSegments({
-      subtitle: input.scene.subtitle,
-      startSec: input.startSec,
-      endSec,
-    }),
     bgmMood: input.scene.bgmMood,
     sfx: input.scene.sfx,
     startTransition: input.scene.startTransition,
@@ -253,7 +216,7 @@ const buildRenderPlanScene = (input: {
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
-  sceneGapSec = 0.5,
+  sceneGapSec = 0,
   timelineFps = 30,
 ): BuiltRenderPlanScenes => {
   let cursorSec = 0;
@@ -267,6 +230,9 @@ export const buildRenderPlanScenes = (
       scene,
     ) as RenderPlanSceneInput;
     const startSec = snapTimelineToFps(cursorSec, timelineFps);
+    const voiceAsset = voiceAssets.find(
+      (asset) => asset.sceneId === alignedScene.sceneId,
+    );
     const baseScene = buildRenderPlanScene({
       scene: alignedScene,
       index,
@@ -284,10 +250,11 @@ export const buildRenderPlanScenes = (
     const endSec = snapTimelineToFps(startSec + durationSec, timelineFps);
     const gapAfterSec =
       index < sceneCount - 1 ? snapGapToFps(sceneGapSec, timelineFps) : 0;
-    const subtitleSegments = buildSubtitleSegments({
+    const subtitleSegments = resolveSubtitleSegmentsForScene({
       subtitle: alignedScene.subtitle,
       startSec,
       endSec,
+      voiceAsset,
     });
     cursorSec = snapTimelineToFps(endSec + gapAfterSec, timelineFps);
     return {

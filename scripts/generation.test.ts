@@ -397,18 +397,12 @@ void test("sceneJson contract flows through asset usecases and render-plan build
   assert.equal(renderPlan.scenes[0]?.startTransition?.type, "cut");
   assert.equal(renderPlan.scenes[1]?.startTransition?.type, "fadeblack");
   const expectedTotalDurationSec = sceneJsonExpectedFixture.scenes.reduce(
-    (sum, scene, index) => {
-      const gapAfterSec =
-        index < sceneJsonExpectedFixture.scenes.length - 1 ? 0.5 : 0;
-      return (
-        sum +
-        Math.max(
-          scene.durationSec,
-          estimateResolvedVoiceDurationSec(scene.narration, 1),
-        ) +
-        gapAfterSec
-      );
-    },
+    (sum, scene) =>
+      sum +
+      Math.max(
+        scene.durationSec,
+        estimateResolvedVoiceDurationSec(scene.narration, 1),
+      ),
     0,
   );
   assert.equal(renderPlan.totalDurationSec, expectedTotalDurationSec);

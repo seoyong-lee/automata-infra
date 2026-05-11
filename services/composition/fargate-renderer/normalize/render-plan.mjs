@@ -75,6 +75,7 @@ export function resolveSubtitleSettings(renderPlan) {
       color: style.color ?? "#000000",
       strokeColor: style.strokeColor ?? "#ffffff",
       strokeWidth: Number(style.strokeWidth ?? 2),
+      shadowDepth: clampNumber(style.shadowDepth, 0, 8, 3),
       position: style.position ?? "center",
       offsetX: Number(style.offset?.x ?? -0.019),
       offsetY: Number(style.offset?.y ?? 0),

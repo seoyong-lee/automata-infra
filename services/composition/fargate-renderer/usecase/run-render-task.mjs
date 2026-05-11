@@ -36,7 +36,7 @@ const TTS_LEAD_IN_SEC = 0.5;
 
 /**
  * If `gapAfterSec` is inflated vs the global timeline (`next.startSec - scene.endSec`), trust the timeline.
- * Prevents one-off corrupt plan fields from producing long freeze gaps while keeping normal 0.5s gaps.
+ * Prevents one-off corrupt plan fields from producing long freeze gaps beyond the planned timeline.
  */
 function resolveGapAfterSecFromPlan(scene, nextScene) {
   const fieldGap = Number(scene?.gapAfterSec ?? 0);

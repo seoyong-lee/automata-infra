@@ -1,8 +1,12 @@
 /* eslint-disable max-lines-per-function */
 import { randomUUID } from "crypto";
 import { parseBuffer } from "music-metadata";
+import {
+  elevenLabsWithTimestampsResponseSchema,
+  type ElevenLabsCharAlignment,
+} from "../../contracts/elevenlabs-tts-alignment";
 import { getSecretJson, putBufferToS3, putJsonToS3 } from "../../aws/runtime";
-import { fetchArrayBufferWithRetry } from "../http/retry";
+import { fetchJsonWithRetry } from "../http/retry";
 
 const ELEVENLABS_TTS_ENDPOINT_TEMPLATE =
   "https://api.elevenlabs.io/v1/text-to-speech/{voiceId}";
@@ -150,22 +154,55 @@ const buildRequestBody = (
   });
 };
 
+const buildWithTimestampsUrl = (endpoint: string): string => {
+  const base = endpoint.replace(/\/$/, "");
+  return `${base}/with-timestamps?output_format=mp3_44100_128`;
+};
+
+/** Mock / test: uniform per-codepoint timing so render-plan can exercise vendor subtitle path. */
+const buildMockCharAlignmentFromText = (
+  text: string,
+  durationSec: number,
+): ElevenLabsCharAlignment => {
+  const compact = text.replace(/\s+/g, " ").trim();
+  const codepoints = compact.length > 0 ? Array.from(compact) : [" "];
+  const n = codepoints.length;
+  const span = Math.max(durationSec, 0.08);
+  const step = span / n;
+  return {
+    characters: codepoints.map((c) => c),
+    character_start_times_seconds: codepoints.map((_, i) => i * step),
+    character_end_times_seconds: codepoints.map((_, i) => (i + 1) * step),
+  };
+};
+
 const buildMockResponse = async (
   input: GenerateSceneVoiceInput,
   audioKey: string,
   rawKey: string,
+  alignmentKey: string,
   estimatedDurationSec: number,
   candidateId: string,
   createdAt: string,
 ) => {
   const { resolvedVoiceId, resolvedModelId } = resolveVoiceConfig(input);
+  const subtitleNorm = input.text.replace(/\s+/g, " ").trim();
+  const mockAlignment = buildMockCharAlignmentFromText(
+    input.text,
+    estimatedDurationSec,
+  );
   await putBufferToS3(audioKey, input.text, "text/plain");
+  await putJsonToS3(alignmentKey, {
+    normalized_alignment: mockAlignment,
+    sourceText: subtitleNorm,
+  });
   await putJsonToS3(rawKey, {
     mocked: true,
     text: input.text,
     voiceProfileId: input.voiceProfileId,
     voiceId: resolvedVoiceId,
     modelId: resolvedModelId,
+    voiceAlignmentS3Key: alignmentKey,
   });
 
   return {
@@ -174,6 +211,7 @@ const buildMockResponse = async (
     provider: "mock",
     voiceS3Key: audioKey,
     providerLogS3Key: rawKey,
+    voiceAlignmentS3Key: alignmentKey,
     mocked: true,
     voiceProfileId: input.voiceProfileId,
     durationSec: estimatedDurationSec,
@@ -190,6 +228,7 @@ const writeVoiceLog = async (input: {
   voiceSettings?: ElevenLabsVoiceSettings;
   bytes?: number;
   error?: string;
+  voiceAlignmentS3Key?: string;
 }) => {
   await putJsonToS3(input.rawKey, {
     status: input.status,
@@ -200,6 +239,9 @@ const writeVoiceLog = async (input: {
     voiceSettings: input.voiceSettings,
     ...(typeof input.bytes === "number" ? { bytes: input.bytes } : {}),
     ...(input.error ? { error: input.error } : {}),
+    ...(typeof input.voiceAlignmentS3Key === "string"
+      ? { voiceAlignmentS3Key: input.voiceAlignmentS3Key }
+      : {}),
   });
 };
 
@@ -210,6 +252,7 @@ const createVoiceCandidateMeta = (input: GenerateSceneVoiceInput) => {
     createdAt: new Date().toISOString(),
     audioKey: `assets/${input.jobId}/tts/scene-${input.sceneId}/${candidateId}.mp3`,
     rawKey: `logs/${input.jobId}/provider/tts-scene-${input.sceneId}-${candidateId}.json`,
+    alignmentKey: `assets/${input.jobId}/tts/scene-${input.sceneId}/${candidateId}.alignment.json`,
   };
 };
 
@@ -222,6 +265,7 @@ const buildVoiceResult = (input: {
   mocked: boolean;
   voiceProfileId?: string;
   durationSec: number;
+  voiceAlignmentS3Key?: string;
 }) => ({
   candidateId: input.candidateId,
   createdAt: input.createdAt,
@@ -231,6 +275,10 @@ const buildVoiceResult = (input: {
   mocked: input.mocked,
   voiceProfileId: input.voiceProfileId,
   durationSec: input.durationSec,
+  ...(typeof input.voiceAlignmentS3Key === "string" &&
+  input.voiceAlignmentS3Key.length > 0
+    ? { voiceAlignmentS3Key: input.voiceAlignmentS3Key }
+    : {}),
 });
 
 const resolveAudioDurationSec = async (
@@ -246,28 +294,6 @@ const resolveAudioDurationSec = async (
   } catch {
     return fallbackDurationSec;
   }
-};
-
-const fetchVoiceAudio = async (input: {
-  endpoint: string;
-  apiKey: string;
-  requestBody: string;
-}) => {
-  return fetchArrayBufferWithRetry(
-    input.endpoint,
-    {
-      method: "POST",
-      headers: {
-        "xi-api-key": input.apiKey,
-        "Content-Type": "application/json",
-        Accept: "audio/mpeg",
-      },
-      body: input.requestBody,
-    },
-    {
-      maxAttempts: 4,
-    },
-  );
 };
 
 const logVoiceFailure = async (input: {
@@ -292,6 +318,7 @@ const logVoiceFailure = async (input: {
   });
 };
 
+/* eslint-disable complexity -- TTS JSON parse, S3 writes, and logging branches stay in one orchestration block. */
 const fetchAndPersistElevenLabsTts = async (input: {
   input: GenerateSceneVoiceInput;
   apiKey: string;
@@ -304,6 +331,7 @@ const fetchAndPersistElevenLabsTts = async (input: {
   createdAt: string;
   audioKey: string;
   rawKey: string;
+  alignmentKey: string;
 }): Promise<Record<string, unknown>> => {
   const {
     input: voiceInput,
@@ -317,32 +345,62 @@ const fetchAndPersistElevenLabsTts = async (input: {
     createdAt,
     audioKey,
     rawKey,
+    alignmentKey,
   } = input;
+  const timestampsUrl = buildWithTimestampsUrl(endpoint);
+  const requestBody = buildRequestBody(
+    voiceInput,
+    resolvedModelId,
+    resolvedVoiceSettings,
+  );
   try {
-    const arrayBuffer = await fetchVoiceAudio({
-      endpoint,
-      apiKey,
-      requestBody: buildRequestBody(
-        voiceInput,
-        resolvedModelId,
-        resolvedVoiceSettings,
-      ),
-    });
-    const audioBuffer = Buffer.from(arrayBuffer);
+    const json = await fetchJsonWithRetry<unknown>(
+      timestampsUrl,
+      {
+        method: "POST",
+        headers: {
+          "xi-api-key": apiKey,
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: requestBody,
+      },
+      {
+        maxAttempts: 4,
+      },
+    );
+    const parsed = elevenLabsWithTimestampsResponseSchema.safeParse(json);
+    if (!parsed.success) {
+      throw new Error(
+        "ElevenLabs with-timestamps response did not match expected shape",
+      );
+    }
+    const audioBuffer = Buffer.from(parsed.data.audio_base64, "base64");
     const resolvedDurationSec = await resolveAudioDurationSec(
       audioBuffer,
       estimatedDurationSec,
     );
     await putBufferToS3(audioKey, audioBuffer, "audio/mpeg");
+    const hasUsableAlignment =
+      (parsed.data.normalized_alignment?.characters?.length ?? 0) > 0 ||
+      (parsed.data.alignment?.characters?.length ?? 0) > 0;
+    if (hasUsableAlignment) {
+      await putJsonToS3(alignmentKey, {
+        normalized_alignment: parsed.data.normalized_alignment,
+        alignment: parsed.data.alignment,
+        sourceText: voiceInput.text.replace(/\s+/g, " ").trim(),
+      });
+    }
     await writeVoiceLog({
       rawKey,
       status: 200,
-      bytes: arrayBuffer.byteLength,
-      endpoint,
+      bytes: audioBuffer.byteLength,
+      endpoint: timestampsUrl,
       resolvedVoiceId,
       resolvedModelId,
       voiceProfileId: voiceInput.voiceProfileId,
       voiceSettings: resolvedVoiceSettings,
+      ...(hasUsableAlignment ? { voiceAlignmentS3Key: alignmentKey } : {}),
     });
 
     return buildVoiceResult({
@@ -354,11 +412,12 @@ const fetchAndPersistElevenLabsTts = async (input: {
       mocked: false,
       voiceProfileId: voiceInput.voiceProfileId,
       durationSec: resolvedDurationSec,
+      ...(hasUsableAlignment ? { voiceAlignmentS3Key: alignmentKey } : {}),
     });
   } catch (error) {
     await logVoiceFailure({
       rawKey,
-      endpoint,
+      endpoint: timestampsUrl,
       resolvedVoiceId,
       resolvedModelId,
       voiceProfileId: voiceInput.voiceProfileId,
@@ -368,12 +427,13 @@ const fetchAndPersistElevenLabsTts = async (input: {
     throw error;
   }
 };
+/* eslint-enable complexity */
 
 export const generateSceneVoice = async (
   input: GenerateSceneVoiceInput,
 ): Promise<Record<string, unknown>> => {
   const apiKey = await loadElevenLabsApiKey(input.secretId);
-  const { candidateId, createdAt, audioKey, rawKey } =
+  const { candidateId, createdAt, audioKey, rawKey, alignmentKey } =
     createVoiceCandidateMeta(input);
   const { resolvedVoiceId, resolvedModelId, endpoint } =
     resolveVoiceConfig(input);
@@ -388,6 +448,7 @@ export const generateSceneVoice = async (
       input,
       audioKey,
       rawKey,
+      alignmentKey,
       estimatedDurationSec,
       candidateId,
       createdAt,
@@ -406,5 +467,6 @@ export const generateSceneVoice = async (
     createdAt,
     audioKey,
     rawKey,
+    alignmentKey,
   });
 };
