@@ -66,6 +66,11 @@ export const jobRenderSettingsSchema = z
     subtitlePosition: z.enum(["top", "center", "bottom"]).optional(),
     subtitleOffsetY: subtitleOffsetScalarSchema.optional(),
     subtitleFontPreset: subtitleFontPresetSchema.optional(),
+    /**
+     * ASS `\\fn`에 그대로 쓰는 폰트 패밀리명. 설정 시 `subtitleFontPreset`보다 우선한다.
+     * Fargate 렌더 이미지에 설치된 이름이어야 한다(예: Noto Sans CJK KR).
+     */
+    subtitleFontFamily: z.string().trim().min(1).max(120).optional(),
     subtitleFontWeight: subtitleFontWeightSchema.optional(),
     subtitleFontSize: z.number().int().min(12).max(96).optional(),
     subtitleMaxWidth: normalizedOverlayWidthSchema.optional(),

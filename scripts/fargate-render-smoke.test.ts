@@ -356,6 +356,72 @@ void test("render plan falls back to preset-level render settings", () => {
   assert.equal(config.mediaFrame.height, 0.5);
 });
 
+void test("render plan prefers subtitleFontFamily over subtitleFontPreset", () => {
+  const event = {
+    jobId: "job_font_override",
+    sceneJson: {
+      videoTitle: "Font Override",
+      language: "ko",
+      scenes: [
+        {
+          sceneId: 1,
+          durationSec: 3,
+          narration: "나레이션",
+          subtitle: "자막",
+        },
+      ],
+    },
+  };
+
+  const config = resolveRenderPolicyConfig(event, {
+    resolvedPolicy: {
+      presetId: "preset-font-override",
+      format: "template-short",
+      duration: "short",
+      primaryPlatformPreset: "9:16",
+      styleTags: [],
+      assetStrategy: "mixed",
+      stylePreset: "default",
+      capabilities: {
+        voiceMode: "required",
+        subtitleMode: "required",
+        layoutMode: "template",
+        supportsAiVideo: true,
+        supportsAiImage: true,
+        supportsStockVideo: true,
+        supportsStockImage: true,
+        supportsBgm: true,
+        supportsSfx: false,
+        supportsVoiceProfile: false,
+        supportsOverlayTemplate: false,
+      },
+      assetMenu: {
+        showScript: true,
+        showNarration: true,
+        showSubtitles: true,
+        showImageAssets: true,
+        showVideoAssets: true,
+        showStockPicker: true,
+        showBgm: true,
+        showSfx: false,
+        showOverlayEditor: false,
+        recommendedGenerationOrder: ["script", "voice", "image", "video"],
+      },
+      renderSettings: {
+        subtitleFontPreset: "serif",
+      },
+    },
+    renderSettings: {
+      subtitleFontFamily: "Custom Font From Job Brief",
+      subtitleFontPreset: "serif",
+    },
+  });
+
+  const builtScenes = buildRenderPlanScenes(event);
+  const renderPlan = buildRenderPlan(event, builtScenes, config);
+  assert.equal(renderPlan.subtitles.style.fontFamily, "Custom Font From Job Brief");
+});
+
 void test("subtitle ass wraps long subtitle and title overlay text", () => {
   const ass = buildSubtitleAss({
     output: {

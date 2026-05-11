@@ -227,10 +227,14 @@ const resolveSubtitleFont = (
   output: RenderPlan["output"],
   renderSettings?: JobRenderSettings,
 ): RenderPlanSubtitleStyle => {
-  const resolvedFontFamily = resolveFontFamilyFromPreset(
-    renderSettings?.subtitleFontPreset,
-    style.fontFamily,
-  );
+  const explicitFamily = renderSettings?.subtitleFontFamily?.trim();
+  const resolvedFontFamily =
+    explicitFamily && explicitFamily.length > 0
+      ? explicitFamily
+      : resolveFontFamilyFromPreset(
+          renderSettings?.subtitleFontPreset,
+          style.fontFamily,
+        );
   const outputShortEdge = Math.min(output.size.width, output.size.height);
   const scaledFontSize = renderSettings?.subtitleFontSize
     ? Math.round(

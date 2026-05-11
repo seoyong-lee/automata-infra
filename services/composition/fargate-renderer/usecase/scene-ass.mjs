@@ -572,19 +572,29 @@ export async function writeSceneAss(
    */
   const clearlyGlobalTimestamps =
     subtitleSegments.length > 0 &&
-    minSegStart >= sceneStartGlobal - 0.5;
+    minSegStart >= sceneStartGlobal - 1.5;
   const localSpanCeil =
     Math.max(plannedSpanSec, outputContentSpanSec) + 1.25;
+  /**
+   * True only for 0…duration style timestamps. Avoid treating global [sceneStart,…] as "local"
+   * when minSegStart is 0 but sceneStartGlobal > 0 (would squash cues to the clip start).
+   */
   const segmentsLookLocal =
     subtitleSegments.length > 0 &&
     !clearlyGlobalTimestamps &&
     minSegStart >= -0.01 &&
-    maxSegEnd <= localSpanCeil;
+    maxSegEnd <= localSpanCeil &&
+    (sceneStartGlobal <= 0.05 || minSegStart < sceneStartGlobal - 0.5);
   const toAssTimeline = (sec) => {
     if (segmentsLookLocal) {
       return mapSegmentLocalToAssTimeline(sec);
     }
-    if (leadInSec > 1e-6) {
+    /**
+     * Global render-plan times must stay 1:1 with the encoded clip (after TTS lead-in).
+     * Proportional rescale (mapPlanGlobalToAssLocal) lags or compresses cues when segment
+     * length ≠ plannedSpan (common with probed voice duration).
+     */
+    if (clearlyGlobalTimestamps || leadInSec > 1e-6) {
       return mapVoiceSyncedGlobalToAss(sec);
     }
     return mapPlanGlobalToAssLocal(sec);

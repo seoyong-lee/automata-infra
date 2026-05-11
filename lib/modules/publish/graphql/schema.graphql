@@ -411,6 +411,11 @@ type RenderSettings {
   subtitlePosition: String
   subtitleOffsetY: Float
   subtitleFontPreset: String
+  """
+  ASS \\fn에 사용할 폰트 패밀리명(렌더 이미지에 설치된 이름). 있으면 subtitleFontPreset보다 우선.
+  한글+숫자 균형은 Noto Sans CJK KR 등 단일 패밀리 권장.
+  """
+  subtitleFontFamily: String
   subtitleFontWeight: String
   subtitleFontSize: Int
   subtitleMaxWidth: Float
@@ -1184,6 +1189,7 @@ input RenderSettingsInput {
   subtitlePosition: String
   subtitleOffsetY: Float
   subtitleFontPreset: String
+  subtitleFontFamily: String
   subtitleFontWeight: String
   subtitleFontSize: Int
   subtitleMaxWidth: Float

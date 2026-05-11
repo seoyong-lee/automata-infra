@@ -1,7 +1,16 @@
 FROM node:20-bookworm
 
 RUN apt-get update \
-  && apt-get install -y --no-install-recommends ffmpeg python3 python3-venv fonts-clear-sans fonts-noto-cjk \
+  && apt-get install -y --no-install-recommends \
+    ffmpeg \
+    python3 \
+    python3-venv \
+    fonts-baekmuk \
+    fonts-clear-sans \
+    fonts-nanum \
+    fonts-noto-cjk \
+    fonts-noto-cjk-extra \
+    fonts-unfonts-core \
   && python3 -m venv /opt/yt-dlp \
   && /opt/yt-dlp/bin/pip install --no-cache-dir --upgrade pip \
   && /opt/yt-dlp/bin/pip install --no-cache-dir yt-dlp \
