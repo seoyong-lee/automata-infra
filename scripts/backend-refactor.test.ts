@@ -15,6 +15,7 @@ import { updateLlmStepSettings } from "../services/admin/settings/update-llm-set
 import { collectAssetRefs } from "../services/composition/validate-assets/normalize/collect-asset-refs";
 import { hasRenderableVisualAsset } from "../services/composition/validate-assets/usecase/validate-generated-assets";
 import { generateStructuredDataWithProvider } from "../services/shared/lib/providers/llm";
+import { extractSceneIdFromSceneCandidateSk } from "../services/shared/lib/store/video-jobs-helpers";
 
 void test("collectAssetRefs matches assets by sceneId before array position", () => {
   const refs = collectAssetRefs({
@@ -79,6 +80,27 @@ void test("collectAssetRefs matches assets by sceneId before array position", ()
       },
     ],
   );
+});
+
+void test("extractSceneIdFromSceneCandidateSk parses canonical candidate SK", () => {
+  assert.equal(
+    extractSceneIdFromSceneCandidateSk(
+      "SCENE#12#IMAGE_CANDIDATE#550e8400-e29b-41d4-a716-446655440000",
+    ),
+    12,
+  );
+  assert.equal(
+    extractSceneIdFromSceneCandidateSk(
+      "SCENE#3#VIDEO_CANDIDATE#550e8400-e29b-41d4-a716-446655440001",
+    ),
+    3,
+  );
+  assert.equal(
+    extractSceneIdFromSceneCandidateSk("SCENE#1#VOICE_CANDIDATE#cand-a"),
+    1,
+  );
+  assert.equal(extractSceneIdFromSceneCandidateSk("SCENE#1#IMAGE#legacy"), undefined);
+  assert.equal(extractSceneIdFromSceneCandidateSk("SCENE#10#IMAGE_CANDIDATE#x"), 10);
 });
 
 void test("hasRenderableVisualAsset accepts either image or video assets", () => {

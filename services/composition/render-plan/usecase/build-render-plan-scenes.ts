@@ -216,7 +216,7 @@ const buildRenderPlanScene = (input: {
 
 export const buildRenderPlanScenes = (
   event: RenderPlanEvent,
-  sceneGapSec = 0,
+  sceneGapSec = 0.3,
   timelineFps = 30,
 ): BuiltRenderPlanScenes => {
   let cursorSec = 0;

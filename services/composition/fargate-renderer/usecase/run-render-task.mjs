@@ -130,7 +130,10 @@ function snapDurationToOutputFps(sec, fps) {
     return seconds(raw);
   }
   const frames = Math.max(1, Math.round(raw * f));
-  return frames / f;
+  const snapped = frames / f;
+  // Never claim a longer timeline than ffprobe/encoder reported: xfade/acrossfade use
+  // these values for offsets; rounding up a frame past the real stream end fails mid-chain.
+  return Math.min(snapped, raw);
 }
 
 function isDebugMp4BundleEnabled() {

@@ -98,7 +98,7 @@ const DOCUMENTARY_SUBTITLE_STYLE: RenderPlanSubtitleStyle = {
   position: "bottom",
 };
 /** Silence between scenes after narration ends (rendered as a gap segment). */
-const SCENE_GAP_AFTER_NARRATION_SEC = 0;
+const SCENE_GAP_AFTER_NARRATION_SEC = 0.3;
 
 const DEFAULT_CANVAS: RenderPlanCanvas = {
   backgroundColor: "#000000",

@@ -171,6 +171,27 @@ const buildSceneCandidatePrefix = (
   return `SCENE#${sceneId}#${kind}#`;
 };
 
+/**
+ * Candidate rows must use SK `SCENE#{id}#(IMAGE|VIDEO|VOICE)_CANDIDATE#{uuid}`.
+ * Older rows may omit `sceneId` on the item; never trust `begins_with` alone (prefix edge cases).
+ */
+export const extractSceneIdFromSceneCandidateSk = (
+  sk: unknown,
+): number | undefined => {
+  if (typeof sk !== "string") {
+    return undefined;
+  }
+  const m =
+    /^SCENE#(\d+)#(?:IMAGE_CANDIDATE|VIDEO_CANDIDATE|VOICE_CANDIDATE)#/.exec(
+      sk,
+    );
+  if (!m) {
+    return undefined;
+  }
+  const n = Number(m[1]);
+  return Number.isFinite(n) ? n : undefined;
+};
+
 const normalizeStoredSceneId = (value: unknown): number | undefined => {
   if (typeof value === "number" && Number.isFinite(value)) {
     return value;
@@ -285,8 +306,12 @@ export const listSceneCandidateItems = async <
     if (typeof row.SK !== "string" || !row.SK.startsWith(skPrefix)) {
       return false;
     }
-    const sid = normalizeStoredSceneId(row.sceneId);
-    if (sid !== undefined && sid !== input.sceneId) {
+    const sidFromSk = extractSceneIdFromSceneCandidateSk(row.SK);
+    if (sidFromSk === undefined || sidFromSk !== input.sceneId) {
+      return false;
+    }
+    const sidAttr = normalizeStoredSceneId(row.sceneId);
+    if (sidAttr !== undefined && sidAttr !== sidFromSk) {
       return false;
     }
     return true;

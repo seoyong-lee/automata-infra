@@ -380,12 +380,16 @@ void test("sceneJson contract flows through asset usecases and render-plan build
     },
   );
 
-  const renderPlan = buildRenderPlanScenes({
-    jobId: sceneJsonInput.jobId,
-    sceneJson: sceneJsonExpectedFixture,
-    imageAssets: imageAssets as Array<{ sceneId: number; imageS3Key: string }>,
-    voiceAssets: voiceAssets as Array<{ sceneId: number; voiceS3Key: string }>,
-  });
+  const renderPlan = buildRenderPlanScenes(
+    {
+      jobId: sceneJsonInput.jobId,
+      sceneJson: sceneJsonExpectedFixture,
+      imageAssets: imageAssets as Array<{ sceneId: number; imageS3Key: string }>,
+      voiceAssets: voiceAssets as Array<{ sceneId: number; voiceS3Key: string }>,
+    },
+    0,
+    30,
+  );
 
   assert.equal(imageAssets.length, sceneJsonExpectedFixture.scenes.length);
   assert.equal(videoAssets.length, 3);
