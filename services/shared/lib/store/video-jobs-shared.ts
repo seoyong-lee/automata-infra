@@ -60,6 +60,12 @@ export type JobMetaItem = {
   backgroundMusicS3Key?: string;
   /** One continuous B-roll; Fargate trims per-scene [startSec, endSec]. */
   masterVideoS3Key?: string;
+  /** `runSourceVideoFrameExtract` 진행 상태(파이프라인 status와 별도) */
+  sourceVideoFrameExtractStatus?: string;
+  sourceVideoFrameExtractError?: string | null;
+  sourceVideoFrameExtractStartedAt?: string;
+  sourceVideoFrameExtractCompletedAt?: string;
+  sourceVideoFrameExtractInsightS3Key?: string;
   createdAt: string;
   updatedAt: string;
   GSI1PK: string;

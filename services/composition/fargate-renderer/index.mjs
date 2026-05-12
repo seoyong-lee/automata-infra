@@ -37,6 +37,7 @@ async function runSelectedTask() {
     return extractSourceVideoFrames({
       jobId,
       sourceVideoS3Key: requireEnv("SOURCE_VIDEO_S3_KEY"),
+      assetsBucketName: bucketName,
       sampleIntervalSec: Number(process.env.SAMPLE_INTERVAL_SEC ?? "2"),
       maxFrames: Number(process.env.MAX_FRAMES ?? "12"),
       extractionStrategy:
@@ -101,12 +102,24 @@ function getFailureProvider(taskMode) {
 
 main().catch(async (error) => {
   const message = error instanceof Error ? error.message : String(error);
+  const sourceKeyForLog =
+    taskMode === "EXTRACT_SOURCE_VIDEO_FRAMES"
+      ? process.env.SOURCE_VIDEO_S3_KEY?.trim().slice(0, 512)
+      : undefined;
   await storageRepo.putJson(
     resultS3Key,
     createRenderFailureResult({
       message,
       renderedAt: new Date().toISOString(),
       provider: getFailureProvider(taskMode),
+      debug: {
+        taskMode,
+        jobId,
+        region,
+        assetsBucket: bucketName,
+        resultS3Key,
+        ...(sourceKeyForLog ? { sourceVideoS3Key: sourceKeyForLog } : {}),
+      },
     }),
   );
   process.exitCode = 1;

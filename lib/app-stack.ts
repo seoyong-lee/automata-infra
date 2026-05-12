@@ -314,6 +314,28 @@ export class AppStack extends Stack {
         standaloneVideoTranscriptHandler.functionName,
     };
 
+    const sourceVideoFrameExtractWorker = createLambda(
+      this,
+      "SourceVideoFrameExtractWorkerLambda",
+      `${props.projectPrefix}-source-video-frame-extract`,
+      path.join(
+        process.cwd(),
+        "services/admin/generations/run-source-video-frame-extract-worker/handler.ts",
+      ),
+      environment,
+      Duration.minutes(15),
+      1024,
+    );
+    this.jobsTable.grantReadWriteData(sourceVideoFrameExtractWorker);
+    this.assetsBucket.grantReadWrite(sourceVideoFrameExtractWorker);
+    grantFargateRunPermissions(sourceVideoFrameExtractWorker);
+
+    const adminGenerationsEnv = {
+      ...pipelineTriggerEnv,
+      SOURCE_VIDEO_FRAME_EXTRACT_WORKER_FUNCTION_NAME:
+        sourceVideoFrameExtractWorker.functionName,
+    };
+
     const uploadGroupHandler = createLambda(
       this,
       "AdminUploadLambda",
@@ -342,11 +364,13 @@ export class AppStack extends Stack {
       "AdminGenerationsLambda",
       `${props.projectPrefix}-admin-generations`,
       path.join(process.cwd(), "services/admin/generations/handler.ts"),
-      pipelineTriggerEnv,
-      Duration.seconds(60),
+      adminGenerationsEnv,
+      /** Vision·씬 JSON 등 장시간 호출 대비 */
+      Duration.minutes(15),
       1024,
     );
     grantFargateRunPermissions(generationsHandler);
+    sourceVideoFrameExtractWorker.grantInvoke(generationsHandler);
     const contentHandler = createLambda(
       this,
       "AdminContentLambda",

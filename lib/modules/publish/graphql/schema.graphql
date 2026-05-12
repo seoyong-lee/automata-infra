@@ -156,10 +156,12 @@ type Mutation {
   """
   소스 영상에서 대표 프레임을 추출해 S3에 저장한다 (Vision·쇼츠 대본 파이프라인 1단계).
   `sourceVideoS3Key` 생략 시 잡의 `masterVideoS3Key`를 사용한다. 기존 JOB_PLAN~합성 플로우와 독립.
+  Fargate는 별도 워커 Lambda에서 실행되며, 이 뮤테이션은 즉시 큐잉 결과를 반환한다(AppSync 동기 한도와 무관).
+  완료·프레임 목록은 `jobDraft`/`adminJob`의 `sourceVideoFrameExtractStatus`와 S3 `insightResultS3Key` JSON을 본다.
   """
   runSourceVideoFrameExtract(
     input: RunSourceVideoFrameExtractInput!
-  ): SourceVideoFrameExtractResult!
+  ): SourceVideoFrameExtractQueued!
   """
   `runSourceVideoFrameExtract` 결과(S3 JSON)와 잡 플랜을 바탕으로 씬 JSON을 생성·저장한다.
   Vision: 기본 AUTO는 `GEMINI_VISION_SECRET_ID`가 있으면 Gemini 2.5 Flash-Lite(저비용), 없으면 Bedrock(씬 JSON 모델) 멀티모달.
@@ -232,6 +234,23 @@ type AdminJob {
   defaultVoiceProfileId: String
   backgroundMusicS3Key: String
   masterVideoS3Key: String
+  """
+  Fargate 프레임 추출 진행 상태. 파이프라인 `status`(JobStatus)와 별개.
+  """
+  sourceVideoFrameExtractStatus: SourceVideoFrameExtractStatus
+  sourceVideoFrameExtractError: String
+  sourceVideoFrameExtractStartedAt: AWSDateTime
+  sourceVideoFrameExtractCompletedAt: AWSDateTime
+  """
+  추출 결과 JSON S3 키(성공 시 `insightResultS3Key`와 동일 경로)
+  """
+  sourceVideoFrameExtractInsightS3Key: String
+}
+
+enum SourceVideoFrameExtractStatus {
+  EXTRACTING
+  READY
+  FAILED
 }
 
 type ContentPresetCapabilities {
@@ -939,7 +958,9 @@ enum AssetUploadCategory {
   SCENE_IMAGE
   SCENE_VOICE
   SCENE_VIDEO
-  """잡 단일 마스터 B-roll → assets/{jobId}/master/…"""
+  """
+  잡 단일 마스터 B-roll → assets/{jobId}/master/…
+  """
   JOB_MASTER_VIDEO
 }
 
@@ -1402,7 +1423,9 @@ input SetJobBackgroundMusicInput {
 
 input SetJobMasterVideoInput {
   jobId: ID!
-  """assets/{jobId}/master/… 업로드 키. 비우면 마스터 모드를 해제한다."""
+  """
+  assets/{jobId}/master/… 업로드 키. 비우면 마스터 모드를 해제한다.
+  """
   s3Key: String
 }
 
@@ -1413,17 +1436,29 @@ enum SourceVideoFrameExtractionStrategy {
 
 input RunSourceVideoFrameExtractInput {
   jobId: ID!
-  """비우면 잡에 저장된 masterVideoS3Key 사용"""
+  """
+  비우면 잡에 저장된 masterVideoS3Key 사용
+  """
   sourceVideoS3Key: String
-  """프레임 샘플 간격(초). UNIFORM 및 SCENE_CUT 폴백·보강에 사용. 기본 2"""
+  """
+  프레임 샘플 간격(초). UNIFORM 및 SCENE_CUT 폴백·보강에 사용. 기본 2
+  """
   sampleIntervalSec: Float
-  """최대 프레임 수(상한). 기본 12, 최대 48"""
+  """
+  최대 프레임 수(상한). 기본 12, 최대 48
+  """
   maxFrames: Int
-  """UNIFORM: 고정 간격. SCENE_CUT: 장면 전환 감지 후 대표 시점(부족 시 균등 보강). 기본 UNIFORM"""
+  """
+  UNIFORM: 고정 간격. SCENE_CUT: 장면 전환 감지 후 대표 시점(부족 시 균등 보강). 기본 UNIFORM
+  """
   extractionStrategy: SourceVideoFrameExtractionStrategy
-  """SCENE_CUT 전용. scene 점수 임계(0.12~0.85). 기본 약 0.35"""
+  """
+  SCENE_CUT 전용. scene 점수 임계(0.12~0.85). 기본 약 0.35
+  """
   sceneThreshold: Float
-  """SCENE_CUT 전용. 인접 컷 병합 최소 간격(초). 기본 0.4"""
+  """
+  SCENE_CUT 전용. 인접 컷 병합 최소 간격(초). 기본 0.4
+  """
   minSceneGapSec: Float
 }
 
@@ -1435,13 +1470,21 @@ enum SourceVideoVisionProvider {
 
 input RunSourceVideoSceneJsonInput {
   jobId: ID!
-  """비우면 logs/{jobId}/source-video-insight/frame-extract-result.json"""
+  """
+  비우면 logs/{jobId}/source-video-insight/frame-extract-result.json
+  """
   insightResultS3Key: String
-  """true면 Vision 호출 없이 프레임 메타만 scene-json 프롬프트에 포함"""
+  """
+  true면 Vision 호출 없이 프레임 메타만 scene-json 프롬프트에 포함
+  """
   skipVision: Boolean
-  """true면 성공 후에도 샘플 JPEG 유지(기본 false: Vision·씬 JSON 후 JPEG 삭제, manifest JSON만 갱신)"""
+  """
+  true면 성공 후에도 샘플 JPEG 유지(기본 false: Vision·씬 JSON 후 JPEG 삭제, manifest JSON만 갱신)
+  """
   retainFrameJpegs: Boolean
-  """Vision 백엔드. 생략 시 Lambda 환경 `SOURCE_VIDEO_VISION_PROVIDER` 또는 AUTO 규칙"""
+  """
+  Vision 백엔드. 생략 시 Lambda 환경 `SOURCE_VIDEO_VISION_PROVIDER` 또는 AUTO 규칙
+  """
   visionProvider: SourceVideoVisionProvider
 }
 
@@ -1450,19 +1493,37 @@ type SourceVideoFrameSample {
   imageS3Key: String!
 }
 
+"""
+Fargate 완료 후 S3 JSON에 기록되는 전체 결과(동기 뮤테이션 응답에는 쓰이지 않음).
+"""
 type SourceVideoFrameExtractResult {
   jobId: ID!
   sourceVideoS3Key: String!
   extractionStrategy: SourceVideoFrameExtractionStrategy!
   sampleIntervalSec: Float!
   maxFrames: Int!
-  """SCENE_CUT에서 병합된 컷 후보 시각(최대 64). UNIFORM은 빈 배열"""
+  """
+  SCENE_CUT에서 병합된 컷 후보 시각(최대 64). UNIFORM은 빈 배열
+  """
   cutTimesSec: [Float!]!
-  """Fargate가 기록한 전체 결과 JSON S3 키"""
+  """
+  Fargate가 기록한 전체 결과 JSON S3 키
+  """
   insightResultS3Key: String!
   frames: [SourceVideoFrameSample!]!
   provider: String
   extractedAt: AWSDateTime
+}
+
+"""
+뮤테이션 즉시 응답. 추출 본문은 워커 완료 후 S3·잡 메타에서 확인한다.
+"""
+type SourceVideoFrameExtractQueued {
+  jobId: ID!
+  sourceVideoS3Key: String!
+  extractionStrategy: SourceVideoFrameExtractionStrategy!
+  insightResultS3Key: String!
+  sourceVideoFrameExtractStatus: SourceVideoFrameExtractStatus!
 }
 
 input SetSceneVoiceProfileInput {

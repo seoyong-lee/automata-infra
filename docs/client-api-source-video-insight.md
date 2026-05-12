@@ -26,9 +26,24 @@ setJobMasterVideo (선택) → runJobPlan + 승인 (기존) → runSourceVideoFr
 
 ---
 
+## `jobExecutions`(Pipeline Executions)와의 관계
+
+`jobExecutions(jobId)`는 Dynamo의 **`EXEC#` 파이프라인 실행 행**만 반환한다. `PipelineStageType`은 스키마에 정의된 네 단계(`JOB_PLAN`, `SCENE_JSON`, `ASSET_GENERATION`, `FINAL_COMPOSITION`)로 고정되어 있고, 그에 맞는 실행만 쌓인다.
+
+**`runSourceVideoFrameExtract`**는 설계상 **코어 파이프라인과 분리**된 뮤테이션이며, 진행·완료·실패는 **`EXEC#`가 아니라 잡 META**에만 기록된다 (`sourceVideoFrameExtractStatus`, 시각, `sourceVideoFrameExtractError`, `sourceVideoFrameExtractInsightS3Key` 등). 파이프라인 `JobStatus`와도 별도다. 그래서 **실행 이력 탭의 `PipelineExecution` 목록에는 “소스 영상 프레임 추출” 줄이 생기지 않는 것이 정상**이다. (`runSourceVideoSceneJson`은 기존 씬 JSON 경로와 겹치므로 `SCENE_JSON` 실행과 잡 메타가 함께 움직일 수 있다.)
+
+| 구분 | 어디에 보이나 |
+|------|----------------|
+| 잡 플랜·씬 JSON(코어 경로)·에셋·합성 | `jobExecutions` → `PipelineExecution` (`PipelineStageType` 등) |
+| 소스 영상 프레임 추출 | `adminJob` / `jobDraft.job` 잡 메타 + (클라이언트) 스크립트/씬 탭 등 별도 UI |
+
+실행 이력에 **한 줄로 넣으려면** 서버에서 `PipelineStageType` / `PipelineStepType`에 단계를 추가하고, 추출 시작·종료 시 **`EXEC#` 행을 생성·갱신**하는 코드와, Admin UI의 단계 라벨(`pipeline-execution-presentation` 등)까지 함께 확장해야 한다. 현재 레포 구현만으로는 해당 내역이 `jobExecutions`에 나타나지 않는다.
+
+---
+
 ## 1. `runSourceVideoFrameExtract`
 
-Fargate에서 ffmpeg로 JPEG를 뽑아 S3에 올리고, 메타 JSON을 남긴다.
+Fargate에서 ffmpeg로 JPEG를 뽑아 S3에 올리고, 메타 JSON을 남긴다. **실제 Fargate는 전용 워커 Lambda(`InvocationType: Event`)에서 돌고**, Admin GraphQL 뮤테이션은 **즉시** `SourceVideoFrameExtractQueued`를 반환한다. AppSync·API Gateway 등 **동기 게이트웨이 타임아웃**(수십 초)과 Fargate 소요 시간을 분리한다.
 
 **Mutation**
 
@@ -38,16 +53,8 @@ mutation RunSourceVideoFrameExtract($input: RunSourceVideoFrameExtractInput!) {
     jobId
     sourceVideoS3Key
     extractionStrategy
-    sampleIntervalSec
-    maxFrames
-    cutTimesSec
     insightResultS3Key
-    extractedAt
-    provider
-    frames {
-      offsetSec
-      imageS3Key
-    }
+    sourceVideoFrameExtractStatus
   }
 }
 ```
@@ -77,10 +84,22 @@ mutation RunSourceVideoFrameExtract($input: RunSourceVideoFrameExtractInput!) {
 | `sceneThreshold` | SCENE_CUT 전용 (약 0.12–0.85) |
 | `minSceneGapSec` | SCENE_CUT 인접 컷 병합(초) |
 
-**응답**
+**진행 상황(잡 메타)**  
+큐잉 직후 Dynamo 잡 META에 `EXTRACTING`이 올라간다. **프레임 목록·`cutTimesSec` 등 전체 결과**는 워커가 끝낸 뒤 S3 `insightResultS3Key` JSON에만 있다. UI에서는 `adminJob(jobId)` 또는 `jobDraft(jobId) { job { … } }`를 폴링해 아래를 보면 된다.
 
-- `insightResultS3Key`: 보통 `logs/{jobId}/source-video-insight/frame-extract-result.json`
-- `frames[]`: `offsetSec`, `imageS3Key` (버킷 내 JPEG)
+- `sourceVideoFrameExtractStatus`: `EXTRACTING` → `READY` 또는 `FAILED`
+- `sourceVideoFrameExtractStartedAt` / `sourceVideoFrameExtractCompletedAt`
+- 실패 시 `sourceVideoFrameExtractError`
+- `sourceVideoFrameExtractInsightS3Key` (결과 JSON 키; 큐잉 시점에 미리 설정됨)
+
+**뮤테이션 즉시 응답 (`SourceVideoFrameExtractQueued`)**
+
+- `insightResultS3Key`: 보통 `logs/{jobId}/source-video-insight/frame-extract-result.json` (완료 후 내용이 채워짐)
+- `sourceVideoFrameExtractStatus`: 항상 `EXTRACTING` (성공 큐잉 기준)
+
+**완료 후 S3 JSON** (`READY` 이후, 스키마 타입 `SourceVideoFrameExtractResult`와 동일 형태)
+
+- `sampleIntervalSec`, `maxFrames`, `cutTimesSec`, `frames[]` (`offsetSec`, `imageS3Key`), `provider`, `extractedAt` 등
 
 ---
 
@@ -147,7 +166,7 @@ mutation RunSourceVideoSceneJson($input: RunSourceVideoSceneJsonInput!) {
 ## 4. 클라이언트 구현 체크리스트
 
 - [ ] 추출 전 `masterVideoS3Key` 또는 `sourceVideoS3Key` 확보.
-- [ ] `runSourceVideoFrameExtract` 완료까지 **동기 대기** 또는 폴링 (Fargate라 수초~수분).
+- [ ] `runSourceVideoFrameExtract` 호출 후 **`jobDraft`/`adminJob` 폴링**으로 `sourceVideoFrameExtractStatus`가 `READY`일 때까지 대기 (뮤테이션은 즉시 반환, Fargate는 워커에서 수행).
 - [ ] `runSourceVideoSceneJson` 전 **잡 플랜 승인** 여부 확인.
 - [ ] 성공 후 `sceneJsonS3Key`로 기존 에디터/미리보기 연동.
 - [ ] `retainFrameJpegs: false`면 `frames[].imageS3Key`는 이후 무효일 수 있음 → 재 Vision 시 **`runSourceVideoFrameExtract` 재실행**.
@@ -181,6 +200,14 @@ export interface RunSourceVideoFrameExtractInput {
   extractionStrategy?: SourceVideoFrameExtractionStrategy | null;
   sceneThreshold?: number | null;
   minSceneGapSec?: number | null;
+}
+
+export interface SourceVideoFrameExtractQueued {
+  jobId: string;
+  sourceVideoS3Key: string;
+  extractionStrategy: SourceVideoFrameExtractionStrategy;
+  insightResultS3Key: string;
+  sourceVideoFrameExtractStatus: "EXTRACTING";
 }
 
 export interface RunSourceVideoSceneJsonInput {

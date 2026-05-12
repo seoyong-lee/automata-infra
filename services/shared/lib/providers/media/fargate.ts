@@ -267,16 +267,22 @@ const assertTaskCompleted = (
       typeof result.message === "string" && result.message.trim().length > 0
         ? result.message.trim()
         : taskError;
-    throw new Error(`Fargate renderer failed: ${detail}`);
+    const debug =
+      result.debug && typeof result.debug === "object"
+        ? ` | debug=${JSON.stringify(result.debug).slice(0, 2000)}`
+        : "";
+    throw new Error(`Fargate renderer failed: ${detail}${debug}`);
   }
   if (result.failed) {
-    throw new Error(
-      `Fargate renderer failed: ${
-        typeof result.message === "string" && result.message.trim().length > 0
-          ? result.message.trim()
-          : "unknown renderer error"
-      }`,
-    );
+    const base =
+      typeof result.message === "string" && result.message.trim().length > 0
+        ? result.message.trim()
+        : "unknown renderer error";
+    const debug =
+      result.debug && typeof result.debug === "object"
+        ? ` | debug=${JSON.stringify(result.debug).slice(0, 2000)}`
+        : "";
+    throw new Error(`Fargate renderer failed: ${base}${debug}`);
   }
 };
 
@@ -409,12 +415,13 @@ export const extractSourceVideoFramesWithFargate = async (input: {
 }): Promise<FargateSourceVideoFrameExtractResult> => {
   const resultS3Key = sourceVideoFrameExtractResultS3Key(input.jobId);
   const strategy = input.extractionStrategy ?? "UNIFORM";
+  const sourceKey = input.sourceVideoS3Key.trim();
   const { result, taskArn } = await runFargateTask({
     jobId: input.jobId,
     resultS3Key,
     requestLogKey: sourceVideoFrameExtractRequestS3Key(input.jobId),
     requestPayload: {
-      sourceVideoS3Key: input.sourceVideoS3Key,
+      sourceVideoS3Key: sourceKey,
       sampleIntervalSec: input.sampleIntervalSec ?? 2,
       maxFrames: input.maxFrames ?? 12,
       extractionStrategy: strategy,
@@ -424,7 +431,7 @@ export const extractSourceVideoFramesWithFargate = async (input: {
     },
     containerEnvironment: [
       { name: "TASK_MODE", value: "EXTRACT_SOURCE_VIDEO_FRAMES" },
-      { name: "SOURCE_VIDEO_S3_KEY", value: input.sourceVideoS3Key },
+      { name: "SOURCE_VIDEO_S3_KEY", value: sourceKey },
       {
         name: "SAMPLE_INTERVAL_SEC",
         value: String(input.sampleIntervalSec ?? 2),

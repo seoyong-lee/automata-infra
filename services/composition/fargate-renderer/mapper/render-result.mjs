@@ -36,11 +36,13 @@ export function createRenderFailureResult({
   message,
   renderedAt,
   provider = "fargate-ffmpeg",
+  debug,
 }) {
   return {
     provider,
     failed: true,
     message,
     renderedAt,
+    ...(debug && typeof debug === "object" ? { debug } : {}),
   };
 }

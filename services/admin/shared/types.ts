@@ -150,6 +150,11 @@ export type AdminJobDto = {
   defaultVoiceProfileId?: string;
   backgroundMusicS3Key?: string;
   masterVideoS3Key?: string;
+  sourceVideoFrameExtractStatus?: string;
+  sourceVideoFrameExtractError?: string | null;
+  sourceVideoFrameExtractStartedAt?: string;
+  sourceVideoFrameExtractCompletedAt?: string;
+  sourceVideoFrameExtractInsightS3Key?: string;
 };
 
 export type RenderArtifactDto = {

@@ -4,6 +4,8 @@
 
 주 데이터 소스는 `getJobDraft` 결과(`JobDraftDetail`, `useContentJobDetailPageData`)이며, 일부 패널은 보조 쿼리(`useJobExecutionsQuery`, `useContentPublishDraftQuery`, `useSourceItemQuery` 등)를 둡니다.
 
+**소스 영상 프레임 추출**(`runSourceVideoFrameExtract`) 진행 상태는 **`jobExecutions`가 아니라 잡 메타**(`job.sourceVideoFrameExtractStatus` 등)에만 올라갑니다. `jobExecutions`는 `EXEC#` 코어 파이프라인(`PipelineStageType`: JOB_PLAN, SCENE_JSON, …) 전용이므로, 실행 이력 목록에 프레임 추출 행이 없는 것은 설계상 기대 동작입니다. 자세한 이유는 `docs/client-api-source-video-insight.md`의 “`jobExecutions`와의 관계” 절을 참고합니다.
+
 ---
 
 ## 공통 상단(모든 탭)

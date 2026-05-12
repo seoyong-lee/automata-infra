@@ -69,5 +69,10 @@ export const mapJobMetaToAdminJob = (job: JobMetaItem): AdminJobDto => {
     defaultVoiceProfileId: job.defaultVoiceProfileId,
     backgroundMusicS3Key: job.backgroundMusicS3Key,
     masterVideoS3Key: job.masterVideoS3Key,
+    sourceVideoFrameExtractStatus: job.sourceVideoFrameExtractStatus,
+    sourceVideoFrameExtractError: job.sourceVideoFrameExtractError ?? undefined,
+    sourceVideoFrameExtractStartedAt: job.sourceVideoFrameExtractStartedAt,
+    sourceVideoFrameExtractCompletedAt: job.sourceVideoFrameExtractCompletedAt,
+    sourceVideoFrameExtractInsightS3Key: job.sourceVideoFrameExtractInsightS3Key,
   };
 };

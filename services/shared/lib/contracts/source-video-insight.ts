@@ -61,6 +61,16 @@ export type SourceVideoFrameExtractStoredResult = z.infer<
 export const sourceVideoFrameExtractResultS3Key = (jobId: string): string =>
   `logs/${jobId}/source-video-insight/frame-extract-result.json`;
 
+/** 잡 META에 저장되는 프레임 추출 진행 상태 (파이프라인 JobStatus와 별개) */
+export const sourceVideoFrameExtractJobStatusSchema = z.enum([
+  "EXTRACTING",
+  "READY",
+  "FAILED",
+]);
+export type SourceVideoFrameExtractJobStatus = z.infer<
+  typeof sourceVideoFrameExtractJobStatusSchema
+>;
+
 export const sourceVideoFrameExtractRequestS3Key = (jobId: string): string =>
   `logs/${jobId}/source-video-insight/frame-extract-request.json`;
 
@@ -76,4 +86,11 @@ export const runSourceVideoFrameExtractInputSchema = z.object({
 
 export type RunSourceVideoFrameExtractInput = z.infer<
   typeof runSourceVideoFrameExtractInputSchema
+>;
+
+/** 직접 invoke되는 워커 페이로드(Admin 뮤테이션 입력과 동일) */
+export const sourceVideoFrameExtractWorkerEventSchema =
+  runSourceVideoFrameExtractInputSchema;
+export type SourceVideoFrameExtractWorkerEvent = z.infer<
+  typeof sourceVideoFrameExtractWorkerEventSchema
 >;

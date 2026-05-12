@@ -4,6 +4,49 @@ import { tmpdir } from "node:os";
 
 const clamp = (value, min, max) => Math.min(max, Math.max(min, value));
 
+const stripUrlQueryAndHash = (value) => {
+  const s = String(value).trim();
+  const noHash = s.split("#")[0] ?? "";
+  return (noHash.split("?")[0] ?? "").trim();
+};
+
+/**
+ * GetObject용 키: 공백·선행 `/` 제거, `s3://bucket/key`는 bucket이 일치할 때만 key만 사용.
+ * 잘못된 `?…`가 붙은 키로 로컬 파일명이 `source.mp4?…`가 되어 ffmpeg 입력과 어긋나는 문제를 막는다.
+ */
+const normalizeSourceVideoObjectKey = (rawKey, expectedBucketName) => {
+  let key = stripUrlQueryAndHash(rawKey);
+  if (!key) {
+    throw new Error("SOURCE_VIDEO_S3_KEY is empty after normalization");
+  }
+  key = key.replace(/^\/+/, "");
+  const m = key.match(/^s3:\/\/([^/]+)\/(.+)$/i);
+  if (m) {
+    const bucket = m[1];
+    const rest = (m[2] ?? "").replace(/^\/+/, "");
+    if (
+      expectedBucketName &&
+      bucket.toLowerCase() !== String(expectedBucketName).toLowerCase()
+    ) {
+      throw new Error(
+        `SOURCE_VIDEO_S3_KEY uses bucket "${bucket}" but ASSETS_BUCKET_NAME is "${expectedBucketName}"`,
+      );
+    }
+    return rest;
+  }
+  return key;
+};
+
+/** 로컬 임시 파일 확장자 (path.extname은 `?query`까지 확장자로 잡을 수 있음) */
+const inferVideoFileExtension = (objectKey) => {
+  const base = objectKey.split("/").pop() ?? "";
+  const match = base.match(/\.(mp4|mov|webm|m4v)$/i);
+  if (match) {
+    return `.${match[1].toLowerCase()}`;
+  }
+  return ".mp4";
+};
+
 const parsePtsTimesFromFfmpegLog = (text) => {
   if (!text || typeof text !== "string") {
     return [];
@@ -292,6 +335,7 @@ export async function extractSourceVideoFrames(input) {
   const {
     jobId,
     sourceVideoS3Key,
+    assetsBucketName,
     storageRepo,
     mediaToolsRepo,
     sampleIntervalSec: rawInterval,
@@ -327,15 +371,45 @@ export async function extractSourceVideoFrames(input) {
       ? "SCENE_CUT"
       : "UNIFORM";
 
+  const objectKey = normalizeSourceVideoObjectKey(
+    sourceVideoS3Key,
+    assetsBucketName,
+  );
+  const logPhase = (phase, detail) => {
+    console.error(
+      JSON.stringify({
+        fargateSourceVideoExtract: true,
+        phase,
+        jobId,
+        ...detail,
+        at: new Date().toISOString(),
+      }),
+    );
+  };
+  logPhase("normalized_key", {
+    objectKey,
+    rawKeyLength: String(sourceVideoS3Key).length,
+  });
   const workDir = await fs.mkdtemp(path.join(tmpdir(), `svf-${jobId}-`));
   try {
-    const ext = path.extname(sourceVideoS3Key) || ".mp4";
+    const ext = inferVideoFileExtension(objectKey);
     const localVideo = path.join(workDir, `source${ext}`);
-    await storageRepo.downloadObject(sourceVideoS3Key, localVideo);
+    await storageRepo.downloadObject(objectKey, localVideo);
+    const st = await fs.stat(localVideo);
+    if (!st.isFile() || st.size < 1) {
+      throw new Error(
+        `downloaded source video is missing or empty at ${localVideo} (S3 key: ${objectKey})`,
+      );
+    }
+    logPhase("downloaded", {
+      localVideo,
+      bytes: st.size,
+      strategy,
+    });
 
     const common = {
       jobId,
-      sourceVideoS3Key,
+      sourceVideoS3Key: objectKey,
       storageRepo,
       mediaToolsRepo,
       localVideo,
@@ -345,7 +419,9 @@ export async function extractSourceVideoFrames(input) {
     };
 
     if (strategy === "SCENE_CUT") {
-      return extractSceneCutFrames({
+      // `return await` 필수: await 없이 Promise만 반환하면 `finally`가 ffmpeg 끝나기 전에
+      // workDir를 지워 source.mp4 가 사라진다.
+      return await extractSceneCutFrames({
         ...common,
         sceneThreshold,
         minSceneGapSec,
@@ -353,7 +429,7 @@ export async function extractSourceVideoFrames(input) {
       });
     }
 
-    return extractUniformFrames(common);
+    return await extractUniformFrames(common);
   } finally {
     await fs.rm(workDir, { recursive: true, force: true }).catch(() => {});
   }
