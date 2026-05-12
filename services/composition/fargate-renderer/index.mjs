@@ -6,6 +6,7 @@ import {
   runCommand,
 } from "./repo/media-tools-repo.mjs";
 import { createRenderFailureResult } from "./mapper/render-result.mjs";
+import { extractSourceVideoFrames } from "./usecase/extract-source-video-frames.mjs";
 import { extractYoutubeTranscript } from "./usecase/extract-youtube-transcript.mjs";
 import { postProcessVoice } from "./usecase/post-process-voice.mjs";
 import { runRenderTask } from "./usecase/run-render-task.mjs";
@@ -32,6 +33,23 @@ function requireEnv(name) {
 }
 
 async function runSelectedTask() {
+  if (taskMode === "EXTRACT_SOURCE_VIDEO_FRAMES") {
+    return extractSourceVideoFrames({
+      jobId,
+      sourceVideoS3Key: requireEnv("SOURCE_VIDEO_S3_KEY"),
+      sampleIntervalSec: Number(process.env.SAMPLE_INTERVAL_SEC ?? "2"),
+      maxFrames: Number(process.env.MAX_FRAMES ?? "12"),
+      extractionStrategy:
+        process.env.EXTRACTION_STRATEGY?.trim().toUpperCase() === "SCENE_CUT"
+          ? "SCENE_CUT"
+          : "UNIFORM",
+      sceneThreshold: Number(process.env.SCENE_THRESHOLD ?? "0.35"),
+      minSceneGapSec: Number(process.env.MIN_SCENE_GAP_SEC ?? "0.4"),
+      storageRepo,
+      mediaToolsRepo,
+    });
+  }
+
   if (taskMode === "YOUTUBE_TRANSCRIPT") {
     return extractYoutubeTranscript({
       jobId,
@@ -69,6 +87,9 @@ async function main() {
 }
 
 function getFailureProvider(taskMode) {
+  if (taskMode === "EXTRACT_SOURCE_VIDEO_FRAMES") {
+    return "fargate-ffmpeg-frame-extract";
+  }
   if (taskMode === "YOUTUBE_TRANSCRIPT") {
     return "fargate-yt-dlp";
   }

@@ -98,6 +98,7 @@ const resolveSceneJsonPromptOverride = (
 export const buildSceneJson = async (
   event: JobPlanResult,
   deps: BuildSceneJsonDeps = {},
+  options?: { sourceVideoFrameContextAppend?: string },
 ): Promise<SceneJson> => {
   const generateStructuredData =
     deps.generateStructuredData ?? generateStepStructuredData;
@@ -105,6 +106,13 @@ export const buildSceneJson = async (
   const promptTemplateOverride = resolveSceneJsonPromptOverride(
     event.resolvedPolicy,
   );
+
+  const baseBrief = softenMarkdownFencesForPrompt(event.creativeBrief ?? "");
+  const append = options?.sourceVideoFrameContextAppend?.trim();
+  const creativeBrief =
+    append && append.length > 0
+      ? `${baseBrief}\n\n---\nSource video frame extraction (for scene authoring)\n---\n${append}`
+      : baseBrief;
 
   const result = await generateStructuredData({
     jobId: event.jobId,
@@ -116,7 +124,7 @@ export const buildSceneJson = async (
       stylePreset: event.stylePreset,
       ...(event.presetId ? { presetId: event.presetId } : {}),
       ...presetVariables,
-      creativeBrief: softenMarkdownFencesForPrompt(event.creativeBrief ?? ""),
+      creativeBrief,
     },
     ...(promptTemplateOverride ? { promptTemplateOverride } : {}),
     validate: validateSceneJson,

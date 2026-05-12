@@ -9,6 +9,10 @@ import {
 import { getJsonFromS3, putJsonToS3 } from "../../aws/runtime";
 import { setJobExecutionProviderTaskArn } from "../../store/job-execution";
 import { pollUntil } from "../http/retry";
+import {
+  sourceVideoFrameExtractRequestS3Key,
+  sourceVideoFrameExtractResultS3Key,
+} from "../../contracts/source-video-insight";
 
 const region = process.env.AWS_REGION ?? "ap-northeast-2";
 const ecsClient = new ECSClient({ region });
@@ -29,6 +33,19 @@ type FargateVoiceAdjustmentResult = Record<string, unknown> & {
   durationSec: number;
   provider: string;
   providerRenderId?: string | null;
+  failed?: boolean;
+  message?: string;
+};
+
+type FargateSourceVideoFrameExtractResult = Record<string, unknown> & {
+  provider: string;
+  sourceVideoS3Key: string;
+  extractionStrategy: "UNIFORM" | "SCENE_CUT";
+  sampleIntervalSec: number;
+  maxFrames: number;
+  cutTimesSec?: number[];
+  frames: Array<{ offsetSec: number; imageS3Key: string }>;
+  extractedAt: string;
   failed?: boolean;
   message?: string;
 };
@@ -373,6 +390,61 @@ export const adjustVoiceWithFargate = async (input: {
   if (!typedResult.voiceS3Key || typeof typedResult.durationSec !== "number") {
     throw new Error(
       "Fargate voice postprocess completed without a result payload",
+    );
+  }
+  return {
+    ...typedResult,
+    providerRenderId: taskArn,
+  };
+};
+
+export const extractSourceVideoFramesWithFargate = async (input: {
+  jobId: string;
+  sourceVideoS3Key: string;
+  sampleIntervalSec?: number;
+  maxFrames?: number;
+  extractionStrategy?: "UNIFORM" | "SCENE_CUT";
+  sceneThreshold?: number;
+  minSceneGapSec?: number;
+}): Promise<FargateSourceVideoFrameExtractResult> => {
+  const resultS3Key = sourceVideoFrameExtractResultS3Key(input.jobId);
+  const strategy = input.extractionStrategy ?? "UNIFORM";
+  const { result, taskArn } = await runFargateTask({
+    jobId: input.jobId,
+    resultS3Key,
+    requestLogKey: sourceVideoFrameExtractRequestS3Key(input.jobId),
+    requestPayload: {
+      sourceVideoS3Key: input.sourceVideoS3Key,
+      sampleIntervalSec: input.sampleIntervalSec ?? 2,
+      maxFrames: input.maxFrames ?? 12,
+      extractionStrategy: strategy,
+      sceneThreshold: input.sceneThreshold ?? 0.35,
+      minSceneGapSec: input.minSceneGapSec ?? 0.4,
+      resultS3Key,
+    },
+    containerEnvironment: [
+      { name: "TASK_MODE", value: "EXTRACT_SOURCE_VIDEO_FRAMES" },
+      { name: "SOURCE_VIDEO_S3_KEY", value: input.sourceVideoS3Key },
+      {
+        name: "SAMPLE_INTERVAL_SEC",
+        value: String(input.sampleIntervalSec ?? 2),
+      },
+      { name: "MAX_FRAMES", value: String(input.maxFrames ?? 12) },
+      { name: "EXTRACTION_STRATEGY", value: strategy },
+      {
+        name: "SCENE_THRESHOLD",
+        value: String(input.sceneThreshold ?? 0.35),
+      },
+      {
+        name: "MIN_SCENE_GAP_SEC",
+        value: String(input.minSceneGapSec ?? 0.4),
+      },
+    ],
+  });
+  const typedResult = result as FargateSourceVideoFrameExtractResult;
+  if (!Array.isArray(typedResult.frames) || typedResult.frames.length === 0) {
+    throw new Error(
+      "Fargate source video frame extract completed without frames",
     );
   }
   return {

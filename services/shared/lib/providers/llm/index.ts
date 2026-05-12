@@ -1,5 +1,9 @@
 import { generateOpenAiStructuredData } from "./openai";
 import { generateBedrockStructuredData } from "./bedrock";
+export {
+  invokeBedrockAnthropicWithVisionJpegs,
+  type BedrockVisionJpegPart,
+} from "./bedrock-vision";
 import type {
   GenerateStructuredDataResult,
   LlmPromptTemplate,

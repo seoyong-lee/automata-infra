@@ -153,6 +153,21 @@ type Mutation {
   잡 전체 단일 B-roll 영상. 렌더 시 씬 타임라인 [startSec,endSec] 구간만 잘라 쓰고, 씬별 음성·자막은 기존과 동일.
   """
   setJobMasterVideo(input: SetJobMasterVideoInput!): JobDraftDetail!
+  """
+  소스 영상에서 대표 프레임을 추출해 S3에 저장한다 (Vision·쇼츠 대본 파이프라인 1단계).
+  `sourceVideoS3Key` 생략 시 잡의 `masterVideoS3Key`를 사용한다. 기존 JOB_PLAN~합성 플로우와 독립.
+  """
+  runSourceVideoFrameExtract(
+    input: RunSourceVideoFrameExtractInput!
+  ): SourceVideoFrameExtractResult!
+  """
+  `runSourceVideoFrameExtract` 결과(S3 JSON)와 잡 플랜을 바탕으로 씬 JSON을 생성·저장한다.
+  기본은 샘플 JPEG에 Bedrock Vision으로 캡션을 붙인 뒤, 기존 scene-json LLM 스텝에 컨텍스트를 합친다.
+  `skipVision: true`면 S3 키·타임스탬프만 전달한다.
+  성공 시 기본으로 `jobs/…/source-video-insight/frames/*.jpg`만 삭제하고 `frame-extract-result.json`은 offset 요약 + `frameJpegsPurgedAt`만 남긴다.
+  `retainFrameJpegs: true`면 JPEG을 남긴다.
+  """
+  runSourceVideoSceneJson(input: RunSourceVideoSceneJsonInput!): AdminJob!
   setSceneVoiceProfile(input: SetSceneVoiceProfileInput!): JobDraftDetail!
   """
   씬 에셋을 검증하고 render plan + final composition(Shotstack)를 실행한다.
@@ -1388,6 +1403,57 @@ input SetJobMasterVideoInput {
   jobId: ID!
   """assets/{jobId}/master/… 업로드 키. 비우면 마스터 모드를 해제한다."""
   s3Key: String
+}
+
+enum SourceVideoFrameExtractionStrategy {
+  UNIFORM
+  SCENE_CUT
+}
+
+input RunSourceVideoFrameExtractInput {
+  jobId: ID!
+  """비우면 잡에 저장된 masterVideoS3Key 사용"""
+  sourceVideoS3Key: String
+  """프레임 샘플 간격(초). UNIFORM 및 SCENE_CUT 폴백·보강에 사용. 기본 2"""
+  sampleIntervalSec: Float
+  """최대 프레임 수(상한). 기본 12, 최대 48"""
+  maxFrames: Int
+  """UNIFORM: 고정 간격. SCENE_CUT: 장면 전환 감지 후 대표 시점(부족 시 균등 보강). 기본 UNIFORM"""
+  extractionStrategy: SourceVideoFrameExtractionStrategy
+  """SCENE_CUT 전용. scene 점수 임계(0.12~0.85). 기본 약 0.35"""
+  sceneThreshold: Float
+  """SCENE_CUT 전용. 인접 컷 병합 최소 간격(초). 기본 0.4"""
+  minSceneGapSec: Float
+}
+
+input RunSourceVideoSceneJsonInput {
+  jobId: ID!
+  """비우면 logs/{jobId}/source-video-insight/frame-extract-result.json"""
+  insightResultS3Key: String
+  """true면 Vision 호출 없이 프레임 메타만 scene-json 프롬프트에 포함"""
+  skipVision: Boolean
+  """true면 성공 후에도 샘플 JPEG 유지(기본 false: Vision·씬 JSON 후 JPEG 삭제, manifest JSON만 갱신)"""
+  retainFrameJpegs: Boolean
+}
+
+type SourceVideoFrameSample {
+  offsetSec: Float!
+  imageS3Key: String!
+}
+
+type SourceVideoFrameExtractResult {
+  jobId: ID!
+  sourceVideoS3Key: String!
+  extractionStrategy: SourceVideoFrameExtractionStrategy!
+  sampleIntervalSec: Float!
+  maxFrames: Int!
+  """SCENE_CUT에서 병합된 컷 후보 시각(최대 64). UNIFORM은 빈 배열"""
+  cutTimesSec: [Float!]!
+  """Fargate가 기록한 전체 결과 JSON S3 키"""
+  insightResultS3Key: String!
+  frames: [SourceVideoFrameSample!]!
+  provider: String
+  extractedAt: AWSDateTime
 }
 
 input SetSceneVoiceProfileInput {

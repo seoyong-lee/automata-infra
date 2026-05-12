@@ -18,11 +18,12 @@ export const handleRunSceneJsonCatch = (
   error: unknown,
   actor: string,
   jobId: string | undefined,
+  operation: string = "runSceneJson",
 ): never => {
   const message = rawErrorMessage(error);
   console.error(
     JSON.stringify({
-      event: "runSceneJson_handler_error",
+      event: `${operation}_handler_error`,
       jobId,
       message,
       stack:
@@ -33,7 +34,7 @@ export const handleRunSceneJsonCatch = (
   );
   const mapped = toGraphqlResolverError(error);
   logResolverAudit({
-    operation: "runSceneJson",
+    operation,
     operationType: "mutation",
     phase: "failed",
     actor,

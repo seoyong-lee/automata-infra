@@ -9,6 +9,8 @@ import { run as selectSceneVideoCandidate } from "./select-scene-video-candidate
 import { run as selectSceneVoiceCandidate } from "./select-scene-voice-candidate";
 import { run as setJobBackgroundMusic } from "./set-job-background-music";
 import { run as setJobMasterVideo } from "./set-job-master-video";
+import { run as runSourceVideoFrameExtract } from "./run-source-video-frame-extract";
+import { run as runSourceVideoSceneJson } from "./run-source-video-scene-json";
 import { run as setJobDefaultVoiceProfile } from "./set-job-default-voice-profile";
 import { run as setSceneVoiceProfile } from "./set-scene-voice-profile";
 import { run as updateSceneJson } from "./update-scene-json";
@@ -31,6 +33,8 @@ const routes: GroupedResolverRoutes = {
   setJobDefaultVoiceProfile,
   setJobBackgroundMusic,
   setJobMasterVideo,
+  runSourceVideoFrameExtract,
+  runSourceVideoSceneJson,
   setSceneVoiceProfile,
 };
 

@@ -58,6 +58,8 @@ type CreatePublishGraphqlApiProps = {
   setJobDefaultVoiceProfileResolver: lambda.IFunction;
   setJobBackgroundMusicResolver: lambda.IFunction;
   setJobMasterVideoResolver: lambda.IFunction;
+  runSourceVideoFrameExtractResolver: lambda.IFunction;
+  runSourceVideoSceneJsonResolver: lambda.IFunction;
   setSceneVoiceProfileResolver: lambda.IFunction;
   runFinalCompositionResolver: lambda.IFunction;
   cancelFinalCompositionResolver: lambda.IFunction;
@@ -440,6 +442,20 @@ export const createPublishGraphqlApi = (
     "setJobMasterVideo",
     "Mutation",
     props.setJobMasterVideoResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunSourceVideoFrameExtract",
+    "runSourceVideoFrameExtract",
+    "Mutation",
+    props.runSourceVideoFrameExtractResolver,
+  );
+  addLambdaResolver(
+    graphqlApi,
+    "RunSourceVideoSceneJson",
+    "runSourceVideoSceneJson",
+    "Mutation",
+    props.runSourceVideoSceneJsonResolver,
   );
   addLambdaResolver(
     graphqlApi,
