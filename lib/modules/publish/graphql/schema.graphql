@@ -162,7 +162,8 @@ type Mutation {
   ): SourceVideoFrameExtractResult!
   """
   `runSourceVideoFrameExtract` 결과(S3 JSON)와 잡 플랜을 바탕으로 씬 JSON을 생성·저장한다.
-  기본은 샘플 JPEG에 Bedrock Vision으로 캡션을 붙인 뒤, 기존 scene-json LLM 스텝에 컨텍스트를 합친다.
+  Vision: 기본 AUTO는 `GEMINI_VISION_SECRET_ID`가 있으면 Gemini 2.5 Flash-Lite(저비용), 없으면 Bedrock(씬 JSON 모델) 멀티모달.
+  `visionProvider`로 강제할 수 있다. 이후 기존 scene-json LLM 스텝에 컨텍스트를 합친다.
   `skipVision: true`면 S3 키·타임스탬프만 전달한다.
   성공 시 기본으로 `jobs/…/source-video-insight/frames/*.jpg`만 삭제하고 `frame-extract-result.json`은 offset 요약 + `frameJpegsPurgedAt`만 남긴다.
   `retainFrameJpegs: true`면 JPEG을 남긴다.
@@ -1426,6 +1427,12 @@ input RunSourceVideoFrameExtractInput {
   minSceneGapSec: Float
 }
 
+enum SourceVideoVisionProvider {
+  AUTO
+  GEMINI
+  BEDROCK
+}
+
 input RunSourceVideoSceneJsonInput {
   jobId: ID!
   """비우면 logs/{jobId}/source-video-insight/frame-extract-result.json"""
@@ -1434,6 +1441,8 @@ input RunSourceVideoSceneJsonInput {
   skipVision: Boolean
   """true면 성공 후에도 샘플 JPEG 유지(기본 false: Vision·씬 JSON 후 JPEG 삭제, manifest JSON만 갱신)"""
   retainFrameJpegs: Boolean
+  """Vision 백엔드. 생략 시 Lambda 환경 `SOURCE_VIDEO_VISION_PROVIDER` 또는 AUTO 규칙"""
+  visionProvider: SourceVideoVisionProvider
 }
 
 type SourceVideoFrameSample {

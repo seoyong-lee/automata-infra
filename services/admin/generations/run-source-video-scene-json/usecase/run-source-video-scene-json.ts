@@ -48,6 +48,7 @@ export const runSourceVideoSceneJsonCore = async (
     targetLanguage: sceneJsonInput.targetLanguage,
     extract,
     skipVision: parsed.skipVision === true,
+    visionProvider: parsed.visionProvider,
   });
 
   const sceneJson = await buildSceneJson(sceneJsonInput, {}, {

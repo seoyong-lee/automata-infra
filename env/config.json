@@ -27,5 +27,6 @@
   "shotstackSecretId": "automata-studio/shotstack",
   "googleOAuthSecretId": "automata-studio/google-oauth-admin",
   "youtubeDataApiSecretId": "automata-studio/youtube",
-  "pexelsSecretId": "automata-studio/pexels"
+  "pexelsSecretId": "automata-studio/pexels",
+  "geminiVisionSecretId": "automata-studio/gemini-vision"
 }

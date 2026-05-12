@@ -1,4 +1,5 @@
 import { z } from "zod";
+import { sourceVideoVisionProviderSchema } from "./source-video-vision";
 
 export const sourceVideoVisionCaptionRowSchema = z.object({
   offsetSec: z.number().nonnegative(),
@@ -16,6 +17,11 @@ export const runSourceVideoSceneJsonInputSchema = z.object({
   skipVision: z.boolean().optional(),
   /** true면 성공 후에도 샘플 JPEG를 S3에 남긴다(디버그·재시도용). 기본 false = 정리 */
   retainFrameJpegs: z.boolean().optional(),
+  /**
+   * AUTO: `GEMINI_VISION_SECRET_ID` 있으면 Gemini Flash-Lite, 없으면 Bedrock(씬 JSON 모델).
+   * GEMINI/BEDROCK: 강제.
+   */
+  visionProvider: sourceVideoVisionProviderSchema.optional(),
 });
 
 export type RunSourceVideoSceneJsonInput = z.infer<

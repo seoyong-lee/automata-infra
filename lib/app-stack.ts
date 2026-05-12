@@ -170,6 +170,10 @@ export class AppStack extends Stack {
       BYTEPLUS_VIDEO_SECRET_ID: props.envConfig.byteplusVideoSecretId ?? "",
       PEXELS_SECRET_ID: props.envConfig.pexelsSecretId ?? "",
       OPENAI_SECRET_ID: props.envConfig.openAiSecretId,
+      GEMINI_VISION_SECRET_ID:
+        props.envConfig.geminiVisionSecretId ?? "automata-studio/gemini-vision",
+      SOURCE_VIDEO_VISION_PROVIDER:
+        props.envConfig.sourceVideoVisionProvider ?? "AUTO",
       RUNWAY_SECRET_ID: props.envConfig.runwaySecretId,
       ELEVENLABS_SECRET_ID: props.envConfig.elevenLabsSecretId,
       SHOTSTACK_SECRET_ID: props.envConfig.shotstackSecretId,

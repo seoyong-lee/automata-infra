@@ -27,6 +27,13 @@ export type VideoFactoryEnvConfig = {
   pexelsSecretId?: string;
   runwaySecretId: string;
   openAiSecretId: string;
+  /**
+   * 소스 영상 키프레임 Vision(Gemini Flash-Lite). JSON `{ "apiKey": "...", "model?": "gemini-2.5-flash-lite" }`
+   * CDK에서 생략 시 `automata-studio/gemini-vision` 이 기본이다. 비우려면 `""` 로 명시.
+   */
+  geminiVisionSecretId?: string;
+  /** `AUTO` | `GEMINI` | `BEDROCK` — Vision 백엔드(미설정 시 AUTO) */
+  sourceVideoVisionProvider?: string;
   elevenLabsSecretId: string;
   shotstackSecretId: string;
   googleOAuthSecretId?: string;
