@@ -125,6 +125,82 @@ const augmentTimesToMinCount = (
   return mergeCloseTimes(merged, minSep).slice(0, maxCount);
 };
 
+/**
+ * SCENE_CUT 단일 JPEG. `-ss` 는 `-i` 앞(입력 탐색)으로 두고, EOF 근처·잘못된 시각은 클램프·재시도한다.
+ * (`-i` 뒤 `-ss`만 쓰면 끝 구간에서 출력 파일이 안 생기고 exit 0인 경우가 있어 upload 시 ENOENT가 난다.)
+ */
+const extractSceneCutSingleFrame = async ({
+  mediaToolsRepo,
+  localVideo,
+  outFile,
+  requestedOffsetSec,
+  durationSec,
+  cutIndex,
+}) => {
+  const upper =
+    Number.isFinite(durationSec) && durationSec > 0.12
+      ? durationSec - 0.08
+      : null;
+  let primary = Number.isFinite(requestedOffsetSec) ? requestedOffsetSec : 0;
+  if (primary < 0) {
+    primary = 0;
+  }
+  if (upper !== null) {
+    primary = Math.min(primary, upper);
+  }
+  const attempts = [primary];
+  if (upper !== null) {
+    attempts.push(Math.max(0, upper - 0.05));
+    attempts.push(Math.max(0, upper - 0.2));
+  }
+  if (primary > 0.02) {
+    attempts.push(0);
+  }
+  const uniq = [
+    ...new Set(
+      attempts
+        .filter((t) => Number.isFinite(t) && t >= 0)
+        .map((t) => Math.round(t * 1000) / 1000),
+    ),
+  ];
+
+  let lastErr = "";
+  for (const sseof of uniq) {
+    await fs.rm(outFile, { force: true }).catch(() => {});
+    try {
+      await mediaToolsRepo.runCommand("ffmpeg", [
+        "-hide_banner",
+        "-loglevel",
+        "error",
+        "-y",
+        "-ss",
+        String(sseof),
+        "-i",
+        localVideo,
+        "-frames:v",
+        "1",
+        "-q:v",
+        "3",
+        outFile,
+      ]);
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+      continue;
+    }
+    try {
+      const st = await fs.stat(outFile);
+      if (st.isFile() && st.size > 0) {
+        return;
+      }
+    } catch (e) {
+      lastErr = e instanceof Error ? e.message : String(e);
+    }
+  }
+  throw new Error(
+    `scene-cut frame ${cutIndex} (requested ${requestedOffsetSec}s, duration ${String(durationSec)}): no JPEG after seeks [${uniq.join(", ")}]s. lastError=${lastErr}`,
+  );
+};
+
 async function detectSceneCutTimesSec(input) {
   const { localVideo, mediaToolsRepo, sceneThreshold, minSceneGapSec } =
     input;
@@ -277,7 +353,37 @@ async function extractSceneCutFrames(input) {
   }
 
   if (selected.length === 0) {
-    return extractUniformFrames({
+    return await extractUniformFrames({
+      jobId,
+      sourceVideoS3Key,
+      storageRepo,
+      mediaToolsRepo,
+      localVideo,
+      workDir,
+      sampleIntervalSec,
+      maxFrames,
+    });
+  }
+
+  const safeUpper =
+    Number.isFinite(durationSec) && durationSec > 0.12
+      ? durationSec - 0.05
+      : null;
+  selected = mergeCloseTimes(
+    [
+      ...new Set(
+        selected
+          .filter((t) => Number.isFinite(t) && t >= 0)
+          .map((t) =>
+            safeUpper === null ? t : Math.min(t, safeUpper),
+          ),
+      ),
+    ].sort((a, b) => a - b),
+    minSceneGapSec * 0.35,
+  ).slice(0, maxFrames);
+
+  if (selected.length === 0) {
+    return await extractUniformFrames({
       jobId,
       sourceVideoS3Key,
       storageRepo,
@@ -295,21 +401,14 @@ async function extractSceneCutFrames(input) {
   for (let i = 0; i < selected.length; i += 1) {
     const offsetSec = Math.round(selected[i] * 1000) / 1000;
     const outFile = path.join(workDir, `cut-${String(i).padStart(3, "0")}.jpg`);
-    await mediaToolsRepo.runCommand("ffmpeg", [
-      "-hide_banner",
-      "-loglevel",
-      "error",
-      "-y",
-      "-i",
+    await extractSceneCutSingleFrame({
+      mediaToolsRepo,
       localVideo,
-      "-ss",
-      String(offsetSec),
-      "-frames:v",
-      "1",
-      "-q:v",
-      "3",
       outFile,
-    ]);
+      requestedOffsetSec: offsetSec,
+      durationSec,
+      cutIndex: i,
+    });
     const key = `${prefix}/t-${String(Math.round(offsetSec * 1000)).padStart(8, "0")}.jpg`;
     await storageRepo.uploadFile(key, outFile, "image/jpeg");
     frames.push({ offsetSec, imageS3Key: key });
