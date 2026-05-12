@@ -119,6 +119,10 @@ export const renderPlanTextOverlayStyleSchema = z.object({
   opacity: z.number().min(0).max(1).optional(),
   strokeColor: z.string().trim().min(1).optional(),
   strokeWidth: z.number().min(0).optional(),
+  /** ASS `\\shad` (0 = off). */
+  shadowDepth: z.number().int().min(0).max(20).optional(),
+  /** ASS `\\4c` shadow fill. */
+  shadowColor: z.string().trim().min(1).optional(),
   align: z.enum(["left", "center", "right"]).optional(),
   /** 1 = single line (truncate with ellipsis if over width budget). Omit = wrap to multiple lines. */
   maxLines: z.number().int().min(1).max(20).optional(),

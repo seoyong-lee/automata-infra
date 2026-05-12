@@ -96,6 +96,28 @@ function resolveTextOverlayAlignment(align) {
   return 5;
 }
 
+function buildTextOverlayStyleAssTags(overlay, outputSettings) {
+  const style = overlay.style ?? {};
+  const bold = style.fontWeight === "bold" ? 1 : 0;
+  const fs = resolveOverlayFontSize(overlay, outputSettings);
+  const fn = resolveAssSubtitleFontFamily(style.fontFamily ?? "Clear Sans");
+  const primary = assColor(
+    style.color ?? "#FFFFFF",
+    Number(style.opacity ?? 1),
+  );
+  const borderColor = assColor(style.strokeColor ?? "#000000", 1);
+  const borderW = Math.max(0, Number(style.strokeWidth ?? 0));
+  const shadowD = clampNumber(style.shadowDepth, 0, 20, 0);
+  const shadowC = assColor(style.shadowColor ?? "#000000", 1);
+  let tags = `\\fn${fn}\\fs${fs}\\b${bold}\\c${primary}\\3c${borderColor}\\bord${borderW}`;
+  if (shadowD > 0) {
+    tags += `\\shad${shadowD}\\4c${shadowC}`;
+  } else {
+    tags += "\\shad0";
+  }
+  return tags;
+}
+
 function resolveTextOverlayPosition(overlay, outputSettings) {
   const align = overlay.style?.align ?? "center";
   const xRatio =
@@ -429,9 +451,9 @@ function getSceneTextOverlayEvents(
     .map(({ overlay, startSec, endSec }) => {
       const position = resolveTextOverlayPosition(overlay, outputSettings);
       const margins = resolveOverlayMargins(overlay, outputSettings);
-      const bold = overlay.style?.fontWeight === "bold" ? 1 : 0;
       const wrappedText = wrapOverlayText(overlay.text, overlay, outputSettings);
-      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})\\fn${String(overlay.style?.fontFamily ?? "Clear Sans").replace(/,/g, " ")}\\fs${resolveOverlayFontSize(overlay, outputSettings)}\\b${bold}\\c${assColor(overlay.style?.color ?? "#FFFFFF", Number(overlay.style?.opacity ?? 1))}\\3c${assColor(overlay.style?.strokeColor ?? "#000000", 1)}\\bord${Math.max(0, Number(overlay.style?.strokeWidth ?? 0))}}${escapeAssText(wrappedText)}`;
+      const styleTags = buildTextOverlayStyleAssTags(overlay, outputSettings);
+      return `Dialogue: ${Number(overlay.zIndex ?? 5)},${formatAssTime(startSec)},${formatAssTime(endSec)},Default,,${margins.left},${margins.right},0,,{\\an${position.alignment}\\pos(${position.x},${position.y})${styleTags}}${escapeAssText(wrappedText)}`;
     });
 }
 

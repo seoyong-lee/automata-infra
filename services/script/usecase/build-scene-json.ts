@@ -111,7 +111,16 @@ export const buildSceneJson = async (
   const append = options?.sourceVideoFrameContextAppend?.trim();
   const creativeBrief =
     append && append.length > 0
-      ? `${baseBrief}\n\n---\nSource video frame extraction (for scene authoring)\n---\n${append}`
+      ? [
+          baseBrief,
+          "",
+          "---",
+          "Source video frame extraction (for scene authoring; secondary reference)",
+          "---",
+          append,
+          "",
+          "Instructions: The author's notes above (creativeBrief) plus titleIdea and other inputs are the primary brief. Use the extraction block only as factual anchors (timestamps, optional Vision captions)—do not treat it as the script or copy it verbatim into scenes unless the brief asks for that.",
+        ].join("\n")
       : baseBrief;
 
   const result = await generateStructuredData({

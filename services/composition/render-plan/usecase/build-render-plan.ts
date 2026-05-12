@@ -284,6 +284,17 @@ const buildUserTextOverlay = (
     0.22,
     Math.max(0.04, (fontSize * 1.8) / output.size.height),
   );
+  const fontFamily =
+    overlay.fontFamily?.trim() ||
+    resolveFontFamilyFromPreset(overlay.fontPreset);
+  const strokeW =
+    typeof overlay.strokeWidth === "number"
+      ? Math.max(0, Math.min(16, overlay.strokeWidth))
+      : 0;
+  const shadowD =
+    typeof overlay.shadowDepth === "number"
+      ? Math.max(0, Math.min(20, Math.round(overlay.shadowDepth)))
+      : 0;
   return {
     overlayId: overlay.overlayId,
     type: "text",
@@ -295,12 +306,18 @@ const buildUserTextOverlay = (
       height: normalizedHeight,
     },
     style: {
-      fontFamily: resolveFontFamilyFromPreset(overlay.fontPreset),
+      fontFamily,
       fontSize,
       fontWeight: overlay.fontWeight ?? "regular",
       color: overlay.color ?? DEFAULT_TEXT_OVERLAY_COLOR,
-      strokeColor: "#000000",
-      strokeWidth: 0,
+      ...(typeof overlay.opacity === "number" &&
+      Number.isFinite(overlay.opacity)
+        ? { opacity: Math.min(1, Math.max(0, overlay.opacity)) }
+        : {}),
+      strokeColor: overlay.strokeColor ?? "#000000",
+      strokeWidth: strokeW,
+      shadowDepth: shadowD,
+      shadowColor: overlay.shadowColor ?? "#000000",
       align: "center",
       ...(typeof overlay.maxLines === "number"
         ? { maxLines: overlay.maxLines }

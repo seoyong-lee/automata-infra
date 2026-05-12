@@ -476,9 +476,22 @@ type RenderTextOverlay {
   y: Float!
   width: Float
   fontPreset: String
+  """
+  ASS \\fn에 쓸 폰트 패밀리. 있으면 fontPreset보다 우선(렌더 이미지에 설치된 이름).
+  """
+  fontFamily: String
   fontWeight: String
   fontSize: Int
+  """6자리 hex (#RRGGBB)."""
   color: String
+  """0–1 불투명도. 생략 시 1."""
+  opacity: Float
+  strokeColor: String
+  strokeWidth: Float
+  """0이면 없음. ASS \\shad 깊이(픽셀 근사)."""
+  shadowDepth: Int
+  """그림자 색(6자리 hex)."""
+  shadowColor: String
   maxLines: Int
 }
 
@@ -1249,9 +1262,15 @@ input RenderTextOverlayInput {
   y: Float!
   width: Float
   fontPreset: String
+  fontFamily: String
   fontWeight: String
   fontSize: Int
   color: String
+  opacity: Float
+  strokeColor: String
+  strokeWidth: Float
+  shadowDepth: Int
+  shadowColor: String
   maxLines: Int
 }
 

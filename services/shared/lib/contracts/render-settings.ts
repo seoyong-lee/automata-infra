@@ -31,9 +31,20 @@ export const jobRenderTextOverlaySchema = z
     y: normalizedFrameScalarSchema,
     width: normalizedOverlayWidthSchema.optional(),
     fontPreset: subtitleFontPresetSchema.optional(),
+    /**
+     * ASS `\\fn`에 그대로 쓸 폰트 패밀리. 설정 시 `fontPreset`보다 우선(렌더 이미지에 설치된 이름).
+     */
+    fontFamily: z.string().trim().min(1).max(120).optional(),
     fontWeight: subtitleFontWeightSchema.optional(),
     fontSize: z.number().int().min(12).max(96).optional(),
     color: hexColorSchema.optional(),
+    /** 0–1. 생략 시 1(불투명). */
+    opacity: z.number().min(0).max(1).optional(),
+    strokeColor: hexColorSchema.optional(),
+    strokeWidth: z.number().min(0).max(16).optional(),
+    /** ASS `\\shad` 깊이(0이면 그림자 없음). */
+    shadowDepth: z.number().int().min(0).max(20).optional(),
+    shadowColor: hexColorSchema.optional(),
     maxLines: z.number().int().min(1).max(20).optional(),
   })
   .strict();
